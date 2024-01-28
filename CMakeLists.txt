@@ -4,7 +4,7 @@ project(bit-manipulation)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror)
+set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion)
 
 set(HEADERS
     src/assert.hpp

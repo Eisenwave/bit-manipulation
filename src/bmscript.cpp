@@ -295,6 +295,166 @@ Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexce
     return {};
 }
 
+// =================================================================================================
+
+Program_Data::Program_Data(std::vector<Node>&& declarations)
+    : declarations(std::move(declarations))
+{
+}
+
+Function_Data::Function_Data(std::string_view name,
+                             std::vector<Node>&& parameters,
+                             Node&& requires_clause,
+                             Node&& return_type,
+                             Node&& body)
+    : name(name)
+    , parameters(std::move(parameters))
+    , requires_clause(std::make_unique<Node>(std::move(requires_clause)))
+    , return_type(std::make_unique<Node>(std::move(return_type)))
+    , body(std::make_unique<Node>(std::move(body)))
+{
+}
+
+Function_Data::Function_Data(std::string_view name,
+                             std::vector<Node>&& parameters,
+                             Node&& return_type,
+                             Node&& body)
+    : name(name)
+    , parameters(std::move(parameters))
+    , return_type(std::make_unique<Node>(std::move(return_type)))
+    , body(std::make_unique<Node>(std::move(body)))
+{
+}
+
+Let_Const_Data Let_Const_Data::type_and_initializer(Token_Type let_or_const,
+                                                    std::string_view name,
+                                                    Node&& type,
+                                                    Node&& initializer)
+{
+    return { let_or_const == Token_Type::keyword_const, name,
+             std::make_unique<Node>(std::move(type)),
+             std::make_unique<Node>(std::move(initializer)) };
+}
+
+Let_Const_Data
+Let_Const_Data::initializer_only(Token_Type let_or_const, std::string_view name, Node&& initializer)
+{
+    return { let_or_const == Token_Type::keyword_const, name, nullptr,
+             std::make_unique<Node>(std::move(initializer)) };
+}
+
+Let_Const_Data Let_Const_Data::let_type_only(std::string_view name, Node&& type)
+{
+    return { false, name, std::make_unique<Node>(std::move(type)), nullptr };
+}
+
+Let_Const_Data::Let_Const_Data(bool is_const,
+                               std::string_view name,
+                               std::unique_ptr<Node> type,
+                               std::unique_ptr<Node> initializer)
+    : name(name)
+    , type(std::move(type))
+    , initializer(std::move(initializer))
+    , is_const(is_const)
+{
+}
+
+Assignment_Data::Assignment_Data(std::string_view name, Node&& expression)
+    : name(name)
+    , expression(std::make_unique<Node>(std::move(expression)))
+{
+}
+
+Parameter_Data::Parameter_Data(std::string_view name, Node&& type)
+    : name(name)
+    , expression(std::make_unique<Node>(std::move(type)))
+{
+}
+
+Return_Statement_Data::Return_Statement_Data(Node&& expression)
+    : expression(std::make_unique<Node>(std::move(expression)))
+{
+}
+
+Block_Statement_Data::Block_Statement_Data(std::vector<Node>&& statements)
+    : statements(std::move(statements))
+{
+}
+
+If_While_Statement_Data::If_While_Statement_Data(Node&& condition, Node&& block)
+    : condition(std::make_unique<Node>(std::move(condition)))
+    , block(std::make_unique<Node>(std::move(block)))
+{
+}
+
+For_Statement_Data::For_Statement_Data(Node&& init,
+                                       Node&& condition,
+                                       Node&& increment,
+                                       Node&& block)
+    : init(std::make_unique<Node>(std::move(init)))
+    , condition(std::make_unique<Node>(std::move(condition)))
+    , increment(std::make_unique<Node>(std::move(increment)))
+    , block(std::make_unique<Node>(std::move(block)))
+{
+}
+
+For_Statement_Data::For_Statement_Data(Node&& init, Node&& condition, Node&& block)
+    : init(std::make_unique<Node>(std::move(init)))
+    , condition(std::make_unique<Node>(std::move(condition)))
+    , block(std::make_unique<Node>(std::move(block)))
+{
+}
+
+If_Expression_Data::If_Expression_Data(Node&& left, Node&& condition, Node&& right)
+    : condition(std::make_unique<Node>(std::move(condition)))
+    , left(std::make_unique<Node>(std::move(left)))
+    , right(std::make_unique<Node>(std::move(right)))
+{
+}
+
+Binary_Expression_Data::Binary_Expression_Data(Node&& left, Node&& right, Token_Type op)
+    : left(std::make_unique<Node>(std::move(left)))
+    , right(std::make_unique<Node>(std::move(right)))
+    , op(op)
+{
+}
+
+Prefix_Expression_Data::Prefix_Expression_Data(Node&& operand, Token_Type op)
+    : operand(std::make_unique<Node>(std::move(operand)))
+    , op(op)
+{
+}
+
+Function_Call_Expression_Data::Function_Call_Expression_Data(std::string_view function,
+                                                             std::vector<Node>&& arguments)
+    : function(function)
+    , arguments(std::move(arguments))
+{
+}
+
+Type_Data Type_Data::make_bool()
+{
+    return { Type_Type::Bool, nullptr };
+}
+
+Type_Data Type_Data::make_int()
+{
+    return { Type_Type::Int, nullptr };
+}
+
+Type_Data Type_Data::make_uint(Node&& width)
+{
+    return { Type_Type::Uint, std::make_unique<Node>(std::move(width)) };
+}
+
+Type_Data::Type_Data(Type_Type type, std::unique_ptr<Node> width)
+    : width(std::move(width))
+    , type(type)
+{
+}
+
+// =================================================================================================
+
 namespace {
 
 struct Rule_Result {
@@ -327,6 +487,7 @@ public:
 
     Node_Type& operator*()
     {
+        BIT_MANIPULATION_ASSERT(has_value());
         return *operator->();
     }
 
@@ -340,7 +501,7 @@ public:
         return std::get<Node_Type>(m_data);
     }
 
-    const Grammar_Rule get_error() const
+    const Grammar_Rule& get_error() const
     {
         return std::get<Grammar_Rule>(m_data);
     }
@@ -386,34 +547,30 @@ public:
     {
     }
 
+    Parse_Result parse()
+    {
+        if (Rule_Result program = match_program()) {
+            return std::move(*program);
+        }
+        else {
+            const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
+            return Parse_Error { program.get_error(), fail_token };
+        }
+    }
+
 private:
     const Token* peek() const
     {
         return m_pos < m_tokens.size() ? &m_tokens[m_pos] : nullptr;
     }
 
-    /*
-    const Token* try_pop()
-    {
-        return m_pos < m_tokens.size() ? &m_tokens[m_pos++] : nullptr;
-    }
-    */
-
     /// @brief Advances the position of the parser by one.
     /// There must be a token to pop, otherwise this function fails.
-    /// This function can only be used safely in conjunction with `peek` or `next_equals`.
+    /// This function can only be used safely in conjunction with `peek`.
     void pop()
     {
         BIT_MANIPULATION_ASSERT(m_pos < m_tokens.size());
         m_pos += 1;
-    }
-
-    const Token* next_equals(Token_Type type) const
-    {
-        if (const Token* next = peek(); next && next->type == type) {
-            return next;
-        }
-        return nullptr;
     }
 
     /// @brief Checks whether the next token (if any) equals the expected type.
@@ -424,19 +581,12 @@ private:
     /// token doesn't match the expected type.
     const Token* expect(Token_Type type)
     {
-        const Token* next = next_equals(type);
-        if (next) {
+        if (const Token* next = peek(); next && next->type == type) {
             m_pos += 1;
+            return next;
         }
-        return next;
+        return nullptr;
     }
-
-    /*
-    void advance()
-    {
-        BIT_MANIPULATION_ASSERT(m_pos < m_tokens.size());
-        m_pos += 1;
-    }*/
 
     Attempt start_attempt()
     {
@@ -624,7 +774,7 @@ private:
         if (const Token* id = expect(Token_Type::identifier)) {
             if (expect(Token_Type::colon)) {
                 if (Rule_Result type = match_type()) {
-                    return Node { id->pos, Node_Type::function_parameter,
+                    return Node { id->pos, Node_Type::parameter,
                                   Parameter_Data { id->extract(m_source), std::move(*type) } };
                 }
             }
@@ -728,6 +878,8 @@ private:
             }
             return Grammar_Rule::block_statement;
         }
+        return if_or_while == Token_Type::keyword_if ? Grammar_Rule::if_statement
+                                                     : Grammar_Rule::while_statement;
     }
 
     Rule_Result match_for_statement()
@@ -960,6 +1112,9 @@ private:
 
 } // namespace
 
-Parse_Result parse(std::span<const Token> tokens) noexcept { }
+Parse_Result parse(std::span<const Token> tokens, std::string_view source)
+{
+    return Parser(tokens, source).parse();
+}
 
 } // namespace bit_manipulation

@@ -305,15 +305,17 @@ enum struct Token_Type {
     case shift_right:
     case bitwise_and:
     case bitwise_or:
-    case bitwise_xor: true;
+    case bitwise_xor: return true;
     default: return false;
     }
 }
 
 struct Token {
-    Source_Position pos;
-    Size length;
-    Token_Type type;
+    Source_Position pos {};
+    Size length {};
+    Token_Type type {};
+
+    [[nodiscard]] Token() = default;
 
     [[nodiscard]] Token(Source_Position pos, Size length, Token_Type type) noexcept
         : pos { pos }
@@ -402,10 +404,9 @@ namespace ast {
 struct Node;
 
 enum struct Node_Type {
-    program,
-    function,
-    function_name,
-    function_parameter,
+    program, // {function | variable}
+    function, // {parameter}, type, [requires_clause], block_statement
+    parameter,
     type,
     variable,
     statement,
@@ -424,17 +425,13 @@ enum struct Node_Type {
     id_expression,
     primary_expression,
     function_call_expression,
-    id_expression,
     literal,
 };
 
 struct Program_Data {
     std::vector<Node> declarations;
 
-    Program_Data(std::vector<Node>&& declarations)
-        : declarations(std::move(declarations))
-    {
-    }
+    Program_Data(std::vector<Node>&& declarations);
 };
 
 struct Function_Data {
@@ -448,25 +445,12 @@ struct Function_Data {
                   std::vector<Node>&& parameters,
                   Node&& requires_clause,
                   Node&& return_type,
-                  Node&& body)
-        : name(name)
-        , parameters(std::move(parameters))
-        , requires_clause(std::make_unique<Node>(std::move(requires_clause)))
-        , return_type(std::make_unique<Node>(std::move(return_type)))
-        , body(std::make_unique<Node>(std::move(body)))
-    {
-    }
+                  Node&& body);
 
     Function_Data(std::string_view name,
                   std::vector<Node>&& parameters,
                   Node&& return_type,
-                  Node&& body)
-        : name(name)
-        , parameters(std::move(parameters))
-        , return_type(std::make_unique<Node>(std::move(return_type)))
-        , body(std::make_unique<Node>(std::move(body)))
-    {
-    }
+                  Node&& body);
 };
 
 enum struct Type_Type { Bool, Int, Uint };
@@ -476,24 +460,12 @@ struct Let_Const_Data {
     static Let_Const_Data type_and_initializer(Token_Type let_or_const,
                                                std::string_view name,
                                                Node&& type,
-                                               Node&& initializer)
-    {
-        return { let_or_const == Token_Type::keyword_const, name,
-                 std::make_unique<Node>(std::move(type)),
-                 std::make_unique<Node>(std::move(initializer)) };
-    }
+                                               Node&& initializer);
 
     static Let_Const_Data
-    initializer_only(Token_Type let_or_const, std::string_view name, Node&& initializer)
-    {
-        return { let_or_const == Token_Type::keyword_const, name, nullptr,
-                 std::make_unique<Node>(std::move(initializer)) };
-    }
+    initializer_only(Token_Type let_or_const, std::string_view name, Node&& initializer);
 
-    static Let_Const_Data let_type_only(std::string_view name, Node&& type)
-    {
-        return { false, name, std::make_unique<Node>(std::move(type)), nullptr };
-    }
+    static Let_Const_Data let_type_only(std::string_view name, Node&& type);
 
     std::string_view name;
     std::unique_ptr<Node> type, initializer;
@@ -503,127 +475,74 @@ private:
     Let_Const_Data(bool is_const,
                    std::string_view name,
                    std::unique_ptr<Node> type,
-                   std::unique_ptr<Node> initializer)
-        : name(name)
-        , type(std::move(type))
-        , initializer(std::move(initializer))
-        , is_const(is_const)
-    {
-    }
+                   std::unique_ptr<Node> initializer);
 };
 
 struct Assignment_Data {
     std::string_view name;
     std::unique_ptr<Node> expression;
 
-    Assignment_Data(std::string_view name, Node&& expression)
-        : name(name)
-        , expression(std::make_unique<Node>(std::move(expression)))
-    {
-    }
+    Assignment_Data(std::string_view name, Node&& expression);
 };
 
 struct Parameter_Data {
     std::string_view name;
     std::unique_ptr<Node> expression;
 
-    Parameter_Data(std::string_view name, Node&& type)
-        : name(name)
-        , expression(std::make_unique<Node>(std::move(type)))
-    {
-    }
+    Parameter_Data(std::string_view name, Node&& type);
 };
 
 struct Return_Statement_Data {
     std::unique_ptr<Node> expression;
 
-    Return_Statement_Data(Node&& expression)
-        : expression(std::make_unique<Node>(std::move(expression)))
-    {
-    }
+    Return_Statement_Data(Node&& expression);
 };
 
 struct Block_Statement_Data {
     std::vector<Node> statements;
 
-    Block_Statement_Data(std::vector<Node>&& statements)
-        : statements(std::move(statements))
-    {
-    }
+    Block_Statement_Data(std::vector<Node>&& statements);
 };
 
 struct If_While_Statement_Data {
     std::unique_ptr<Node> condition, block;
 
-    If_While_Statement_Data(Node&& condition, Node&& block)
-        : condition(std::make_unique<Node>(condition))
-        , block(std::make_unique<Node>(block))
-    {
-    }
+    If_While_Statement_Data(Node&& condition, Node&& block);
 };
 
 struct For_Statement_Data {
     std::unique_ptr<Node> init, condition, increment, block;
 
-    For_Statement_Data(Node&& init, Node&& condition, Node&& increment, Node&& block)
-        : init(std::make_unique<Node>(init))
-        , condition(std::make_unique<Node>(condition))
-        , increment(std::make_unique<Node>(increment))
-        , block(std::make_unique<Node>(block))
-    {
-    }
+    For_Statement_Data(Node&& init, Node&& condition, Node&& increment, Node&& block);
 
-    For_Statement_Data(Node&& init, Node&& condition, Node&& block)
-        : init(std::make_unique<Node>(init))
-        , condition(std::make_unique<Node>(condition))
-        , block(std::make_unique<Node>(block))
-    {
-    }
+    For_Statement_Data(Node&& init, Node&& condition, Node&& block);
 };
 
 struct If_Expression_Data {
     std::unique_ptr<Node> condition, left, right;
 
-    If_Expression_Data(Node&& left, Node&& condition, Node&& right)
-        : left(std::make_unique<Node>(std::move(left)))
-        , condition(std::make_unique<Node>(std::move(condition)))
-        , right(std::make_unique<Node>(std::move(right)))
-    {
-    }
+    If_Expression_Data(Node&& left, Node&& condition, Node&& right);
 };
 
 struct Binary_Expression_Data {
     std::unique_ptr<Node> left, right;
     Token_Type op;
 
-    Binary_Expression_Data(Node&& left, Node&& right, Token_Type op)
-        : left(std::make_unique<Node>(std::move(left)))
-        , right(std::make_unique<Node>(std::move(right)))
-        , op(op)
-    {
-    }
+    Binary_Expression_Data(Node&& left, Node&& right, Token_Type op);
 };
 
 struct Prefix_Expression_Data {
     std::unique_ptr<Node> operand;
     Token_Type op;
 
-    Prefix_Expression_Data(Node&& operand, Token_Type op)
-        : operand(std::make_unique<Node>(std::move(operand)))
-        , op(op)
-    {
-    }
+    Prefix_Expression_Data(Node&& operand, Token_Type op);
 };
 
 struct Function_Call_Expression_Data {
     std::string_view function;
     std::vector<Node> arguments;
 
-    Function_Call_Expression_Data(std::string_view function, std::vector<Node>&& arguments)
-        : function(function)
-        , arguments(std::move(arguments))
-    {
-    }
+    Function_Call_Expression_Data(std::string_view function, std::vector<Node>&& arguments);
 };
 
 struct Type_Data {
@@ -631,27 +550,14 @@ struct Type_Data {
     Type_Type type;
 
 public:
-    static Type_Data make_bool()
-    {
-        return { Type_Type::Bool, nullptr };
-    }
+    static Type_Data make_bool();
 
-    static Type_Data make_int()
-    {
-        return { Type_Type::Int, nullptr };
-    }
+    static Type_Data make_int();
 
-    static Type_Data make_uint(Node&& width)
-    {
-        return { Type_Type::Uint, std::make_unique<Node>(std::move(width)) };
-    }
+    static Type_Data make_uint(Node&& width);
 
 private:
-    Type_Data(Type_Type type, std::unique_ptr<Node> width)
-        : width(std::move(width))
-        , type(type)
-    {
-    }
+    Type_Data(Type_Type type, std::unique_ptr<Node> width);
 };
 
 using Node_Data = std::variant<std::monostate,
@@ -672,7 +578,6 @@ using Node_Data = std::variant<std::monostate,
 
 struct Node {
     Source_Position pos;
-    // Size length;
     Node_Type type;
     Node_Data data;
 
@@ -696,18 +601,14 @@ struct Expression : Node { };
 
 enum struct Parse_Error_Code { ok, illegal_character };
 
-struct Parse_Result {
-    Parse_Error_Code code;
-    Token token;
-    ast::Node root;
-
-    [[nodiscard]] explicit operator bool() const noexcept
-    {
-        return code == Parse_Error_Code::ok;
-    }
+struct Parse_Error {
+    Grammar_Rule fail_rule;
+    Token fail_token;
 };
 
-Parse_Result parse(std::span<const Token> tokens) noexcept;
+using Parse_Result = std::variant<ast::Node, Parse_Error>;
+
+Parse_Result parse(std::span<const Token> tokens, std::string_view source);
 
 } // namespace bit_manipulation
 
