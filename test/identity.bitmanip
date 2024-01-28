@@ -1,0 +1,5 @@
+function identity(x: Uint(N)) -> Uint(N)
+{
+    // basic test program
+    return x;
+}

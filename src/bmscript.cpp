@@ -8,291 +8,262 @@ using namespace bit_manipulation::ast;
 
 namespace bit_manipulation {
 
-namespace {
-
-#if 0
-enum struct Parse_Exception {
-    unknown_token //
-};
-#endif
-
-constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstuvwxyz"
-                                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                   "0123456789_";
-
-constexpr bool is_digit(char c)
-{
-    return c >= '0' && c <= '9';
-}
-
-std::optional<Token_Type> keyword_by_name(std::string_view s)
+[[nodiscard]] std::string_view token_type_name(Token_Type type)
 {
     using enum Token_Type;
 
-    static constexpr struct {
-        std::string_view name;
-        Token_Type type;
-    } types_by_name[] = {
-        { "if", keyword_if },
-        { "else", keyword_else },
-        { "for", keyword_for },
-        { "let", keyword_let },
-        { "const", keyword_const },
-        { "Int", keyword_int },
-        { "Uint", keyword_uint },
-        { "Bool", keyword_bool },
-        { "break", keyword_break },
-        { "continue", keyword_continue },
-        { "return", keyword_return },
-        { "function", keyword_function },
-        { "true", keyword_true },
-        { "false", keyword_false },
-        { "requires", keyword_requires },
-    };
-
-    for (const auto [name, type] : types_by_name) {
-        if (name == s) {
-            return type;
-        }
+    switch (type) {
+    case identifier: return "identifier";
+    case left_parenthesis: return "left_parenthesis";
+    case right_parenthesis: return "right_parenthesis";
+    case decimal_literal: return "decimal_literal";
+    case octal_literal: return "octal_literal";
+    case hexadecimal_literal: return "hexadecimal_literal";
+    case binary_literal: return "binary_literal";
+    case left_brace: return "left_brace";
+    case right_brace: return "right_brace";
+    case block_comment: return "block_comment";
+    case line_comment: return "line_comment";
+    case assign: return "assign";
+    case equals: return "equals";
+    case not_equals: return "not_equals";
+    case plus: return "plus";
+    case minus: return "minus";
+    case multiplication: return "multiplication";
+    case division: return "division";
+    case remainder: return "remainder";
+    case less_than: return "less_than";
+    case greater_than: return "greater_than";
+    case less_or_equal: return "less_or_equal";
+    case greater_or_equal: return "greater_or_equal";
+    case shift_left: return "shift_left";
+    case shift_right: return "shift_right";
+    case bitwise_and: return "bitwise_and";
+    case bitwise_or: return "bitwise_or";
+    case bitwise_not: return "bitwise_not";
+    case bitwise_xor: return "bitwise_xor";
+    case logical_and: return "logical_and";
+    case logical_or: return "logical_or";
+    case logical_not: return "logical_not";
+    case right_arrow: return "right_arrow";
+    case double_right_arrow: return "double_right_arrow";
+    case dot: return "dot";
+    case colon: return "colon";
+    case comma: return "comma";
+    case semicolon: return "semicolon";
+    case keyword_let: return "keyword_let";
+    case keyword_const: return "keyword_const";
+    case keyword_function: return "keyword_function";
+    case keyword_for: return "keyword_for";
+    case keyword_while: return "keyword_while";
+    case keyword_if: return "keyword_if";
+    case keyword_else: return "keyword_else";
+    case keyword_uint: return "keyword_uint";
+    case keyword_int: return "keyword_int";
+    case keyword_bool: return "keyword_bool";
+    case keyword_requires: return "keyword_requires";
+    case keyword_return: return "keyword_return";
+    case keyword_break: return "keyword_break";
+    case keyword_continue: return "keyword_continue";
+    case keyword_true: return "keyword_true";
+    case keyword_false: return "keyword_false";
     }
-
-    return std::nullopt;
+    return "";
 }
 
-std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s)
+[[nodiscard]] Size token_type_length(Token_Type type)
 {
     using enum Token_Type;
 
-    if (s.empty()) {
-        return std::nullopt;
-    }
-    switch (s[0]) {
-    case '(': return left_parenthesis;
-    case ')': return right_parenthesis;
-    case '{': return left_brace;
-    case '}': return right_brace;
-    case '=': {
-        if (s.length() > 1) {
-            if (s[1] == '=') {
-                return equals;
-            }
-            if (s[1] == '>') {
-                return double_right_arrow;
-            }
-        }
-        return assign;
-    }
+    switch (type) {
+    case identifier:
+    case binary_literal:
+    case octal_literal:
+    case decimal_literal:
+    case hexadecimal_literal:
+    case block_comment:
+    case line_comment: return 0;
 
-    case '+': return plus;
-    case '-': {
-        if (s.length() > 1 && s[1] == '>') {
-            return right_arrow;
-        }
-        return minus;
+    case left_parenthesis:
+    case right_parenthesis:
+    case left_brace:
+    case right_brace:
+    case assign:
+    case plus:
+    case minus:
+    case multiplication:
+    case division:
+    case remainder:
+    case less_than:
+    case greater_than:
+    case bitwise_and:
+    case bitwise_or:
+    case bitwise_not:
+    case bitwise_xor:
+    case dot:
+    case colon:
+    case comma:
+    case semicolon: return 1;
+
+    case equals:
+    case not_equals:
+    case less_or_equal:
+    case greater_or_equal:
+    case shift_left:
+    case shift_right:
+    case logical_and:
+    case logical_or:
+    case logical_not:
+    case right_arrow:
+    case double_right_arrow:
+    case keyword_if: return 2;
+
+    case keyword_for:
+    case keyword_let:
+    case keyword_int: return 3;
+
+    case keyword_else:
+    case keyword_uint:
+    case keyword_bool:
+    case keyword_true: return 4;
+
+    case keyword_const:
+    case keyword_break:
+    case keyword_while:
+    case keyword_false: return 5;
+
+    case keyword_return: return 6;
+
+    case keyword_function:
+    case keyword_requires:
+    case keyword_continue: return 8;
     }
-    case '*': {
-        // comments are already handled elsewhere, so this is always multiplication
-        return multiplication;
-    }
-    case '/':
-        // comments are already handled elsewhere, so this is always division
-        return division;
-    case '%': return remainder;
-    case '<': {
-        if (s.length() > 1) {
-            if (s[1] == '<') {
-                return shift_left;
-            }
-            if (s[1] == '=') {
-                return less_or_equal;
-            }
-            return less_than;
-        }
-    }
-    case '>': {
-        if (s.length() > 1) {
-            if (s[1] == '>') {
-                return shift_right;
-            }
-            if (s[1] == '=') {
-                return greater_or_equal;
-            }
-        }
-        return greater_than;
-    }
-    case '&': {
-        if (s.length() > 1 && s[1] == '&') {
-            return logical_and;
-        }
-        return bitwise_and;
-    }
-    case '|': {
-        if (s.length() > 1 && s[1] == '|') {
-            return logical_or;
-        }
-        return bitwise_or;
-    }
-    case '^': {
-        return bitwise_xor;
-    }
-    case '~': {
-        return bitwise_not;
-    }
-    case '!': {
-        if (s.length() > 1 && s[1] == '=') {
-            return not_equals;
-        }
-        return logical_not;
-    }
-    case ':': {
-        return colon;
-    }
-    case ';': {
-        return semicolon;
-    }
-    case '.': {
-        return dot;
-    }
-    case ',': {
-        return comma;
-    }
-    }
-    return std::nullopt;
 }
 
-struct Tokenize_Result {
-    Size length;
-    Token_Type type;
-
-    [[nodiscard]] explicit operator bool() const
-    {
-        return length != 0;
-    }
-};
-
-Tokenize_Result try_tokenize_literal(std::string_view s)
+[[nodiscard]] bool is_unary_operator(Token_Type type)
 {
-    if (s.empty() || !is_digit(s[0])) {
-        return {};
+    using enum Token_Type;
+    switch (type) {
+    case plus:
+    case minus:
+    case logical_not:
+    case bitwise_not: return true;
+    default: return false;
     }
-    if (s[0] == '0') {
-        if (s.length() > 1) {
-            if (s[1] == 'x' || s[1] == 'b') {
-                const Token_Type type
-                    = s[1] == 'x' ? Token_Type::hexadecimal_literal : Token_Type::binary_literal;
-                const std::string_view allowed_digits
-                    = s[1] == 'x' ? "0123456789abcdefABCDEF" : "01";
-                const Size digits = s.substr(2).find_first_not_of(allowed_digits);
-                const Size result = digits == 0        ? 0
-                    : digits == std::string_view::npos ? s.length()
-                                                       : digits + 2;
-                return { result, type };
-            }
-            const Size digits = s.find_first_not_of("01234567");
-            return { std::min(digits, s.length()), Token_Type::octal_literal };
-        }
-        return { 1, Token_Type::decimal_literal };
-    }
-    const Size digits = s.find_first_not_of("0123456789");
-    const Size result = digits == 0 ? 0 : digits == std::string_view::npos ? s.length() : digits;
-    return { result, Token_Type::decimal_literal };
 }
 
-Size try_tokenize_identifier(std::string_view str)
+[[nodiscard]] bool is_literal(Token_Type type)
 {
-    if (str.empty() || is_digit(str[0])) {
-        return 0;
+    using enum Token_Type;
+    switch (type) {
+    case binary_literal:
+    case octal_literal:
+    case decimal_literal:
+    case hexadecimal_literal:
+    case keyword_true:
+    case keyword_false: return true;
+    default: return false;
     }
-    const Size result = str.find_first_not_of(identifier_characters);
-    return std::min(result, str.length());
 }
 
-Tokenize_Result try_tokenize_identifier_or_keyword(std::string_view str)
+[[nodiscard]] bool is_binary_operator(Token_Type type)
 {
-    const Size identifier_length = try_tokenize_identifier(str);
-    if (identifier_length == 0) {
-        return { 0, Token_Type::identifier };
+    using enum Token_Type;
+    switch (type) {
+    case plus:
+    case minus:
+    case multiplication:
+    case division:
+    case remainder:
+    case equals:
+    case not_equals:
+    case less_than:
+    case greater_than:
+    case less_or_equal:
+    case greater_or_equal:
+    case logical_and:
+    case logical_or:
+    case shift_left:
+    case shift_right:
+    case bitwise_and:
+    case bitwise_or:
+    case bitwise_xor: return true;
+    default: return false;
     }
-    if (std::optional<Token_Type> keyword = keyword_by_name(str.substr(0, identifier_length))) {
-        return { identifier_length, *keyword };
-    }
-    return { identifier_length, Token_Type::identifier };
 }
 
-std::optional<Tokenize_Result> try_tokenize(std::string_view s)
+[[nodiscard]] std::string_view grammar_rule_name(Grammar_Rule rule)
 {
-    if (s.starts_with("//")) {
-        const Size length = std::min(s.find('\n', 2), s.length());
-        return Tokenize_Result { length, Token_Type::line_comment };
+    using enum Grammar_Rule;
+    switch (rule) {
+    case program: return "program";
+    case program_declaration: return "program_declaration";
+    case const_declaration: return "const_declaration";
+    case let_declaration: return "let_declaration";
+    case initializer: return "initializer";
+    case function_declaration: return "function_declaration";
+    case function_header: return "function_header";
+    case requires_clause: return "requires_clause";
+    case parameter_sequence: return "parameter_sequence";
+    case parameter: return "parameter";
+    case statement: return "statement";
+    case assignment_statement: return "assignment_statement";
+    case assignment: return "assignment";
+    case break_statement: return "break_statement";
+    case continue_statement: return "continue_statement";
+    case return_statement: return "return_statement";
+    case if_statement: return "if_statement";
+    case while_statement: return "while_statement";
+    case for_statement: return "for_statement";
+    case init_clause: return "init_clause";
+    case block_statement: return "block_statement";
+    case expression: return "expression";
+    case if_expression: return "if_expression";
+    case binary_expression: return "binary_expression";
+    case prefix_expression: return "prefix_expression";
+    case postfix_expression: return "postfix_expression";
+    case function_call_expression: return "function_call_expression";
+    case expression_sequence: return "expression_sequence";
+    case primary_expression: return "primary_expression";
+    case parenthesized_expression: return "parenthesized_expression";
+    case integer_literal: return "integer_literal";
+    case binary_operator: return "binary_operator";
+    case unary_operator: return "unary_operator";
+    case type: return "type";
+    case uint: return "uint";
     }
-    if (s.starts_with("/*")) {
-        // naive: nesting disallowed, but line comments can be nested in block comments
-        const Size end = s.find("*/", 2);
-        if (end != std::string_view::npos) {
-            return Tokenize_Result { end + 2, Token_Type::block_comment };
-        }
-        // An unclosed comment should count as a tokenization failure.
-        return std::nullopt;
-    }
-    if (const Tokenize_Result r = try_tokenize_identifier_or_keyword(s)) {
-        return Tokenize_Result { r.length, r.type };
-    }
-    if (const Tokenize_Result r = try_tokenize_literal(s)) {
-        return Tokenize_Result { r.length, r.type };
-    }
-    if (const std::optional<Token_Type> type = try_identify_fixed_length_token(s)) {
-        return Tokenize_Result { token_type_length(*type), *type };
-    }
-    return std::nullopt;
+    return "";
 }
 
-Source_Position advance_position_by_text(Source_Position pos, std::string_view text)
+[[nodiscard]] constexpr std::string_view node_type_name(Node_Type t)
 {
-    for (char c : text) {
-        switch (c) {
-        case '\t': pos.column += 4; break;
-        case '\r': pos.column = 0; break;
-        case '\n':
-            pos.column = 0;
-            pos.line += 1;
-            break;
-        default: pos.column += 1;
-        }
-        pos.begin += 1;
+    using enum Node_Type;
+
+    switch (t) {
+    case program: return "program";
+    case function: return "function";
+    case parameter: return "parameter";
+    case type: return "type";
+    case variable: return "variable";
+    case statement: return "statement";
+    case if_statement: return "if_statement";
+    case for_statement: return "for_statement";
+    case while_statement: return "while_statement";
+    case break_statement: return "break_statement";
+    case continue_statement: return "continue_statement";
+    case return_statement: return "return_statement";
+    case assignment: return "assignment";
+    case block_statement: return "block_statement";
+    case expression: return "expression";
+    case if_expression: return "if_expression";
+    case binary_expression: return "binary_expression";
+    case prefix_expression: return "prefix_expression";
+    case id_expression: return "id_expression";
+    case primary_expression: return "primary_expression";
+    case function_call_expression: return "function_call_expression";
+    case literal: return "literal";
     }
-    return pos;
-}
-
-} // namespace
-
-Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexcept
-{
-    Source_Position pos {};
-
-    while (true) {
-        std::string_view remainder = source.substr(pos.begin);
-        if (remainder.empty()) {
-            break;
-        }
-        if (const Size whitespace_length = remainder.find_first_not_of(" \r\t\n")) {
-            if (whitespace_length == std::string_view::npos) {
-                break;
-            }
-            pos = advance_position_by_text(pos, remainder.substr(0, whitespace_length));
-            remainder = remainder.substr(whitespace_length);
-        }
-
-        if (std::optional<Tokenize_Result> part = try_tokenize(remainder)) {
-            out.push_back({ pos, part->length, part->type });
-            pos.begin += part->length;
-            pos.column += part->length;
-        }
-        else {
-            return { Tokenize_Error_Code::illegal_character, pos };
-        }
-    }
-
-    return {};
+    return "";
 }
 
 // =================================================================================================

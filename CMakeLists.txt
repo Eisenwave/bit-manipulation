@@ -9,9 +9,16 @@ set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion)
 set(HEADERS
     src/assert.hpp
     src/bmscript.hpp
-    src/config.hpp)
+    src/config.hpp
+    src/io.hpp)
 
-add_executable(bmscript ${HEADERS} src/main.cpp src/bmscript.cpp src/assert.cpp)
+add_executable(bmscript ${HEADERS}
+    src/assert.cpp
+    src/bmscript.cpp
+    src/io.cpp
+    src/main.cpp
+    src/tokenize.cpp)
+
 target_compile_options(bmscript PRIVATE ${WARNING_OPTIONS})
 target_include_directories(bmscript PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
 target_include_directories(bmscript PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src")
