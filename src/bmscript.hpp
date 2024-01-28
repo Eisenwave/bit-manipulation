@@ -577,12 +577,16 @@ using Node_Data = std::variant<std::monostate,
                                Function_Call_Expression_Data>;
 
 struct Node {
-    Source_Position pos;
+    /// The first token that belongs to this rule.
+    Token token;
+    /// The type of AST node.
     Node_Type type;
+    /// Additional data.
+    /// May be std::monostate, since some nodes only require the information stored in the token.
     Node_Data data;
 
-    [[nodiscard]] Node(Source_Position pos, Node_Type type, Node_Data&& data = {})
-        : pos { pos }
+    [[nodiscard]] Node(Token token, Node_Type type, Node_Data&& data = {})
+        : token { token }
         , type { type }
         , data { std::move(data) }
     {

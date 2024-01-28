@@ -619,6 +619,7 @@ private:
         case Grammar_Rule::assignment: return match_assignment();
         case Grammar_Rule::expression: return match_expression();
         case Grammar_Rule::if_expression: return match_if_expression();
+        case Grammar_Rule::function_call_expression: return match_function_call_expression();
         default: BIT_MANIPULATION_ASSERT(false);
         }
     }
@@ -658,7 +659,7 @@ private:
                 declarations.push_back(std::move(*d));
             }
             if (m_pos == m_tokens.size()) {
-                return Node { first->pos, Node_Type::program,
+                return Node { first->token, Node_Type::program,
                               Program_Data { std::move(declarations) } };
             }
         }
@@ -689,7 +690,7 @@ private:
                             if (Rule_Result init = match_initializer()) {
                                 if (expect(Token_Type::semicolon)) {
                                     attempt.commit();
-                                    return Node { t->pos, Node_Type::variable,
+                                    return Node { *t, Node_Type::variable,
                                                   Let_Const_Data::type_and_initializer(
                                                       const_or_let, name, std::move(*type),
                                                       std::move(*init)) };
@@ -698,7 +699,7 @@ private:
                         }
                         if (expect(Token_Type::semicolon)
                             && const_or_let == Token_Type::keyword_let) {
-                            return Node { t->pos, Node_Type::variable,
+                            return Node { *t, Node_Type::variable,
                                           Let_Const_Data::let_type_only(name, std::move(*type)) };
                         }
                     }
@@ -708,7 +709,7 @@ private:
                 }
                 else if (Rule_Result init = match_initializer()) {
                     if (expect(Token_Type::semicolon)) {
-                        return Node { t->pos, Node_Type::variable,
+                        return Node { *t, Node_Type::variable,
                                       Let_Const_Data::initializer_only(const_or_let, name,
                                                                        std::move(*init)) };
                     }
@@ -748,7 +749,7 @@ private:
                         if (Rule_Result ret = match_type()) {
                             if (Rule_Result req = expect(Grammar_Rule::requires_clause)) {
                                 if (Rule_Result body = match_block_statement()) {
-                                    return Node { t->pos, Node_Type::function,
+                                    return Node { *t, Node_Type::function,
                                                   Function_Data { name->extract(m_source),
                                                                   std::move(parameters),
                                                                   std::move(*req), std::move(*ret),
@@ -756,7 +757,7 @@ private:
                                 }
                             }
                             else if (Rule_Result body = match_block_statement()) {
-                                return Node { t->pos, Node_Type::function,
+                                return Node { *t, Node_Type::function,
                                               Function_Data { name->extract(m_source),
                                                               std::move(parameters),
                                                               std::move(*ret), std::move(*body) } };
@@ -774,7 +775,7 @@ private:
         if (const Token* id = expect(Token_Type::identifier)) {
             if (expect(Token_Type::colon)) {
                 if (Rule_Result type = match_type()) {
-                    return Node { id->pos, Node_Type::parameter,
+                    return Node { *id, Node_Type::parameter,
                                   Parameter_Data { id->extract(m_source), std::move(*type) } };
                 }
             }
@@ -815,7 +816,7 @@ private:
         if (const Token* id = expect(Token_Type::identifier)) {
             if (expect(Token_Type::assign)) {
                 if (Rule_Result e = match_expression()) {
-                    return Node { id->pos, Node_Type::assignment,
+                    return Node { *id, Node_Type::assignment,
                                   Assignment_Data { id->extract(m_source), std::move(*e) } };
                 }
             }
@@ -828,7 +829,7 @@ private:
         if (const Token* t = expect(Token_Type::keyword_return)) {
             if (Rule_Result e = match_expression()) {
                 if (expect(Token_Type::semicolon)) {
-                    return Node { t->pos, Node_Type::return_statement,
+                    return Node { *t, Node_Type::return_statement,
                                   Return_Statement_Data { std::move(*e) } };
                 }
             }
@@ -840,7 +841,7 @@ private:
     {
         if (const Token* t = expect(Token_Type::keyword_break)) {
             if (expect(Token_Type::semicolon)) {
-                return Node { t->pos, Node_Type::break_statement };
+                return Node { *t, Node_Type::break_statement };
             }
         }
         return Grammar_Rule::break_statement;
@@ -850,7 +851,7 @@ private:
     {
         if (const Token* t = expect(Token_Type::keyword_continue)) {
             if (expect(Token_Type::semicolon)) {
-                return Node { t->pos, Node_Type::continue_statement };
+                return Node { *t, Node_Type::continue_statement };
             }
         }
         return Grammar_Rule::continue_statement;
@@ -869,7 +870,7 @@ private:
                             const auto type = if_or_while == Token_Type::keyword_if
                                 ? Node_Type::if_statement
                                 : Node_Type::while_statement;
-                            return Node { first->pos, type,
+                            return Node { *first, type,
                                           If_While_Statement_Data { std::move(*condition),
                                                                     std::move(*block) } };
                         }
@@ -894,7 +895,7 @@ private:
                                     if (expect(Token_Type::right_parenthesis)) {
                                         if (Rule_Result block = match_block_statement()) {
                                             return Node {
-                                                first->pos, Node_Type::for_statement,
+                                                *first, Node_Type::for_statement,
                                                 For_Statement_Data {
                                                     std::move(*init), std::move(*condition),
                                                     std::move(*increment), std::move(*block) }
@@ -904,7 +905,7 @@ private:
                                 }
                                 else if (expect(Token_Type::right_parenthesis)) {
                                     if (Rule_Result block = match_block_statement()) {
-                                        return Node { first->pos, Node_Type::for_statement,
+                                        return Node { *first, Node_Type::for_statement,
                                                       For_Statement_Data { std::move(*init),
                                                                            std::move(*condition),
                                                                            std::move(*block) } };
@@ -938,7 +939,7 @@ private:
                 statements.push_back(std::move(*s));
             }
             if (expect(Token_Type::right_brace)) {
-                return Node { first->pos, Node_Type::block_statement,
+                return Node { *first, Node_Type::block_statement,
                               Block_Statement_Data { std::move(statements) } };
             }
         }
@@ -960,7 +961,7 @@ private:
                 if (Rule_Result condition = match_binary_expression()) {
                     if (expect(Token_Type::keyword_else)) {
                         if (Rule_Result right = match_binary_expression()) {
-                            return Node { left->pos, Node_Type::binary_expression,
+                            return Node { left->token, Node_Type::binary_expression,
                                           If_Expression_Data { std::move(*left),
                                                                std::move(*condition),
                                                                std::move(*right) } };
@@ -982,7 +983,7 @@ private:
                     attempt.commit();
                     pop();
                     if (Rule_Result right = match_prefix_expression()) {
-                        return Node { left->pos, Node_Type::binary_expression,
+                        return Node { left->token, Node_Type::binary_expression,
                                       Binary_Expression_Data { std::move(*left), std::move(*right),
                                                                op->type } };
                     }
@@ -1001,7 +1002,7 @@ private:
                 attempt.commit();
                 pop();
                 if (Rule_Result e = match_prefix_expression()) {
-                    return Node { t->pos, Node_Type::prefix_expression,
+                    return Node { *t, Node_Type::prefix_expression,
                                   Prefix_Expression_Data { std::move(*e), t->type } };
                 }
             }
@@ -1022,7 +1023,7 @@ private:
         if (const Token* t = expect(Token_Type::identifier)) {
             if (expect(Token_Type::left_parenthesis)) {
                 if (expect(Token_Type::right_parenthesis)) {
-                    return Node { t->pos, Node_Type::function_call_expression,
+                    return Node { *t, Node_Type::function_call_expression,
                                   Function_Call_Expression_Data { t->extract(m_source), {} } };
                 }
 
@@ -1036,7 +1037,7 @@ private:
                             continue;
                         }
                         else if (expect(Token_Type::right_parenthesis)) {
-                            return Node { t->pos, Node_Type::function_call_expression,
+                            return Node { *t, Node_Type::function_call_expression,
                                           Function_Call_Expression_Data { t->extract(m_source),
                                                                           std::move(arguments) } };
                         }
@@ -1053,11 +1054,11 @@ private:
         if (const Token* t = peek()) {
             if (is_literal(t->type)) {
                 pop();
-                return Node { t->pos, Node_Type::literal };
+                return Node { *t, Node_Type::literal };
             }
             if (t->type == Token_Type::identifier) {
                 pop();
-                return Node { t->pos, Node_Type::id_expression };
+                return Node { *t, Node_Type::id_expression };
             }
             if (t->type == Token_Type::left_parenthesis) {
                 pop();
@@ -1088,18 +1089,18 @@ private:
         if (const Token* t = peek()) {
             if (t->type == Token_Type::keyword_bool) {
                 pop();
-                return Node { t->pos, Node_Type::type, Type_Data::make_bool() };
+                return Node { *t, Node_Type::type, Type_Data::make_bool() };
             }
             if (t->type == Token_Type::keyword_int) {
                 pop();
-                return Node { t->pos, Node_Type::type, Type_Data::make_int() };
+                return Node { *t, Node_Type::type, Type_Data::make_int() };
             }
             if (t->type == Token_Type::keyword_uint) {
                 pop();
                 if (expect(Token_Type::left_parenthesis)) {
                     if (Rule_Result node = match_expression()) {
                         if (expect(Token_Type::right_parenthesis)) {
-                            return Node { t->pos, Node_Type::type,
+                            return Node { *t, Node_Type::type,
                                           Type_Data::make_uint(std::move(*node)) };
                         }
                     }
