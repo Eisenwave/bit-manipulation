@@ -603,23 +603,32 @@ private:
         switch (rule) {
         case Grammar_Rule::program: return match_program();
         case Grammar_Rule::program_declaration: return match_program_declaration();
-        case Grammar_Rule::function_declaration: return match_function_declaration();
-        case Grammar_Rule::parameter: return match_parameter();
-        case Grammar_Rule::requires_clause: return match_requires_clause();
-        case Grammar_Rule::let_declaration: return match_variable(Token_Type::keyword_let);
         case Grammar_Rule::const_declaration: return match_variable(Token_Type::keyword_const);
+        case Grammar_Rule::let_declaration: return match_variable(Token_Type::keyword_let);
+        case Grammar_Rule::initializer: return match_initializer();
+        case Grammar_Rule::function_declaration: return match_function_declaration();
+        case Grammar_Rule::requires_clause: return match_requires_clause();
+        case Grammar_Rule::parameter: return match_parameter();
+        case Grammar_Rule::statement: return match_statement();
         case Grammar_Rule::assignment_statement: return match_assignment_statement();
+        case Grammar_Rule::assignment: return match_assignment();
         case Grammar_Rule::break_statement: return match_break_statement();
         case Grammar_Rule::continue_statement: return match_continue_statement();
         case Grammar_Rule::return_statement: return match_return_statement();
         case Grammar_Rule::if_statement: return match_if_or_while(Token_Type::keyword_if);
         case Grammar_Rule::while_statement: return match_if_or_while(Token_Type::keyword_while);
         case Grammar_Rule::for_statement: return match_for_statement();
+        case Grammar_Rule::init_clause: return match_init_clause();
         case Grammar_Rule::block_statement: return match_block_statement();
-        case Grammar_Rule::assignment: return match_assignment();
         case Grammar_Rule::expression: return match_expression();
         case Grammar_Rule::if_expression: return match_if_expression();
+        case Grammar_Rule::binary_expression: return match_binary_expression();
+        case Grammar_Rule::prefix_expression: return match_prefix_expression();
+        case Grammar_Rule::postfix_expression: return match_postfix_expression();
         case Grammar_Rule::function_call_expression: return match_function_call_expression();
+        case Grammar_Rule::primary_expression: return match_primary_expression();
+        case Grammar_Rule::parenthesized_expression: return match_parenthesized_expression();
+        case Grammar_Rule::type: return match_type();
         default: BIT_MANIPULATION_ASSERT(false);
         }
     }
@@ -723,6 +732,13 @@ private:
 
     Rule_Result match_initializer()
     {
+        if (expect(Token_Type::assign)) {
+            if (Rule_Result e = match_expression()) {
+                if (expect(Token_Type::semicolon)) {
+                    return e;
+                }
+            }
+        }
         return Grammar_Rule::initializer;
     }
 

@@ -383,10 +383,10 @@ enum struct Grammar_Rule {
     binary_expression, // prefix_expression, [binary_operator, prefix_expression]
     prefix_expression, // unary_operator, prefix_expression | postfix_expression
     postfix_expression, // function_call_expression | primary_expression
-    primary_expression, // integer_literal | identifier | parenthesized_expression
-    parenthesized_expression, // "(", expression, ")"
     function_call_expression, // identifier, "(", [expression_sequence], ")"
     expression_sequence, // expression, {",", expression}
+    primary_expression, // integer_literal | identifier | parenthesized_expression
+    parenthesized_expression, // "(", expression, ")"
 
     integer_literal, // decimal_literal | hexadecimal_literal | binary_literal | octal_literal
     binary_operator, // "+" | "-" | "*" | "/" | "%"
