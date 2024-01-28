@@ -200,6 +200,14 @@ enum struct Token_Type {
     using enum Token_Type;
 
     switch (type) {
+    case identifier:
+    case binary_literal:
+    case octal_literal:
+    case decimal_literal:
+    case hexadecimal_literal:
+    case block_comment:
+    case line_comment: return 0;
+
     case left_parenthesis:
     case right_parenthesis:
     case left_brace:
@@ -253,8 +261,6 @@ enum struct Token_Type {
     case keyword_function:
     case keyword_requires:
     case keyword_continue: return 8;
-
-    default: return 0;
     }
 }
 
