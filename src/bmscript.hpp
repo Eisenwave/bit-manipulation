@@ -125,7 +125,11 @@ enum struct Token_Type {
     // break
     keyword_break,
     // continue
-    keyword_continue
+    keyword_continue,
+    // true
+    keyword_true,
+    // false
+    keyword_false,
 };
 
 [[nodiscard]] constexpr std::string_view token_type_name(Token_Type type) noexcept
@@ -185,6 +189,8 @@ enum struct Token_Type {
     case keyword_return: return "keyword_return";
     case keyword_break: return "keyword_break";
     case keyword_continue: return "keyword_continue";
+    case keyword_true: return "keyword_true";
+    case keyword_false: return "keyword_false";
     }
     return "";
 }
@@ -214,8 +220,7 @@ enum struct Token_Type {
     case colon:
     case comma:
     case semicolon: return 1;
-    case block_comment:
-    case line_comment:
+
     case equals:
     case not_equals:
     case less_or_equal:
@@ -228,19 +233,27 @@ enum struct Token_Type {
     case right_arrow:
     case double_right_arrow:
     case keyword_if: return 2;
+
     case keyword_for:
     case keyword_let:
     case keyword_int: return 3;
+
     case keyword_else:
     case keyword_uint:
-    case keyword_bool: return 4;
+    case keyword_bool:
+    case keyword_true: return 4;
+
     case keyword_const:
     case keyword_break:
-    case keyword_while: return 5;
+    case keyword_while:
+    case keyword_false: return 5;
+
     case keyword_return: return 6;
+
     case keyword_function:
     case keyword_requires:
     case keyword_continue: return 8;
+
     default: return 0;
     }
 }
@@ -264,7 +277,9 @@ enum struct Token_Type {
     case binary_literal:
     case octal_literal:
     case decimal_literal:
-    case hexadecimal_literal: return true;
+    case hexadecimal_literal:
+    case keyword_true:
+    case keyword_false: return true;
     default: return false;
     }
 }
@@ -328,19 +343,20 @@ struct Tokenize_Error {
 Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexcept;
 
 enum struct Grammar_Rule {
-    program, // { declaration }
-    declaration, // const_declaration | function_declaration
+    program, // declaration, { declaration }
+    program_declaration, // const_declaration | function_declaration
     const_declaration, // "const", identifier, [":", type], initializer
     let_declaration, // "let", identifier, ":", type, ";" | "let", identifier, [":", type],
                      // initializer, ";"
     initializer, // "=", expression, ";"
     function_declaration, // "function", identifier, function_header, block_statement
-    function_header, // "(", [parameter_sequence], ")", "_>", type, [requires_clause]
+    function_header, // "(", [parameter_sequence], ")", "->", type, [requires_clause]
     requires_clause, // "requires", "(", expression, ")"
     parameter_sequence, // parameter, { ",", parameter }
-    parameter, // ["const"], identifier, ":", type
+    parameter, // identifier, ":", type
     statement, /* const_declaration
           | let_declaration
+          | const_declaration
           | assignment_statement
           | break_statement
           | continue_statement
@@ -365,12 +381,12 @@ enum struct Grammar_Rule {
     binary_expression, // prefix_expression, [binary_operator, prefix_expression]
     prefix_expression, // unary_operator, prefix_expression | postfix_expression
     postfix_expression, // function_call_expression | primary_expression
-    primary_expression, // decimal_literal | hexadecimal_literal | binary_literal | octal_literal
-                        // | identifier
-                        // | "(", expression, ")"
+    primary_expression, // integer_literal | identifier | parenthesized_expression
+    parenthesized_expression, // "(", expression, ")"
     function_call_expression, // identifier, "(", [expression_sequence], ")"
     expression_sequence, // expression, {",", expression}
 
+    integer_literal, // decimal_literal | hexadecimal_literal | binary_literal | octal_literal
     binary_operator, // "+" | "-" | "*" | "/" | "%"
                      // | "==" | "!=" | "<" | ">" | "<=" | ">="
                      // | "&&" | "||"
@@ -412,7 +428,46 @@ enum struct Node_Type {
     literal,
 };
 
-struct Expression_Data;
+struct Program_Data {
+    std::vector<Node> declarations;
+
+    Program_Data(std::vector<Node>&& declarations)
+        : declarations(std::move(declarations))
+    {
+    }
+};
+
+struct Function_Data {
+    std::string_view name;
+    std::vector<Node> parameters;
+    std::unique_ptr<Node> requires_clause;
+    std::unique_ptr<Node> return_type;
+    std::unique_ptr<Node> body;
+
+    Function_Data(std::string_view name,
+                  std::vector<Node>&& parameters,
+                  Node&& requires_clause,
+                  Node&& return_type,
+                  Node&& body)
+        : name(name)
+        , parameters(std::move(parameters))
+        , requires_clause(std::make_unique<Node>(std::move(requires_clause)))
+        , return_type(std::make_unique<Node>(std::move(return_type)))
+        , body(std::make_unique<Node>(std::move(body)))
+    {
+    }
+
+    Function_Data(std::string_view name,
+                  std::vector<Node>&& parameters,
+                  Node&& return_type,
+                  Node&& body)
+        : name(name)
+        , parameters(std::move(parameters))
+        , return_type(std::make_unique<Node>(std::move(return_type)))
+        , body(std::make_unique<Node>(std::move(body)))
+    {
+    }
+};
 
 enum struct Type_Type { Bool, Int, Uint };
 
@@ -468,6 +523,17 @@ struct Assignment_Data {
     }
 };
 
+struct Parameter_Data {
+    std::string_view name;
+    std::unique_ptr<Node> expression;
+
+    Parameter_Data(std::string_view name, Node&& type)
+        : name(name)
+        , expression(std::make_unique<Node>(std::move(type)))
+    {
+    }
+};
+
 struct Return_Statement_Data {
     std::unique_ptr<Node> expression;
 
@@ -503,6 +569,13 @@ struct For_Statement_Data {
         : init(std::make_unique<Node>(init))
         , condition(std::make_unique<Node>(condition))
         , increment(std::make_unique<Node>(increment))
+        , block(std::make_unique<Node>(block))
+    {
+    }
+
+    For_Statement_Data(Node&& init, Node&& condition, Node&& block)
+        : init(std::make_unique<Node>(init))
+        , condition(std::make_unique<Node>(condition))
         , block(std::make_unique<Node>(block))
     {
     }
@@ -582,7 +655,10 @@ private:
 };
 
 using Node_Data = std::variant<std::monostate,
+                               Program_Data,
+                               Function_Data,
                                Let_Const_Data,
+                               Parameter_Data,
                                Assignment_Data,
                                For_Statement_Data,
                                If_While_Statement_Data,
