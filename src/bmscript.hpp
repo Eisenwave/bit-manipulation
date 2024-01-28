@@ -4,6 +4,7 @@
 #include <memory>
 #include <span>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "config.hpp"
@@ -330,7 +331,8 @@ enum struct Grammar_Rule {
     program, // { declaration }
     declaration, // const_declaration | function_declaration
     const_declaration, // "const", identifier, [":", type], initializer
-    let_declaration, // "let", identifier, ":", type | "let", identifier, [":", type], initializer
+    let_declaration, // "let", identifier, ":", type, ";" | "let", identifier, [":", type],
+                     // initializer, ";"
     initializer, // "=", expression, ";"
     function_declaration, // "function", identifier, function_header, block_statement
     function_header, // "(", [parameter_sequence], ")", "_>", type, [requires_clause]
@@ -413,6 +415,47 @@ enum struct Node_Type {
 struct Expression_Data;
 
 enum struct Type_Type { Bool, Int, Uint };
+
+struct Let_Const_Data {
+
+    static Let_Const_Data type_and_initializer(Token_Type let_or_const,
+                                               std::string_view name,
+                                               Node&& type,
+                                               Node&& initializer)
+    {
+        return { let_or_const == Token_Type::keyword_const, name,
+                 std::make_unique<Node>(std::move(type)),
+                 std::make_unique<Node>(std::move(initializer)) };
+    }
+
+    static Let_Const_Data
+    initializer_only(Token_Type let_or_const, std::string_view name, Node&& initializer)
+    {
+        return { let_or_const == Token_Type::keyword_const, name, nullptr,
+                 std::make_unique<Node>(std::move(initializer)) };
+    }
+
+    static Let_Const_Data let_type_only(std::string_view name, Node&& type)
+    {
+        return { false, name, std::make_unique<Node>(std::move(type)), nullptr };
+    }
+
+    std::string_view name;
+    std::unique_ptr<Node> type, initializer;
+    bool is_const;
+
+private:
+    Let_Const_Data(bool is_const,
+                   std::string_view name,
+                   std::unique_ptr<Node> type,
+                   std::unique_ptr<Node> initializer)
+        : name(name)
+        , type(std::move(type))
+        , initializer(std::move(initializer))
+        , is_const(is_const)
+    {
+    }
+};
 
 struct Assignment_Data {
     std::string_view name;
@@ -539,6 +582,7 @@ private:
 };
 
 using Node_Data = std::variant<std::monostate,
+                               Let_Const_Data,
                                Assignment_Data,
                                For_Statement_Data,
                                If_While_Statement_Data,
@@ -579,8 +623,7 @@ enum struct Parse_Error_Code { ok, illegal_character };
 struct Parse_Result {
     Parse_Error_Code code;
     Token token;
-
-    Program program_node;
+    ast::Node root;
 
     [[nodiscard]] explicit operator bool() const noexcept
     {
