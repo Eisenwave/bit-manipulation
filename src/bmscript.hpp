@@ -399,6 +399,49 @@ enum struct Grammar_Rule {
     uint, // "Uint", "(", expression, ")"
 };
 
+[[nodiscard]] constexpr std::string_view grammar_rule_name(Grammar_Rule rule)
+{
+    using enum Grammar_Rule;
+    switch (rule) {
+    case program: return "program";
+    case program_declaration: return "program_declaration";
+    case const_declaration: return "const_declaration";
+    case let_declaration: return "let_declaration";
+    case initializer: return "initializer";
+    case function_declaration: return "function_declaration";
+    case function_header: return "function_header";
+    case requires_clause: return "requires_clause";
+    case parameter_sequence: return "parameter_sequence";
+    case parameter: return "parameter";
+    case statement: return "statement";
+    case assignment_statement: return "assignment_statement";
+    case assignment: return "assignment";
+    case break_statement: return "break_statement";
+    case continue_statement: return "continue_statement";
+    case return_statement: return "return_statement";
+    case if_statement: return "if_statement";
+    case while_statement: return "while_statement";
+    case for_statement: return "for_statement";
+    case init_clause: return "init_clause";
+    case block_statement: return "block_statement";
+    case expression: return "expression";
+    case if_expression: return "if_expression";
+    case binary_expression: return "binary_expression";
+    case prefix_expression: return "prefix_expression";
+    case postfix_expression: return "postfix_expression";
+    case function_call_expression: return "function_call_expression";
+    case expression_sequence: return "expression_sequence";
+    case primary_expression: return "primary_expression";
+    case parenthesized_expression: return "parenthesized_expression";
+    case integer_literal: return "integer_literal";
+    case binary_operator: return "binary_operator";
+    case unary_operator: return "unary_operator";
+    case type: return "type";
+    case uint: return "uint";
+    }
+    return "";
+}
+
 namespace ast {
 
 struct Node;
@@ -427,6 +470,37 @@ enum struct Node_Type {
     function_call_expression,
     literal,
 };
+
+[[nodiscard]] constexpr std::string_view node_type_name(Node_Type t)
+{
+    using enum Node_Type;
+
+    switch (t) {
+    case program: return "program";
+    case function: return "function";
+    case parameter: return "parameter";
+    case type: return "type";
+    case variable: return "variable";
+    case statement: return "statement";
+    case if_statement: return "if_statement";
+    case for_statement: return "for_statement";
+    case while_statement: return "while_statement";
+    case break_statement: return "break_statement";
+    case continue_statement: return "continue_statement";
+    case return_statement: return "return_statement";
+    case assignment: return "assignment";
+    case block_statement: return "block_statement";
+    case expression: return "expression";
+    case if_expression: return "if_expression";
+    case binary_expression: return "binary_expression";
+    case prefix_expression: return "prefix_expression";
+    case id_expression: return "id_expression";
+    case primary_expression: return "primary_expression";
+    case function_call_expression: return "function_call_expression";
+    case literal: return "literal";
+    }
+    return "";
+}
 
 struct Program_Data {
     std::vector<Node> declarations;
