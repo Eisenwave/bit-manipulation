@@ -1093,26 +1093,18 @@ private:
         if (!expect(Token_Type::left_parenthesis)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
-        if (expect(Token_Type::right_parenthesis)) {
-            return make_node(*id, Node_Type::function_call_expression,
-                             Function_Call_Expression_Data { id->extract(m_source), {} });
-        }
 
         std::vector<Node_Handle> arguments;
-        while (true) {
-            // Matching instead of expecting is correct here because the possibility of an
-            // empty parameter list has already been eliminated.
+        for (bool demand_expression = false; true;) {
+            if (!demand_expression && expect(Token_Type::right_parenthesis)) {
+                break;
+            }
             Rule_Result arg = match_expression();
             if (!arg) {
                 return arg;
             }
             arguments.push_back(*arg);
-            if (expect(Token_Type::comma)) {
-                continue;
-            }
-            if (expect(Token_Type::right_parenthesis)) {
-                break;
-            }
+            demand_expression = expect(Token_Type::comma);
         }
         return make_node(
             *id, Node_Type::function_call_expression,
