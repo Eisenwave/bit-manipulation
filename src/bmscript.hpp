@@ -185,7 +185,7 @@ enum struct Grammar_Rule {
     initializer, // "=", expression, ";"
     function_declaration, // "function", identifier, function_header, block_statement
     function_header, // "(", [parameter_sequence], ")", "->", type, [requires_clause]
-    requires_clause, // "requires", "(", expression, ")"
+    requires_clause, // "requires", expression
     parameter_sequence, // parameter, { ",", parameter }
     parameter, // identifier, ":", type
     statement, /* const_declaration

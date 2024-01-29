@@ -827,8 +827,11 @@ private:
     Rule_Result match_requires_clause()
     {
         constexpr auto this_rule = Grammar_Rule::requires_clause;
-        // TODO
-        return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_requires> };
+        const Token* t = expect(Token_Type::keyword_requires);
+        if (!t) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_requires> };
+        }
+        return match_expression();
     }
 
     Rule_Result match_statement()
@@ -1051,15 +1054,16 @@ private:
         if (!left) {
             return left;
         }
-        if (const Token* op = expect(is_binary_operator)) {
-            Rule_Result right = match_prefix_expression();
-            if (!right) {
-                return right;
-            }
-            return make_node(get_node(*left).token, Node_Type::binary_expression,
-                             Binary_Expression_Data { *left, *right, op->type });
+        const Token* op = expect(is_binary_operator);
+        if (!op) {
+            return left;
         }
-        return left;
+        Rule_Result right = match_prefix_expression();
+        if (!right) {
+            return right;
+        }
+        return make_node(get_node(*left).token, Node_Type::binary_expression,
+                         Binary_Expression_Data { *left, *right, op->type });
     }
 
     Rule_Result match_prefix_expression()
