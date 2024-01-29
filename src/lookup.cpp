@@ -197,6 +197,11 @@ namespace bit_manipulation {
     }
 }
 
+[[nodiscard]] bool is_comment(Token_Type type)
+{
+    return type == Token_Type::line_comment || type == Token_Type::block_comment;
+}
+
 [[nodiscard]] bool is_unary_operator(Token_Type type)
 {
     using enum Token_Type;

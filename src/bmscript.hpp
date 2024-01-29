@@ -138,6 +138,8 @@ enum struct Token_Type {
 
 [[nodiscard]] Size token_type_length(Token_Type type);
 
+[[nodiscard]] bool is_comment(Token_Type type);
+
 [[nodiscard]] bool is_unary_operator(Token_Type type);
 
 [[nodiscard]] bool is_literal(Token_Type type);

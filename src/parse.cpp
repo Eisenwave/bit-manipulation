@@ -227,32 +227,37 @@ private:
         return m_nodes.at(static_cast<Size>(handle));
     }
 
-    const Token* peek_or_expect(Token_Type expected, bool increment)
+    bool eof()
     {
-        if (const Token* next = peek(); next && next->type == expected) {
+        skip_comments();
+        return m_pos == m_tokens.size();
+    }
+
+    void skip_comments()
+    {
+        while (m_pos != m_tokens.size() && is_comment(m_tokens[m_pos].type)) {
+            m_pos += 1;
+        }
+    }
+
+    template <std::invocable<Token_Type> Predicate>
+    const Token* peek_or_expect(Predicate p, bool increment)
+    {
+        if (const Token* next = peek(); next && p(next->type)) {
             m_pos += increment;
             return next;
         }
         return nullptr;
     }
 
-    const Token* peek_or_expect(bool (&predicate)(Token_Type), bool increment)
+    const Token* peek()
     {
-        if (const Token* next = peek(); next && predicate(next->type)) {
-            m_pos += increment;
-            return next;
-        }
-        return nullptr;
-    }
-
-    const Token* peek() const
-    {
-        return m_pos < m_tokens.size() ? &m_tokens[m_pos] : nullptr;
+        return !eof() ? &m_tokens[m_pos] : nullptr;
     }
 
     const Token* peek(Token_Type expected)
     {
-        return peek_or_expect(expected, false);
+        return peek_or_expect([=](Token_Type t) { return t == expected; }, false);
     }
 
     const Token* peek(bool (&predicate)(Token_Type))
@@ -268,7 +273,7 @@ private:
     /// token doesn't match the expected type.
     const Token* expect(Token_Type type)
     {
-        return peek_or_expect(type, true);
+        return peek_or_expect([=](Token_Type t) { return t == type; }, true);
     }
 
     const Token* expect(bool (&predicate)(Token_Type))
@@ -287,11 +292,6 @@ private:
             m_pos = restore_pos;
         }
         return result;
-    }
-
-    bool eof()
-    {
-        return m_pos == m_tokens.size();
     }
 
     /// @brief Matches a grammatical rule.
