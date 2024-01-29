@@ -38,6 +38,9 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
         { "true", keyword_true },
         { "false", keyword_false },
         { "requires", keyword_requires },
+        { "and", logical_and },
+        { "or", logical_or },
+        { "not", logical_not },
     };
 
     for (const auto [name, type] : types_by_name) {
@@ -111,15 +114,9 @@ std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) no
         return greater_than;
     }
     case '&': {
-        if (s.length() > 1 && s[1] == '&') {
-            return logical_and;
-        }
         return bitwise_and;
     }
     case '|': {
-        if (s.length() > 1 && s[1] == '|') {
-            return logical_or;
-        }
         return bitwise_or;
     }
     case '^': {
@@ -132,7 +129,7 @@ std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) no
         if (s.length() > 1 && s[1] == '=') {
             return not_equals;
         }
-        return logical_not;
+        return std::nullopt;
     }
     case ':': {
         return colon;

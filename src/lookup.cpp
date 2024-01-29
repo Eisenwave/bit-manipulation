@@ -99,9 +99,9 @@ namespace bit_manipulation {
     case bitwise_or: return "'|'";
     case bitwise_not: return "'~'";
     case bitwise_xor: return "'^'";
-    case logical_and: return "'&&'";
-    case logical_or: return "'||'";
-    case logical_not: return "'!'";
+    case logical_and: return "'and'";
+    case logical_or: return "'or'";
+    case logical_not: return "'not'";
     case right_arrow: return "'->'";
     case double_right_arrow: return "'=>'";
     case dot: return "'.'";
@@ -168,13 +168,13 @@ namespace bit_manipulation {
     case greater_or_equal:
     case shift_left:
     case shift_right:
-    case logical_and:
     case logical_or:
-    case logical_not:
     case right_arrow:
     case double_right_arrow:
     case keyword_if: return 2;
 
+    case logical_and:
+    case logical_not:
     case keyword_let:
     case keyword_int: return 3;
 
@@ -202,18 +202,6 @@ namespace bit_manipulation {
     return type == Token_Type::line_comment || type == Token_Type::block_comment;
 }
 
-[[nodiscard]] bool is_unary_operator(Token_Type type)
-{
-    using enum Token_Type;
-    switch (type) {
-    case plus:
-    case minus:
-    case logical_not:
-    case bitwise_not: return true;
-    default: return false;
-    }
-}
-
 [[nodiscard]] bool is_literal(Token_Type type)
 {
     using enum Token_Type;
@@ -224,6 +212,18 @@ namespace bit_manipulation {
     case hexadecimal_literal:
     case keyword_true:
     case keyword_false: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] bool is_unary_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case plus:
+    case minus:
+    case logical_not:
+    case bitwise_not: return true;
     default: return false;
     }
 }
