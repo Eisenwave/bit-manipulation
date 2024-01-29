@@ -116,6 +116,8 @@ enum struct Token_Type {
     keyword_int,
     // Bool,
     keyword_bool,
+    // Void,
+    keyword_void,
     // requires
     keyword_requires,
     // return
@@ -224,7 +226,7 @@ enum struct Grammar_Rule {
                      // | "<<" | ">>" | "&" | "|" | "^"
     unary_operator, // "+" | "-" | "!" | "~"
 
-    type, // "Bool" | "Int" | uint
+    type, // "Bool" | "Int" | "Void" | uint
     uint, // "Uint", parenthesized_expression
 };
 

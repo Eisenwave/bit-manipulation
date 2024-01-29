@@ -14,8 +14,9 @@ set(HEADERS
 
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
-    src/bmscript.cpp
+    src/parse.cpp
     src/io.cpp
+    src/lookup.cpp
     src/main.cpp
     src/tokenize.cpp)
 
