@@ -332,7 +332,11 @@ const z = y;    // error: z must be initialized by a constant expression
 
 #### Assignments
 
-Variables (but not parameters) can be assigned 
+Variables (but not parameters) can be assigned using the syntax
+```js
+x = /* expression */;
+```
+Multi-assignments are **not allowed** (`x = y = ...`).
 
 #### Functions
 
@@ -402,6 +406,24 @@ Almost all operators from C are supported, however:
   `(10 + 20) + 30`.
   Therefore, there is no associativity and there is no precedence between different binary
   or unary operators.
+- There is no compound assignment or increment (`++x`, `x += 1`, etc.).
+  The only way to change the value of a variable is to use an assignment.
+- Assignments are not expressions, i.e. `x + (y = 0)` is illegal.
+- There is no comma operator.
+
+**Rationale:** Every language has its own quirks when it comes to precedence, the specific
+operators supported, etc.
+BMS must be easily understood, and this very basic form is a common subset found in all modern
+languages.
+
+Furthermore, certain operators can only be applied to values of certain types:
+- Bitwise operators can only be applied to `Uint`.
+- Logical operators (`not`, `or`, `and`) can only be applied to `Bool`.
+  There is no type coercion like in C, i.e. `if 0` is not the same as `if false`.
+
+**Rationale:** Each language has its own quirks when it comes to mixed-sign comparisons,
+type coercions, etc.
+It is important to prevent any confusion by making the behavior explicit.
 
 #### If-expressions
 
