@@ -306,7 +306,6 @@ namespace bit_manipulation {
     case parameter: return "parameter";
     case type: return "type";
     case variable: return "variable";
-    case statement: return "statement";
     case if_statement: return "if_statement";
     case while_statement: return "while_statement";
     case break_statement: return "break_statement";
@@ -314,16 +313,14 @@ namespace bit_manipulation {
     case return_statement: return "return_statement";
     case assignment: return "assignment";
     case block_statement: return "block_statement";
-    case expression: return "expression";
     case if_expression: return "if_expression";
     case binary_expression: return "binary_expression";
     case prefix_expression: return "prefix_expression";
-    case id_expression: return "id_expression";
-    case primary_expression: return "primary_expression";
     case function_call_expression: return "function_call_expression";
+    case id_expression: return "id_expression";
     case literal: return "literal";
     }
     return "";
 }
 
-}
+} // namespace bit_manipulation

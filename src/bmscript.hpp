@@ -244,7 +244,6 @@ enum struct Node_Type {
     parameter,
     type,
     variable,
-    statement,
     if_statement,
     while_statement,
     break_statement,
@@ -252,13 +251,11 @@ enum struct Node_Type {
     return_statement,
     assignment,
     block_statement,
-    expression,
     if_expression,
     binary_expression,
     prefix_expression,
-    id_expression,
-    primary_expression,
     function_call_expression,
+    id_expression,
     literal,
 };
 
