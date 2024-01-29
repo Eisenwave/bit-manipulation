@@ -54,7 +54,6 @@ namespace bit_manipulation {
     case keyword_let: return "keyword_let";
     case keyword_const: return "keyword_const";
     case keyword_function: return "keyword_function";
-    case keyword_for: return "keyword_for";
     case keyword_while: return "keyword_while";
     case keyword_if: return "keyword_if";
     case keyword_else: return "keyword_else";
@@ -117,7 +116,6 @@ namespace bit_manipulation {
     case keyword_let: return "'let'";
     case keyword_const: return "'const'";
     case keyword_function: return "'function'";
-    case keyword_for: return "'for'";
     case keyword_while: return "'while'";
     case keyword_if: return "'if'";
     case keyword_else: return "'else'";
@@ -181,7 +179,6 @@ namespace bit_manipulation {
     case double_right_arrow:
     case keyword_if: return 2;
 
-    case keyword_for:
     case keyword_let:
     case keyword_int: return 3;
 
@@ -277,7 +274,6 @@ namespace bit_manipulation {
     case return_statement: return "return_statement";
     case if_statement: return "if_statement";
     case while_statement: return "while_statement";
-    case for_statement: return "for_statement";
     case init_clause: return "init_clause";
     case block_statement: return "block_statement";
     case expression: return "expression";
@@ -415,7 +411,20 @@ Block_Statement_Data::Block_Statement_Data(std::vector<Node>&& statements)
 {
 }
 
-If_While_Statement_Data::If_While_Statement_Data(Node&& condition, Node&& block)
+If_Statement_Data::If_Statement_Data(Node&& condition, Node&& block)
+    : condition(std::make_unique<Node>(std::move(condition)))
+    , if_block(std::make_unique<Node>(std::move(block)))
+{
+}
+
+If_Statement_Data::If_Statement_Data(Node&& condition, Node&& if_block, Node&& else_block)
+    : condition(std::make_unique<Node>(std::move(condition)))
+    , if_block(std::make_unique<Node>(std::move(if_block)))
+    , else_block(std::make_unique<Node>(std::move(else_block)))
+{
+}
+
+While_Statement_Data::While_Statement_Data(Node&& condition, Node&& block)
     : condition(std::make_unique<Node>(std::move(condition)))
     , block(std::make_unique<Node>(std::move(block)))
 {
@@ -555,32 +564,6 @@ private:
     std::string_view m_source;
     Size m_pos;
 
-    struct Attempt {
-        Parser& parser;
-        const Size pos;
-        bool commited = false;
-
-        Attempt(Parser& parser, Size pos) noexcept
-            : parser { parser }
-            , pos { pos }
-        {
-        }
-
-        Attempt(const Attempt&) = delete;
-
-        ~Attempt()
-        {
-            if (!commited) {
-                parser.m_pos = pos;
-            }
-        }
-
-        void commit()
-        {
-            commited = true;
-        }
-    };
-
 public:
     explicit Parser(std::span<const Token> tokens, std::string_view source)
         : m_tokens { tokens }
@@ -602,6 +585,24 @@ public:
     }
 
 private:
+    const Token* peek_or_expect(Token_Type expected, bool increment)
+    {
+        if (const Token* next = peek(); next && next->type == expected) {
+            m_pos += increment;
+            return next;
+        }
+        return nullptr;
+    }
+
+    const Token* peek_or_expect(bool (&predicate)(Token_Type), bool increment)
+    {
+        if (const Token* next = peek(); next && predicate(next->type)) {
+            m_pos += increment;
+            return next;
+        }
+        return nullptr;
+    }
+
     const Token* peek() const
     {
         return m_pos < m_tokens.size() ? &m_tokens[m_pos] : nullptr;
@@ -609,24 +610,12 @@ private:
 
     const Token* peek(Token_Type expected)
     {
-        if (const Token* next = peek(); next && next->type == expected) {
-            return next;
-        }
-        return nullptr;
+        return peek_or_expect(expected, false);
     }
 
-    /// @brief Advances the position of the parser by one.
-    /// There must be a token to pop, otherwise this function fails.
-    /// This function can only be used safely in conjunction with `peek`.
-    void pop()
+    const Token* peek(bool (&predicate)(Token_Type))
     {
-        BIT_MANIPULATION_ASSERT(m_pos < m_tokens.size());
-        m_pos += 1;
-    }
-
-    bool eof()
-    {
-        return m_pos == m_tokens.size();
+        return peek_or_expect(predicate, false);
     }
 
     /// @brief Checks whether the next token (if any) equals the expected type.
@@ -637,16 +626,30 @@ private:
     /// token doesn't match the expected type.
     const Token* expect(Token_Type type)
     {
-        if (const Token* next = peek(); next && next->type == type) {
-            m_pos += 1;
-            return next;
-        }
-        return nullptr;
+        return peek_or_expect(type, true);
     }
 
-    Attempt start_attempt()
+    const Token* expect(bool (&predicate)(Token_Type))
     {
-        return { *this, m_pos };
+        return peek_or_expect(predicate, true);
+    }
+
+    /// @brief Like `match`, but the parser state is not advanced if no match was made.
+    /// @param rule the grammar rule
+    /// @return the matched result, or `rule`
+    Rule_Result expect(Grammar_Rule rule)
+    {
+        const Size restore_pos = m_pos;
+        Rule_Result result = match(rule);
+        if (!result) {
+            m_pos = restore_pos;
+        }
+        return result;
+    }
+
+    bool eof()
+    {
+        return m_pos == m_tokens.size();
     }
 
     /// @brief Matches a grammatical rule.
@@ -659,8 +662,8 @@ private:
         switch (rule) {
         case Grammar_Rule::program: return match_program();
         case Grammar_Rule::program_declaration: return match_program_declaration();
-        case Grammar_Rule::const_declaration: return match_variable(Token_Type::keyword_const);
-        case Grammar_Rule::let_declaration: return match_variable(Token_Type::keyword_let);
+        case Grammar_Rule::const_declaration: return match_const_declaration();
+        case Grammar_Rule::let_declaration: return match_let_declaration();
         case Grammar_Rule::initializer: return match_initializer();
         case Grammar_Rule::function_declaration: return match_function_declaration();
         case Grammar_Rule::requires_clause: return match_requires_clause();
@@ -671,9 +674,8 @@ private:
         case Grammar_Rule::break_statement: return match_break_statement();
         case Grammar_Rule::continue_statement: return match_continue_statement();
         case Grammar_Rule::return_statement: return match_return_statement();
-        case Grammar_Rule::if_statement: return match_if_or_while(Token_Type::keyword_if);
-        case Grammar_Rule::while_statement: return match_if_or_while(Token_Type::keyword_while);
-        case Grammar_Rule::for_statement: return match_for_statement();
+        case Grammar_Rule::if_statement: return match_if_statement();
+        case Grammar_Rule::while_statement: return match_while_statement();
         case Grammar_Rule::init_clause: return match_init_clause();
         case Grammar_Rule::block_statement: return match_block_statement();
         case Grammar_Rule::expression: return match_expression();
@@ -687,21 +689,6 @@ private:
         case Grammar_Rule::type: return match_type();
         default: BIT_MANIPULATION_ASSERT(false);
         }
-    }
-
-    /// @brief Like `match`, but the parser state is not advanced if no match was made.
-    /// @param rule the grammar rule
-    /// @return the matched result, or `rule`
-    Rule_Result expect(Grammar_Rule rule)
-    {
-        {
-            auto attempt = start_attempt();
-            if (Rule_Result result = match(rule)) {
-                attempt.commit();
-                return result;
-            }
-        }
-        return Rule_Error { rule };
     }
 
     Rule_Result match_program()
@@ -726,12 +713,22 @@ private:
     Rule_Result match_program_declaration()
     {
         if (peek(Token_Type::keyword_const)) {
-            return match_variable(Token_Type::keyword_const);
+            return match_const_declaration();
         }
         if (peek(Token_Type::keyword_function)) {
             return match_function_declaration();
         }
         return Rule_Error { Grammar_Rule::program_declaration };
+    }
+
+    Rule_Result match_let_declaration()
+    {
+        return match_variable(Token_Type::keyword_let);
+    }
+
+    Rule_Result match_const_declaration()
+    {
+        return match_variable(Token_Type::keyword_const);
     }
 
     Rule_Result match_variable(Token_Type const_or_let)
@@ -893,19 +890,17 @@ private:
         static constexpr Token_Type possible_types[]
             = { Token_Type::keyword_let,      Token_Type::keyword_const,  Token_Type::keyword_break,
                 Token_Type::keyword_continue, Token_Type::keyword_return, Token_Type::keyword_if,
-                Token_Type::keyword_while,    Token_Type::keyword_for,    Token_Type::left_brace,
-                Token_Type::identifier };
+                Token_Type::keyword_while,    Token_Type::left_brace,     Token_Type::identifier };
 
         if (const Token* t = peek()) {
             switch (t->type) {
-            case Token_Type::keyword_let: return match_variable(Token_Type::keyword_let);
-            case Token_Type::keyword_const: return match_variable(Token_Type::keyword_const);
+            case Token_Type::keyword_let: return match_let_declaration();
+            case Token_Type::keyword_const: return match_const_declaration();
             case Token_Type::keyword_break: return match_break_statement();
             case Token_Type::keyword_continue: return match_continue_statement();
             case Token_Type::keyword_return: return match_return_statement();
-            case Token_Type::keyword_if: return match_if_or_while(Token_Type::keyword_if);
-            case Token_Type::keyword_while: return match_if_or_while(Token_Type::keyword_while);
-            case Token_Type::keyword_for: return match_for_statement();
+            case Token_Type::keyword_if: return match_if_statement();
+            case Token_Type::keyword_while: return match_while_statement();
             case Token_Type::left_brace: return match_block_statement();
             case Token_Type::identifier: return match_assignment();
             default: break;
@@ -989,88 +984,53 @@ private:
         return Node { *t, Node_Type::continue_statement };
     }
 
-    Rule_Result match_if_or_while(Token_Type if_or_while)
+    Rule_Result match_if_statement()
     {
-        BIT_MANIPULATION_ASSERT(if_or_while == Token_Type::keyword_if
-                                || if_or_while == Token_Type::keyword_while);
+        const auto this_rule = Grammar_Rule::if_statement;
 
-        const auto this_rule = if_or_while == Token_Type::keyword_if
-            ? Grammar_Rule::if_statement
-            : Grammar_Rule::while_statement;
-        const std::span<const Token_Type> expected_tokens = if_or_while == Token_Type::keyword_if
-            ? const_array_one_v<Token_Type::keyword_if>
-            : const_array_one_v<Token_Type::keyword_while>;
-
-        const Token* first = expect(if_or_while);
+        const Token* first = expect(Token_Type::keyword_if);
         if (!first) {
-            return Rule_Error { this_rule, expected_tokens };
-        }
-        if (!expect(Token_Type::left_parenthesis)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_if> };
         }
         Rule_Result condition = match_expression();
         if (!condition) {
             return condition;
         }
-        if (!expect(Token_Type::right_parenthesis)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
-        }
         Rule_Result block = match_block_statement();
         if (!block) {
             return block;
         }
-        const auto type = if_or_while == Token_Type::keyword_if ? Node_Type::if_statement
-                                                                : Node_Type::while_statement;
-        return Node { *first, type,
-                      If_While_Statement_Data { std::move(*condition), std::move(*block) } };
+        if (expect(Token_Type::keyword_else)) {
+            Rule_Result else_block = match_block_statement();
+            if (!else_block) {
+                return else_block;
+            }
+            return Node { *first, Node_Type::if_statement,
+                          If_Statement_Data { std::move(*condition), std::move(*block),
+                                              std::move(*else_block) } };
+        }
+        return Node { *first, Node_Type::if_statement,
+                      If_Statement_Data { std::move(*condition), std::move(*block) } };
     }
 
-    Rule_Result match_for_statement()
+    Rule_Result match_while_statement()
     {
-        constexpr auto this_rule = Grammar_Rule::for_statement;
-        const Token* first = expect(Token_Type::keyword_for);
+        const auto this_rule = Grammar_Rule::while_statement;
+
+        const Token* first = expect(Token_Type::keyword_while);
         if (!first) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_for> };
-        }
-        if (expect(Token_Type::left_parenthesis)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
-        }
-        Rule_Result init = match_init_clause();
-        if (!init) {
-            return init;
-        }
-        if (!expect(Token_Type::semicolon)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_while> };
         }
         Rule_Result condition = match_expression();
         if (!condition) {
             return condition;
         }
-        if (!expect(Token_Type::semicolon)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
-        }
-        if (Rule_Result increment = expect(Grammar_Rule::assignment)) {
-            if (!expect(Token_Type::right_parenthesis)) {
-                return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
-            }
-            Rule_Result block = match_block_statement();
-            if (!block) {
-                return block;
-            }
-            return Node { *first, Node_Type::for_statement,
-                          For_Statement_Data { std::move(*init), std::move(*condition),
-                                               std::move(*increment), std::move(*block) } };
-        }
-        if (!expect(Token_Type::right_parenthesis)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
-        }
         Rule_Result block = match_block_statement();
         if (!block) {
             return block;
         }
-        return Node { *first, Node_Type::for_statement,
-                      For_Statement_Data { std::move(*init), std::move(*condition),
-                                           std::move(*block) } };
+        return Node { *first, Node_Type::while_statement,
+                      While_Statement_Data { std::move(*condition), std::move(*block) } };
     }
 
     Rule_Result match_init_clause()
@@ -1145,37 +1105,27 @@ private:
         if (!left) {
             return left;
         }
-        { // TODO: use function pointers to get rid of these manual attempts
-            auto attempt = start_attempt();
-            if (const Token* op = peek(); op && is_binary_operator(op->type)) {
-                attempt.commit();
-                pop();
-                Rule_Result right = match_prefix_expression();
-                if (!right) {
-                    return right;
-                }
-                return Node { left->token, Node_Type::binary_expression,
-                              Binary_Expression_Data { std::move(*left), std::move(*right),
-                                                       op->type } };
+        if (const Token* op = expect(is_binary_operator)) {
+            Rule_Result right = match_prefix_expression();
+            if (!right) {
+                return right;
             }
+            return Node { left->token, Node_Type::binary_expression,
+                          Binary_Expression_Data { std::move(*left), std::move(*right),
+                                                   op->type } };
         }
         return left;
     }
 
     Rule_Result match_prefix_expression()
     {
-        {
-            auto attempt = start_attempt();
-            if (const Token* t = peek(); t && is_unary_operator(t->type)) {
-                attempt.commit();
-                pop();
-                Rule_Result e = match_prefix_expression();
-                if (!e) {
-                    return e;
-                }
-                return Node { *t, Node_Type::prefix_expression,
-                              Prefix_Expression_Data { std::move(*e), t->type } };
+        if (const Token* t = expect(is_unary_operator)) {
+            Rule_Result e = match_prefix_expression();
+            if (!e) {
+                return e;
             }
+            return Node { *t, Node_Type::prefix_expression,
+                          Prefix_Expression_Data { std::move(*e), t->type } };
         }
         return match_postfix_expression();
     }
@@ -1232,28 +1182,17 @@ private:
                 Token_Type::decimal_literal, Token_Type::hexadecimal_literal,
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
-        const Token* t = peek();
-        if (!t) {
-            return Rule_Error { this_rule, expected };
-        }
-        if (is_literal(t->type)) {
-            pop();
+        if (const Token* t = expect(is_literal)) {
             return Node { *t, Node_Type::literal };
         }
-        if (t->type == Token_Type::identifier) {
-            pop();
+        if (const Token* t = expect(Token_Type::identifier)) {
             return Node { *t, Node_Type::id_expression };
         }
-        if (t->type == Token_Type::left_parenthesis) {
-            pop();
-            Rule_Result e = match_expression();
-            if (!e) {
-                return e;
-            }
-            if (expect(Token_Type::right_parenthesis)) {
-                return e;
-            }
+        if (Rule_Result e = match_parenthesized_expression()) {
+            return e;
         }
+        // Intentionally forget about the e error to not falsely suggest that parentheses are
+        // required for a primary expression, but give feedback about the whole union.
         return Rule_Error { this_rule, expected };
     }
 
@@ -1279,36 +1218,22 @@ private:
         constexpr auto this_rule = Grammar_Rule::type;
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
-        const Token* t = peek();
-        if (!t) {
-            return Rule_Error { this_rule, expected };
-        }
-        switch (t->type) {
-        case Token_Type::keyword_bool:
-            pop();
+
+        if (const Token* t = expect(Token_Type::keyword_bool)) {
             return Node { *t, Node_Type::type, Type_Data::make_bool() };
-
-        case Token_Type::keyword_int:
-            pop();
+        }
+        if (const Token* t = expect(Token_Type::keyword_int)) {
             return Node { *t, Node_Type::type, Type_Data::make_int() };
-
-        case Token_Type::keyword_uint: {
-            pop();
-            if (!expect(Token_Type::left_parenthesis)) {
-                return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
-            }
-            Rule_Result e = match_expression();
+        }
+        if (const Token* t = expect(Token_Type::keyword_uint)) {
+            Rule_Result e = match_parenthesized_expression();
             if (!e) {
                 return e;
-            }
-            if (!expect(Token_Type::right_parenthesis)) {
-                return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
             }
             return Node { *t, Node_Type::type, Type_Data::make_uint(std::move(*e)) };
         }
 
-        default: return Rule_Error { this_rule, expected };
-        }
+        return Rule_Error { this_rule, expected };
     }
 };
 

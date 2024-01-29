@@ -104,8 +104,6 @@ enum struct Token_Type {
     keyword_const,
     // function
     keyword_function,
-    // for
-    keyword_for,
     // while
     keyword_while,
     // if
@@ -206,10 +204,8 @@ enum struct Grammar_Rule {
     break_statement, // "break", ";"
     continue_statement, // "continue", ";"
     return_statement, // "return", expression, ";"
-    if_statement, // "if", "(", expression, ")", block_statement, ["else", block_statement]
-    while_statement, // "while", "(", expression, ")", block_statement;
-    for_statement, // "for", "(", init_clause, ";", expression, ";", assignment, ")",
-                   // block_statement
+    if_statement, // "if", expression, block_statement, ["else", block_statement]
+    while_statement, // "while", expression, block_statement;
     init_clause, // let_declaration | assignment
     block_statement, // "{" { statement } "}"
     expression, // if_expression
@@ -230,7 +226,7 @@ enum struct Grammar_Rule {
     unary_operator, // "+" | "-" | "!" | "~"
 
     type, // "Bool" | "Int" | uint
-    uint, // "Uint", "(", expression, ")"
+    uint, // "Uint", parenthesized_expression
 };
 
 [[nodiscard]] std::string_view grammar_rule_name(Grammar_Rule rule);
@@ -342,10 +338,17 @@ struct Block_Statement_Data {
     Block_Statement_Data(std::vector<Node>&& statements);
 };
 
-struct If_While_Statement_Data {
+struct If_Statement_Data {
+    std::unique_ptr<Node> condition, if_block, else_block;
+
+    If_Statement_Data(Node&& condition, Node&& block);
+    If_Statement_Data(Node&& condition, Node&& if_block, Node&& else_block);
+};
+
+struct While_Statement_Data {
     std::unique_ptr<Node> condition, block;
 
-    If_While_Statement_Data(Node&& condition, Node&& block);
+    While_Statement_Data(Node&& condition, Node&& block);
 };
 
 struct For_Statement_Data {
@@ -404,8 +407,9 @@ using Node_Data = std::variant<std::monostate,
                                Let_Const_Data,
                                Parameter_Data,
                                Assignment_Data,
+                               If_Statement_Data,
+                               While_Statement_Data,
                                For_Statement_Data,
-                               If_While_Statement_Data,
                                Return_Statement_Data,
                                Block_Statement_Data,
                                Type_Data,
@@ -431,7 +435,17 @@ struct Node {
     }
 };
 
+enum class Node_Handle : Size {
+    // the null handle, representing no node
+    null = std::numeric_limits<Size>::max()
+};
+
 } // namespace ast
+
+struct Parsed_Program {
+    std::vector<ast::Node> nodes;
+    ast::Node root_node;
+};
 
 struct Parse_Error {
     Grammar_Rule fail_rule;

@@ -25,7 +25,6 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
     } types_by_name[] = {
         { "if", keyword_if },
         { "else", keyword_else },
-        { "for", keyword_for },
         { "let", keyword_let },
         { "const", keyword_const },
         { "Int", keyword_int },
