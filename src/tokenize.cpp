@@ -15,7 +15,7 @@ constexpr bool is_digit(char c)
     return c >= '0' && c <= '9';
 }
 
-std::optional<Token_Type> keyword_by_name(std::string_view s)
+std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
 {
     using enum Token_Type;
 
@@ -49,7 +49,7 @@ std::optional<Token_Type> keyword_by_name(std::string_view s)
     return std::nullopt;
 }
 
-std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s)
+std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) noexcept
 {
     using enum Token_Type;
 

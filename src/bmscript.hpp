@@ -226,6 +226,7 @@ enum struct Grammar_Rule {
                      // | "&&" | "||"
                      // | "<<" | ">>" | "&" | "|" | "^"
     unary_operator, // "+" | "-" | "!" | "~"
+    identifier, // abc
 
     type, // "Bool" | "Int" | uint
     uint, // "Uint", "(", expression, ")"
