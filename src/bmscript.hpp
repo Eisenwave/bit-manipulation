@@ -372,14 +372,6 @@ struct Type_Data {
     Node_Handle width;
     Type_Type type;
 
-public:
-    static Type_Data make_bool();
-
-    static Type_Data make_int();
-
-    static Type_Data make_uint(Node_Handle width);
-
-private:
     Type_Data(Type_Type type, Node_Handle width);
 };
 

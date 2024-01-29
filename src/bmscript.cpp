@@ -338,10 +338,12 @@ Function_Data::Function_Data(std::string_view name,
                              Node_Handle body)
     : name(name)
     , parameters((std::move(parameters)))
-    , requires_clause(((requires_clause)))
-    , return_type(((return_type)))
-    , body(((body)))
+    , requires_clause(requires_clause)
+    , return_type(return_type)
+    , body(body)
 {
+    BIT_MANIPULATION_ASSERT(return_type != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(body != Node_Handle::null);
 }
 
 Let_Const_Data::Let_Const_Data(Token_Type let_or_const,
@@ -350,26 +352,30 @@ Let_Const_Data::Let_Const_Data(Token_Type let_or_const,
                                Node_Handle initializer)
     : name(name)
     , type((type))
-    , initializer((initializer))
+    , initializer(initializer)
     , is_const(let_or_const == Token_Type::keyword_const)
 {
+    BIT_MANIPULATION_ASSERT(type != Node_Handle::null || initializer != Node_Handle::null);
 }
 
 Assignment_Data::Assignment_Data(std::string_view name, Node_Handle expression)
     : name(name)
-    , expression(((expression)))
+    , expression(expression)
 {
+    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
 }
 
 Parameter_Data::Parameter_Data(std::string_view name, Node_Handle type)
     : name(name)
-    , type(((type)))
+    , type(type)
 {
+    BIT_MANIPULATION_ASSERT(type != Node_Handle::null);
 }
 
 Return_Statement_Data::Return_Statement_Data(Node_Handle expression)
-    : expression(((expression)))
+    : expression(expression)
 {
+    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
 }
 
 Block_Statement_Data::Block_Statement_Data(std::vector<Node_Handle>&& statements)
@@ -380,36 +386,46 @@ Block_Statement_Data::Block_Statement_Data(std::vector<Node_Handle>&& statements
 If_Statement_Data::If_Statement_Data(Node_Handle condition,
                                      Node_Handle if_block,
                                      Node_Handle else_block)
-    : condition(((condition)))
-    , if_block(((if_block)))
-    , else_block(((else_block)))
+    : condition(condition)
+    , if_block(if_block)
+    , else_block(else_block)
 {
+    BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(if_block != Node_Handle::null);
 }
 
 While_Statement_Data::While_Statement_Data(Node_Handle condition, Node_Handle block)
-    : condition(((condition)))
-    , block(((block)))
+    : condition(condition)
+    , block(block)
 {
+    BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(block != Node_Handle::null);
 }
 
 If_Expression_Data::If_Expression_Data(Node_Handle left, Node_Handle condition, Node_Handle right)
-    : condition(((condition)))
-    , left(((left)))
-    , right(((right)))
+    : condition(condition)
+    , left(left)
+    , right(right)
 {
+    BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(left != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(right != Node_Handle::null);
 }
 
 Binary_Expression_Data::Binary_Expression_Data(Node_Handle left, Node_Handle right, Token_Type op)
-    : left(((left)))
-    , right(((right)))
+    : left(left)
+    , right(right)
     , op(op)
 {
+    BIT_MANIPULATION_ASSERT(left != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(right != Node_Handle::null);
 }
 
 Prefix_Expression_Data::Prefix_Expression_Data(Node_Handle operand, Token_Type op)
-    : operand(((operand)))
+    : operand(operand)
     , op(op)
 {
+    BIT_MANIPULATION_ASSERT(operand != Node_Handle::null);
 }
 
 Function_Call_Expression_Data::Function_Call_Expression_Data(std::string_view function,
@@ -419,25 +435,11 @@ Function_Call_Expression_Data::Function_Call_Expression_Data(std::string_view fu
 {
 }
 
-Type_Data Type_Data::make_bool()
-{
-    return { Type_Type::Bool, Node_Handle::null };
-}
-
-Type_Data Type_Data::make_int()
-{
-    return { Type_Type::Int, Node_Handle::null };
-}
-
-Type_Data Type_Data::make_uint(Node_Handle width)
-{
-    return { Type_Type::Uint, ((width)) };
-}
-
 Type_Data::Type_Data(Type_Type type, Node_Handle width)
-    : width((width))
+    : width(width)
     , type(type)
 {
+    BIT_MANIPULATION_ASSERT(type == Type_Type::Uint || width != Node_Handle::null);
 }
 
 // =================================================================================================
@@ -710,32 +712,26 @@ private:
         }
         const std::string_view name = id->extract(m_source);
 
+        auto type_handle = Node_Handle::null;
         if (expect(Token_Type::colon)) {
-            Rule_Result type = match_type();
-            if (!type) {
+            if (Rule_Result type = match_type()) {
+                type_handle = *type;
+            }
+            else {
                 return type;
             }
-            if (Rule_Result init = expect(Grammar_Rule::initializer)) {
-                if (!expect(Token_Type::semicolon)) {
-                    return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
-                }
-                return make_node(*t, Node_Type::variable,
-                                 Let_Const_Data { const_or_let, name, *type, *init });
-            }
-            if (const_or_let == Token_Type::keyword_let && expect(Token_Type::semicolon)) {
-                return make_node(*t, Node_Type::variable,
-                                 Let_Const_Data { const_or_let, name, *type, Node_Handle::null });
-            }
         }
+        const bool mandatory_initializer
+            = const_or_let == Token_Type::keyword_const || type_handle == Node_Handle::null;
         Rule_Result init = match_initializer();
-        if (!init) {
+        if (!init && mandatory_initializer) {
             return init;
         }
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
         return make_node(*t, Node_Type::variable,
-                         Let_Const_Data { const_or_let, name, Node_Handle::null, *init });
+                         Let_Const_Data { const_or_let, name, type_handle, *init });
     }
 
     Rule_Result match_initializer()
@@ -792,18 +788,14 @@ private:
         if (!ret) {
             return ret;
         }
+        auto requires_handle = Node_Handle::null;
         if (peek(Token_Type::keyword_requires)) {
-            Rule_Result req = expect(Grammar_Rule::requires_clause);
-            if (!req) {
+            if (Rule_Result req = expect(Grammar_Rule::requires_clause)) {
+                requires_handle = *req;
+            }
+            else {
                 return req;
             }
-            Rule_Result body = match_block_statement();
-            if (!body) {
-                return body;
-            }
-            return make_node(*t, Node_Type::function,
-                             Function_Data { name->extract(m_source), std::move(parameters), *ret,
-                                             *req, *body });
         }
         Rule_Result body = match_block_statement();
         if (!body) {
@@ -811,7 +803,7 @@ private:
         }
         return make_node(*t, Node_Type::function,
                          Function_Data { name->extract(m_source), std::move(parameters), *ret,
-                                         Node_Handle::null, *body });
+                                         requires_handle, *body });
     }
 
     Rule_Result match_parameter()
@@ -955,16 +947,17 @@ private:
         if (!block) {
             return block;
         }
+        auto else_handle = Node_Handle::null;
         if (expect(Token_Type::keyword_else)) {
-            Rule_Result else_block = match_block_statement();
-            if (!else_block) {
+            if (Rule_Result else_block = match_block_statement()) {
+                else_handle = *else_block;
+            }
+            else {
                 return else_block;
             }
-            return make_node(*first, Node_Type::if_statement,
-                             If_Statement_Data { *condition, *block, *else_block });
         }
         return make_node(*first, Node_Type::if_statement,
-                         If_Statement_Data { *condition, *block, Node_Handle::null });
+                         If_Statement_Data { *condition, *block, else_handle });
     }
 
     Rule_Result match_while_statement()
@@ -1172,17 +1165,17 @@ private:
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return make_node(*t, Node_Type::type, Type_Data::make_bool());
+            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Int, Node_Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return make_node(*t, Node_Type::type, Type_Data::make_int());
+            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Int, Node_Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             Rule_Result e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return make_node(*t, Node_Type::type, Type_Data::make_uint(*e));
+            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Uint, *e });
         }
 
         return Rule_Error { this_rule, expected };
