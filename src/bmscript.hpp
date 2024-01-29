@@ -134,6 +134,8 @@ enum struct Token_Type {
 
 [[nodiscard]] std::string_view token_type_name(Token_Type type);
 
+[[nodiscard]] std::string_view token_type_readable_name(Token_Type type);
+
 [[nodiscard]] Size token_type_length(Token_Type type);
 
 [[nodiscard]] bool is_unary_operator(Token_Type type);
@@ -226,7 +228,6 @@ enum struct Grammar_Rule {
                      // | "&&" | "||"
                      // | "<<" | ">>" | "&" | "|" | "^"
     unary_operator, // "+" | "-" | "!" | "~"
-    identifier, // abc
 
     type, // "Bool" | "Int" | uint
     uint, // "Uint", "(", expression, ")"
@@ -434,6 +435,7 @@ struct Node {
 
 struct Parse_Error {
     Grammar_Rule fail_rule;
+    std::span<const Token_Type> expected_tokens;
     Token fail_token;
 };
 

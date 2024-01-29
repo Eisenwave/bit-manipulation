@@ -2,6 +2,7 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "ansi.hpp"
 #include "assert.hpp"
 #include "bmscript.hpp"
 #include "io.hpp"
@@ -61,17 +62,63 @@ void dump_tokens(std::string_view file)
     print_tokens(std::cout, f);
 }
 
+void print_file_position(std::string_view file, Source_Position pos)
+{
+    std::cout << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column << ansi::reset;
+}
+
+std::string_view find_line(std::string_view source, Size index)
+{
+    Size begin = source.rfind('\n', index);
+    begin = begin != std::string_view::npos ? begin + 1 : 0;
+
+    Size end = std::min(source.find('\n', index + 1), source.size());
+
+    return source.substr(begin, end - begin);
+}
+
+void print_affected_line(std::string_view source, Source_Position pos)
+{
+    const std::string_view line = find_line(source, pos.begin);
+    std::cout << std::right << std::setfill(' ') //
+              << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << " |" //
+              << line << '\n' //
+              << std::setw(5) << ""
+              << " |" //
+              << std::string(pos.column, ' ') << ansi::h_green << "^\n"
+              << ansi::reset;
+}
+
 void dump_ast(std::string_view file)
 {
     const Tokenized_File f = tokenize_file(file);
     Parse_Result parsed = parse(f.tokens, f.program);
 
     if (const Parse_Error* node = std::get_if<Parse_Error>(&parsed)) {
-        std::cout << file << ":" << node->fail_token.pos.line + 1 << ":"
-                  << node->fail_token.pos.column << ": error: ";
-        std::cout << "expected '" << grammar_rule_name(node->fail_rule) << "', but found token '"
-                  << token_type_name(node->fail_token.type) << "'\n";
-        return;
+        print_file_position(file, node->fail_token.pos);
+        std::cout << ": " << ansi::h_red << "error: " << ansi::reset //
+                  << "while matching '" << grammar_rule_name(node->fail_rule)
+                  << "', unexpected token " << token_type_readable_name(node->fail_token.type)
+                  << "\n";
+        print_file_position(file, node->fail_token.pos);
+        std::cout << ": note: expected ";
+
+        const std::span<const Token_Type> expected = node->expected_tokens;
+        if (expected.size() == 0) {
+            std::cout << "nothing";
+        }
+        else if (expected.size() == 1) {
+            std::cout << token_type_readable_name(expected[0]);
+        }
+        else {
+            std::cout << "one of: ";
+            for (Size i = 0; i < expected.size(); ++i) {
+                std::cout << (i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
+                std::cout << token_type_readable_name(expected[i]);
+            }
+        }
+        std::cout << "\n";
+        print_affected_line(f.program, node->fail_token.pos);
     }
 
     if (const ast::Node* node = std::get_if<ast::Node>(&parsed)) {
