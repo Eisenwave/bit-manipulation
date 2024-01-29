@@ -197,7 +197,6 @@ enum struct Grammar_Rule {
           | return_statement
           | if_statement
           | while_statement
-          | for_statement
           | block_statement */
     assignment_statement, // assignment, ";"
     assignment, // identifier, "=", expression
@@ -243,7 +242,6 @@ enum struct Node_Type {
     variable,
     statement,
     if_statement,
-    for_statement,
     while_statement,
     break_statement,
     continue_statement,
@@ -260,134 +258,118 @@ enum struct Node_Type {
     literal,
 };
 
+/// A type which represents a handle into the AST.
+/// It can be used only in conjunction with `Parsed_Program`.
+/// This is basically just an index, but with more type safety and protection against misuse.
+/// By only giving the user an index in the AST, it's possible to store it as a `std::vector` and
+/// massively reduce the amount of allocations necessary.
+enum struct Node_Handle : Size {
+    // The null handle, representing no node.
+    null = std::numeric_limits<Size>::max()
+};
+
 [[nodiscard]] std::string_view node_type_name(Node_Type t);
 
 struct Program_Data {
-    std::vector<Node> declarations;
+    std::vector<Node_Handle> declarations;
 
-    Program_Data(std::vector<Node>&& declarations);
+    Program_Data(std::vector<Node_Handle>&& declarations);
 };
 
 struct Function_Data {
     std::string_view name;
-    std::vector<Node> parameters;
-    std::unique_ptr<Node> requires_clause;
-    std::unique_ptr<Node> return_type;
-    std::unique_ptr<Node> body;
+    std::vector<Node_Handle> parameters;
+    Node_Handle requires_clause;
+    Node_Handle return_type;
+    Node_Handle body;
 
     Function_Data(std::string_view name,
-                  std::vector<Node>&& parameters,
-                  Node&& requires_clause,
-                  Node&& return_type,
-                  Node&& body);
-
-    Function_Data(std::string_view name,
-                  std::vector<Node>&& parameters,
-                  Node&& return_type,
-                  Node&& body);
+                  std::vector<Node_Handle>&& parameters,
+                  Node_Handle return_type,
+                  Node_Handle requires_clause,
+                  Node_Handle body);
 };
 
 enum struct Type_Type { Bool, Int, Uint };
 
 struct Let_Const_Data {
-
-    static Let_Const_Data type_and_initializer(Token_Type let_or_const,
-                                               std::string_view name,
-                                               Node&& type,
-                                               Node&& initializer);
-
-    static Let_Const_Data
-    initializer_only(Token_Type let_or_const, std::string_view name, Node&& initializer);
-
-    static Let_Const_Data let_type_only(std::string_view name, Node&& type);
-
     std::string_view name;
-    std::unique_ptr<Node> type, initializer;
+    Node_Handle type, initializer;
     bool is_const;
 
-private:
-    Let_Const_Data(bool is_const,
+    Let_Const_Data(Token_Type let_or_const,
                    std::string_view name,
-                   std::unique_ptr<Node> type,
-                   std::unique_ptr<Node> initializer);
+                   Node_Handle type,
+                   Node_Handle initializer);
 };
 
 struct Assignment_Data {
     std::string_view name;
-    std::unique_ptr<Node> expression;
+    Node_Handle expression;
 
-    Assignment_Data(std::string_view name, Node&& expression);
+    Assignment_Data(std::string_view name, Node_Handle expression);
 };
 
 struct Parameter_Data {
     std::string_view name;
-    std::unique_ptr<Node> expression;
+    Node_Handle type;
 
-    Parameter_Data(std::string_view name, Node&& type);
+    Parameter_Data(std::string_view name, Node_Handle type);
 };
 
 struct Return_Statement_Data {
-    std::unique_ptr<Node> expression;
+    Node_Handle expression;
 
-    Return_Statement_Data(Node&& expression);
+    Return_Statement_Data(Node_Handle expression);
 };
 
 struct Block_Statement_Data {
-    std::vector<Node> statements;
+    std::vector<Node_Handle> statements;
 
-    Block_Statement_Data(std::vector<Node>&& statements);
+    Block_Statement_Data(std::vector<Node_Handle>&& statements);
 };
 
 struct If_Statement_Data {
-    std::unique_ptr<Node> condition, if_block, else_block;
+    Node_Handle condition, if_block, else_block;
 
-    If_Statement_Data(Node&& condition, Node&& block);
-    If_Statement_Data(Node&& condition, Node&& if_block, Node&& else_block);
+    If_Statement_Data(Node_Handle condition, Node_Handle if_block, Node_Handle else_block);
 };
 
 struct While_Statement_Data {
-    std::unique_ptr<Node> condition, block;
+    Node_Handle condition, block;
 
-    While_Statement_Data(Node&& condition, Node&& block);
-};
-
-struct For_Statement_Data {
-    std::unique_ptr<Node> init, condition, increment, block;
-
-    For_Statement_Data(Node&& init, Node&& condition, Node&& increment, Node&& block);
-
-    For_Statement_Data(Node&& init, Node&& condition, Node&& block);
+    While_Statement_Data(Node_Handle condition, Node_Handle block);
 };
 
 struct If_Expression_Data {
-    std::unique_ptr<Node> condition, left, right;
+    Node_Handle condition, left, right;
 
-    If_Expression_Data(Node&& left, Node&& condition, Node&& right);
+    If_Expression_Data(Node_Handle left, Node_Handle condition, Node_Handle right);
 };
 
 struct Binary_Expression_Data {
-    std::unique_ptr<Node> left, right;
+    Node_Handle left, right;
     Token_Type op;
 
-    Binary_Expression_Data(Node&& left, Node&& right, Token_Type op);
+    Binary_Expression_Data(Node_Handle left, Node_Handle right, Token_Type op);
 };
 
 struct Prefix_Expression_Data {
-    std::unique_ptr<Node> operand;
+    Node_Handle operand;
     Token_Type op;
 
-    Prefix_Expression_Data(Node&& operand, Token_Type op);
+    Prefix_Expression_Data(Node_Handle operand, Token_Type op);
 };
 
 struct Function_Call_Expression_Data {
     std::string_view function;
-    std::vector<Node> arguments;
+    std::vector<Node_Handle> arguments;
 
-    Function_Call_Expression_Data(std::string_view function, std::vector<Node>&& arguments);
+    Function_Call_Expression_Data(std::string_view function, std::vector<Node_Handle>&& arguments);
 };
 
 struct Type_Data {
-    std::unique_ptr<Node> width;
+    Node_Handle width;
     Type_Type type;
 
 public:
@@ -395,10 +377,10 @@ public:
 
     static Type_Data make_int();
 
-    static Type_Data make_uint(Node&& width);
+    static Type_Data make_uint(Node_Handle width);
 
 private:
-    Type_Data(Type_Type type, std::unique_ptr<Node> width);
+    Type_Data(Type_Type type, Node_Handle width);
 };
 
 using Node_Data = std::variant<std::monostate,
@@ -409,7 +391,6 @@ using Node_Data = std::variant<std::monostate,
                                Assignment_Data,
                                If_Statement_Data,
                                While_Statement_Data,
-                               For_Statement_Data,
                                Return_Statement_Data,
                                Block_Statement_Data,
                                Type_Data,
@@ -435,16 +416,11 @@ struct Node {
     }
 };
 
-enum class Node_Handle : Size {
-    // the null handle, representing no node
-    null = std::numeric_limits<Size>::max()
-};
-
 } // namespace ast
 
 struct Parsed_Program {
     std::vector<ast::Node> nodes;
-    ast::Node root_node;
+    ast::Node_Handle root_node;
 };
 
 struct Parse_Error {
@@ -453,7 +429,7 @@ struct Parse_Error {
     Token fail_token;
 };
 
-using Parse_Result = std::variant<ast::Node, Parse_Error>;
+using Parse_Result = std::variant<Parsed_Program, Parse_Error>;
 
 Parse_Result parse(std::span<const Token> tokens, std::string_view source);
 

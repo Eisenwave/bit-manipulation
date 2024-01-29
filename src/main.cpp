@@ -50,10 +50,10 @@ void print_tokens(std::ostream& out, const Tokenized_File& file)
     }
 }
 
-void print_ast(std::ostream& out, const ast::Node& root)
+void print_ast(std::ostream& out, const Parsed_Program& program)
 {
     (void)out;
-    (void)root;
+    (void)program;
 }
 
 void dump_tokens(std::string_view file)
@@ -121,8 +121,8 @@ void dump_ast(std::string_view file)
         print_affected_line(f.program, node->fail_token.pos);
     }
 
-    if (const ast::Node* node = std::get_if<ast::Node>(&parsed)) {
-        print_ast(std::cout, *node);
+    if (const Parsed_Program* program = std::get_if<Parsed_Program>(&parsed)) {
+        print_ast(std::cout, *program);
     }
 }
 
