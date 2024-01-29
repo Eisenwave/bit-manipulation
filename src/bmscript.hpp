@@ -214,7 +214,7 @@ enum struct Grammar_Rule {
     expression, // if_expression
     if_expression, // binary_expression, ["if", binary_expression, "else", binary_expression]
     binary_expression, // prefix_expression, [binary_operator, prefix_expression]
-    prefix_expression, // unary_operator, prefix_expression | postfix_expression
+    prefix_expression, // [unary_operator], postfix_expression
     postfix_expression, // function_call_expression | primary_expression
     function_call_expression, // identifier, "(", [expression_sequence], ")"
     expression_sequence, // expression, {",", expression}
@@ -359,7 +359,7 @@ struct Prefix_Expression_Data {
     Node_Handle operand;
     Token_Type op;
 
-    Prefix_Expression_Data(Node_Handle operand, Token_Type op);
+    Prefix_Expression_Data(Token_Type opm, Node_Handle operand);
 };
 
 struct Function_Call_Expression_Data {

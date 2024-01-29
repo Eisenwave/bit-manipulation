@@ -105,7 +105,7 @@ Binary_Expression_Data::Binary_Expression_Data(Node_Handle left, Node_Handle rig
     BIT_MANIPULATION_ASSERT(right != Node_Handle::null);
 }
 
-Prefix_Expression_Data::Prefix_Expression_Data(Node_Handle operand, Token_Type op)
+Prefix_Expression_Data::Prefix_Expression_Data(Token_Type op, Node_Handle operand)
     : operand(operand)
     , op(op)
 {
@@ -753,12 +753,12 @@ private:
     Rule_Result match_prefix_expression()
     {
         if (const Token* t = expect(is_unary_operator)) {
-            Rule_Result e = match_prefix_expression();
+            Rule_Result e = match_postfix_expression();
             if (!e) {
                 return e;
             }
             return make_node(*t, Node_Type::prefix_expression,
-                             Prefix_Expression_Data { *e, t->type });
+                             Prefix_Expression_Data { t->type, *e });
         }
         return match_postfix_expression();
     }
