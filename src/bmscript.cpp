@@ -645,26 +645,21 @@ private:
 
     Rule_Result match_program()
     {
-        if (Rule_Result first = match_program_declaration()) {
-            std::vector<Node> declarations;
-            declarations.push_back(std::move(*first));
-
-            while (!eof()) {
-                if (Rule_Result d = match_program_declaration()) {
-                    declarations.push_back(std::move(*d));
-                }
-                else {
-                    return d;
-                }
-            }
-            return Node { first->token, Node_Type::program,
-                          Program_Data { std::move(declarations) } };
-        }
-        else {
+        Rule_Result first = match_program_declaration();
+        if (!first) {
             return first;
         }
+        std::vector<Node> declarations;
+        declarations.push_back(std::move(*first));
 
-        return Grammar_Rule::program;
+        while (!eof()) {
+            Rule_Result d = match_program_declaration();
+            if (!d) {
+                return d;
+            }
+            declarations.push_back(std::move(*d));
+        }
+        return Node { first->token, Node_Type::program, Program_Data { std::move(declarations) } };
     }
 
     Rule_Result match_program_declaration()
@@ -709,7 +704,7 @@ private:
                               Let_Const_Data::type_and_initializer(
                                   const_or_let, name, std::move(*type), std::move(*init)) };
             }
-            if (expect(Token_Type::semicolon) && const_or_let == Token_Type::keyword_let) {
+            if (const_or_let == Token_Type::keyword_let && expect(Token_Type::semicolon)) {
                 return Node { *t, Node_Type::variable,
                               Let_Const_Data::let_type_only(name, std::move(*type)) };
             }
@@ -727,14 +722,17 @@ private:
 
     Rule_Result match_initializer()
     {
-        if (expect(Token_Type::assign)) {
-            if (Rule_Result e = match_expression()) {
-                if (expect(Token_Type::semicolon)) {
-                    return e;
-                }
-            }
+        if (!expect(Token_Type::assign)) {
+            return Grammar_Rule::initializer;
         }
-        return Grammar_Rule::initializer;
+        Rule_Result e = match_expression();
+        if (!e) {
+            return e;
+        }
+        if (!expect(Token_Type::semicolon)) {
+            return Grammar_Rule::initializer; // FIXME
+        }
+        return e;
     }
 
     Rule_Result match_function_declaration()
@@ -752,7 +750,6 @@ private:
         }
 
         std::vector<Node> parameters;
-
         if (Rule_Result p0 = expect(Grammar_Rule::parameter)) {
             parameters.push_back(std::move(*p0));
             while (expect(Token_Type::comma)) {
@@ -768,7 +765,6 @@ private:
         if (!expect(Token_Type::right_parenthesis)) {
             return Grammar_Rule::function_declaration; // FIXME
         }
-
         if (!expect(Token_Type::right_arrow)) {
             return Grammar_Rule::function_declaration; // FIXME
         }
@@ -776,7 +772,11 @@ private:
         if (!ret) {
             return ret;
         }
-        if (Rule_Result req = expect(Grammar_Rule::requires_clause)) {
+        if (peek(Token_Type::keyword_requires)) {
+            Rule_Result req = expect(Grammar_Rule::requires_clause);
+            if (!req) {
+                return req;
+            }
             Rule_Result body = match_block_statement();
             if (!body) {
                 return body;
@@ -796,20 +796,24 @@ private:
 
     Rule_Result match_parameter()
     {
-        if (const Token* id = expect(Token_Type::identifier)) {
-            if (expect(Token_Type::colon)) {
-                if (Rule_Result type = match_type()) {
-                    return Node { *id, Node_Type::parameter,
-                                  Parameter_Data { id->extract(m_source), std::move(*type) } };
-                }
-            }
+        const Token* id = expect(Token_Type::identifier);
+        if (!id) {
+            return Grammar_Rule::identifier;
         }
-        return Grammar_Rule::parameter;
+        if (!expect(Token_Type::colon)) {
+            return Grammar_Rule::parameter; // FIXME
+        }
+        Rule_Result type = match_type();
+        if (!type) {
+            return type;
+        }
+        return Node { *id, Node_Type::parameter,
+                      Parameter_Data { id->extract(m_source), std::move(*type) } };
     }
 
     Rule_Result match_requires_clause()
     {
-
+        // TODO
         return Grammar_Rule::requires_clause;
     }
 
@@ -880,22 +884,26 @@ private:
 
     Rule_Result match_break_statement()
     {
-        if (const Token* t = expect(Token_Type::keyword_break)) {
-            if (expect(Token_Type::semicolon)) {
-                return Node { *t, Node_Type::break_statement };
-            }
+        const Token* t = expect(Token_Type::keyword_break);
+        if (!t) {
+            return Grammar_Rule::break_statement;
         }
-        return Grammar_Rule::break_statement;
+        if (!expect(Token_Type::semicolon)) {
+            return Grammar_Rule::break_statement; // FIXME
+        }
+        return Node { *t, Node_Type::break_statement };
     }
 
     Rule_Result match_continue_statement()
     {
-        if (const Token* t = expect(Token_Type::keyword_continue)) {
-            if (expect(Token_Type::semicolon)) {
-                return Node { *t, Node_Type::continue_statement };
-            }
+        const Token* t = expect(Token_Type::keyword_continue);
+        if (!t) {
+            return Grammar_Rule::continue_statement;
         }
-        return Grammar_Rule::continue_statement;
+        if (!expect(Token_Type::semicolon)) {
+            return Grammar_Rule::continue_statement; // FIXME
+        }
+        return Node { *t, Node_Type::continue_statement };
     }
 
     Rule_Result match_if_or_while(Token_Type if_or_while)
@@ -1049,16 +1057,18 @@ private:
         if (!left) {
             return left;
         }
-        {
+        { // TODO: use function pointers to get rid of these manual attempts
             auto attempt = start_attempt();
             if (const Token* op = peek(); op && is_binary_operator(op->type)) {
                 attempt.commit();
                 pop();
-                if (Rule_Result right = match_prefix_expression()) {
-                    return Node { left->token, Node_Type::binary_expression,
-                                  Binary_Expression_Data { std::move(*left), std::move(*right),
-                                                           op->type } };
+                Rule_Result right = match_prefix_expression();
+                if (!right) {
+                    return right;
                 }
+                return Node { left->token, Node_Type::binary_expression,
+                              Binary_Expression_Data { std::move(*left), std::move(*right),
+                                                       op->type } };
             }
         }
         return left;
@@ -1071,10 +1081,12 @@ private:
             if (const Token* t = peek(); t && is_unary_operator(t->type)) {
                 attempt.commit();
                 pop();
-                if (Rule_Result e = match_prefix_expression()) {
-                    return Node { *t, Node_Type::prefix_expression,
-                                  Prefix_Expression_Data { std::move(*e), t->type } };
+                Rule_Result e = match_prefix_expression();
+                if (!e) {
+                    return e;
                 }
+                return Node { *t, Node_Type::prefix_expression,
+                              Prefix_Expression_Data { std::move(*e), t->type } };
             }
         }
         return match_postfix_expression();
@@ -1153,14 +1165,18 @@ private:
 
     [[maybe_unused]] Rule_Result match_parenthesized_expression()
     {
-        if (const Token* t = expect(Token_Type::left_parenthesis)) {
-            if (Rule_Result e = match_expression()) {
-                if (expect(Token_Type::right_parenthesis)) {
-                    return e;
-                }
-            }
+        const Token* t = expect(Token_Type::left_parenthesis);
+        if (!t) {
+            return Grammar_Rule::parenthesized_expression;
         }
-        return Grammar_Rule::parenthesized_expression;
+        Rule_Result e = match_expression();
+        if (!e) {
+            return e;
+        }
+        if (!expect(Token_Type::right_parenthesis)) {
+            return Grammar_Rule::parenthesized_expression; // FIXME
+        }
+        return e;
     }
 
     Rule_Result match_type()
