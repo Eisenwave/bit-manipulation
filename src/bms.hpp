@@ -337,29 +337,11 @@ inline bool is_concrete(const Some_Value& type)
 }
 
 namespace ast {
+namespace detail {
 
 struct Node_Base {
-private:
-    /// The first token that belongs to this rule.
-    Token m_token;
-    /// The value of this node.
-    /// Depending on the type of node, this has different meaning.
-    /// This information is uncovered during semantic analysis.
-    std::optional<Some_Value> m_value;
-
-public:
-    [[nodiscard]] Node_Base(Token token)
-        : m_token { token }
-    {
-    }
-
-    Token get_token() const
-    {
-        return m_token;
-    }
+    Token token;
 };
-
-namespace detail {
 
 template <int N>
 struct Parent {
@@ -392,7 +374,7 @@ struct Parent<0> {
 
 } // namespace detail
 
-struct Program_Node final : Node_Base {
+struct Program_Node final : detail::Node_Base {
     std::vector<Node_Handle> declarations;
 
     Program_Node(Token token, std::vector<Node_Handle>&& declarations);
@@ -401,39 +383,57 @@ struct Program_Node final : Node_Base {
     {
         return declarations;
     }
-
     std::span<const Node_Handle> get_children() const
     {
         return declarations;
     }
 };
 
-struct Function_Node final : Node_Base, detail::Parent<3> {
+struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     std::string_view name;
     std::vector<Node_Handle> parameters;
 
     Function_Node(Token token,
                   std::string_view name,
-                  std::vector<Node_Handle>&& parameters,
+                  Node_Handle parameters,
                   Node_Handle return_type,
                   Node_Handle requires_clause,
                   Node_Handle body);
 
-    Node_Handle get_return_type() const
+    Node_Handle get_parameters() const
     {
         return children[0];
     }
-    Node_Handle get_requires_clause() const
+    Node_Handle get_return_type() const
     {
         return children[1];
     }
-    Node_Handle get_body() const
+    Node_Handle get_requires_clause() const
     {
         return children[2];
     }
+    Node_Handle get_body() const
+    {
+        return children[3];
+    }
 };
 
-struct Parameter_Node final : Node_Base, detail::Parent<1> {
+struct Parameter_List_Node final : detail::Node_Base {
+    std::vector<Node_Handle> parameters;
+
+    Parameter_List_Node(Token token, std::vector<Node_Handle>&& parameters);
+
+    std::span<Node_Handle> get_children()
+    {
+        return parameters;
+    }
+    std::span<const Node_Handle> get_children() const
+    {
+        return parameters;
+    }
+};
+
+struct Parameter_Node final : detail::Node_Base, detail::Parent<1> {
     std::string_view name;
 
     Parameter_Node(Token token, std::string_view name, Node_Handle type);
@@ -447,7 +447,7 @@ struct Parameter_Node final : Node_Base, detail::Parent<1> {
 template <typename T, typename U>
 using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
 
-struct Type_Node final : Node_Base {
+struct Type_Node final : detail::Node_Base {
 private:
     template <typename Self>
     static auto get_children_impl(Self& self) -> std::span<const_like_t<Node_Handle, Self>>
@@ -473,7 +473,7 @@ public:
     }
 };
 
-struct Let_Const_Node final : Node_Base, detail::Parent<2> {
+struct Let_Const_Node final : detail::Node_Base, detail::Parent<2> {
     std::string_view name;
     bool is_const;
 
@@ -493,7 +493,7 @@ struct Let_Const_Node final : Node_Base, detail::Parent<2> {
     }
 };
 
-struct If_Statement_Node final : Node_Base, detail::Parent<3> {
+struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
     If_Statement_Node(Token token,
                       Node_Handle condition,
                       Node_Handle if_block,
@@ -513,7 +513,7 @@ struct If_Statement_Node final : Node_Base, detail::Parent<3> {
     }
 };
 
-struct While_Statement_Node final : Node_Base, detail::Parent<2> {
+struct While_Statement_Node final : detail::Node_Base, detail::Parent<2> {
     While_Statement_Node(Token token, Node_Handle condition, Node_Handle block);
 
     Node_Handle get_condition() const
@@ -527,11 +527,11 @@ struct While_Statement_Node final : Node_Base, detail::Parent<2> {
 };
 
 // break, continue
-struct Jump_Node final : Node_Base, detail::Parent<0> {
+struct Jump_Node final : detail::Node_Base, detail::Parent<0> {
     Jump_Node(Token token);
 };
 
-struct Return_Statement_Node final : Node_Base, detail::Parent<1> {
+struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
     Return_Statement_Node(Token token, Node_Handle expression);
 
     Node_Handle get_expression() const
@@ -540,7 +540,7 @@ struct Return_Statement_Node final : Node_Base, detail::Parent<1> {
     }
 };
 
-struct Assignment_Node final : Node_Base, detail::Parent<1> {
+struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
     std::string_view name;
 
     Assignment_Node(Token token, std::string_view name, Node_Handle expression);
@@ -551,7 +551,7 @@ struct Assignment_Node final : Node_Base, detail::Parent<1> {
     }
 };
 
-struct Block_Statement_Node final : Node_Base {
+struct Block_Statement_Node final : detail::Node_Base {
     std::vector<Node_Handle> statements;
 
     Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements);
@@ -566,7 +566,9 @@ struct Block_Statement_Node final : Node_Base {
     }
 };
 
-struct If_Expression_Node final : Node_Base, detail::Parent<3> {
+struct If_Expression_Node final : detail::Node_Base, detail::Parent<3> {
+    std::optional<Concrete_Value> const_value;
+
     If_Expression_Node(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
 
     Node_Handle get_left() const
@@ -583,8 +585,9 @@ struct If_Expression_Node final : Node_Base, detail::Parent<3> {
     }
 };
 
-struct Binary_Expression_Node final : Node_Base, detail::Parent<2> {
+struct Binary_Expression_Node final : detail::Node_Base, detail::Parent<2> {
     Token_Type op;
+    std::optional<Concrete_Value> const_value;
 
     Binary_Expression_Node(Token token, Node_Handle left, Node_Handle right, Token_Type op);
 
@@ -598,9 +601,9 @@ struct Binary_Expression_Node final : Node_Base, detail::Parent<2> {
     }
 };
 
-struct Prefix_Expression_Node final : Node_Base, detail::Parent<1> {
-    Node_Handle operand;
+struct Prefix_Expression_Node final : detail::Node_Base, detail::Parent<1> {
     Token_Type op;
+    std::optional<Concrete_Value> const_value;
 
     Prefix_Expression_Node(Token token, Token_Type opm, Node_Handle operand);
 
@@ -610,9 +613,11 @@ struct Prefix_Expression_Node final : Node_Base, detail::Parent<1> {
     }
 };
 
-struct Function_Call_Expression_Node final : Node_Base {
+struct Function_Call_Expression_Node final : detail::Node_Base {
     std::string_view function;
     std::vector<Node_Handle> arguments;
+    Node_Handle lookup_result;
+    std::optional<Concrete_Value> const_value;
 
     Function_Call_Expression_Node(Token token,
                                   std::string_view function,
@@ -628,12 +633,18 @@ struct Function_Call_Expression_Node final : Node_Base {
     }
 };
 
-struct Id_Expression_Node final : Node_Base, detail::Parent<0> {
+struct Id_Expression_Node final : detail::Node_Base, detail::Parent<0> {
+    Node_Handle lookup_result = Node_Handle::null;
+    bool bit_generic = false;
+    std::optional<Concrete_Value> const_value;
+
     Id_Expression_Node(Token token);
 };
 
-struct Literal_Node final : Node_Base, detail::Parent<0> {
+struct Literal_Node final : detail::Node_Base, detail::Parent<0> {
     Literal_Node(Token token);
+
+    std::optional<Concrete_Value> const_value;
 };
 
 template <typename T>
@@ -651,6 +662,7 @@ concept Node_Concept = requires(T& n, const T& c) {
 
 using Some_Node = std::variant<Program_Node,
                                Function_Node,
+                               Parameter_List_Node,
                                Parameter_Node,
                                Type_Node,
                                Let_Const_Node,
@@ -671,6 +683,7 @@ enum struct Node_Type {
     program, // {function | variable}
     function, // {parameter}, type, [requires_clause], block_statement
     parameter,
+    parameter_list,
     type,
     variable,
     if_statement,
@@ -696,7 +709,7 @@ inline Node_Type get_node_type(Some_Node& node)
 
 inline Token get_token(Some_Node& node)
 {
-    return std::visit([](Node_Base& n) { return n.get_token(); }, node);
+    return std::visit([](detail::Node_Base& n) { return n.token; }, node);
 }
 
 inline std::span<Node_Handle> get_children(Some_Node& node)

@@ -11,37 +11,43 @@ namespace bit_manipulation {
 // =================================================================================================
 
 Program_Node::Program_Node(Token token, std::vector<Node_Handle>&& declarations)
-    : Node_Base(token)
+    : Node_Base { token }
     , declarations(std::move(declarations))
 {
 }
 
 Function_Node::Function_Node(Token token,
                              std::string_view name,
-                             std::vector<Node_Handle>&& parameters,
+                             Node_Handle parameters,
                              Node_Handle return_type,
                              Node_Handle requires_clause,
                              Node_Handle body)
-    : Node_Base(token)
+    : Node_Base { token }
+    , Parent<4> { parameters, requires_clause, return_type, body }
     , name(name)
-    , parameters((std::move(parameters)))
-    , requires_clause(requires_clause)
-    , return_type(return_type)
-    , body(body)
 {
     BIT_MANIPULATION_ASSERT(return_type != Node_Handle::null);
     BIT_MANIPULATION_ASSERT(body != Node_Handle::null);
 }
 
+Parameter_List_Node::Parameter_List_Node(Token token, std::vector<Node_Handle>&& parameters)
+    : Node_Base { token }
+    , parameters((std::move(parameters)))
+{
+    for (auto h : parameters) {
+        BIT_MANIPULATION_ASSERT(h != Node_Handle::null);
+    }
+}
+
 Parameter_Node::Parameter_Node(Token token, std::string_view name, Node_Handle type)
-    : Node_Base(token)
+    : Node_Base { token }
+    , Parent<1> { type }
     , name(name)
-    , type(type)
 {
 }
 
 Type_Node::Type_Node(Token token, Some_Type type)
-    : Node_Base(token)
+    : Node_Base { token }
     , type(type)
 {
 }
@@ -51,10 +57,9 @@ Let_Const_Node::Let_Const_Node(Token token,
                                std::string_view name,
                                Node_Handle type,
                                Node_Handle initializer)
-    : Node_Base(token)
+    : Node_Base { token }
+    , Parent<2> { type, initializer }
     , name(name)
-    , type((type))
-    , initializer(initializer)
     , is_const(let_or_const == Token_Type::keyword_const)
 {
     BIT_MANIPULATION_ASSERT(type != Node_Handle::null || initializer != Node_Handle::null);
@@ -64,46 +69,43 @@ If_Statement_Node::If_Statement_Node(Token token,
                                      Node_Handle condition,
                                      Node_Handle if_block,
                                      Node_Handle else_block)
-    : Node_Base(token)
-    , condition(condition)
-    , if_block(if_block)
-    , else_block(else_block)
+    : Node_Base { token }
+    , Parent<3> { condition, if_block, else_block }
 {
     BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
     BIT_MANIPULATION_ASSERT(if_block != Node_Handle::null);
 }
 
 While_Statement_Node::While_Statement_Node(Token token, Node_Handle condition, Node_Handle block)
-    : Node_Base(token)
-    , condition(condition)
-    , block(block)
+    : Node_Base { token }
+    , Parent<2> { condition, block }
 {
     BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
     BIT_MANIPULATION_ASSERT(block != Node_Handle::null);
 }
 
 Jump_Node::Jump_Node(Token token)
-    : Node_Base(token)
+    : Node_Base { token }
 {
 }
 
 Return_Statement_Node::Return_Statement_Node(Token token, Node_Handle expression)
-    : Node_Base(token)
-    , expression(expression)
+    : Node_Base { token }
+    , Parent<1> { expression }
 {
     BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
 }
 
 Assignment_Node::Assignment_Node(Token token, std::string_view name, Node_Handle expression)
-    : Node_Base(token)
+    : Node_Base { token }
+    , Parent<1> { expression }
     , name(name)
-    , expression(expression)
 {
     BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
 }
 
 Block_Statement_Node::Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements)
-    : Node_Base(token)
+    : Node_Base { token }
     , statements(std::move(statements))
 {
 }
@@ -112,10 +114,8 @@ If_Expression_Node::If_Expression_Node(Token token,
                                        Node_Handle left,
                                        Node_Handle condition,
                                        Node_Handle right)
-    : Node_Base(token)
-    , condition(condition)
-    , left(left)
-    , right(right)
+    : Node_Base { token }
+    , Parent<3> { left, condition, right }
 {
     BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
     BIT_MANIPULATION_ASSERT(left != Node_Handle::null);
@@ -126,9 +126,8 @@ Binary_Expression_Node::Binary_Expression_Node(Token token,
                                                Node_Handle left,
                                                Node_Handle right,
                                                Token_Type op)
-    : Node_Base(token)
-    , left(left)
-    , right(right)
+    : Node_Base { token }
+    , Parent<2> { left, right }
     , op(op)
 {
     BIT_MANIPULATION_ASSERT(left != Node_Handle::null);
@@ -136,8 +135,8 @@ Binary_Expression_Node::Binary_Expression_Node(Token token,
 }
 
 Prefix_Expression_Node::Prefix_Expression_Node(Token token, Token_Type op, Node_Handle operand)
-    : Node_Base(token)
-    , operand(operand)
+    : Node_Base { token }
+    , Parent<1> { operand }
     , op(op)
 {
     BIT_MANIPULATION_ASSERT(operand != Node_Handle::null);
@@ -146,19 +145,19 @@ Prefix_Expression_Node::Prefix_Expression_Node(Token token, Token_Type op, Node_
 Function_Call_Expression_Node::Function_Call_Expression_Node(Token token,
                                                              std::string_view function,
                                                              std::vector<Node_Handle>&& arguments)
-    : Node_Base(token)
+    : Node_Base { token }
     , function(function)
     , arguments(std::move(arguments))
 {
 }
 
 Id_Expression_Node::Id_Expression_Node(Token token)
-    : Node_Base(token)
+    : Node_Base { token }
 {
 }
 
 Literal_Node::Literal_Node(Token token)
-    : Node_Base(token)
+    : Node_Base { token }
 {
 }
 
@@ -483,17 +482,17 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        std::vector<Node_Handle> parameters;
-        if (Rule_Result p0 = expect(Grammar_Rule::parameter)) {
-            parameters.push_back(*p0);
-            while (expect(Token_Type::comma)) {
-                if (Rule_Result p = match_parameter()) {
-                    parameters.push_back(*p);
-                }
-                else {
-                    return p;
-                }
+        Node_Handle parameters = Node_Handle::null;
+        if (!peek(Token_Type::right_parenthesis)) {
+            // By first checking whether there is no right parenthesis, we can ensure that there
+            // must be parameters.
+            // This is not strictly necessary, but leads to improved diagnostics because we can
+            // commit to parsing the parameters.
+            Rule_Result r = match_parameter_sequence();
+            if (!r) {
+                return r;
             }
+            parameters = *r;
         }
 
         if (!expect(Token_Type::right_parenthesis)) {
@@ -521,6 +520,28 @@ private:
         }
         return push_node(Function_Node { *t, name->extract(m_source), std::move(parameters), *ret,
                                          requires_handle, *body });
+    }
+
+    Rule_Result match_parameter_sequence()
+    {
+        constexpr auto this_rule = Grammar_Rule::parameter;
+
+        Token first_token;
+        std::vector<Node_Handle> parameters;
+        while (true) {
+            Rule_Result p = match_parameter();
+            if (!p) {
+                return p;
+            }
+            first_token = get_token(get_node(*p));
+            parameters.push_back(*p);
+            if (!expect(Token_Type::comma)) {
+                break;
+            }
+        }
+        BIT_MANIPULATION_ASSERT(!parameters.empty());
+
+        return push_node(Parameter_List_Node { first_token, std::move(parameters) });
     }
 
     Rule_Result match_parameter()
