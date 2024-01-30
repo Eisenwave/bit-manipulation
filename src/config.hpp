@@ -14,6 +14,8 @@
 #define BIT_MANIPULATION_IF_NOT_DEBUG(...) __VA_ARGS__
 #endif
 
+#define BIT_MANIPULATION_UNREACHABLE() __builtin_unreachable()
+
 namespace bit_manipulation {
 
 using Byte = std::byte;

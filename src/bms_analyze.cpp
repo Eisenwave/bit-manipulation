@@ -16,6 +16,11 @@ Node_Handle get_bit_generic_expression(Some_Type& type)
     return Node_Handle::null;
 }
 
+Node_Handle get_bit_generic_expression(Type_Node& type)
+{
+    return get_bit_generic_expression(type.type);
+}
+
 struct Symbol_Table {
 private:
     using map_type = std::unordered_map<std::string_view, ast::Node_Handle>;
@@ -57,218 +62,183 @@ public:
 struct Analyzer {
 private:
     Parsed_Program& m_program;
-    ast::Node& m_root;
+    Program_Node& m_root;
     Symbol_Table m_global_symbols;
     std::unordered_map<std::string_view, Symbol_Table> m_function_tables;
 
 public:
     Analyzer(Parsed_Program& program)
         : m_program(program)
-        , m_root(program.get_node(program.root_node))
+        , m_root(std::get<Program_Node>(program.get_node(program.root_node)))
     {
     }
 
-    void analyze()
+    Analysis_Result analyze()
     {
-        analyze_symbol_lookup();
+        return analyze_symbols_global(m_program.root_node, m_root);
     }
 
 private:
-    Node& get_node(Node_Handle handle)
+    Some_Node& get_node(Node_Handle handle)
     {
         return m_program.get_node(handle);
     }
 
-    Analysis_Result analyze_symbol_lookup()
+    template <typename T>
+    Analysis_Result analyze_symbols_global(Node_Handle handle, T& n) = delete;
+
+    template <>
+    Analysis_Result analyze_symbols_global(Node_Handle handle, Program_Node& n)
     {
-        Program_Data& data = std::get<Program_Data>(m_root.data);
-        for (Node_Handle decl : data.declarations) {
-            Node& decl_node = get_node(decl);
-            if (decl_node.type == Node_Type::variable) {
-                auto& d = std::get<Let_Const_Data>(decl_node.data);
-                auto [old, success] = m_global_symbols.emplace(d.name, decl);
-                if (!success) {
-                    return { .code = Analysis_Error_Code::failed_to_define_global_const,
-                             .fail_token = decl_node.token,
-                             .cause_token = get_node(old->second).token };
-                }
-            }
-
-            else if (decl_node.type == Node_Type::function) {
-                auto& d = std::get<Function_Data>(decl_node.data);
-                auto [old, success] = m_global_symbols.emplace(d.name, decl);
-                if (!success) {
-                    return { .code = Analysis_Error_Code::failed_to_define_function,
-                             .fail_token = decl_node.token,
-                             .cause_token = get_node(old->second).token };
-                }
-                auto [table_pos, table_success]
-                    = m_function_tables.emplace(d.name, m_global_symbols);
-                BIT_MANIPULATION_ASSERT(table_success);
-                if (auto r = analyze_function_symbol_lookup(decl, table_pos->second); !r) {
-                    return r;
-                }
-            }
-
-            else {
-                BIT_MANIPULATION_ASSERT(false);
-            }
+        BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
+        for (Node_Handle decl : n.declarations) {
+            std::visit(
+                [this, decl]<typename T>(T& node) -> Analysis_Result {
+                    if constexpr (std::is_same_v<T, Let_Const_Node>
+                                  || std::is_same_v<T, Function_Node>) {
+                        return analyze_symbols_global(decl, node);
+                    }
+                    else {
+                        BIT_MANIPULATION_ASSERT(false);
+                    }
+                },
+                get_node(decl));
         }
-        return { Analysis_Error_Code::ok };
+        return Analysis_Result::ok;
     }
 
-    Analysis_Result analyze_function_symbol_lookup(std::span<const Node_Handle> handles,
-                                                   Symbol_Table& table)
+    template <>
+    Analysis_Result analyze_symbols_global(Node_Handle handle, Let_Const_Node& n)
     {
-        for (auto h : handles) {
-            if (auto r = analyze_function_symbol_lookup(h, table); !r) {
-                return r;
-            }
+        BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
+        auto [old, success] = m_global_symbols.emplace(n.name, handle);
+        if (!success) {
+            return { .code = Analysis_Error_Code::failed_to_define_global_const,
+                     .fail_token = n.get_token(),
+                     .cause_token = get_token(get_node(old->second)) };
         }
-        return { Analysis_Error_Code::ok };
+        return Analysis_Result::ok;
     }
 
-    Analysis_Result analyze_function_symbol_lookup(std::initializer_list<Node_Handle> handles,
-                                                   Symbol_Table& table)
+    template <>
+    Analysis_Result analyze_symbols_global(Node_Handle handle, Function_Node& n)
     {
-        return analyze_function_symbol_lookup(std::span { handles }, table);
+        BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
+        auto [old, success] = m_global_symbols.emplace(n.name, handle);
+        if (!success) {
+            return { .code = Analysis_Error_Code::failed_to_define_function,
+                     .fail_token = n.get_token(),
+                     .cause_token = get_token(get_node(old->second)) };
+        }
+        auto [table_pos, table_success] = m_function_tables.emplace(n.name, m_global_symbols);
+        BIT_MANIPULATION_ASSERT(table_success);
+
+        return analyze_symbols_local(handle, table_pos->second, n);
     }
 
-    Analysis_Result analyze_function_symbol_lookup(Node_Handle handle, Symbol_Table& table)
+    Analysis_Result analyze_symbols_local(Node_Handle handle, Symbol_Table& table)
     {
         if (handle == Node_Handle::null) {
-            return { .code = Analysis_Error_Code::ok };
+            return Analysis_Result::ok;
         }
-        Node& n = get_node(handle);
+        return std::visit([this, handle, &table](
+                              auto& node) { return analyze_symbols_local(handle, table, node); },
+                          get_node(handle));
+    }
 
-        switch (n.type) {
-
-        case Node_Type::function: {
-            // Emplacing the function itself is not necessary because it can already be looked up
-            // through the parent.
-
-            auto& data = std::get<Function_Data>(n.data);
-            if (auto r = analyze_function_symbol_lookup(data.parameters, table); !r) {
+    Analysis_Result analyze_all_symbols_local(std::span<const Node_Handle> handles,
+                                              Symbol_Table& table)
+    {
+        for (auto h : handles) {
+            if (auto r = analyze_symbols_local(h, table); !r) {
                 return r;
             }
-            return analyze_function_symbol_lookup(
-                { data.return_type, data.requires_clause, data.body }, table);
         }
+        return Analysis_Result::ok;
+    }
 
-        case Node_Type::parameter: {
-            auto& data = std::get<Parameter_Data>(n.data);
-            auto [old, success] = table.emplace(data.name, handle);
-            if (!success) {
-                return { .code = Analysis_Error_Code::failed_to_define_parameter,
-                         .fail_token = n.token,
-                         .cause_token = get_node(old->second).token };
-            }
-            Node_Handle g = get_bit_generic_expression(data.type);
-            if (g == Node_Handle::null) {
-                return { Analysis_Error_Code::ok };
-            }
-            if (auto r = analyze_function_symbol_lookup(g, table); !r) {
-                BIT_MANIPULATION_ASSERT(r.code
-                                        == Analysis_Error_Code::reference_to_undefined_variable);
-                if (get_node(g).type == Node_Type::id_expression) {
-                    table.emplace(r.fail_token.extract(m_program.source), g);
-                }
-                else {
-                    return r;
-                }
-            }
-            return { Analysis_Error_Code::ok };
+    template <typename T>
+    Analysis_Result analyze_symbols_local(Node_Handle, Symbol_Table& table, T& node)
+    {
+        return analyze_all_symbols_local(node.get_children(), table);
+    }
+
+    template <>
+    Analysis_Result analyze_symbols_local(Node_Handle, Symbol_Table& table, Function_Node& function)
+    {
+        if (auto r = analyze_all_symbols_local(function.parameters, table); !r) {
+            return r;
         }
+        return analyze_all_symbols_local(function.children, table);
+    }
 
-        case Node_Type::type: {
-            auto& data = std::get<Some_Type>(n.data);
-            return analyze_function_symbol_lookup(get_bit_generic_expression(data), table);
+    template <>
+    Analysis_Result
+    analyze_symbols_local(Node_Handle handle, Symbol_Table& table, Parameter_Node& node)
+    {
+        auto [old, success] = table.emplace(node.name, handle);
+        if (!success) {
+            return { .code = Analysis_Error_Code::failed_to_define_parameter,
+                     .fail_token = node.get_token(),
+                     .cause_token = get_token(get_node(old->second)) };
         }
-
-        case Node_Type::variable: {
-            auto& data = std::get<Let_Const_Data>(n.data);
-            if (std::optional<Node_Handle> old = table.find(data.name)) {
-                return { .code = Analysis_Error_Code::failed_to_define_variable,
-                         .fail_token = n.token,
-                         .cause_token = get_node(*old).token };
-            }
-            return analyze_function_symbol_lookup({ data.type, data.initializer }, table);
-        }
-
-        case Node_Type::if_statement: {
-            auto& data = std::get<If_Statement_Data>(n.data);
-            return analyze_function_symbol_lookup(
-                { data.condition, data.if_block, data.else_block }, table);
-        }
-
-        case Node_Type::while_statement: {
-            auto& data = std::get<While_Statement_Data>(n.data);
-            return analyze_function_symbol_lookup({ data.condition, data.block }, table);
-        }
-
-        case Node_Type::return_statement: {
-            auto& data = std::get<Return_Statement_Data>(n.data);
-            return analyze_function_symbol_lookup(data.expression, table);
-        }
-
-        case Node_Type::assignment: {
-            auto& data = std::get<Assignment_Data>(n.data);
-            if (!table.find(data.name)) {
-                return { .code = Analysis_Error_Code::assignment_of_undefined_variable,
-                         .fail_token = n.token };
-            }
-            return { Analysis_Error_Code::ok };
-        }
-
-        case Node_Type::block_statement: {
-            auto& data = std::get<Block_Statement_Data>(n.data);
-            return analyze_function_symbol_lookup(data.statements, table);
-        }
-
-        case Node_Type::if_expression: {
-            auto& data = std::get<If_Expression_Data>(n.data);
-            return analyze_function_symbol_lookup({ data.left, data.condition, data.right }, table);
-        }
-
-        case Node_Type::binary_expression: {
-            auto& data = std::get<Binary_Expression_Data>(n.data);
-            return analyze_function_symbol_lookup({ data.left, data.right }, table);
-        }
-
-        case Node_Type::prefix_expression: {
-            auto& data = std::get<Prefix_Expression_Data>(n.data);
-            return analyze_function_symbol_lookup({ data.operand }, table);
-        }
-
-        case Node_Type::function_call_expression: {
-            auto& data = std::get<Function_Call_Expression_Data>(n.data);
-            if (!table.find(data.function)) {
-                return { .code = Analysis_Error_Code::call_to_undefined_function,
-                         .fail_token = n.token };
-            }
-            return analyze_function_symbol_lookup(data.arguments, table);
-        }
-
-        // TODO: store result of name lookup
-        // TODO: make it possible to iterate over children for all nodes, which would eliminate most
-        // cases
-        case Node_Type::id_expression: {
-            std::string_view name = n.token.extract(m_program.source);
-            if (std::optional<Node_Handle> old = table.find(name)) {
-                n.value = get_node(*old).value;
+        if (auto r = analyze_all_symbols_local(node.get_children(), table); !r) {
+            BIT_MANIPULATION_ASSERT(r.code == Analysis_Error_Code::reference_to_undefined_variable);
+            if (get_node_type(get_node(node.get_type())) == Node_Type::id_expression) {
+                table.emplace(r.fail_token.extract(m_program.source), g);
             }
             else {
-                return { .code = Analysis_Error_Code::reference_to_undefined_variable,
-                         .fail_token = n.token };
+                return r;
             }
-            return { Analysis_Error_Code::ok };
         }
+        return Analysis_Result::ok;
+    }
 
-        case Node_Type::literal: {
-            return { Analysis_Error_Code::ok };
+    template <>
+    Analysis_Result analyze_symbols_local(Node_Handle, Symbol_Table& table, Let_Const_Node& node)
+    {
+        if (std::optional<Node_Handle> old = table.find(node.name)) {
+            return { .code = Analysis_Error_Code::failed_to_define_variable,
+                     .fail_token = node.get_token(),
+                     .cause_token = get_token(get_node(*old)) };
         }
+        return analyze_all_symbols_local(node.get_children(), table);
+    }
+
+    template <>
+    Analysis_Result analyze_symbols_local(Node_Handle, Symbol_Table& table, Assignment_Node& node)
+    {
+        if (!table.find(node.name)) {
+            return { .code = Analysis_Error_Code::assignment_of_undefined_variable,
+                     .fail_token = node.get_token() };
         }
-        // unreachable
+        return Analysis_Result::ok;
+    }
+
+    template <>
+    Analysis_Result
+    analyze_symbols_local(Node_Handle, Symbol_Table& table, Function_Call_Expression_Node& node)
+    {
+        if (!table.find(node.function)) {
+            return { .code = Analysis_Error_Code::call_to_undefined_function,
+                     .fail_token = node.get_token() };
+        }
+        return analyze_all_symbols_local(node.arguments, table);
+    }
+
+    template <>
+    Analysis_Result
+    analyze_symbols_local(Node_Handle, Symbol_Table& table, Id_Expression_Node& node)
+    {
+        std::string_view name = node.get_token().extract(m_program.source);
+        if (std::optional<Node_Handle> old = table.find(name)) {
+            // n.value = get_node(*old).value;
+        }
+        else {
+            return { .code = Analysis_Error_Code::reference_to_undefined_variable,
+                     .fail_token = node.get_token() };
+        }
+        return Analysis_Result::ok;
     }
 };
 
@@ -277,7 +247,7 @@ private:
 Analysis_Result analyze(Parsed_Program& program)
 {
     Analyzer analyzer { program };
-    analyzer.analyze();
+    return analyzer.analyze();
 }
 
 } // namespace bit_manipulation

@@ -338,7 +338,334 @@ inline bool is_concrete(const Some_Value& type)
 
 namespace ast {
 
-struct Node;
+struct Node_Base {
+private:
+    /// The first token that belongs to this rule.
+    Token m_token;
+    /// The value of this node.
+    /// Depending on the type of node, this has different meaning.
+    /// This information is uncovered during semantic analysis.
+    std::optional<Some_Value> m_value;
+
+public:
+    [[nodiscard]] Node_Base(Token token)
+        : m_token { token }
+    {
+    }
+
+    Token get_token() const
+    {
+        return m_token;
+    }
+};
+
+namespace detail {
+
+template <int N>
+struct Parent {
+    Node_Handle children[N];
+
+    std::span<Node_Handle> get_children()
+    {
+        return children;
+    }
+
+    std::span<const Node_Handle> get_children() const
+    {
+        return children;
+    }
+};
+
+template <>
+struct Parent<0> {
+
+    std::span<Node_Handle> get_children()
+    {
+        return {};
+    }
+
+    std::span<const Node_Handle> get_children() const
+    {
+        return {};
+    }
+};
+
+} // namespace detail
+
+struct Program_Node final : Node_Base {
+    std::vector<Node_Handle> declarations;
+
+    Program_Node(Token token, std::vector<Node_Handle>&& declarations);
+
+    std::span<Node_Handle> get_children()
+    {
+        return declarations;
+    }
+
+    std::span<const Node_Handle> get_children() const
+    {
+        return declarations;
+    }
+};
+
+struct Function_Node final : Node_Base, detail::Parent<3> {
+    std::string_view name;
+    std::vector<Node_Handle> parameters;
+
+    Function_Node(Token token,
+                  std::string_view name,
+                  std::vector<Node_Handle>&& parameters,
+                  Node_Handle return_type,
+                  Node_Handle requires_clause,
+                  Node_Handle body);
+
+    Node_Handle get_return_type() const
+    {
+        return children[0];
+    }
+    Node_Handle get_requires_clause() const
+    {
+        return children[1];
+    }
+    Node_Handle get_body() const
+    {
+        return children[2];
+    }
+};
+
+struct Parameter_Node final : Node_Base, detail::Parent<1> {
+    std::string_view name;
+
+    Parameter_Node(Token token, std::string_view name, Node_Handle type);
+
+    Node_Handle get_type() const
+    {
+        return children[0];
+    }
+};
+
+template <typename T, typename U>
+using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
+
+struct Type_Node final : Node_Base {
+private:
+    template <typename Self>
+    static auto get_children_impl(Self& self) -> std::span<const_like_t<Node_Handle, Self>>
+    {
+        if (auto* g = std::get_if<Bit_Generic_Type>(&self.type)) {
+            return { &g->width, &g->width + 1 };
+        }
+        return {};
+    }
+
+public:
+    Some_Type type;
+
+    Type_Node(Token token, Some_Type type);
+
+    std::span<Node_Handle> get_children()
+    {
+        return get_children_impl(*this);
+    }
+    std::span<const Node_Handle> get_children() const
+    {
+        return get_children_impl(*this);
+    }
+};
+
+struct Let_Const_Node final : Node_Base, detail::Parent<2> {
+    std::string_view name;
+    bool is_const;
+
+    Let_Const_Node(Token token,
+                   Token_Type let_or_const,
+                   std::string_view name,
+                   Node_Handle type,
+                   Node_Handle initializer);
+
+    Node_Handle get_type() const
+    {
+        return children[0];
+    }
+    Node_Handle get_initializer() const
+    {
+        return children[1];
+    }
+};
+
+struct If_Statement_Node final : Node_Base, detail::Parent<3> {
+    If_Statement_Node(Token token,
+                      Node_Handle condition,
+                      Node_Handle if_block,
+                      Node_Handle else_block);
+
+    Node_Handle get_condition() const
+    {
+        return children[0];
+    }
+    Node_Handle get_if_block() const
+    {
+        return children[1];
+    }
+    Node_Handle get_else_block() const
+    {
+        return children[2];
+    }
+};
+
+struct While_Statement_Node final : Node_Base, detail::Parent<2> {
+    While_Statement_Node(Token token, Node_Handle condition, Node_Handle block);
+
+    Node_Handle get_condition() const
+    {
+        return children[0];
+    }
+    Node_Handle get_block() const
+    {
+        return children[1];
+    }
+};
+
+// break, continue
+struct Jump_Node final : Node_Base, detail::Parent<0> {
+    Jump_Node(Token token);
+};
+
+struct Return_Statement_Node final : Node_Base, detail::Parent<1> {
+    Return_Statement_Node(Token token, Node_Handle expression);
+
+    Node_Handle get_expression() const
+    {
+        return children[0];
+    }
+};
+
+struct Assignment_Node final : Node_Base, detail::Parent<1> {
+    std::string_view name;
+
+    Assignment_Node(Token token, std::string_view name, Node_Handle expression);
+
+    Node_Handle get_expression() const
+    {
+        return children[0];
+    }
+};
+
+struct Block_Statement_Node final : Node_Base {
+    std::vector<Node_Handle> statements;
+
+    Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements);
+
+    std::span<Node_Handle> get_children()
+    {
+        return statements;
+    }
+    std::span<const Node_Handle> get_children() const
+    {
+        return statements;
+    }
+};
+
+struct If_Expression_Node final : Node_Base, detail::Parent<3> {
+    If_Expression_Node(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
+
+    Node_Handle get_left() const
+    {
+        return children[0];
+    }
+    Node_Handle get_condition() const
+    {
+        return children[1];
+    }
+    Node_Handle get_right() const
+    {
+        return children[2];
+    }
+};
+
+struct Binary_Expression_Node final : Node_Base, detail::Parent<2> {
+    Token_Type op;
+
+    Binary_Expression_Node(Token token, Node_Handle left, Node_Handle right, Token_Type op);
+
+    Node_Handle get_left() const
+    {
+        return children[0];
+    }
+    Node_Handle get_right() const
+    {
+        return children[1];
+    }
+};
+
+struct Prefix_Expression_Node final : Node_Base, detail::Parent<1> {
+    Node_Handle operand;
+    Token_Type op;
+
+    Prefix_Expression_Node(Token token, Token_Type opm, Node_Handle operand);
+
+    Node_Handle get_expression() const
+    {
+        return children[0];
+    }
+};
+
+struct Function_Call_Expression_Node final : Node_Base {
+    std::string_view function;
+    std::vector<Node_Handle> arguments;
+
+    Function_Call_Expression_Node(Token token,
+                                  std::string_view function,
+                                  std::vector<Node_Handle>&& arguments);
+
+    std::span<Node_Handle> get_children()
+    {
+        return arguments;
+    }
+    std::span<const Node_Handle> get_children() const
+    {
+        return arguments;
+    }
+};
+
+struct Id_Expression_Node final : Node_Base, detail::Parent<0> {
+    Id_Expression_Node(Token token);
+};
+
+struct Literal_Node final : Node_Base, detail::Parent<0> {
+    Literal_Node(Token token);
+};
+
+template <typename T>
+concept Node_Concept = requires(T& n, const T& c) {
+    {
+        n.get_token()
+    } -> std::same_as<Token>;
+    {
+        n.get_children()
+    } -> std::same_as<std::span<Node_Handle>>;
+    {
+        c.get_children()
+    } -> std::same_as<std::span<const Node_Handle>>;
+};
+
+using Some_Node = std::variant<Program_Node,
+                               Function_Node,
+                               Parameter_Node,
+                               Type_Node,
+                               Let_Const_Node,
+                               If_Statement_Node,
+                               While_Statement_Node,
+                               Jump_Node,
+                               Return_Statement_Node,
+                               Assignment_Node,
+                               Block_Statement_Node,
+                               If_Expression_Node,
+                               Binary_Expression_Node,
+                               Prefix_Expression_Node,
+                               Function_Call_Expression_Node,
+                               Id_Expression_Node,
+                               Literal_Node>;
 
 enum struct Node_Type {
     program, // {function | variable}
@@ -348,8 +675,7 @@ enum struct Node_Type {
     variable,
     if_statement,
     while_statement,
-    break_statement,
-    continue_statement,
+    jump,
     return_statement,
     assignment,
     block_statement,
@@ -363,147 +689,34 @@ enum struct Node_Type {
 
 [[nodiscard]] std::string_view node_type_name(Node_Type t);
 
-struct Program_Data {
-    std::vector<Node_Handle> declarations;
+inline Node_Type get_node_type(Some_Node& node)
+{
+    return static_cast<Node_Type>(node.index());
+}
 
-    Program_Data(std::vector<Node_Handle>&& declarations);
-};
+inline Token get_token(Some_Node& node)
+{
+    return std::visit([](Node_Base& n) { return n.get_token(); }, node);
+}
 
-struct Function_Data {
-    std::string_view name;
-    std::vector<Node_Handle> parameters;
-    Node_Handle requires_clause;
-    Node_Handle return_type;
-    Node_Handle body;
+inline std::span<Node_Handle> get_children(Some_Node& node)
+{
+    return std::visit([](auto& n) { return n.get_children(); }, node);
+}
 
-    Function_Data(std::string_view name,
-                  std::vector<Node_Handle>&& parameters,
-                  Node_Handle return_type,
-                  Node_Handle requires_clause,
-                  Node_Handle body);
-};
-
-struct Let_Const_Data {
-    std::string_view name;
-    Node_Handle type, initializer;
-    bool is_const;
-
-    Let_Const_Data(Token_Type let_or_const,
-                   std::string_view name,
-                   Node_Handle type,
-                   Node_Handle initializer);
-};
-
-struct Assignment_Data {
-    std::string_view name;
-    Node_Handle expression;
-
-    Assignment_Data(std::string_view name, Node_Handle expression);
-};
-
-struct Parameter_Data {
-    std::string_view name;
-    Some_Type type;
-
-    Parameter_Data(std::string_view name, Some_Type type);
-};
-
-struct Return_Statement_Data {
-    Node_Handle expression;
-
-    Return_Statement_Data(Node_Handle expression);
-};
-
-struct Block_Statement_Data {
-    std::vector<Node_Handle> statements;
-
-    Block_Statement_Data(std::vector<Node_Handle>&& statements);
-};
-
-struct If_Statement_Data {
-    Node_Handle condition, if_block, else_block;
-
-    If_Statement_Data(Node_Handle condition, Node_Handle if_block, Node_Handle else_block);
-};
-
-struct While_Statement_Data {
-    Node_Handle condition, block;
-
-    While_Statement_Data(Node_Handle condition, Node_Handle block);
-};
-
-struct If_Expression_Data {
-    Node_Handle condition, left, right;
-
-    If_Expression_Data(Node_Handle left, Node_Handle condition, Node_Handle right);
-};
-
-struct Binary_Expression_Data {
-    Node_Handle left, right;
-    Token_Type op;
-
-    Binary_Expression_Data(Node_Handle left, Node_Handle right, Token_Type op);
-};
-
-struct Prefix_Expression_Data {
-    Node_Handle operand;
-    Token_Type op;
-
-    Prefix_Expression_Data(Token_Type opm, Node_Handle operand);
-};
-
-struct Function_Call_Expression_Data {
-    std::string_view function;
-    std::vector<Node_Handle> arguments;
-
-    Function_Call_Expression_Data(std::string_view function, std::vector<Node_Handle>&& arguments);
-};
-
-using Node_Data = std::variant<std::monostate,
-                               Program_Data,
-                               Function_Data,
-                               Let_Const_Data,
-                               Parameter_Data,
-                               Assignment_Data,
-                               If_Statement_Data,
-                               While_Statement_Data,
-                               Return_Statement_Data,
-                               Block_Statement_Data,
-                               If_Expression_Data,
-                               Binary_Expression_Data,
-                               Prefix_Expression_Data,
-                               Function_Call_Expression_Data,
-                               Some_Type>;
-
-struct Node {
-    /// The first token that belongs to this rule.
-    Token token;
-    /// The type of AST node.
-    Node_Type type;
-    /// Additional data.
-    /// May be std::monostate, since some nodes only require the information stored in the token.
-    Node_Data data;
-    /// The value of this node.
-    /// Depending on the type of node, this has different meaning.
-    /// This information is uncovered during semantic analysis.
-    std::optional<Some_Value> value;
-
-    [[nodiscard]] Node(Token token, Node_Type type, Node_Data&& data = {})
-        : token { token }
-        , type { type }
-        , data { std::move(data) }
-    {
-    }
-};
+inline std::span<const Node_Handle> get_children(const Some_Node& node)
+{
+    return std::visit([](auto& n) { return n.get_children(); }, node);
+}
 
 } // namespace ast
 
 struct Parsed_Program {
-    std::vector<ast::Node> nodes;
+    std::vector<ast::Some_Node> nodes;
     std::string_view source;
     ast::Node_Handle root_node;
 
-    ast::Node& get_node(ast::Node_Handle handle) &
+    ast::Some_Node& get_node(ast::Node_Handle handle) &
     {
         BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
         return nodes[static_cast<Size>(handle)];
@@ -532,6 +745,8 @@ enum struct Analysis_Error_Code {
 };
 
 struct Analysis_Result {
+    static const Analysis_Result ok;
+
     Analysis_Error_Code code;
     Token fail_token;
     Token cause_token;
@@ -541,6 +756,8 @@ struct Analysis_Result {
         return code == Analysis_Error_Code::ok;
     }
 };
+
+inline constexpr Analysis_Result Analysis_Result::ok = { Analysis_Error_Code::ok, {}, {} };
 
 Analysis_Result analyze(Parsed_Program& program);
 

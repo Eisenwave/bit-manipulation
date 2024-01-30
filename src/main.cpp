@@ -4,7 +4,7 @@
 
 #include "ansi.hpp"
 #include "assert.hpp"
-#include "bmscript.hpp"
+#include "bms.hpp"
 #include "io.hpp"
 
 namespace bit_manipulation {

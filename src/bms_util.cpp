@@ -308,8 +308,7 @@ namespace bit_manipulation {
     case variable: return "variable";
     case if_statement: return "if_statement";
     case while_statement: return "while_statement";
-    case break_statement: return "break_statement";
-    case continue_statement: return "continue_statement";
+    case jump: return "jump";
     case return_statement: return "return_statement";
     case assignment: return "assignment";
     case block_statement: return "block_statement";

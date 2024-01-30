@@ -10,17 +10,20 @@ namespace bit_manipulation {
 
 // =================================================================================================
 
-Program_Data::Program_Data(std::vector<Node_Handle>&& declarations)
-    : declarations((declarations))
+Program_Node::Program_Node(Token token, std::vector<Node_Handle>&& declarations)
+    : Node_Base(token)
+    , declarations(std::move(declarations))
 {
 }
 
-Function_Data::Function_Data(std::string_view name,
+Function_Node::Function_Node(Token token,
+                             std::string_view name,
                              std::vector<Node_Handle>&& parameters,
                              Node_Handle return_type,
                              Node_Handle requires_clause,
                              Node_Handle body)
-    : name(name)
+    : Node_Base(token)
+    , name(name)
     , parameters((std::move(parameters)))
     , requires_clause(requires_clause)
     , return_type(return_type)
@@ -30,11 +33,26 @@ Function_Data::Function_Data(std::string_view name,
     BIT_MANIPULATION_ASSERT(body != Node_Handle::null);
 }
 
-Let_Const_Data::Let_Const_Data(Token_Type let_or_const,
+Parameter_Node::Parameter_Node(Token token, std::string_view name, Node_Handle type)
+    : Node_Base(token)
+    , name(name)
+    , type(type)
+{
+}
+
+Type_Node::Type_Node(Token token, Some_Type type)
+    : Node_Base(token)
+    , type(type)
+{
+}
+
+Let_Const_Node::Let_Const_Node(Token token,
+                               Token_Type let_or_const,
                                std::string_view name,
                                Node_Handle type,
                                Node_Handle initializer)
-    : name(name)
+    : Node_Base(token)
+    , name(name)
     , type((type))
     , initializer(initializer)
     , is_const(let_or_const == Token_Type::keyword_const)
@@ -42,34 +60,12 @@ Let_Const_Data::Let_Const_Data(Token_Type let_or_const,
     BIT_MANIPULATION_ASSERT(type != Node_Handle::null || initializer != Node_Handle::null);
 }
 
-Assignment_Data::Assignment_Data(std::string_view name, Node_Handle expression)
-    : name(name)
-    , expression(expression)
-{
-    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
-}
-
-Parameter_Data::Parameter_Data(std::string_view name, Some_Type type)
-    : name(name)
-    , type(type)
-{
-}
-
-Return_Statement_Data::Return_Statement_Data(Node_Handle expression)
-    : expression(expression)
-{
-    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
-}
-
-Block_Statement_Data::Block_Statement_Data(std::vector<Node_Handle>&& statements)
-    : statements(std::move(statements))
-{
-}
-
-If_Statement_Data::If_Statement_Data(Node_Handle condition,
+If_Statement_Node::If_Statement_Node(Token token,
+                                     Node_Handle condition,
                                      Node_Handle if_block,
                                      Node_Handle else_block)
-    : condition(condition)
+    : Node_Base(token)
+    , condition(condition)
     , if_block(if_block)
     , else_block(else_block)
 {
@@ -77,16 +73,47 @@ If_Statement_Data::If_Statement_Data(Node_Handle condition,
     BIT_MANIPULATION_ASSERT(if_block != Node_Handle::null);
 }
 
-While_Statement_Data::While_Statement_Data(Node_Handle condition, Node_Handle block)
-    : condition(condition)
+While_Statement_Node::While_Statement_Node(Token token, Node_Handle condition, Node_Handle block)
+    : Node_Base(token)
+    , condition(condition)
     , block(block)
 {
     BIT_MANIPULATION_ASSERT(condition != Node_Handle::null);
     BIT_MANIPULATION_ASSERT(block != Node_Handle::null);
 }
 
-If_Expression_Data::If_Expression_Data(Node_Handle left, Node_Handle condition, Node_Handle right)
-    : condition(condition)
+Jump_Node::Jump_Node(Token token)
+    : Node_Base(token)
+{
+}
+
+Return_Statement_Node::Return_Statement_Node(Token token, Node_Handle expression)
+    : Node_Base(token)
+    , expression(expression)
+{
+    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
+}
+
+Assignment_Node::Assignment_Node(Token token, std::string_view name, Node_Handle expression)
+    : Node_Base(token)
+    , name(name)
+    , expression(expression)
+{
+    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
+}
+
+Block_Statement_Node::Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements)
+    : Node_Base(token)
+    , statements(std::move(statements))
+{
+}
+
+If_Expression_Node::If_Expression_Node(Token token,
+                                       Node_Handle left,
+                                       Node_Handle condition,
+                                       Node_Handle right)
+    : Node_Base(token)
+    , condition(condition)
     , left(left)
     , right(right)
 {
@@ -95,8 +122,12 @@ If_Expression_Data::If_Expression_Data(Node_Handle left, Node_Handle condition, 
     BIT_MANIPULATION_ASSERT(right != Node_Handle::null);
 }
 
-Binary_Expression_Data::Binary_Expression_Data(Node_Handle left, Node_Handle right, Token_Type op)
-    : left(left)
+Binary_Expression_Node::Binary_Expression_Node(Token token,
+                                               Node_Handle left,
+                                               Node_Handle right,
+                                               Token_Type op)
+    : Node_Base(token)
+    , left(left)
     , right(right)
     , op(op)
 {
@@ -104,17 +135,30 @@ Binary_Expression_Data::Binary_Expression_Data(Node_Handle left, Node_Handle rig
     BIT_MANIPULATION_ASSERT(right != Node_Handle::null);
 }
 
-Prefix_Expression_Data::Prefix_Expression_Data(Token_Type op, Node_Handle operand)
-    : operand(operand)
+Prefix_Expression_Node::Prefix_Expression_Node(Token token, Token_Type op, Node_Handle operand)
+    : Node_Base(token)
+    , operand(operand)
     , op(op)
 {
     BIT_MANIPULATION_ASSERT(operand != Node_Handle::null);
 }
 
-Function_Call_Expression_Data::Function_Call_Expression_Data(std::string_view function,
+Function_Call_Expression_Node::Function_Call_Expression_Node(Token token,
+                                                             std::string_view function,
                                                              std::vector<Node_Handle>&& arguments)
-    : function(function)
+    : Node_Base(token)
+    , function(function)
     , arguments(std::move(arguments))
+{
+}
+
+Id_Expression_Node::Id_Expression_Node(Token token)
+    : Node_Base(token)
+{
+}
+
+Literal_Node::Literal_Node(Token token)
+    : Node_Base(token)
 {
 }
 
@@ -183,7 +227,7 @@ private:
     std::span<const Token> m_tokens;
     std::string_view m_source;
     Size m_pos;
-    std::vector<Node> m_nodes;
+    std::vector<Some_Node> m_nodes;
 
 public:
     explicit Parser(std::span<const Token> tokens, std::string_view source)
@@ -206,14 +250,14 @@ public:
     }
 
 private:
-    Node_Handle make_node(Token token, Node_Type type, Node_Data data = {})
+    Node_Handle push_node(Some_Node&& node)
     {
         const auto result = static_cast<Node_Handle>(m_nodes.size());
-        m_nodes.push_back({ token, type, std::move(data) });
+        m_nodes.push_back(std::move(node));
         return result;
     }
 
-    Node& get_node(Node_Handle handle)
+    Some_Node& get_node(Node_Handle handle)
     {
         BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
         return m_nodes.at(static_cast<Size>(handle));
@@ -341,8 +385,7 @@ private:
             }
             declarations.push_back(*d);
         }
-        return make_node(get_node(*first).token, Node_Type::program,
-                         Program_Data { std::move(declarations) });
+        return push_node(Program_Node { get_token(get_node(*first)), std::move(declarations) });
     }
 
     Rule_Result match_program_declaration()
@@ -406,8 +449,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        return make_node(*t, Node_Type::variable,
-                         Let_Const_Data { const_or_let, name, type_handle, *init });
+        return push_node(Let_Const_Node { *t, const_or_let, name, type_handle, *init });
     }
 
     Rule_Result match_initializer()
@@ -477,8 +519,7 @@ private:
         if (!body) {
             return body;
         }
-        return make_node(*t, Node_Type::function,
-                         Function_Data { name->extract(m_source), std::move(parameters), *ret,
+        return push_node(Function_Node { *t, name->extract(m_source), std::move(parameters), *ret,
                                          requires_handle, *body });
     }
 
@@ -496,9 +537,7 @@ private:
         if (!type) {
             return type;
         }
-        const auto type_data = std::get<Some_Type>(get_node(*type).data);
-        return make_node(*id, Node_Type::parameter,
-                         Parameter_Data { id->extract(m_source), type_data });
+        return push_node(Parameter_Node { *id, id->extract(m_source), *type });
     }
 
     Rule_Result match_requires_clause()
@@ -565,7 +604,7 @@ private:
         if (!e) {
             return e;
         }
-        return make_node(*id, Node_Type::assignment, Assignment_Data { id->extract(m_source), *e });
+        return push_node(Assignment_Node { *id, id->extract(m_source), *e });
     }
 
     Rule_Result match_return_statement()
@@ -582,7 +621,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return make_node(*t, Node_Type::return_statement, Return_Statement_Data { *e });
+        return push_node(Return_Statement_Node { *t, *e });
     }
 
     Rule_Result match_break_statement()
@@ -595,7 +634,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return make_node(*t, Node_Type::break_statement);
+        return push_node(Jump_Node { *t });
     }
 
     Rule_Result match_continue_statement()
@@ -608,7 +647,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return make_node(*t, Node_Type::continue_statement);
+        return push_node(Jump_Node { *t });
     }
 
     Rule_Result match_if_statement()
@@ -636,8 +675,7 @@ private:
                 return else_block;
             }
         }
-        return make_node(*first, Node_Type::if_statement,
-                         If_Statement_Data { *condition, *block, else_handle });
+        return push_node(If_Statement_Node { *first, *condition, *block, else_handle });
     }
 
     Rule_Result match_while_statement()
@@ -656,8 +694,7 @@ private:
         if (!block) {
             return block;
         }
-        return make_node(*first, Node_Type::while_statement,
-                         While_Statement_Data { *condition, *block });
+        return push_node(While_Statement_Node { *first, *condition, *block });
     }
 
     Rule_Result match_init_clause()
@@ -685,8 +722,7 @@ private:
         std::vector<Node_Handle> statements;
         while (true) {
             if (expect(Token_Type::right_brace)) {
-                return make_node(*first, Node_Type::block_statement,
-                                 Block_Statement_Data { std::move(statements) });
+                return push_node(Block_Statement_Node { *first, std::move(statements) });
             }
             else if (Rule_Result s = match_statement()) {
                 statements.push_back(*s);
@@ -695,7 +731,7 @@ private:
                 return s;
             }
         }
-        // unreachable
+        BIT_MANIPULATION_UNREACHABLE();
     }
 
     Rule_Result match_expression()
@@ -721,8 +757,8 @@ private:
         if (!right) {
             return right;
         }
-        return make_node(get_node(*left).token, Node_Type::binary_expression,
-                         If_Expression_Data { *left, *condition, *right });
+        return push_node(
+            If_Expression_Node { get_token(get_node(*left)), *left, *condition, *right });
     }
 
     Rule_Result match_binary_expression()
@@ -739,8 +775,8 @@ private:
         if (!right) {
             return right;
         }
-        return make_node(get_node(*left).token, Node_Type::binary_expression,
-                         Binary_Expression_Data { *left, *right, op->type });
+        return push_node(
+            Binary_Expression_Node { get_token(get_node(*left)), *left, *right, op->type });
     }
 
     Rule_Result match_prefix_expression()
@@ -750,8 +786,7 @@ private:
             if (!e) {
                 return e;
             }
-            return make_node(*t, Node_Type::prefix_expression,
-                             Prefix_Expression_Data { t->type, *e });
+            return push_node(Prefix_Expression_Node { *t, t->type, *e });
         }
         return match_postfix_expression();
     }
@@ -787,9 +822,8 @@ private:
             arguments.push_back(*arg);
             demand_expression = expect(Token_Type::comma);
         }
-        return make_node(
-            *id, Node_Type::function_call_expression,
-            Function_Call_Expression_Data { id->extract(m_source), std::move(arguments) });
+        return push_node(
+            Function_Call_Expression_Node { *id, id->extract(m_source), std::move(arguments) });
     }
 
     Rule_Result match_primary_expression()
@@ -801,10 +835,10 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return make_node(*t, Node_Type::literal);
+            return push_node(Literal_Node { *t });
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return make_node(*t, Node_Type::id_expression);
+            return push_node(Id_Expression_Node { *t });
         }
         if (Rule_Result e = match_parenthesized_expression()) {
             return e;
@@ -837,22 +871,18 @@ private:
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
-        static constexpr Some_Type bool_type = Concrete_Type { Type_Type::Bool };
-        static constexpr Some_Type int_type = Concrete_Type { Type_Type::Int };
-
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return make_node(*t, Node_Type::type, bool_type);
+            return push_node(Type_Node { *t, Concrete_Type { Type_Type::Bool } });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return make_node(*t, Node_Type::type, int_type);
+            return push_node(Type_Node { *t, Concrete_Type { Type_Type::Int } });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             Rule_Result e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            const Some_Type type = Bit_Generic_Type { Type_Type::Uint, *e };
-            return make_node(*t, Node_Type::type, type);
+            return push_node(Type_Node { *t, Bit_Generic_Type { Type_Type::Uint, *e } });
         }
 
         return Rule_Error { this_rule, expected };
