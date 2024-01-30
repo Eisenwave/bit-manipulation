@@ -2,7 +2,7 @@
 #include <variant>
 
 #include "assert.hpp"
-#include "bmscript.hpp"
+#include "bms.hpp"
 
 using namespace bit_manipulation::ast;
 
@@ -49,11 +49,10 @@ Assignment_Data::Assignment_Data(std::string_view name, Node_Handle expression)
     BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
 }
 
-Parameter_Data::Parameter_Data(std::string_view name, Node_Handle type)
+Parameter_Data::Parameter_Data(std::string_view name, Some_Type type)
     : name(name)
     , type(type)
 {
-    BIT_MANIPULATION_ASSERT(type != Node_Handle::null);
 }
 
 Return_Statement_Data::Return_Statement_Data(Node_Handle expression)
@@ -117,13 +116,6 @@ Function_Call_Expression_Data::Function_Call_Expression_Data(std::string_view fu
     : function(function)
     , arguments(std::move(arguments))
 {
-}
-
-Type_Data::Type_Data(Type_Type type, Node_Handle width)
-    : width(width)
-    , type(type)
-{
-    BIT_MANIPULATION_ASSERT(type == Type_Type::Uint || width != Node_Handle::null);
 }
 
 // =================================================================================================
@@ -204,7 +196,7 @@ public:
     Parse_Result parse()
     {
         if (Rule_Result program = match_program()) {
-            return Parsed_Program { std::move(m_nodes), program.get_node() };
+            return Parsed_Program { std::move(m_nodes), m_source, program.get_node() };
         }
         else {
             const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
@@ -504,8 +496,9 @@ private:
         if (!type) {
             return type;
         }
+        const auto type_data = std::get<Some_Type>(get_node(*type).data);
         return make_node(*id, Node_Type::parameter,
-                         Parameter_Data { id->extract(m_source), *type });
+                         Parameter_Data { id->extract(m_source), type_data });
     }
 
     Rule_Result match_requires_clause()
@@ -844,18 +837,22 @@ private:
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
+        static constexpr Some_Type bool_type = Concrete_Type { Type_Type::Bool };
+        static constexpr Some_Type int_type = Concrete_Type { Type_Type::Int };
+
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Int, Node_Handle::null });
+            return make_node(*t, Node_Type::type, bool_type);
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Int, Node_Handle::null });
+            return make_node(*t, Node_Type::type, int_type);
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             Rule_Result e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return make_node(*t, Node_Type::type, Type_Data { Type_Type::Uint, *e });
+            const Some_Type type = Bit_Generic_Type { Type_Type::Uint, *e };
+            return make_node(*t, Node_Type::type, type);
         }
 
         return Rule_Error { this_rule, expected };

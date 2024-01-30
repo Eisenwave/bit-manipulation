@@ -63,6 +63,12 @@ using Int = Int64;
 /// Guaranteed to have the same width as `integer`.
 using Uint = Uint64;
 
+#ifndef __INTELLISENSE__
+using BigInt = _BitInt(128);
+#else
+using BigInt = int;
+#endif
+
 static_assert(sizeof(Int) == sizeof(Uint));
 
 // #define M3DP_ENABLE_STATIC_TESTS

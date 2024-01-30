@@ -4,21 +4,22 @@ project(bit-manipulation)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion)
+set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-extension)
 
 set(HEADERS
     src/assert.hpp
-    src/bmscript.hpp
+    src/bms.hpp
     src/config.hpp
     src/io.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
-    src/parse.cpp
+    src/bms_analyze.cpp
+    src/bms_parse.cpp
+    src/bms_tokenize.cpp
+    src/bms_util.cpp
     src/io.cpp
-    src/lookup.cpp
-    src/main.cpp
-    src/tokenize.cpp)
+    src/main.cpp)
 
 target_compile_options(bmscript PRIVATE ${WARNING_OPTIONS})
 target_include_directories(bmscript PRIVATE "${CMAKE_CURRENT_LIST_DIR}")

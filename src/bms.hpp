@@ -2,11 +2,13 @@
 #define BIT_MANIPULATION_BMSCRIPT_HPP
 
 #include <memory>
+#include <optional>
 #include <span>
 #include <string_view>
 #include <variant>
 #include <vector>
 
+#include "assert.hpp"
 #include "config.hpp"
 
 namespace bit_manipulation {
@@ -236,6 +238,106 @@ enum struct Grammar_Rule {
 
 namespace ast {
 
+/// A type which represents a handle into the AST.
+/// It can be used only in conjunction with `Parsed_Program`.
+/// This is basically just an index, but with more type safety and protection against misuse.
+/// By only giving the user an index in the AST, it's possible to store it as a `std::vector` and
+/// massively reduce the amount of allocations necessary.
+enum struct Node_Handle : Size {
+    // The null handle, representing no node.
+    null = std::numeric_limits<Size>::max()
+};
+
+} // namespace ast
+
+enum struct Type_Type { Void, Bool, Int, Uint };
+
+struct Concrete_Type {
+    Type_Type type;
+    int width;
+
+    constexpr Concrete_Type(Type_Type type, int width = 0)
+        : type(type)
+        , width(width)
+    {
+    }
+
+    friend constexpr bool operator==(Concrete_Type x, Concrete_Type y)
+    {
+        return x.type != y.type || (x.type == Type_Type::Uint && x.width != y.width);
+    }
+};
+
+struct Bit_Generic_Type {
+    Type_Type type;
+    ast::Node_Handle width;
+
+    constexpr Bit_Generic_Type(Type_Type type, ast::Node_Handle width)
+        : type(type)
+        , width(width)
+    {
+        BIT_MANIPULATION_ASSERT(width != ast::Node_Handle::null);
+    }
+};
+
+using Some_Type = std::variant<Concrete_Type, Bit_Generic_Type>;
+
+struct Unknown_Value {
+    Some_Type type;
+
+    constexpr Unknown_Value(Some_Type type)
+        : type(type)
+    {
+    }
+};
+
+struct Concrete_Value {
+    Some_Type type;
+    BigInt value;
+
+    constexpr Concrete_Value(Some_Type type, BigInt value)
+        : type(type)
+        , value(value)
+    {
+    }
+};
+
+struct Abstract_Value {
+    Some_Type type;
+    ast::Node_Handle value;
+
+    constexpr Abstract_Value(Some_Type type, ast::Node_Handle value)
+        : type(type)
+        , value(value)
+    {
+        BIT_MANIPULATION_ASSERT(value != ast::Node_Handle::null);
+    }
+};
+
+using Some_Value = std::variant<Unknown_Value, Concrete_Value, Abstract_Value>;
+
+inline bool is_concrete(const Concrete_Type&)
+{
+    return true;
+}
+
+inline bool is_concrete(const Some_Type& type)
+{
+    return type.index() == 0;
+}
+
+inline bool is_concrete(const Concrete_Value&)
+{
+    return true;
+}
+
+inline bool is_concrete(const Some_Value& type)
+{
+    return type.index() == 0;
+}
+
+namespace ast {
+
 struct Node;
 
 enum struct Node_Type {
@@ -257,16 +359,6 @@ enum struct Node_Type {
     function_call_expression,
     id_expression,
     literal,
-};
-
-/// A type which represents a handle into the AST.
-/// It can be used only in conjunction with `Parsed_Program`.
-/// This is basically just an index, but with more type safety and protection against misuse.
-/// By only giving the user an index in the AST, it's possible to store it as a `std::vector` and
-/// massively reduce the amount of allocations necessary.
-enum struct Node_Handle : Size {
-    // The null handle, representing no node.
-    null = std::numeric_limits<Size>::max()
 };
 
 [[nodiscard]] std::string_view node_type_name(Node_Type t);
@@ -291,8 +383,6 @@ struct Function_Data {
                   Node_Handle body);
 };
 
-enum struct Type_Type { Bool, Int, Uint };
-
 struct Let_Const_Data {
     std::string_view name;
     Node_Handle type, initializer;
@@ -313,9 +403,9 @@ struct Assignment_Data {
 
 struct Parameter_Data {
     std::string_view name;
-    Node_Handle type;
+    Some_Type type;
 
-    Parameter_Data(std::string_view name, Node_Handle type);
+    Parameter_Data(std::string_view name, Some_Type type);
 };
 
 struct Return_Statement_Data {
@@ -369,13 +459,6 @@ struct Function_Call_Expression_Data {
     Function_Call_Expression_Data(std::string_view function, std::vector<Node_Handle>&& arguments);
 };
 
-struct Type_Data {
-    Node_Handle width;
-    Type_Type type;
-
-    Type_Data(Type_Type type, Node_Handle width);
-};
-
 using Node_Data = std::variant<std::monostate,
                                Program_Data,
                                Function_Data,
@@ -386,11 +469,11 @@ using Node_Data = std::variant<std::monostate,
                                While_Statement_Data,
                                Return_Statement_Data,
                                Block_Statement_Data,
-                               Type_Data,
                                If_Expression_Data,
                                Binary_Expression_Data,
                                Prefix_Expression_Data,
-                               Function_Call_Expression_Data>;
+                               Function_Call_Expression_Data,
+                               Some_Type>;
 
 struct Node {
     /// The first token that belongs to this rule.
@@ -400,6 +483,10 @@ struct Node {
     /// Additional data.
     /// May be std::monostate, since some nodes only require the information stored in the token.
     Node_Data data;
+    /// The value of this node.
+    /// Depending on the type of node, this has different meaning.
+    /// This information is uncovered during semantic analysis.
+    std::optional<Some_Value> value;
 
     [[nodiscard]] Node(Token token, Node_Type type, Node_Data&& data = {})
         : token { token }
@@ -413,7 +500,14 @@ struct Node {
 
 struct Parsed_Program {
     std::vector<ast::Node> nodes;
+    std::string_view source;
     ast::Node_Handle root_node;
+
+    ast::Node& get_node(ast::Node_Handle handle) &
+    {
+        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        return nodes[static_cast<Size>(handle)];
+    }
 };
 
 struct Parse_Error {
@@ -425,6 +519,30 @@ struct Parse_Error {
 using Parse_Result = std::variant<Parsed_Program, Parse_Error>;
 
 Parse_Result parse(std::span<const Token> tokens, std::string_view source);
+
+enum struct Analysis_Error_Code {
+    ok,
+    failed_to_define_global_const,
+    failed_to_define_function,
+    failed_to_define_parameter,
+    failed_to_define_variable,
+    reference_to_undefined_variable,
+    assignment_of_undefined_variable,
+    call_to_undefined_function
+};
+
+struct Analysis_Result {
+    Analysis_Error_Code code;
+    Token fail_token;
+    Token cause_token;
+
+    [[nodiscard]] constexpr explicit operator bool() const noexcept
+    {
+        return code == Analysis_Error_Code::ok;
+    }
+};
+
+Analysis_Result analyze(Parsed_Program& program);
 
 } // namespace bit_manipulation
 
