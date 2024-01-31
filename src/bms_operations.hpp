@@ -161,7 +161,7 @@ inline Evaluation_Result evaluate_unary_operator(Token_Type op, Value value)
     }
 }
 
-inline Evaluation_Result evaluate_binary_operator(Token_Type op, Value lhs, Value rhs)
+inline Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
 {
     if (!is_binary_operator(op)) {
         return Evaluation_Error::invalid_operator;
@@ -172,15 +172,19 @@ inline Evaluation_Result evaluate_binary_operator(Token_Type op, Value lhs, Valu
         if (lossy) {
             return Evaluation_Error::int_to_uint_range_error;
         }
-        return evaluate_binary_operator(op, converted, rhs);
+        return evaluate_binary_operator(converted, op, rhs);
     }
+
     if (lhs.type.type == Type_Type::Uint && rhs.type.type == Type_Type::Int) {
         const auto [converted, lossy] = rhs.to_uint(lhs.type.width);
         if (lossy) {
             return Evaluation_Error::int_to_uint_range_error;
         }
-        return evaluate_binary_operator(op, lhs, converted);
+        return evaluate_binary_operator(lhs, op, converted);
     }
+
+    // From this point onwards, the types of the operands should be identical.
+    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
 
     const struct {
         const Value& x;
