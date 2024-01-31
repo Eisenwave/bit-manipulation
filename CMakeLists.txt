@@ -18,6 +18,7 @@ set(HEADERS
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
     src/bms_analyze.cpp
+    src/bms_operations.cpp
     src/bms_parse.cpp
     src/bms_tokenize.cpp
     src/bms_util.cpp
