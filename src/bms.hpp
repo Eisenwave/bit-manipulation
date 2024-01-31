@@ -9,6 +9,7 @@
 #include <vector>
 
 #include "assert.hpp"
+#include "bms_grammar.hpp"
 #include "bms_tokens.hpp"
 #include "bms_value.hpp"
 #include "config.hpp"

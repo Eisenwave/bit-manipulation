@@ -65,10 +65,14 @@ using Int = Int64;
 /// Guaranteed to have the same width as `integer`.
 using Uint = Uint64;
 
+inline constexpr int uint_max_width = 128;
+
 #ifndef __INTELLISENSE__
-using BigInt = _BitInt(128);
+using Big_Int = _BitInt(uint_max_width);
+using Big_Uint = unsigned _BitInt(uint_max_width);
 #else
-using BigInt = int;
+using Big_Int = int;
+using Big_Uint = unsigned;
 #endif
 
 static_assert(sizeof(Int) == sizeof(Uint));

@@ -228,6 +228,70 @@ namespace bit_manipulation {
     }
 }
 
+[[nodiscard]] bool is_arithmetic_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case plus:
+    case minus:
+    case multiplication:
+    case division:
+    case remainder: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] bool is_bitwise_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case bitwise_and:
+    case bitwise_or:
+    case bitwise_not:
+    case bitwise_xor:
+    case shift_left:
+    case shift_right: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] bool is_comparison_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case equals:
+    case not_equals:
+    case less_than:
+    case greater_than:
+    case less_or_equal:
+    case greater_or_equal: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] bool is_logical_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case logical_not:
+    case logical_and:
+    case logical_or: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] bool is_relational_comparison_operator(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case less_than:
+    case greater_than:
+    case less_or_equal:
+    case greater_or_equal: return true;
+    default: return false;
+    }
+}
+
 [[nodiscard]] bool is_binary_operator(Token_Type type)
 {
     using enum Token_Type;
