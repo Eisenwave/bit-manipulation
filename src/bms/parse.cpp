@@ -225,22 +225,21 @@ public:
 struct Parser {
 private:
     std::span<const Token> m_tokens;
-    std::string_view m_source;
     Size m_pos;
-    std::vector<Some_Node> m_nodes;
+    Parsed_Program m_program;
 
 public:
     explicit Parser(std::span<const Token> tokens, std::string_view source)
         : m_tokens { tokens }
-        , m_source { source }
         , m_pos { 0 }
+        , m_program { {}, source, Node_Handle::null }
     {
     }
 
     Parse_Result parse()
     {
         if (Rule_Result program = match_program()) {
-            return Parsed_Program { std::move(m_nodes), m_source, program.get_node() };
+            return std::move(m_program);
         }
         else {
             const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
@@ -250,19 +249,6 @@ public:
     }
 
 private:
-    Node_Handle push_node(Some_Node&& node)
-    {
-        const auto result = static_cast<Node_Handle>(m_nodes.size());
-        m_nodes.push_back(std::move(node));
-        return result;
-    }
-
-    Some_Node& get_node(Node_Handle handle)
-    {
-        BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
-        return m_nodes.at(static_cast<Size>(handle));
-    }
-
     bool eof()
     {
         skip_comments();
@@ -385,7 +371,8 @@ private:
             }
             declarations.push_back(*d);
         }
-        return push_node(Program_Node { get_token(get_node(*first)), std::move(declarations) });
+        return m_program.push_node(
+            Program_Node { get_token(m_program.get_node(*first)), std::move(declarations) });
     }
 
     Rule_Result match_program_declaration()
@@ -429,7 +416,7 @@ private:
         if (!id) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        const std::string_view name = id->extract(m_source);
+        const std::string_view name = id->extract(m_program.source);
 
         auto type_handle = Node_Handle::null;
         if (expect(Token_Type::colon)) {
@@ -449,7 +436,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        return push_node(Let_Const_Node { *t, const_or_let, name, type_handle, *init });
+        return m_program.push_node(Let_Const_Node { *t, const_or_let, name, type_handle, *init });
     }
 
     Rule_Result match_initializer()
@@ -519,8 +506,9 @@ private:
         if (!body) {
             return body;
         }
-        return push_node(Function_Node { *t, name->extract(m_source), std::move(parameters), *ret,
-                                         requires_handle, *body });
+        return m_program.push_node(Function_Node { *t, name->extract(m_program.source),
+                                                   std::move(parameters), *ret, requires_handle,
+                                                   *body });
     }
 
     Rule_Result match_parameter_sequence()
@@ -532,7 +520,7 @@ private:
             if (!p) {
                 return p;
             }
-            first_token = get_token(get_node(*p));
+            first_token = get_token(m_program.get_node(*p));
             parameters.push_back(*p);
             if (!expect(Token_Type::comma)) {
                 break;
@@ -540,7 +528,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(!parameters.empty());
 
-        return push_node(Parameter_List_Node { first_token, std::move(parameters) });
+        return m_program.push_node(Parameter_List_Node { first_token, std::move(parameters) });
     }
 
     Rule_Result match_parameter()
@@ -557,7 +545,7 @@ private:
         if (!type) {
             return type;
         }
-        return push_node(Parameter_Node { *id, id->extract(m_source), *type });
+        return m_program.push_node(Parameter_Node { *id, id->extract(m_program.source), *type });
     }
 
     Rule_Result match_requires_clause()
@@ -624,7 +612,7 @@ private:
         if (!e) {
             return e;
         }
-        return push_node(Assignment_Node { *id, id->extract(m_source), *e });
+        return m_program.push_node(Assignment_Node { *id, id->extract(m_program.source), *e });
     }
 
     Rule_Result match_return_statement()
@@ -641,7 +629,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return push_node(Return_Statement_Node { *t, *e });
+        return m_program.push_node(Return_Statement_Node { *t, *e });
     }
 
     Rule_Result match_break_statement()
@@ -654,7 +642,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return push_node(Jump_Node { *t });
+        return m_program.push_node(Jump_Node { *t });
     }
 
     Rule_Result match_continue_statement()
@@ -667,7 +655,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return push_node(Jump_Node { *t });
+        return m_program.push_node(Jump_Node { *t });
     }
 
     Rule_Result match_if_statement()
@@ -695,7 +683,7 @@ private:
                 return else_block;
             }
         }
-        return push_node(If_Statement_Node { *first, *condition, *block, else_handle });
+        return m_program.push_node(If_Statement_Node { *first, *condition, *block, else_handle });
     }
 
     Rule_Result match_while_statement()
@@ -714,7 +702,7 @@ private:
         if (!block) {
             return block;
         }
-        return push_node(While_Statement_Node { *first, *condition, *block });
+        return m_program.push_node(While_Statement_Node { *first, *condition, *block });
     }
 
     Rule_Result match_init_clause()
@@ -742,7 +730,7 @@ private:
         std::vector<Node_Handle> statements;
         while (true) {
             if (expect(Token_Type::right_brace)) {
-                return push_node(Block_Statement_Node { *first, std::move(statements) });
+                return m_program.push_node(Block_Statement_Node { *first, std::move(statements) });
             }
             else if (Rule_Result s = match_statement()) {
                 statements.push_back(*s);
@@ -777,8 +765,8 @@ private:
         if (!right) {
             return right;
         }
-        return push_node(
-            If_Expression_Node { get_token(get_node(*left)), *left, *condition, *right });
+        return m_program.push_node(
+            If_Expression_Node { get_token(m_program.get_node(*left)), *left, *condition, *right });
     }
 
     Rule_Result match_binary_expression()
@@ -795,8 +783,8 @@ private:
         if (!right) {
             return right;
         }
-        return push_node(
-            Binary_Expression_Node { get_token(get_node(*left)), *left, *right, op->type });
+        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
+                                                            *left, *right, op->type });
     }
 
     Rule_Result match_prefix_expression()
@@ -806,7 +794,7 @@ private:
             if (!e) {
                 return e;
             }
-            return push_node(Prefix_Expression_Node { *t, t->type, *e });
+            return m_program.push_node(Prefix_Expression_Node { *t, t->type, *e });
         }
         return match_postfix_expression();
     }
@@ -842,8 +830,8 @@ private:
             arguments.push_back(*arg);
             demand_expression = expect(Token_Type::comma);
         }
-        return push_node(
-            Function_Call_Expression_Node { *id, id->extract(m_source), std::move(arguments) });
+        return m_program.push_node(Function_Call_Expression_Node {
+            *id, id->extract(m_program.source), std::move(arguments) });
     }
 
     Rule_Result match_primary_expression()
@@ -855,10 +843,10 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return push_node(Literal_Node { *t });
+            return m_program.push_node(Literal_Node { *t });
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return push_node(Id_Expression_Node { *t });
+            return m_program.push_node(Id_Expression_Node { *t });
         }
         if (Rule_Result e = match_parenthesized_expression()) {
             return e;
@@ -892,17 +880,17 @@ private:
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return push_node(Type_Node { *t, Concrete_Type { Type_Type::Bool } });
+            return m_program.push_node(Type_Node { *t, Concrete_Type { Type_Type::Bool } });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return push_node(Type_Node { *t, Concrete_Type { Type_Type::Int } });
+            return m_program.push_node(Type_Node { *t, Concrete_Type { Type_Type::Int } });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             Rule_Result e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return push_node(Type_Node { *t, Bit_Generic_Type { Type_Type::Uint, *e } });
+            return m_program.push_node(Type_Node { *t, Bit_Generic_Type { Type_Type::Uint, *e } });
         }
 
         return Rule_Error { this_rule, expected };
