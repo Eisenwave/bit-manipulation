@@ -87,6 +87,66 @@ public:
         return analyze_symbols_global(m_program.root_node, m_root);
     }
 
+    void instantiate32()
+    {
+        for (Node_Handle decl : m_root.declarations) {
+            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
+                Node_Handle instance = clone_node(decl);
+                auto& instance_node = std::get<Function_Node>(get_node(instance));
+                instantiate32(instance_node);
+            }
+        }
+    }
+
+    void instantiate32(Function_Node& f)
+    {
+        for (Node_Handle decl : m_root.declarations) {
+            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) { }
+        }
+    }
+
+    Node_Handle clone_node(Node_Handle h)
+    {
+        // Two passes are necessary.
+        // During the first pass, the nodes are all copied and the links to children are updated
+        // in the copies.
+        // However, this does not yet affect the name lookup results, which must also refer to
+        // the cloned nodes.
+        // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
+        std::unordered_map<Node_Handle, Node_Handle> remap;
+        clone_node_first_pass(h, remap);
+        clone_node_second_pass(h, remap);
+    }
+
+    Node_Handle clone_node_first_pass(Node_Handle h,
+                                      std::unordered_map<Node_Handle, Node_Handle>& remap)
+    {
+        const Node_Handle result
+            = std::visit([this]<typename T>(const T& n) { return m_program.push_node(T(n)); },
+                         m_program.get_node(h));
+        remap.emplace(h, result);
+
+        for (Node_Handle& child : get_children(m_program.get_node(result))) {
+            child = clone_node_first_pass(child, remap);
+        }
+        return result;
+    }
+
+    void clone_node_second_pass(Node_Handle h,
+                                const std::unordered_map<Node_Handle, Node_Handle>& remap)
+    {
+        std::visit(
+            [this, &h, &remap]<typename T>(T& n) {
+                if constexpr (Lookup_Performing_Node<T>) {
+                    n.lookup_result = remap.at(h);
+                }
+                for (Node_Handle child : get_children(n)) {
+                    clone_node_second_pass(child, remap);
+                }
+            },
+            m_program.get_node(h));
+    }
+
 private:
     Some_Node& get_node(Node_Handle handle)
     {

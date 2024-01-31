@@ -9,6 +9,9 @@ set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-e
 set(HEADERS
     src/assert.hpp
     src/bms.hpp
+    src/bms_operations.hpp
+    src/bms_tokens.hpp
+    src/bms_value.hpp
     src/config.hpp
     src/io.hpp)
 
