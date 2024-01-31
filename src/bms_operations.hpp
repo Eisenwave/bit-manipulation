@@ -339,7 +339,7 @@ inline Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Valu
             if (!rhs) {
                 return rhs;
             }
-            if (Big_Uint(*rhs.value) >= lhs.type.width) {
+            if (Big_Uint(*rhs.value) >= Big_Uint(lhs.type.width)) {
                 return Evaluation_Error::shift_too_much;
             }
             return lhs.and_then_uint([op, y = Big_Uint(*rhs.value)](Big_Uint x) {
