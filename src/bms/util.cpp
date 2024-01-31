@@ -1,6 +1,6 @@
-#include "bms.hpp"
+#include "bms/bms.hpp"
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 [[nodiscard]] std::string_view token_type_name(Token_Type type)
 {
@@ -367,6 +367,7 @@ namespace bit_manipulation {
     switch (t) {
     case program: return "program";
     case function: return "function";
+    case parameter_list: return "parameter_list";
     case parameter: return "parameter";
     case type: return "type";
     case variable: return "variable";

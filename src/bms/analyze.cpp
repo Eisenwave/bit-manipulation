@@ -1,10 +1,10 @@
 #include <unordered_map>
 
-#include "bms.hpp"
+#include "bms/bms.hpp"
 
-using namespace bit_manipulation::ast;
+using namespace bit_manipulation::bms::ast;
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 namespace {
 
@@ -87,22 +87,34 @@ public:
         return analyze_symbols_global(m_program.root_node, m_root);
     }
 
-    void instantiate32()
+    Analysis_Result instantiate(int width)
     {
+        BIT_MANIPULATION_ASSERT(width > 0);
+        BIT_MANIPULATION_ASSERT(width <= uint_max_width);
+
         for (Node_Handle decl : m_root.declarations) {
             if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
                 Node_Handle instance = clone_node(decl);
                 auto& instance_node = std::get<Function_Node>(get_node(instance));
-                instantiate32(instance_node);
+                Analysis_Result r = instantiate(instance_node, width);
+                if (!r) {
+                    return r;
+                }
+                f->instances.push_back(instance);
             }
         }
+
+        return Analysis_Result::ok;
     }
 
-    void instantiate32(Function_Node& f)
+    Analysis_Result instantiate([[maybe_unused]] Function_Node& instance,
+                                [[maybe_unused]] int width)
     {
         for (Node_Handle decl : m_root.declarations) {
             if (auto* f = std::get_if<Function_Node>(&get_node(decl))) { }
         }
+
+        return Analysis_Result::ok;
     }
 
     Node_Handle clone_node(Node_Handle h)
@@ -114,10 +126,13 @@ public:
         // the cloned nodes.
         // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
         std::unordered_map<Node_Handle, Node_Handle> remap;
-        clone_node_first_pass(h, remap);
+        const Node_Handle result = clone_node_first_pass(h, remap);
         clone_node_second_pass(h, remap);
+
+        return result;
     }
 
+private:
     Node_Handle clone_node_first_pass(Node_Handle h,
                                       std::unordered_map<Node_Handle, Node_Handle>& remap)
     {
@@ -147,7 +162,6 @@ public:
             m_program.get_node(h));
     }
 
-private:
     Some_Node& get_node(Node_Handle handle)
     {
         return m_program.get_node(handle);
@@ -321,4 +335,4 @@ Analysis_Result analyze(Parsed_Program& program)
     return analyzer.analyze();
 }
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms

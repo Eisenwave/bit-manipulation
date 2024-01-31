@@ -2,11 +2,12 @@
 #include <variant>
 
 #include "assert.hpp"
-#include "bms.hpp"
 
-using namespace bit_manipulation::ast;
+#include "bms/bms.hpp"
 
-namespace bit_manipulation {
+using namespace bit_manipulation::bms::ast;
+
+namespace bit_manipulation::bms {
 
 // =================================================================================================
 
@@ -524,8 +525,6 @@ private:
 
     Rule_Result match_parameter_sequence()
     {
-        constexpr auto this_rule = Grammar_Rule::parameter;
-
         Token first_token;
         std::vector<Node_Handle> parameters;
         while (true) {
@@ -917,4 +916,4 @@ Parse_Result parse(std::span<const Token> tokens, std::string_view source)
     return Parser(tokens, source).parse();
 }
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms

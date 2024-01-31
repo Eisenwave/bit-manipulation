@@ -6,7 +6,7 @@
 
 #include "config.hpp"
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 /// Represents a position in a source file.
 struct Source_Position {
@@ -187,6 +187,6 @@ struct Tokenize_Error {
 
 Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexcept;
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms
 
 #endif

@@ -9,12 +9,13 @@
 #include <vector>
 
 #include "assert.hpp"
-#include "bms_grammar.hpp"
-#include "bms_tokens.hpp"
-#include "bms_value.hpp"
 #include "config.hpp"
 
-namespace bit_manipulation {
+#include "bms/grammar.hpp"
+#include "bms/tokens.hpp"
+#include "bms/value.hpp"
+
+namespace bit_manipulation::bms {
 
 namespace ast {
 namespace detail {
@@ -474,6 +475,6 @@ inline constexpr Analysis_Result Analysis_Result::ok = { Analysis_Error_Code::ok
 
 Analysis_Result analyze(Parsed_Program& program);
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms
 
 #endif

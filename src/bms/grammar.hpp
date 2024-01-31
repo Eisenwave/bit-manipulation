@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 /// @brief A rule in the formal (context-free) grammar of the BMS language.
 enum struct Grammar_Rule {
@@ -60,6 +60,6 @@ enum struct Grammar_Rule {
 
 [[nodiscard]] std::string_view grammar_rule_name(Grammar_Rule rule);
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms
 
 #endif

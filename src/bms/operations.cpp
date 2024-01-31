@@ -1,4 +1,4 @@
-#include "bms_operations.hpp"
+#include "bms/operations.hpp"
 
 namespace bit_manipulation::bms {
 

@@ -5,9 +5,10 @@
 #include <variant>
 
 #include "assert.hpp"
-#include "bms_fwd.hpp"
 
-namespace bit_manipulation {
+#include "bms/fwd.hpp"
+
+namespace bit_manipulation::bms {
 
 /// @brief A type in the BMS language.
 enum struct Type_Type {
@@ -103,7 +104,7 @@ public:
     {
         if (value) {
             const auto mask = Big_Uint(Big_Uint(1) << type.width) - 1;
-            return { type, Big_Int(Big_Uint(f(*value)) & mask) };
+            return { type, Big_Int(Big_Uint(f(Big_Uint(*value))) & mask) };
         }
         return *this;
     }
@@ -127,15 +128,15 @@ constexpr auto Value::to_uint(int width) const -> To_Uint_Result
 {
     const auto type = Concrete_Type::Uint(width);
     if (!value) {
-        return { Value { type }, .lossy = false };
+        return { .value = Value { type }, .lossy = false };
     }
-    Big_Uint result = *value;
+    auto result = Big_Uint(*value);
     const auto mask
         = width == std::numeric_limits<Big_Uint>::digits ? 0 : Big_Uint(Big_Uint(1) << width) - 1;
     const bool lossy = (result & ~mask) != 0;
-    return { Value { type, result }, lossy };
+    return { Value { type, Big_Int(result) }, lossy };
 }
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms
 
 #endif

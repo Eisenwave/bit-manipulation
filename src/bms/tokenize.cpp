@@ -1,8 +1,8 @@
 #include <optional>
 
-#include "bms.hpp"
+#include "bms/tokens.hpp"
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 namespace {
 

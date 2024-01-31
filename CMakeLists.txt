@@ -8,20 +8,20 @@ set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-e
 
 set(HEADERS
     src/assert.hpp
-    src/bms.hpp
-    src/bms_operations.hpp
-    src/bms_tokens.hpp
-    src/bms_value.hpp
+    src/bms/bms.hpp
+    src/bms/operations.hpp
+    src/bms/tokens.hpp
+    src/bms/value.hpp
     src/config.hpp
     src/io.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
-    src/bms_analyze.cpp
-    src/bms_operations.cpp
-    src/bms_parse.cpp
-    src/bms_tokenize.cpp
-    src/bms_util.cpp
+    src/bms/analyze.cpp
+    src/bms/operations.cpp
+    src/bms/parse.cpp
+    src/bms/tokenize.cpp
+    src/bms/util.cpp
     src/io.cpp
     src/main.cpp)
 

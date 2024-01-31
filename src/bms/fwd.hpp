@@ -3,7 +3,7 @@
 
 #include "config.hpp"
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 namespace ast {
 
@@ -21,6 +21,6 @@ enum struct Node_Handle : Size {
 
 struct Parsed_Program;
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms
 
 #endif
