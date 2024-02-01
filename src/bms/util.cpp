@@ -345,6 +345,8 @@ namespace bit_manipulation::bms {
     case expression: return "expression";
     case if_expression: return "if_expression";
     case binary_expression: return "binary_expression";
+    case comparison_expression: return "comparison_expression";
+    case arithmetic_expression: return "arithmetic_expression";
     case prefix_expression: return "prefix_expression";
     case postfix_expression: return "postfix_expression";
     case function_call_expression: return "function_call_expression";
@@ -353,6 +355,10 @@ namespace bit_manipulation::bms {
     case parenthesized_expression: return "parenthesized_expression";
     case integer_literal: return "integer_literal";
     case binary_operator: return "binary_operator";
+    case binary_arithmetic_operator: return "binary_arithmetic_operator";
+    case binary_comparison_operator: return "binary_comparison_operator";
+    case binary_logical_operator: return "binary_logical_operator";
+    case binary_bitwise_operator: return "binary_bitwise_operator";
     case unary_operator: return "unary_operator";
     case type: return "type";
     case uint: return "uint";

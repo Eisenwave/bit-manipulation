@@ -39,7 +39,11 @@ enum struct Grammar_Rule {
     block_statement, // "{" { statement } "}"
     expression, // if_expression
     if_expression, // binary_expression, ["if", binary_expression, "else", binary_expression]
-    binary_expression, // prefix_expression, [binary_operator, prefix_expression]
+    binary_expression, // comparison_expression
+                       // | prefix_expression, [binary_operator, prefix_expression]
+    comparison_expression, // arithmetic_expression, binary_comparison_operator,
+                           // arithmetic_expression
+    arithmetic_expression, // prefix_expression, [binary_arithmetic_operator, prefix_expression]
     prefix_expression, // [unary_operator], postfix_expression
     postfix_expression, // function_call_expression | primary_expression
     function_call_expression, // identifier, "(", [expression_sequence], ")"
@@ -48,10 +52,12 @@ enum struct Grammar_Rule {
     parenthesized_expression, // "(", expression, ")"
 
     integer_literal, // decimal_literal | hexadecimal_literal | binary_literal | octal_literal
-    binary_operator, // "+" | "-" | "*" | "/" | "%"
-                     // | "==" | "!=" | "<" | ">" | "<=" | ">="
-                     // | "&&" | "||"
-                     // | "<<" | ">>" | "&" | "|" | "^"
+    binary_operator, // binary_arithmetic_operator | binary_comparison_operator
+                     // binary_logical_operator | binary_bitwise_operator
+    binary_arithmetic_operator, // "+" | "-" | "*" | "/" | "%"
+    binary_comparison_operator, // "==" | "!=" | "<" | ">" | "<=" | ">="
+    binary_logical_operator, // "&&" | "||"
+    binary_bitwise_operator, // "<<" | ">>" | "&" | "|" | "^"
     unary_operator, // "+" | "-" | "!" | "~"
 
     type, // "Bool" | "Int" | "Void" | uint

@@ -345,6 +345,8 @@ private:
         case Grammar_Rule::expression: return match_expression();
         case Grammar_Rule::if_expression: return match_if_expression();
         case Grammar_Rule::binary_expression: return match_binary_expression();
+        case Grammar_Rule::comparison_expression: return match_comparison_expression();
+        case Grammar_Rule::arithmetic_expression: return match_arithmetic_expression();
         case Grammar_Rule::prefix_expression: return match_prefix_expression();
         case Grammar_Rule::postfix_expression: return match_postfix_expression();
         case Grammar_Rule::function_call_expression: return match_function_call_expression();
@@ -771,11 +773,56 @@ private:
 
     Rule_Result match_binary_expression()
     {
+        if (Rule_Result comp = expect(Grammar_Rule::comparison_expression)) {
+            return comp;
+        }
+
         Rule_Result left = match_prefix_expression();
         if (!left) {
             return left;
         }
         const Token* op = expect(is_binary_operator);
+        if (!op) {
+            return left;
+        }
+        Rule_Result right = match_prefix_expression();
+        if (!right) {
+            return right;
+        }
+        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
+                                                            *left, *right, op->type });
+    }
+
+    Rule_Result match_comparison_expression()
+    {
+        constexpr auto this_rule = Grammar_Rule::comparison_expression;
+        static constexpr Token_Type expected[]
+            = { Token_Type::equals,       Token_Type::not_equals,    Token_Type::less_than,
+                Token_Type::greater_than, Token_Type::less_or_equal, Token_Type::greater_or_equal };
+
+        Rule_Result left = match_arithmetic_expression();
+        if (!left) {
+            return left;
+        }
+        const Token* op = expect(is_comparison_operator);
+        if (!op) {
+            return Rule_Error { this_rule, expected };
+        }
+        Rule_Result right = match_arithmetic_expression();
+        if (!right) {
+            return right;
+        }
+        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
+                                                            *left, *right, op->type });
+    }
+
+    Rule_Result match_arithmetic_expression()
+    {
+        Rule_Result left = match_prefix_expression();
+        if (!left) {
+            return left;
+        }
+        const Token* op = expect(is_arithmetic_operator);
         if (!op) {
             return left;
         }
