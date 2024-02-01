@@ -77,7 +77,6 @@ struct Program_Node final : detail::Node_Base {
 
 struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     std::string_view name;
-    std::vector<Node_Handle> parameters;
     std::vector<Node_Handle> instances;
 
     Function_Node(Token token,

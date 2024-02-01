@@ -69,106 +69,44 @@ public:
     }
 };
 
-struct Analyzer {
-private:
+struct Analyzer_Base {
     Parsed_Program& m_program;
     Program_Node& m_root;
-    Symbol_Table m_symbols;
 
-public:
-    Analyzer(Parsed_Program& program)
+    Analyzer_Base(Parsed_Program& program)
         : m_program(program)
         , m_root(std::get<Program_Node>(program.get_node(program.root_node)))
     {
-    }
-
-    Analysis_Result analyze()
-    {
-        return analyze_symbols_global(m_program.root_node, m_root);
-    }
-
-    Analysis_Result instantiate(int width)
-    {
-        BIT_MANIPULATION_ASSERT(width > 0);
-        BIT_MANIPULATION_ASSERT(width <= uint_max_width);
-
-        for (Node_Handle decl : m_root.declarations) {
-            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
-                Node_Handle instance = clone_node(decl);
-                auto& instance_node = std::get<Function_Node>(get_node(instance));
-                Analysis_Result r = instantiate(instance_node, width);
-                if (!r) {
-                    return r;
-                }
-                f->instances.push_back(instance);
-            }
-        }
-
-        return Analysis_Result::ok;
-    }
-
-    Analysis_Result instantiate([[maybe_unused]] Function_Node& instance,
-                                [[maybe_unused]] int width)
-    {
-        for (Node_Handle decl : m_root.declarations) {
-            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) { }
-        }
-
-        return Analysis_Result::ok;
-    }
-
-    Node_Handle clone_node(Node_Handle h)
-    {
-        // Two passes are necessary.
-        // During the first pass, the nodes are all copied and the links to children are updated
-        // in the copies.
-        // However, this does not yet affect the name lookup results, which must also refer to
-        // the cloned nodes.
-        // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
-        std::unordered_map<Node_Handle, Node_Handle> remap;
-        const Node_Handle result = clone_node_first_pass(h, remap);
-        clone_node_second_pass(h, remap);
-
-        return result;
-    }
-
-private:
-    Node_Handle clone_node_first_pass(Node_Handle h,
-                                      std::unordered_map<Node_Handle, Node_Handle>& remap)
-    {
-        const Node_Handle result
-            = std::visit([this]<typename T>(const T& n) { return m_program.push_node(T(n)); },
-                         m_program.get_node(h));
-        remap.emplace(h, result);
-
-        for (Node_Handle& child : get_children(m_program.get_node(result))) {
-            child = clone_node_first_pass(child, remap);
-        }
-        return result;
-    }
-
-    void clone_node_second_pass(Node_Handle h,
-                                const std::unordered_map<Node_Handle, Node_Handle>& remap)
-    {
-        std::visit(
-            [this, &h, &remap]<typename T>(T& n) {
-                if constexpr (Lookup_Performing_Node<T>) {
-                    n.lookup_result = remap.at(h);
-                }
-                for (Node_Handle child : get_children(n)) {
-                    clone_node_second_pass(child, remap);
-                }
-            },
-            m_program.get_node(h));
     }
 
     Some_Node& get_node(Node_Handle handle)
     {
         return m_program.get_node(handle);
     }
+};
 
-    // SYMBOL LOOKUP ANALYSIS ======================================================================
+/// @brief Class responsible for performing name lookup.
+/// This involves detecting lookup of undefined variables, duplicate variables, and other name
+/// lookup mistakes.
+/// After running this analyzer, every AST node that performs name lookup
+/// (id-expressions and function calls) will have their `lookup_result` member point to the
+/// looked up node.
+struct Name_Lookup_Analyzer : Analyzer_Base {
+private:
+    Symbol_Table m_symbols;
 
+public:
+    Name_Lookup_Analyzer(Parsed_Program& program)
+        : Analyzer_Base(program)
+    {
+    }
+
+    Analysis_Result operator()()
+    {
+        return analyze_symbols_global(m_program.root_node, m_root);
+    }
+
+private:
     template <typename T>
     Analysis_Result analyze_symbols_global(Node_Handle handle, T& n) = delete;
 
@@ -327,12 +265,117 @@ private:
     }
 };
 
+/// @brief Class responsible for performing instantiations.
+/// After runnings this analyzer, functions will have attached instance nodes.
+/// These instance nodes are clones of the original function node but where the bit-generic
+/// parameter types are replaced with concrete types.
+/// Also, the id-expression within the bit-generic type will have a constant value, which
+/// facilitates constant propagation in further stages.
+struct Instantiator : Analyzer_Base {
+
+    Instantiator(Parsed_Program& program)
+        : Analyzer_Base(program)
+    {
+    }
+
+    Analysis_Result operator()(int width)
+    {
+        return instantiate(width);
+    }
+
+private:
+    Analysis_Result instantiate(int width)
+    {
+        BIT_MANIPULATION_ASSERT(width > 0);
+        BIT_MANIPULATION_ASSERT(width <= uint_max_width);
+
+        for (Node_Handle decl : m_root.declarations) {
+            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
+                Node_Handle instance = clone_node(decl);
+                auto& instance_node = std::get<Function_Node>(get_node(instance));
+                Analysis_Result r = instantiate(instance_node, width);
+                if (!r) {
+                    return r;
+                }
+                f->instances.push_back(instance);
+            }
+        }
+
+        return Analysis_Result::ok;
+    }
+
+    Analysis_Result instantiate([[maybe_unused]] Function_Node& instance,
+                                [[maybe_unused]] int width)
+    {
+        auto& params = std::get<Parameter_List_Node>(get_node(instance.get_parameters()));
+        for (Node_Handle p : params.parameters) {
+            auto& param_node = std::get<Parameter_Node>(get_node(p));
+            auto& type_node = std::get<Type_Node>(get_node(param_node.get_type()));
+            if (auto* generic_type = std::get_if<Bit_Generic_Type>(&type_node.type)) {
+                BIT_MANIPULATION_ASSERT(generic_type->type == Type_Type::Uint);
+                auto& id_node = std::get<Id_Expression_Node>(get_node(generic_type->width));
+                BIT_MANIPULATION_ASSERT(id_node.bit_generic);
+                // Merely replacing the type isn't enough; we must also give this node a constant
+                // value so that existing name lookup can obtain this value.
+                id_node.const_value = Value { Concrete_Type::Int, width };
+                type_node.type = Concrete_Type::Uint(width);
+            }
+        }
+
+        return Analysis_Result::ok;
+    }
+
+    Node_Handle clone_node(Node_Handle h)
+    {
+        // Two passes are necessary.
+        // During the first pass, the nodes are all copied and the links to children are updated
+        // in the copies.
+        // However, this does not yet affect the name lookup results, which must also refer to
+        // the cloned nodes.
+        // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
+        std::unordered_map<Node_Handle, Node_Handle> remap;
+        const Node_Handle result = clone_node_first_pass(h, remap);
+        clone_node_second_pass(h, remap);
+
+        return result;
+    }
+
+    Node_Handle clone_node_first_pass(Node_Handle h,
+                                      std::unordered_map<Node_Handle, Node_Handle>& remap)
+    {
+        const Node_Handle result
+            = std::visit([this]<typename T>(const T& n) { return m_program.push_node(T(n)); },
+                         m_program.get_node(h));
+        remap.emplace(h, result);
+
+        for (Node_Handle& child : get_children(m_program.get_node(result))) {
+            child = clone_node_first_pass(child, remap);
+        }
+        return result;
+    }
+
+    void clone_node_second_pass(Node_Handle h,
+                                const std::unordered_map<Node_Handle, Node_Handle>& remap)
+    {
+        std::visit(
+            [this, &h, &remap]<typename T>(T& n) {
+                if constexpr (Lookup_Performing_Node<T>) {
+                    n.lookup_result = remap.at(h);
+                }
+                for (Node_Handle child : get_children(n)) {
+                    clone_node_second_pass(child, remap);
+                }
+            },
+            m_program.get_node(h));
+    }
+};
+
 } // namespace
 
 Analysis_Result analyze(Parsed_Program& program)
 {
-    Analyzer analyzer { program };
-    return analyzer.analyze();
+    Name_Lookup_Analyzer analyzer { program };
+    return analyzer();
 }
 
 } // namespace bit_manipulation::bms
