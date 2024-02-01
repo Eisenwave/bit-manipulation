@@ -77,11 +77,11 @@ enum struct Token_Type {
     bitwise_not,
     // ^
     bitwise_xor,
-    // and
+    // &&
     logical_and,
-    // or
+    // ||
     logical_or,
-    // not
+    // !
     logical_not,
     // ->
     right_arrow,
