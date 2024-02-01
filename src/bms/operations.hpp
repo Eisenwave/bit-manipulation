@@ -76,6 +76,8 @@ public:
     }
 };
 
+[[nodiscard]] Evaluation_Result evaluate_conversion(Value value, Concrete_Type to) noexcept;
+
 [[nodiscard]] Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept;
 
 [[nodiscard]] Evaluation_Result

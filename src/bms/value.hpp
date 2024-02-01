@@ -19,7 +19,7 @@ enum struct Type_Type {
     /// @brief An infinite precision integer.
     Int,
     /// @brief An arbitrary precision unsigned integer.
-    Uint
+    Uint,
 };
 
 struct Concrete_Type {
@@ -30,22 +30,49 @@ struct Concrete_Type {
     static const Concrete_Type Bool;
     static const Concrete_Type Int;
 
-    static constexpr Concrete_Type Uint(int width)
+    [[nodiscard]] static constexpr Concrete_Type Uint(int width)
     {
         BIT_MANIPULATION_ASSERT(width <= uint_max_width);
         BIT_MANIPULATION_ASSERT(width > 1);
         return { Type_Type::Uint, width };
     }
 
-    constexpr Concrete_Type(Type_Type type, int width = 0)
+    [[nodiscard]] constexpr Concrete_Type(Type_Type type, int width = 0)
         : type(type)
         , width(width)
     {
     }
 
-    friend constexpr bool operator==(Concrete_Type x, Concrete_Type y)
+    [[nodiscard]] constexpr bool is_convertible_to(Concrete_Type other) const noexcept
+    {
+        return type == other || (other.type == Type_Type::Uint && type == Type_Type::Int);
+    }
+
+    [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
+    {
+        if (type == Type_Type::Int) {
+            return true;
+        }
+        if (type == Type_Type::Bool && (value == 0 || value == 1)) {
+            return true;
+        }
+        if (type == Type_Type::Uint) {
+            const auto mask = width == std::numeric_limits<Big_Uint>::digits
+                ? 0
+                : Big_Uint(Big_Uint(1) << width) - 1;
+            return (Big_Uint(value) & ~mask) == 0;
+        }
+        return false;
+    }
+
+    [[nodiscard]] friend constexpr bool operator==(Concrete_Type x, Concrete_Type y)
     {
         return x.type != y.type || (x.type == Type_Type::Uint && x.width != y.width);
+    }
+
+    [[nodiscard]] constexpr bool is_integer() const
+    {
+        return type == Type_Type::Int || type == Type_Type::Uint;
     }
 };
 
@@ -69,31 +96,28 @@ using Some_Type = std::variant<Concrete_Type, Bit_Generic_Type>;
 
 struct Value {
     Concrete_Type type;
-    std::optional<Big_Int> value;
+    std::optional<Big_Int> int_value;
 
 public:
-    constexpr explicit Value(Concrete_Type type)
-        : type(type)
-    {
-    }
+    static const Value True, False;
 
-    constexpr Value(Concrete_Type type, Big_Int value)
+    constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
         : type(type)
-        , value(value)
+        , int_value(value)
     {
     }
 
     explicit constexpr operator bool() const noexcept
     {
-        return value.has_value();
+        return int_value.has_value();
     }
 
     template <std::invocable<Big_Int> F>
         requires std::convertible_to<std::invoke_result_t<F, Big_Int>, Big_Int>
     constexpr Value and_then(F f) const
     {
-        if (value) {
-            return { type, f(*value) };
+        if (int_value) {
+            return Value { type, f(*int_value) };
         }
         return *this;
     }
@@ -102,9 +126,9 @@ public:
         requires std::convertible_to<std::invoke_result_t<F, Big_Uint>, Big_Uint>
     constexpr Value and_then_uint(F f) const
     {
-        if (value) {
+        if (int_value) {
             const auto mask = Big_Uint(Big_Uint(1) << type.width) - 1;
-            return { type, Big_Int(Big_Uint(f(Big_Uint(*value))) & mask) };
+            return Value { type, Big_Int(Big_Uint(f(Big_Uint(*int_value))) & mask) };
         }
         return *this;
     }
@@ -124,17 +148,17 @@ struct Value::To_Uint_Result {
     bool lossy;
 };
 
+inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
+inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
+
 constexpr auto Value::to_uint(int width) const -> To_Uint_Result
 {
     const auto type = Concrete_Type::Uint(width);
-    if (!value) {
+    if (!int_value) {
         return { .value = Value { type }, .lossy = false };
     }
-    auto result = Big_Uint(*value);
-    const auto mask
-        = width == std::numeric_limits<Big_Uint>::digits ? 0 : Big_Uint(Big_Uint(1) << width) - 1;
-    const bool lossy = (result & ~mask) != 0;
-    return { Value { type, Big_Int(result) }, lossy };
+    const bool lossy = !type.can_represent(*int_value);
+    return { Value { type, *int_value }, lossy };
 }
 
 } // namespace bit_manipulation::bms

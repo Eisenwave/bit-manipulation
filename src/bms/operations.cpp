@@ -29,6 +29,23 @@ std::optional<Evaluation_Error> convert_to_equal_type(Value& lhs, Value& rhs)
 
 } // namespace
 
+[[nodiscard]] Evaluation_Result evaluate_conversion(Value value, Concrete_Type to) noexcept
+{
+    if (!value.type.is_convertible_to(to)) {
+        return Evaluation_Error::incompatible_types;
+    }
+
+    // We perform checks for narrowing conversions even for non-const declarations.
+    // However, it is quite likely that a let-declaration will not have a known value.
+    if (std::optional<Big_Int> result = value.int_value) {
+        if (!to.can_represent(*result)) {
+            return Evaluation_Error::int_to_uint_range_error;
+        }
+        return Value { to, *result };
+    }
+    return Value { to };
+}
+
 Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept
 {
     if (!is_unary_operator(op)) {
@@ -109,28 +126,29 @@ Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) 
         Value operator()(bool f(Big_Int, Big_Int)) const
         {
             if (x && y) {
-                return { Concrete_Type::Bool, Big_Int(f(*x.value, *y.value)) };
+                return Value { Concrete_Type::Bool, Big_Int(f(*x.int_value, *y.int_value)) };
             }
             return Value { Concrete_Type::Bool };
         }
         Value operator()(bool f(Big_Uint, Big_Uint)) const
         {
             if (x && y) {
-                return Value { Concrete_Type::Bool, f(Big_Uint(*x.value), Big_Uint(*y.value)) };
+                return Value { Concrete_Type::Bool,
+                               f(Big_Uint(*x.int_value), Big_Uint(*y.int_value)) };
             }
             return Value { Concrete_Type::Bool };
         }
         Value operator()(Big_Int f(Big_Int, Big_Int)) const
         {
             if (x && y) {
-                return Value { x.type, f(*x.value, *y.value) };
+                return Value { x.type, f(*x.int_value, *y.int_value) };
             }
             return Value { x.type };
         }
         Value operator()(Big_Uint f(Big_Uint, Big_Uint)) const
         {
             if (x && y) {
-                Big_Uint result = f(Big_Uint(*x.value), Big_Uint(*x.value));
+                Big_Uint result = f(Big_Uint(*x.int_value), Big_Uint(*x.int_value));
                 if (x.type.width != std::numeric_limits<Big_Uint>::digits) {
                     result &= (Big_Uint(1) << x.type.width) - 1;
                 }
@@ -148,14 +166,14 @@ Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) 
             if (!rhs) {
                 return rhs;
             }
-            if (*rhs.value == 0) {
+            if (*rhs.int_value == 0) {
                 return Evaluation_Error::division_by_zero;
             }
             if (!lhs) {
                 return lhs;
             }
-            return op == Token_Type::division ? Value { lhs.type, *lhs.value / *rhs.value }
-                                              : Value { lhs.type, *lhs.value % *rhs.value };
+            return op == Token_Type::division ? Value { lhs.type, *lhs.int_value / *rhs.int_value }
+                                              : Value { lhs.type, *lhs.int_value % *rhs.int_value };
         }
         // Relational comparisons don't simply check for bit-equality, so they cannot be handled
         // commonly for both.
@@ -253,10 +271,10 @@ Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) 
             if (!rhs) {
                 return rhs;
             }
-            if (Big_Uint(*rhs.value) >= Big_Uint(lhs.type.width)) {
+            if (Big_Uint(*rhs.int_value) >= Big_Uint(lhs.type.width)) {
                 return Evaluation_Error::shift_too_much;
             }
-            return lhs.and_then_uint([op, y = Big_Uint(*rhs.value)](Big_Uint x) -> Big_Uint {
+            return lhs.and_then_uint([op, y = Big_Uint(*rhs.int_value)](Big_Uint x) -> Big_Uint {
                 return op == Token_Type::shift_left ? x << y : x >> y;
             });
         }
@@ -276,7 +294,7 @@ Evaluation_Result evaluate_if_expression(Value lhs, Value condition, Value rhs) 
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
 
     if (condition) {
-        return *condition.value ? lhs : rhs;
+        return *condition.int_value ? lhs : rhs;
     }
     return Value { lhs.type };
 }

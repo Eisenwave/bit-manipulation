@@ -3,7 +3,7 @@
 
 #include "assert.hpp"
 
-#include "bms/bms.hpp"
+#include "bms/parsing.hpp"
 
 using namespace bit_manipulation::bms::ast;
 
