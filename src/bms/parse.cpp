@@ -261,55 +261,20 @@ private:
     /// @brief Like `match`, but the parser state is not advanced if no match was made.
     /// @param rule the grammar rule
     /// @return the matched result, or `rule`
-    Result<Node_Handle, Rule_Error> expect(Grammar_Rule rule)
+    Result<Node_Handle, Rule_Error> expect(Result<Node_Handle, Rule_Error> (Parser::*match)())
     {
         const Size restore_pos = m_pos;
-        auto result = match(rule);
+        const Size restore_nodes = m_program.nodes.size();
+        auto result = (this->*match)();
         if (!result) {
+            // We couldn't have gone backwards in the program.
+            BIT_MANIPULATION_ASSERT(m_pos >= restore_pos);
             m_pos = restore_pos;
+            // We couldn't have dropped any nodes.
+            BIT_MANIPULATION_ASSERT(m_program.nodes.size() >= restore_nodes);
+            m_program.nodes.resize(restore_nodes);
         }
         return result;
-    }
-
-    /// @brief Matches a grammatical rule.
-    /// Not every rule is supported; only those which have an equivalent AST node.
-    /// The parser state is advanced up to the token where the rule failed to match.
-    /// @param rule the grammar rule
-    /// @return the matched result, or `rule`
-    Result<Node_Handle, Rule_Error> match(Grammar_Rule rule)
-    {
-        switch (rule) {
-        case Grammar_Rule::program: return match_program();
-        case Grammar_Rule::program_declaration: return match_program_declaration();
-        case Grammar_Rule::const_declaration: return match_const_declaration();
-        case Grammar_Rule::let_declaration: return match_let_declaration();
-        case Grammar_Rule::initializer: return match_initializer();
-        case Grammar_Rule::function_declaration: return match_function_declaration();
-        case Grammar_Rule::requires_clause: return match_requires_clause();
-        case Grammar_Rule::parameter: return match_parameter();
-        case Grammar_Rule::statement: return match_statement();
-        case Grammar_Rule::assignment_statement: return match_assignment_statement();
-        case Grammar_Rule::assignment: return match_assignment();
-        case Grammar_Rule::break_statement: return match_break_statement();
-        case Grammar_Rule::continue_statement: return match_continue_statement();
-        case Grammar_Rule::return_statement: return match_return_statement();
-        case Grammar_Rule::if_statement: return match_if_statement();
-        case Grammar_Rule::while_statement: return match_while_statement();
-        case Grammar_Rule::init_clause: return match_init_clause();
-        case Grammar_Rule::block_statement: return match_block_statement();
-        case Grammar_Rule::expression: return match_expression();
-        case Grammar_Rule::if_expression: return match_if_expression();
-        case Grammar_Rule::binary_expression: return match_binary_expression();
-        case Grammar_Rule::comparison_expression: return match_comparison_expression();
-        case Grammar_Rule::arithmetic_expression: return match_arithmetic_expression();
-        case Grammar_Rule::prefix_expression: return match_prefix_expression();
-        case Grammar_Rule::postfix_expression: return match_postfix_expression();
-        case Grammar_Rule::function_call_expression: return match_function_call_expression();
-        case Grammar_Rule::primary_expression: return match_primary_expression();
-        case Grammar_Rule::parenthesized_expression: return match_parenthesized_expression();
-        case Grammar_Rule::type: return match_type();
-        default: BIT_MANIPULATION_ASSERT(false);
-        }
     }
 
     Result<Node_Handle, Rule_Error> match_program()
@@ -452,7 +417,7 @@ private:
         }
         auto requires_handle = Node_Handle::null;
         if (peek(Token_Type::keyword_requires)) {
-            if (auto req = expect(Grammar_Rule::requires_clause)) {
+            if (auto req = match_requires_clause()) {
                 requires_handle = *req;
             }
             else {
@@ -662,21 +627,6 @@ private:
         return m_program.push_node(While_Statement_Node { *first, *condition, *block });
     }
 
-    Result<Node_Handle, Rule_Error> match_init_clause()
-    {
-        constexpr auto this_rule = Grammar_Rule::init_clause;
-        static constexpr Token_Type expected[]
-            = { Token_Type::keyword_let, Token_Type::identifier };
-
-        if (auto let = expect(Grammar_Rule::let_declaration)) {
-            return let;
-        }
-        else if (auto assignment = match_assignment_statement()) {
-            return assignment;
-        }
-        return Rule_Error { this_rule, expected };
-    }
-
     Result<Node_Handle, Rule_Error> match_block_statement()
     {
         constexpr auto this_rule = Grammar_Rule::block_statement;
@@ -728,7 +678,7 @@ private:
 
     Result<Node_Handle, Rule_Error> match_binary_expression()
     {
-        if (auto comp = expect(Grammar_Rule::comparison_expression)) {
+        if (auto comp = expect(&Parser::match_comparison_expression)) {
             return comp;
         }
 
@@ -803,7 +753,7 @@ private:
 
     Result<Node_Handle, Rule_Error> match_postfix_expression()
     {
-        if (auto call = expect(Grammar_Rule::function_call_expression)) {
+        if (auto call = expect(&Parser::match_function_call_expression)) {
             return call;
         }
         return match_primary_expression();
