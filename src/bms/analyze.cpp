@@ -416,6 +416,7 @@ private:
         if (!left_result) {
             return left_result;
         }
+        // TODO: short circuiting for && and ||
         auto right_result = analyze_types(node.get_right(), context);
         if (!right_result) {
             return right_result;
