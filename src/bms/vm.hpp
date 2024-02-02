@@ -1,3 +1,4 @@
+#include <variant>
 #include <vector>
 
 #include "bms/fwd.hpp"
@@ -25,13 +26,13 @@ struct Store {
 /// @brief Jumps to the local instruction at index `label`.
 /// Halts if `label` is invalid.
 struct Jump {
-    Size label;
+    Signed_Size offset;
 };
 
 /// @brief Pops a boolean value off the stack and if it equals `expected`,
 /// jumps to the local instruction at index `label`.
 struct Jump_If {
-    Size label;
+    Signed_Size offset;
     bool expected;
 };
 
@@ -78,22 +79,17 @@ enum struct Instruction_Type {
     call,
 };
 
-struct Instruction {
-    Instruction_Type type;
-    union {
-        ins::Load load;
-        ins::Push push;
-        ins::Store store;
-        ins::Jump jump;
-        ins::Jump_If jump_if;
-        ins::Break jump_break;
-        ins::Continue jump_continue;
-        ins::Return ret;
-        ins::Unary_Operate unary_operate;
-        ins::Binary_Operate binary_operate;
-        ins::Call call;
-    };
-};
+using Instruction = std::variant<ins::Load,
+                                 ins::Push,
+                                 ins::Store,
+                                 ins::Jump,
+                                 ins::Jump_If,
+                                 ins::Break,
+                                 ins::Continue,
+                                 ins::Return,
+                                 ins::Unary_Operate,
+                                 ins::Binary_Operate,
+                                 ins::Call>;
 
 // A plain union is possible and relatively safe here because all instructions are trivially
 // copyable and implicit-lifetime types.
