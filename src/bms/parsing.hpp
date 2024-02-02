@@ -9,6 +9,7 @@
 
 #include "assert.hpp"
 #include "config.hpp"
+#include "result.hpp"
 
 #include "bms/grammar.hpp"
 #include "bms/tokens.hpp"
@@ -449,9 +450,7 @@ struct Parse_Error {
     Token fail_token;
 };
 
-using Parse_Result = std::variant<Parsed_Program, Parse_Error>;
-
-Parse_Result parse(std::span<const Token> tokens, std::string_view source);
+Result<Parsed_Program, Parse_Error> parse(std::span<const Token> tokens, std::string_view source);
 
 } // namespace bit_manipulation::bms
 

@@ -90,40 +90,41 @@ void print_affected_line(std::string_view source, bms::Source_Position pos)
               << ansi::reset;
 }
 
+void print_parse_error(std::string_view file, const Tokenized_File& f, bms::Parse_Error error)
+{
+    print_file_position(file, error.fail_token.pos);
+    std::cout << ": " << ansi::h_red << "error: " << ansi::reset //
+              << "while matching '" << grammar_rule_name(error.fail_rule) << "', unexpected token "
+              << token_type_readable_name(error.fail_token.type) << "\n";
+    print_file_position(file, error.fail_token.pos);
+    std::cout << ": note: expected ";
+
+    const std::span<const bms::Token_Type> expected = error.expected_tokens;
+    if (expected.size() == 0) {
+        std::cout << "nothing";
+    }
+    else if (expected.size() == 1) {
+        std::cout << token_type_readable_name(expected[0]);
+    }
+    else {
+        std::cout << "one of: ";
+        for (Size i = 0; i < expected.size(); ++i) {
+            std::cout << (i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
+            std::cout << token_type_readable_name(expected[i]);
+        }
+    }
+    std::cout << "\n";
+    print_affected_line(f.program, error.fail_token.pos);
+}
+
 void dump_ast(std::string_view file)
 {
     const Tokenized_File f = tokenize_file(file);
-    bms::Parse_Result parsed = parse(f.tokens, f.program);
-
-    if (const bms::Parse_Error* node = std::get_if<bms::Parse_Error>(&parsed)) {
-        print_file_position(file, node->fail_token.pos);
-        std::cout << ": " << ansi::h_red << "error: " << ansi::reset //
-                  << "while matching '" << grammar_rule_name(node->fail_rule)
-                  << "', unexpected token " << token_type_readable_name(node->fail_token.type)
-                  << "\n";
-        print_file_position(file, node->fail_token.pos);
-        std::cout << ": note: expected ";
-
-        const std::span<const bms::Token_Type> expected = node->expected_tokens;
-        if (expected.size() == 0) {
-            std::cout << "nothing";
-        }
-        else if (expected.size() == 1) {
-            std::cout << token_type_readable_name(expected[0]);
-        }
-        else {
-            std::cout << "one of: ";
-            for (Size i = 0; i < expected.size(); ++i) {
-                std::cout << (i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
-                std::cout << token_type_readable_name(expected[i]);
-            }
-        }
-        std::cout << "\n";
-        print_affected_line(f.program, node->fail_token.pos);
+    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
+        return print_ast(std::cout, *parsed);
     }
-
-    if (const auto* program = std::get_if<bms::Parsed_Program>(&parsed)) {
-        print_ast(std::cout, *program);
+    else {
+        print_parse_error(file, f, parsed.error());
     }
 }
 

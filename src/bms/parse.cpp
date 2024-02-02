@@ -2,6 +2,7 @@
 #include <variant>
 
 #include "assert.hpp"
+#include "result.hpp"
 
 #include "bms/parsing.hpp"
 
@@ -169,57 +170,11 @@ namespace {
 template <auto X>
 constexpr decltype(X) const_array_one_v[1] = { X };
 
+// Like `Parse_Error`, but without the `token` member because the parser keeps track of the token
+// position anyway, and it's more convenient to not deal with it most of the time.
 struct Rule_Error {
     Grammar_Rule rule;
     std::span<const Token_Type> expected_tokens = {};
-};
-
-struct Rule_Result {
-private:
-    std::variant<Node_Handle, Rule_Error> m_data;
-
-public:
-    Rule_Result(Node_Handle n)
-        : m_data((n))
-    {
-    }
-
-    Rule_Result(Rule_Error fail)
-        : m_data(fail)
-    {
-    }
-
-    [[nodiscard]] bool has_value() const noexcept
-    {
-        return m_data.index() == 0;
-    }
-
-    [[nodiscard]] operator bool() const noexcept
-    {
-        return has_value();
-    }
-
-    Node_Handle& operator*()
-    {
-        BIT_MANIPULATION_ASSERT(has_value());
-        return std::get<Node_Handle>(m_data);
-    }
-
-    const Node_Handle& operator*() const
-    {
-        BIT_MANIPULATION_ASSERT(has_value());
-        return std::get<Node_Handle>(m_data);
-    }
-
-    Node_Handle get_node() const
-    {
-        return std::get<Node_Handle>(m_data);
-    }
-
-    Rule_Error get_error() const
-    {
-        return std::get<Rule_Error>(m_data);
-    }
 };
 
 struct Parser {
@@ -236,14 +191,14 @@ public:
     {
     }
 
-    Parse_Result parse()
+    Result<Parsed_Program, Parse_Error> parse()
     {
-        if (Rule_Result program = match_program()) {
+        if (auto program = match_program()) {
             return std::move(m_program);
         }
         else {
             const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
-            const auto [fail_rule, expected_tokens] = program.get_error();
+            const auto [fail_rule, expected_tokens] = program.error();
             return Parse_Error { fail_rule, expected_tokens, fail_token };
         }
     }
@@ -306,10 +261,10 @@ private:
     /// @brief Like `match`, but the parser state is not advanced if no match was made.
     /// @param rule the grammar rule
     /// @return the matched result, or `rule`
-    Rule_Result expect(Grammar_Rule rule)
+    Result<Node_Handle, Rule_Error> expect(Grammar_Rule rule)
     {
         const Size restore_pos = m_pos;
-        Rule_Result result = match(rule);
+        auto result = match(rule);
         if (!result) {
             m_pos = restore_pos;
         }
@@ -321,7 +276,7 @@ private:
     /// The parser state is advanced up to the token where the rule failed to match.
     /// @param rule the grammar rule
     /// @return the matched result, or `rule`
-    Rule_Result match(Grammar_Rule rule)
+    Result<Node_Handle, Rule_Error> match(Grammar_Rule rule)
     {
         switch (rule) {
         case Grammar_Rule::program: return match_program();
@@ -357,9 +312,9 @@ private:
         }
     }
 
-    Rule_Result match_program()
+    Result<Node_Handle, Rule_Error> match_program()
     {
-        Rule_Result first = match_program_declaration();
+        auto first = match_program_declaration();
         if (!first) {
             return first;
         }
@@ -367,7 +322,7 @@ private:
         declarations.push_back(*first);
 
         while (!eof()) {
-            Rule_Result d = match_program_declaration();
+            auto d = match_program_declaration();
             if (!d) {
                 return d;
             }
@@ -377,7 +332,7 @@ private:
             Program_Node { get_token(m_program.get_node(*first)), std::move(declarations) });
     }
 
-    Rule_Result match_program_declaration()
+    Result<Node_Handle, Rule_Error> match_program_declaration()
     {
         if (peek(Token_Type::keyword_const)) {
             return match_const_declaration();
@@ -388,17 +343,17 @@ private:
         return Rule_Error { Grammar_Rule::program_declaration };
     }
 
-    Rule_Result match_let_declaration()
+    Result<Node_Handle, Rule_Error> match_let_declaration()
     {
         return match_variable(Token_Type::keyword_let);
     }
 
-    Rule_Result match_const_declaration()
+    Result<Node_Handle, Rule_Error> match_const_declaration()
     {
         return match_variable(Token_Type::keyword_const);
     }
 
-    Rule_Result match_variable(Token_Type const_or_let)
+    Result<Node_Handle, Rule_Error> match_variable(Token_Type const_or_let)
     {
         BIT_MANIPULATION_ASSERT(const_or_let == Token_Type::keyword_const
                                 || const_or_let == Token_Type::keyword_let);
@@ -422,7 +377,7 @@ private:
 
         auto type_handle = Node_Handle::null;
         if (expect(Token_Type::colon)) {
-            if (Rule_Result type = match_type()) {
+            if (auto type = match_type()) {
                 type_handle = *type;
             }
             else {
@@ -431,7 +386,7 @@ private:
         }
         const bool mandatory_initializer
             = const_or_let == Token_Type::keyword_const || type_handle == Node_Handle::null;
-        Rule_Result init = match_initializer();
+        auto init = match_initializer();
         if (!init && mandatory_initializer) {
             return init;
         }
@@ -441,13 +396,13 @@ private:
         return m_program.push_node(Let_Const_Node { *t, const_or_let, name, type_handle, *init });
     }
 
-    Rule_Result match_initializer()
+    Result<Node_Handle, Rule_Error> match_initializer()
     {
         constexpr auto this_rule = Grammar_Rule::initializer;
         if (!expect(Token_Type::assign)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::assign> };
         }
-        Rule_Result e = match_expression();
+        auto e = match_expression();
         if (!e) {
             return e;
         }
@@ -457,7 +412,7 @@ private:
         return e;
     }
 
-    Rule_Result match_function_declaration()
+    Result<Node_Handle, Rule_Error> match_function_declaration()
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
         const Token* t = expect(Token_Type::keyword_function);
@@ -478,7 +433,7 @@ private:
             // must be parameters.
             // This is not strictly necessary, but leads to improved diagnostics because we can
             // commit to parsing the parameters.
-            Rule_Result r = match_parameter_sequence();
+            auto r = match_parameter_sequence();
             if (!r) {
                 return r;
             }
@@ -491,20 +446,20 @@ private:
         if (!expect(Token_Type::right_arrow)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::right_arrow> };
         }
-        Rule_Result ret = match_type();
+        auto ret = match_type();
         if (!ret) {
             return ret;
         }
         auto requires_handle = Node_Handle::null;
         if (peek(Token_Type::keyword_requires)) {
-            if (Rule_Result req = expect(Grammar_Rule::requires_clause)) {
+            if (auto req = expect(Grammar_Rule::requires_clause)) {
                 requires_handle = *req;
             }
             else {
                 return req;
             }
         }
-        Rule_Result body = match_block_statement();
+        auto body = match_block_statement();
         if (!body) {
             return body;
         }
@@ -513,12 +468,12 @@ private:
                                                    *body });
     }
 
-    Rule_Result match_parameter_sequence()
+    Result<Node_Handle, Rule_Error> match_parameter_sequence()
     {
         Token first_token;
         std::vector<Node_Handle> parameters;
         while (true) {
-            Rule_Result p = match_parameter();
+            auto p = match_parameter();
             if (!p) {
                 return p;
             }
@@ -533,7 +488,7 @@ private:
         return m_program.push_node(Parameter_List_Node { first_token, std::move(parameters) });
     }
 
-    Rule_Result match_parameter()
+    Result<Node_Handle, Rule_Error> match_parameter()
     {
         constexpr auto this_rule = Grammar_Rule::parameter;
         const Token* id = expect(Token_Type::identifier);
@@ -543,14 +498,14 @@ private:
         if (!expect(Token_Type::colon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::colon> };
         }
-        Rule_Result type = match_type();
+        auto type = match_type();
         if (!type) {
             return type;
         }
         return m_program.push_node(Parameter_Node { *id, id->extract(m_program.source), *type });
     }
 
-    Rule_Result match_requires_clause()
+    Result<Node_Handle, Rule_Error> match_requires_clause()
     {
         constexpr auto this_rule = Grammar_Rule::requires_clause;
         const Token* t = expect(Token_Type::keyword_requires);
@@ -560,7 +515,7 @@ private:
         return match_expression();
     }
 
-    Rule_Result match_statement()
+    Result<Node_Handle, Rule_Error> match_statement()
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         // This is a manually computed FIRST set of the statement rule.
@@ -587,10 +542,10 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Rule_Result match_assignment_statement()
+    Result<Node_Handle, Rule_Error> match_assignment_statement()
     {
         constexpr auto this_rule = Grammar_Rule::assignment_statement;
-        Rule_Result a = match_assignment();
+        auto a = match_assignment();
         if (!a) {
             return a;
         }
@@ -600,7 +555,7 @@ private:
         return a;
     }
 
-    Rule_Result match_assignment()
+    Result<Node_Handle, Rule_Error> match_assignment()
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
         const Token* id = expect(Token_Type::identifier);
@@ -610,21 +565,21 @@ private:
         if (!expect(Token_Type::assign)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::assign> };
         }
-        Rule_Result e = match_expression();
+        auto e = match_expression();
         if (!e) {
             return e;
         }
         return m_program.push_node(Assignment_Node { *id, id->extract(m_program.source), *e });
     }
 
-    Rule_Result match_return_statement()
+    Result<Node_Handle, Rule_Error> match_return_statement()
     {
         constexpr auto this_rule = Grammar_Rule::return_statement;
         const Token* t = expect(Token_Type::keyword_return);
         if (!t) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_return> };
         }
-        Rule_Result e = match_expression();
+        auto e = match_expression();
         if (!e) {
             return e;
         }
@@ -634,7 +589,7 @@ private:
         return m_program.push_node(Return_Statement_Node { *t, *e });
     }
 
-    Rule_Result match_break_statement()
+    Result<Node_Handle, Rule_Error> match_break_statement()
     {
         constexpr auto this_rule = Grammar_Rule::break_statement;
         const Token* t = expect(Token_Type::keyword_break);
@@ -647,7 +602,7 @@ private:
         return m_program.push_node(Jump_Node { *t });
     }
 
-    Rule_Result match_continue_statement()
+    Result<Node_Handle, Rule_Error> match_continue_statement()
     {
         constexpr auto this_rule = Grammar_Rule::continue_statement;
         const Token* t = expect(Token_Type::keyword_continue);
@@ -660,7 +615,7 @@ private:
         return m_program.push_node(Jump_Node { *t });
     }
 
-    Rule_Result match_if_statement()
+    Result<Node_Handle, Rule_Error> match_if_statement()
     {
         const auto this_rule = Grammar_Rule::if_statement;
 
@@ -668,17 +623,17 @@ private:
         if (!first) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_if> };
         }
-        Rule_Result condition = match_expression();
+        auto condition = match_expression();
         if (!condition) {
             return condition;
         }
-        Rule_Result block = match_block_statement();
+        auto block = match_block_statement();
         if (!block) {
             return block;
         }
         auto else_handle = Node_Handle::null;
         if (expect(Token_Type::keyword_else)) {
-            if (Rule_Result else_block = match_block_statement()) {
+            if (auto else_block = match_block_statement()) {
                 else_handle = *else_block;
             }
             else {
@@ -688,7 +643,7 @@ private:
         return m_program.push_node(If_Statement_Node { *first, *condition, *block, else_handle });
     }
 
-    Rule_Result match_while_statement()
+    Result<Node_Handle, Rule_Error> match_while_statement()
     {
         const auto this_rule = Grammar_Rule::while_statement;
 
@@ -696,33 +651,33 @@ private:
         if (!first) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_while> };
         }
-        Rule_Result condition = match_expression();
+        auto condition = match_expression();
         if (!condition) {
             return condition;
         }
-        Rule_Result block = match_block_statement();
+        auto block = match_block_statement();
         if (!block) {
             return block;
         }
         return m_program.push_node(While_Statement_Node { *first, *condition, *block });
     }
 
-    Rule_Result match_init_clause()
+    Result<Node_Handle, Rule_Error> match_init_clause()
     {
         constexpr auto this_rule = Grammar_Rule::init_clause;
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_let, Token_Type::identifier };
 
-        if (Rule_Result let = expect(Grammar_Rule::let_declaration)) {
+        if (auto let = expect(Grammar_Rule::let_declaration)) {
             return let;
         }
-        else if (Rule_Result assignment = match_assignment_statement()) {
+        else if (auto assignment = match_assignment_statement()) {
             return assignment;
         }
         return Rule_Error { this_rule, expected };
     }
 
-    Rule_Result match_block_statement()
+    Result<Node_Handle, Rule_Error> match_block_statement()
     {
         constexpr auto this_rule = Grammar_Rule::block_statement;
         const Token* first = expect(Token_Type::left_brace);
@@ -734,7 +689,7 @@ private:
             if (expect(Token_Type::right_brace)) {
                 return m_program.push_node(Block_Statement_Node { *first, std::move(statements) });
             }
-            else if (Rule_Result s = match_statement()) {
+            else if (auto s = match_statement()) {
                 statements.push_back(*s);
             }
             else {
@@ -744,26 +699,26 @@ private:
         BIT_MANIPULATION_UNREACHABLE();
     }
 
-    Rule_Result match_expression()
+    Result<Node_Handle, Rule_Error> match_expression()
     {
         return match_if_expression();
     }
 
-    Rule_Result match_if_expression()
+    Result<Node_Handle, Rule_Error> match_if_expression()
     {
         constexpr auto this_rule = Grammar_Rule::if_expression;
-        Rule_Result left = match_binary_expression();
+        auto left = match_binary_expression();
         if (!left || !expect(Token_Type::keyword_if)) {
             return left;
         }
-        Rule_Result condition = match_binary_expression();
+        auto condition = match_binary_expression();
         if (!condition) {
             return condition;
         }
         if (!expect(Token_Type::keyword_else)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_else> };
         }
-        Rule_Result right = match_binary_expression();
+        auto right = match_binary_expression();
         if (!right) {
             return right;
         }
@@ -771,13 +726,13 @@ private:
             If_Expression_Node { get_token(m_program.get_node(*left)), *left, *condition, *right });
     }
 
-    Rule_Result match_binary_expression()
+    Result<Node_Handle, Rule_Error> match_binary_expression()
     {
-        if (Rule_Result comp = expect(Grammar_Rule::comparison_expression)) {
+        if (auto comp = expect(Grammar_Rule::comparison_expression)) {
             return comp;
         }
 
-        Rule_Result left = match_prefix_expression();
+        auto left = match_prefix_expression();
         if (!left) {
             return left;
         }
@@ -785,7 +740,7 @@ private:
         if (!op) {
             return left;
         }
-        Rule_Result right = match_prefix_expression();
+        auto right = match_prefix_expression();
         if (!right) {
             return right;
         }
@@ -793,14 +748,14 @@ private:
                                                             *left, *right, op->type });
     }
 
-    Rule_Result match_comparison_expression()
+    Result<Node_Handle, Rule_Error> match_comparison_expression()
     {
         constexpr auto this_rule = Grammar_Rule::comparison_expression;
         static constexpr Token_Type expected[]
             = { Token_Type::equals,       Token_Type::not_equals,    Token_Type::less_than,
                 Token_Type::greater_than, Token_Type::less_or_equal, Token_Type::greater_or_equal };
 
-        Rule_Result left = match_arithmetic_expression();
+        auto left = match_arithmetic_expression();
         if (!left) {
             return left;
         }
@@ -808,7 +763,7 @@ private:
         if (!op) {
             return Rule_Error { this_rule, expected };
         }
-        Rule_Result right = match_arithmetic_expression();
+        auto right = match_arithmetic_expression();
         if (!right) {
             return right;
         }
@@ -816,9 +771,9 @@ private:
                                                             *left, *right, op->type });
     }
 
-    Rule_Result match_arithmetic_expression()
+    Result<Node_Handle, Rule_Error> match_arithmetic_expression()
     {
-        Rule_Result left = match_prefix_expression();
+        auto left = match_prefix_expression();
         if (!left) {
             return left;
         }
@@ -826,7 +781,7 @@ private:
         if (!op) {
             return left;
         }
-        Rule_Result right = match_prefix_expression();
+        auto right = match_prefix_expression();
         if (!right) {
             return right;
         }
@@ -834,10 +789,10 @@ private:
                                                             *left, *right, op->type });
     }
 
-    Rule_Result match_prefix_expression()
+    Result<Node_Handle, Rule_Error> match_prefix_expression()
     {
         if (const Token* t = expect(is_unary_operator)) {
-            Rule_Result e = match_postfix_expression();
+            auto e = match_postfix_expression();
             if (!e) {
                 return e;
             }
@@ -846,15 +801,15 @@ private:
         return match_postfix_expression();
     }
 
-    Rule_Result match_postfix_expression()
+    Result<Node_Handle, Rule_Error> match_postfix_expression()
     {
-        if (Rule_Result call = expect(Grammar_Rule::function_call_expression)) {
+        if (auto call = expect(Grammar_Rule::function_call_expression)) {
             return call;
         }
         return match_primary_expression();
     }
 
-    Rule_Result match_function_call_expression()
+    Result<Node_Handle, Rule_Error> match_function_call_expression()
     {
         constexpr auto this_rule = Grammar_Rule::function_call_expression;
         const Token* id = expect(Token_Type::identifier);
@@ -870,7 +825,7 @@ private:
             if (!demand_expression && expect(Token_Type::right_parenthesis)) {
                 break;
             }
-            Rule_Result arg = match_expression();
+            auto arg = match_expression();
             if (!arg) {
                 return arg;
             }
@@ -881,7 +836,7 @@ private:
             *id, id->extract(m_program.source), std::move(arguments) });
     }
 
-    Rule_Result match_primary_expression()
+    Result<Node_Handle, Rule_Error> match_primary_expression()
     {
         constexpr auto this_rule = Grammar_Rule::primary_expression;
         static constexpr Token_Type expected[]
@@ -895,7 +850,7 @@ private:
         if (const Token* t = expect(Token_Type::identifier)) {
             return m_program.push_node(Id_Expression_Node { *t });
         }
-        if (Rule_Result e = match_parenthesized_expression()) {
+        if (auto e = match_parenthesized_expression()) {
             return e;
         }
         // Intentionally forget about the e error to not falsely suggest that parentheses are
@@ -903,14 +858,14 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    [[maybe_unused]] Rule_Result match_parenthesized_expression()
+    [[maybe_unused]] Result<Node_Handle, Rule_Error> match_parenthesized_expression()
     {
         constexpr auto this_rule = Grammar_Rule::parenthesized_expression;
         const Token* t = expect(Token_Type::left_parenthesis);
         if (!t) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
-        Rule_Result e = match_expression();
+        auto e = match_expression();
         if (!e) {
             return e;
         }
@@ -920,7 +875,7 @@ private:
         return e;
     }
 
-    Rule_Result match_type()
+    Result<Node_Handle, Rule_Error> match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
         static constexpr Token_Type expected[]
@@ -933,7 +888,7 @@ private:
             return m_program.push_node(Type_Node { *t, Concrete_Type { Type_Type::Int } });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
-            Rule_Result e = match_parenthesized_expression();
+            auto e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
@@ -946,7 +901,7 @@ private:
 
 } // namespace
 
-Parse_Result parse(std::span<const Token> tokens, std::string_view source)
+Result<Parsed_Program, Parse_Error> parse(std::span<const Token> tokens, std::string_view source)
 {
     return Parser(tokens, source).parse();
 }
