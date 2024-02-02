@@ -107,6 +107,11 @@ public:
     {
     }
 
+    constexpr Concrete_Value()
+        : Concrete_Value(Concrete_Type::Void, 0)
+    {
+    }
+
     struct Conversion_Result;
 
     constexpr Conversion_Result convert_to(Concrete_Type other) const;

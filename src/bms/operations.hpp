@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_BMS_OPERATIONS_HPP
 #define BIT_MANIPULATION_BMS_OPERATIONS_HPP
 
+#include "result.hpp"
+
 #include "bms/tokens.hpp"
 #include "bms/value.hpp"
 
@@ -44,93 +46,43 @@ enum struct Type_Error_Code {
     condition_not_bool,
 };
 
-namespace detail {
-
-template <typename T, typename Error>
-struct Evaluation_Result_Impl {
-private:
-    std::variant<Value, Error> v;
-
-public:
-    [[nodiscard]] constexpr Evaluation_Result_Impl(T value) noexcept
-        : v(value)
-    {
-    }
-
-    [[nodiscard]] constexpr Evaluation_Result_Impl(Error error) noexcept
-        : v(error)
-    {
-    }
-
-    [[nodiscard]] constexpr bool has_value() const
-    {
-        return v.index() == 0;
-    }
-
-    [[nodiscard]] constexpr T get_value() const
-    {
-        return std::get<T>(v);
-    }
-
-    [[nodiscard]] constexpr Error get_error() const
-    {
-        return std::get<Error>(v);
-    }
-
-    [[nodiscard]] constexpr explicit operator bool() const noexcept
-    {
-        return v.index() == 0;
-    }
-
-    [[nodiscard]] T operator*() const
-    {
-        return std::get<T>(v);
-    }
-};
-
-} // namespace detail
-
 // Type-only evaluations.
 
-using Type_Evaluation_Result = detail::Evaluation_Result_Impl<Concrete_Type, Type_Error_Code>;
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_unary_operator(Token_Type op, Concrete_Type value) noexcept;
 
-[[nodiscard]] Type_Evaluation_Result check_unary_operator(Token_Type op,
-                                                          Concrete_Type value) noexcept;
-
-[[nodiscard]] Type_Evaluation_Result
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexcept;
 
-[[nodiscard]] Type_Evaluation_Result
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept;
 
 // Concrete evaluations.
 
-using Concrete_Evaluation_Result = detail::Evaluation_Result_Impl<Concrete_Value, Evaluation_Error>;
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+evaluate_conversion(Concrete_Value value, Concrete_Type to) noexcept;
 
-[[nodiscard]] Concrete_Evaluation_Result evaluate_conversion(Concrete_Value value,
-                                                             Concrete_Type to) noexcept;
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept;
 
-[[nodiscard]] Concrete_Evaluation_Result evaluate_unary_operator(Token_Type op,
-                                                                 Concrete_Value value) noexcept;
-
-[[nodiscard]] Concrete_Evaluation_Result
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
 evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) noexcept;
 
-[[nodiscard]] Concrete_Evaluation_Result
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept;
 
 // Evaluations.
 
-using Evaluation_Result = detail::Evaluation_Result_Impl<Value, Evaluation_Error>;
+[[nodiscard]] Result<Value, Evaluation_Error> evaluate_conversion(Value value,
+                                                                  Concrete_Type to) noexcept;
 
-[[nodiscard]] Evaluation_Result evaluate_conversion(Value value, Concrete_Type to) noexcept;
+[[nodiscard]] Result<Value, Evaluation_Error> evaluate_unary_operator(Token_Type op,
+                                                                      Value value) noexcept;
 
-[[nodiscard]] Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept;
-
-[[nodiscard]] Evaluation_Result
+[[nodiscard]] Result<Value, Evaluation_Error>
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept;
 
-[[nodiscard]] Evaluation_Result
+[[nodiscard]] Result<Value, Evaluation_Error>
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept;
 
 } // namespace bit_manipulation::bms
