@@ -57,7 +57,7 @@ using Int8 = std::int8_t;
 /// @brief Convenience alias for std::size_t.
 using Size = std::size_t;
 /// @brief Signed counterpart to `uz`.
-using SignedSize = std::make_signed_t<Size>;
+using Signed_Size = std::make_signed_t<Size>;
 
 /// @brief The integer type used throughout the program.
 using Int = Int64;
