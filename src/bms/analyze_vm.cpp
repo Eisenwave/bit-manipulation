@@ -108,9 +108,9 @@ struct Virtual_Machine {
             if (stack.empty()) {
                 return Execution_Error::pop;
             }
-            Concrete_Value operand = stack.back();
+            const Concrete_Value operand = stack.back();
             stack.pop_back();
-            Concrete_Evaluation_Result result
+            const Result<Concrete_Value, Evaluation_Error> result
                 = evaluate_unary_operator(next.unary_operate.op, operand);
             if (!result) {
                 return Execution_Error::evaluation; // TODO better diagnostics
@@ -124,11 +124,11 @@ struct Virtual_Machine {
             if (stack.size() < 2) {
                 return Execution_Error::pop;
             }
-            Concrete_Value rhs = stack.back();
+            const Concrete_Value rhs = stack.back();
             stack.pop_back();
-            Concrete_Value lhs = stack.back();
+            const Concrete_Value lhs = stack.back();
             stack.pop_back();
-            Concrete_Evaluation_Result result
+            const Result<Concrete_Value, Evaluation_Error> result
                 = evaluate_binary_operator(lhs, next.binary_operate.op, rhs);
             if (!result) {
                 return Execution_Error::evaluation; // TODO better diagnostics

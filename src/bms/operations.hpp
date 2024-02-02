@@ -9,8 +9,6 @@
 namespace bit_manipulation::bms {
 
 enum struct Evaluation_Error {
-    /// @brief No error.
-    ok,
     /// @brief Type-checking of the evaluation failed.
     type_error,
     /// @brief When converting Int to Uint(N), the Int couldn't be represented.
@@ -21,7 +19,7 @@ enum struct Evaluation_Error {
     shift_too_much,
 };
 
-enum struct Type_Error_Code {
+enum struct Type_Error {
     /// @brief Use of an invalid operator.
     invalid_operator,
     /// @brief An operation involving Void was attempted.
@@ -48,13 +46,13 @@ enum struct Type_Error_Code {
 
 // Type-only evaluations.
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
-check_unary_operator(Token_Type op, Concrete_Type value) noexcept;
+[[nodiscard]] Result<Concrete_Type, Type_Error> check_unary_operator(Token_Type op,
+                                                                     Concrete_Type value) noexcept;
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Type_Error>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexcept;
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Type_Error>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept;
 
 // Concrete evaluations.
