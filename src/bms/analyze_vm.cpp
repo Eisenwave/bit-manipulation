@@ -29,7 +29,7 @@ struct Virtual_Machine {
     Size instruction_counter = 0;
     bool halted = false;
 
-    std::optional<Execution_Error> cycle()
+    Result<void, Execution_Error> cycle()
     {
         Instruction next = instructions.at(instruction_counter);
         switch (next.type) {
