@@ -53,6 +53,10 @@ enum struct Analysis_Error_Code {
     assigning_function,
     /// @brief An attempt was made to assign to a constant.
     assigning_const,
+    /// @brief A function call attempted to call a symbol which is not a function.
+    call_non_function,
+    /// @brief A function call with the wrong number of arguments was attempted.
+    wrong_number_of_arguments,
 };
 
 struct Analysis_Result {

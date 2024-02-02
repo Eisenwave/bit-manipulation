@@ -77,6 +77,8 @@ struct Program_Node final : detail::Node_Base {
 struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     std::string_view name;
     std::vector<Node_Handle> instances;
+    std::optional<Value> const_value;
+    bool is_generic = false;
 
     Function_Node(Token token,
                   std::string_view name,
@@ -84,11 +86,6 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
                   Node_Handle return_type,
                   Node_Handle requires_clause,
                   Node_Handle body);
-
-    bool is_generic() const
-    {
-        return !instances.empty();
-    }
 
     Node_Handle get_parameters() const
     {
@@ -237,6 +234,7 @@ struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
 struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
     std::string_view name;
     Node_Handle lookup_result = Node_Handle::null;
+    std::optional<Value> const_value;
 
     Assignment_Node(Token token, std::string_view name, Node_Handle expression);
 

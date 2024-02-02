@@ -8,6 +8,8 @@ set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-e
 
 set(HEADERS
     src/assert.hpp
+    src/bms/3ac.hpp
+    src/bms/analyze.hpp
     src/bms/bms.hpp
     src/bms/operations.hpp
     src/bms/parse_number.hpp
@@ -20,6 +22,7 @@ set(HEADERS
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
     src/bms/analyze.cpp
+    src/bms/analyze_name_lookup.cpp
     src/bms/operations.cpp
     src/bms/parse_number.cpp
     src/bms/parse.cpp
