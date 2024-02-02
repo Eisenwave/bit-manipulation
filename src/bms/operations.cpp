@@ -4,101 +4,234 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-std::optional<Evaluation_Error> convert_to_equal_type(Value& lhs, Value& rhs)
+[[nodiscard]] bool convert_to_equal_type(Concrete_Type& lhs, Concrete_Type& rhs)
 {
-    if (lhs.type.type == Type_Type::Int && rhs.type.type == Type_Type::Uint) {
-        const auto [converted, lossy] = lhs.to_uint(rhs.type.width);
-        if (lossy) {
-            return Evaluation_Error::int_to_uint_range_error;
-        }
-        lhs = converted;
+    if (lhs.type == rhs.type) {
+        return true;
     }
-    else if (lhs.type.type == Type_Type::Uint && rhs.type.type == Type_Type::Int) {
-        const auto [converted, lossy] = rhs.to_uint(lhs.type.width);
-        if (lossy) {
-            return Evaluation_Error::int_to_uint_range_error;
-        }
-        rhs = converted;
+    if (lhs.type == Type_Type::Int && rhs.type == Type_Type::Uint) {
+        lhs = rhs;
+        return true;
     }
-    else if (rhs.type != lhs.type) {
-        return Evaluation_Error::incompatible_types;
+    else if (lhs.type == Type_Type::Uint && rhs.type == Type_Type::Int) {
+        rhs = lhs;
+        return true;
     }
 
-    return std::nullopt;
+    return false;
+}
+
+template <typename T>
+Evaluation_Error convert_to_equal_type_impl(T& lhs, T& rhs)
+{
+    if (!convert_to_equal_type(lhs.type, rhs.type)) {
+        return Evaluation_Error::type_error;
+    }
+
+    Concrete_Type lhs_type = lhs.type;
+    Concrete_Type rhs_type = rhs.type;
+
+    if (auto [converted, lossy] = lhs.convert_to(lhs_type); !lossy) {
+        lhs = converted;
+    }
+    else {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+
+    if (auto [converted, lossy] = lhs.convert_to(rhs_type); !lossy) {
+        lhs = converted;
+    }
+    else {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+    return Evaluation_Error::ok;
+}
+
+Evaluation_Error convert_to_equal_type(Concrete_Value& lhs, Concrete_Value& rhs)
+{
+    return convert_to_equal_type_impl(lhs, rhs);
+}
+
+Evaluation_Error convert_to_equal_type(Value& lhs, Value& rhs)
+{
+    return convert_to_equal_type_impl(lhs, rhs);
+}
+
+Evaluation_Result result_from_concrete(Concrete_Evaluation_Result result)
+{
+    return result ? Evaluation_Result { result.get_value() }
+                  : Evaluation_Result { result.get_error() };
 }
 
 } // namespace
 
-[[nodiscard]] Evaluation_Result evaluate_conversion(Value value, Concrete_Type to) noexcept
-{
-    if (!value.type.is_convertible_to(to)) {
-        return Evaluation_Error::incompatible_types;
-    }
+// TYPE ============================================================================================
 
-    // We perform checks for narrowing conversions even for non-const declarations.
-    // However, it is quite likely that a let-declaration will not have a known value.
-    if (std::optional<Big_Int> result = value.int_value) {
-        if (!to.can_represent(*result)) {
-            return Evaluation_Error::int_to_uint_range_error;
-        }
-        return Value { to, *result };
-    }
-    return Value { to };
-}
-
-Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept
+[[nodiscard]] Type_Evaluation_Result check_unary_operator(Token_Type op,
+                                                          Concrete_Type value) noexcept
 {
     if (!is_unary_operator(op)) {
-        return Evaluation_Error::invalid_operator;
+        return Type_Error_Code::invalid_operator;
     }
 
-    switch (value.type.type) {
+    switch (value.type) {
 
     case Type_Type::Void: {
-        return Evaluation_Error::void_operation;
+        return Type_Error_Code::void_operation;
     }
 
     case Type_Type::Bool: {
         if (is_arithmetic_operator(op)) {
-            return Evaluation_Error::bool_arithmetic;
+            return Type_Error_Code::bool_arithmetic;
         }
         if (is_bitwise_operator(op)) {
-            return Evaluation_Error::bool_bitwise;
+            return Type_Error_Code::bool_bitwise;
         }
+        return value;
+    }
+
+    case Type_Type::Int: {
+        if (is_bitwise_operator(op)) {
+            return Type_Error_Code::int_bitwise;
+        }
+        if (is_logical_operator(op)) {
+            return Type_Error_Code::int_logical;
+        }
+        return value;
+    }
+
+    case Type_Type::Uint: {
+        if (is_logical_operator(op)) {
+            return Type_Error_Code::uint_logical;
+        }
+        return value;
+    }
+
+    default: BIT_MANIPULATION_ASSERT(false);
+    }
+}
+
+[[nodiscard]] Type_Evaluation_Result
+check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexcept
+{
+    if (!is_binary_operator(op)) {
+        return Type_Error_Code::invalid_operator;
+    }
+
+    if (!convert_to_equal_type(lhs, rhs)) {
+        return Type_Error_Code::incompatible_types;
+    }
+
+    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
+
+    switch (lhs.type) {
+
+    case Type_Type::Void: {
+        return Type_Error_Code::void_operation;
+    }
+
+    case Type_Type::Bool: {
+        if (is_arithmetic_operator(op)) {
+            return Type_Error_Code::bool_arithmetic;
+        }
+        if (is_bitwise_operator(op)) {
+            return Type_Error_Code::bool_bitwise;
+        }
+        if (is_relational_comparison_operator(op)) {
+            return Type_Error_Code::bool_relational_comparison;
+        }
+        return Concrete_Type::Bool;
+    }
+
+    case Type_Type::Int: {
+        if (is_bitwise_operator(op)) {
+            return Type_Error_Code::int_bitwise;
+        }
+        if (is_logical_operator(op)) {
+            return Type_Error_Code::int_logical;
+        }
+        return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
+    }
+
+    case Type_Type::Uint: {
+        if (lhs.width != rhs.width) {
+            return Type_Error_Code::incompatible_widths;
+        }
+        if (is_logical_operator(op)) {
+            return Type_Error_Code::uint_logical;
+        }
+        return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
+    }
+
+    default: BIT_MANIPULATION_ASSERT(false);
+    }
+}
+
+[[nodiscard]] Type_Evaluation_Result
+check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept
+{
+    if (condition != Concrete_Type::Bool) {
+        return Type_Error_Code::condition_not_bool;
+    }
+    if (!convert_to_equal_type(lhs, rhs)) {
+        return Type_Error_Code::incompatible_types;
+    }
+    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
+
+    return lhs;
+}
+
+// CONCRETE VALUE ==================================================================================
+
+[[nodiscard]] Concrete_Evaluation_Result evaluate_conversion(Concrete_Value value,
+                                                             Concrete_Type to) noexcept
+{
+    if (!value.type.is_convertible_to(to)) {
+        return Evaluation_Error::type_error;
+    }
+
+    auto [result, lossy] = value.convert_to(to);
+    if (lossy) {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+    return result;
+}
+
+[[nodiscard]] Concrete_Evaluation_Result evaluate_unary_operator(Token_Type op,
+                                                                 Concrete_Value value) noexcept
+{
+    if (Type_Evaluation_Result r = check_unary_operator(op, value.type); !r) {
+        return Evaluation_Error::type_error;
+    }
+
+    switch (value.type.type) {
+
+    case Type_Type::Bool: {
         if (op == Token_Type::logical_not) {
-            return value.and_then([](Big_Int x) { return x ^ 1; });
+            return Concrete_Value { value.type, value.int_value ^ 1 };
         }
         BIT_MANIPULATION_ASSERT(false);
     }
 
     case Type_Type::Int: {
-        if (is_bitwise_operator(op)) {
-            return Evaluation_Error::int_bitwise;
-        }
-        if (is_logical_operator(op)) {
-            return Evaluation_Error::int_logical;
-        }
         if (op == Token_Type::plus) {
             return value;
         }
         if (op == Token_Type::minus) {
-            return value.and_then([](Big_Int x) { return -x; });
+            return Concrete_Value { value.type, -value.int_value };
         }
         BIT_MANIPULATION_ASSERT(false);
     }
 
     case Type_Type::Uint: {
-        if (is_logical_operator(op)) {
-            return Evaluation_Error::uint_logical;
-        }
         if (op == Token_Type::plus) {
             return value;
         }
         if (op == Token_Type::minus) {
-            return value.and_then_uint([](Big_Uint x) -> Big_Uint { return -x; });
+            return value.transform_uint([](Big_Uint x) { return Big_Uint(-x); });
         }
         if (op == Token_Type::bitwise_not) {
-            return value.and_then_uint([](Big_Uint x) -> Big_Uint { return ~x; });
+            return value.transform_uint([](Big_Uint x) { return Big_Uint(~x); });
         }
         BIT_MANIPULATION_ASSERT(false);
     }
@@ -107,10 +240,12 @@ Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept
     }
 }
 
-Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
+[[nodiscard]] Concrete_Evaluation_Result
+evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) noexcept
 {
-    if (!is_binary_operator(op)) {
-        return Evaluation_Error::invalid_operator;
+    Type_Evaluation_Result target_type = check_binary_operator(lhs.type, op, rhs.type);
+    if (!target_type) {
+        return Evaluation_Error::type_error;
     }
 
     if (std::optional<Evaluation_Error> error = convert_to_equal_type(lhs, rhs)) {
@@ -119,165 +254,98 @@ Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) 
 
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
 
-    const struct {
-        const Value& x;
-        const Value& y;
+    const auto compare_uint = [&lhs, &rhs](bool f(Big_Uint, Big_Uint)) -> Concrete_Value {
+        const Big_Int result = Big_Int(f(Big_Uint(lhs.int_value), Big_Uint(rhs.int_value)));
+        return Concrete_Value { Concrete_Type::Bool, result };
+    };
 
-        Value operator()(bool f(Big_Int, Big_Int)) const
-        {
-            if (x && y) {
-                return Value { Concrete_Type::Bool, Big_Int(f(*x.int_value, *y.int_value)) };
-            }
-            return Value { Concrete_Type::Bool };
+    const auto transform_uint = [&lhs, &rhs](Big_Uint f(Big_Uint, Big_Uint)) -> Concrete_Value {
+        Big_Uint result = f(Big_Uint(lhs.int_value), Big_Uint(rhs.int_value));
+        if (lhs.type.width != std::numeric_limits<Big_Uint>::digits) {
+            result &= (Big_Uint(1) << rhs.type.width) - 1;
         }
-        Value operator()(bool f(Big_Uint, Big_Uint)) const
-        {
-            if (x && y) {
-                return Value { Concrete_Type::Bool,
-                               f(Big_Uint(*x.int_value), Big_Uint(*y.int_value)) };
-            }
-            return Value { Concrete_Type::Bool };
-        }
-        Value operator()(Big_Int f(Big_Int, Big_Int)) const
-        {
-            if (x && y) {
-                return Value { x.type, f(*x.int_value, *y.int_value) };
-            }
-            return Value { x.type };
-        }
-        Value operator()(Big_Uint f(Big_Uint, Big_Uint)) const
-        {
-            if (x && y) {
-                Big_Uint result = f(Big_Uint(*x.int_value), Big_Uint(*x.int_value));
-                if (x.type.width != std::numeric_limits<Big_Uint>::digits) {
-                    result &= (Big_Uint(1) << x.type.width) - 1;
-                }
-                return Value { x.type, Big_Int(result) };
-            }
-            return Value { x.type };
-        }
-
-    } and_then { lhs, rhs };
+        return Concrete_Value { lhs.type, Big_Int(result) };
+    };
 
     if (lhs.type.type == Type_Type::Int || lhs.type.type == Type_Type::Uint) {
         switch (op) {
         case Token_Type::division:
         case Token_Type::remainder: {
-            if (!rhs) {
-                return rhs;
-            }
-            if (*rhs.int_value == 0) {
+            if (rhs.int_value == 0) {
                 return Evaluation_Error::division_by_zero;
             }
-            if (!lhs) {
-                return lhs;
-            }
-            return op == Token_Type::division ? Value { lhs.type, *lhs.int_value / *rhs.int_value }
-                                              : Value { lhs.type, *lhs.int_value % *rhs.int_value };
+            return op == Token_Type::division
+                ? Concrete_Value { lhs.type, lhs.int_value / rhs.int_value }
+                : Concrete_Value { lhs.type, lhs.int_value % rhs.int_value };
         }
         // Relational comparisons don't simply check for bit-equality, so they cannot be handled
         // commonly for both.
         case Token_Type::equals: //
-            return and_then([](Big_Int x, Big_Int y) { return x == y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
         case Token_Type::not_equals: //
-            return and_then([](Big_Int x, Big_Int y) { return x != y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
         default: break;
         }
     }
 
     switch (lhs.type.type) {
-
-    case Type_Type::Void: {
-        return Evaluation_Error::void_operation;
-    }
-
     case Type_Type::Bool: {
-
-        if (is_arithmetic_operator(op)) {
-            return Evaluation_Error::bool_arithmetic;
-        }
-        if (is_bitwise_operator(op)) {
-            return Evaluation_Error::bool_bitwise;
-        }
-        if (is_relational_comparison_operator(op)) {
-            return Evaluation_Error::bool_relational_comparison;
-        }
         if (op == Token_Type::logical_and) {
-            return and_then([](Big_Int x, Big_Int y) { return x && y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value && rhs.int_value) };
         }
         if (op == Token_Type::logical_or) {
-            return and_then([](Big_Int x, Big_Int y) { return x || y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value || rhs.int_value) };
         }
         BIT_MANIPULATION_ASSERT(false);
     }
 
     case Type_Type::Int: {
-        if (is_bitwise_operator(op)) {
-            return Evaluation_Error::int_bitwise;
-        }
-        if (is_logical_operator(op)) {
-            return Evaluation_Error::int_logical;
-        }
         switch (op) {
         case Token_Type::less_than: //
-            return and_then([](Big_Int x, Big_Int y) { return x < y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value < rhs.int_value) };
         case Token_Type::greater_than: //
-            return and_then([](Big_Int x, Big_Int y) { return x > y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value > rhs.int_value) };
         case Token_Type::less_or_equal: //
-            return and_then([](Big_Int x, Big_Int y) { return x <= y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value <= rhs.int_value) };
         case Token_Type::greater_or_equal: //
-            return and_then([](Big_Int x, Big_Int y) { return x >= y; });
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value >= rhs.int_value) };
         case Token_Type::plus: //
-            return and_then([](Big_Int x, Big_Int y) { return x + y; });
+            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value + rhs.int_value) };
         case Token_Type::minus: //
-            return and_then([](Big_Int x, Big_Int y) { return x - y; });
+            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value - rhs.int_value) };
         case Token_Type::multiplication: //
-            return and_then([](Big_Int x, Big_Int y) { return x * y; });
-
+            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value * rhs.int_value) };
         default: BIT_MANIPULATION_ASSERT(false);
         }
     }
 
     case Type_Type::Uint: {
-        if (lhs.type.width != rhs.type.width) {
-            return Evaluation_Error::incompatible_widths;
-        }
-        if (is_logical_operator(op)) {
-            return Evaluation_Error::uint_logical;
-        }
+
         switch (op) {
         case Token_Type::less_than: //
-            return and_then([](Big_Uint x, Big_Uint y) { return x < y; });
+            return compare_uint([](Big_Uint x, Big_Uint y) { return x < y; });
         case Token_Type::greater_than: //
-            return and_then([](Big_Uint x, Big_Uint y) { return x > y; });
+            return compare_uint([](Big_Uint x, Big_Uint y) { return x > y; });
         case Token_Type::less_or_equal: //
-            return and_then([](Big_Uint x, Big_Uint y) { return x <= y; });
+            return compare_uint([](Big_Uint x, Big_Uint y) { return x <= y; });
         case Token_Type::greater_or_equal: //
-            return and_then([](Big_Uint x, Big_Uint y) { return x >= y; });
+            return compare_uint([](Big_Uint x, Big_Uint y) { return x >= y; });
         case Token_Type::plus: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x + y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x + y; });
         case Token_Type::minus: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x - y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x - y; });
         case Token_Type::multiplication: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x * y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x * y; });
         case Token_Type::bitwise_and: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x & y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x & y; });
         case Token_Type::bitwise_or: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x | y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x | y; });
         case Token_Type::bitwise_xor: //
-            return and_then([](Big_Uint x, Big_Uint y) -> Big_Uint { return x ^ y; });
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x ^ y; });
         case Token_Type::shift_left:
-        case Token_Type::shift_right: {
-            if (!rhs) {
-                return rhs;
-            }
-            if (Big_Uint(*rhs.int_value) >= Big_Uint(lhs.type.width)) {
-                return Evaluation_Error::shift_too_much;
-            }
-            return lhs.and_then_uint([op, y = Big_Uint(*rhs.int_value)](Big_Uint x) -> Big_Uint {
-                return op == Token_Type::shift_left ? x << y : x >> y;
-            });
-        }
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x << y; });
+        case Token_Type::shift_right:
+            return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x >> y; });
         default: BIT_MANIPULATION_ASSERT(false);
         }
     }
@@ -286,17 +354,86 @@ Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) 
     }
 }
 
-Evaluation_Result evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
+[[nodiscard]] Concrete_Evaluation_Result
+evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept
 {
+    Type_Evaluation_Result type_result = check_if_expression(lhs.type, condition.type, rhs.type);
+    if (!type_result) {
+        return Evaluation_Error::type_error;
+    }
+    const auto [result, lossy] = (condition.int_value ? lhs : rhs).convert_to(*type_result);
+    if (lossy) {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+    return result;
+}
+
+// VALUE ===========================================================================================
+
+[[nodiscard]] Evaluation_Result evaluate_conversion(Value value, Concrete_Type to) noexcept
+{
+    if (!value.type.is_convertible_to(to)) {
+        return Evaluation_Error::type_error;
+    }
+
+    auto [result, lossy] = value.convert_to(to);
+    if (lossy) {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+    return result;
+}
+
+Evaluation_Result evaluate_unary_operator(Token_Type op, Value value) noexcept
+{
+    if (Type_Evaluation_Result r = check_unary_operator(op, value.type); !r) {
+        return Evaluation_Error::type_error;
+    }
+    if (!value.int_value) {
+        return value;
+    }
+    return result_from_concrete(evaluate_unary_operator(op, value.concrete_value()));
+}
+
+Evaluation_Result evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
+{
+    const Type_Evaluation_Result type_result = check_binary_operator(lhs.type, op, rhs.type);
+    if (!type_result) {
+        return Evaluation_Error::type_error;
+    }
     if (std::optional<Evaluation_Error> error = convert_to_equal_type(lhs, rhs)) {
         return *error;
     }
-    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
-
-    if (condition) {
-        return *condition.int_value ? lhs : rhs;
+    if (lhs && rhs) {
+        return result_from_concrete(
+            evaluate_binary_operator(lhs.concrete_value(), op, rhs.concrete_value()));
     }
-    return Value { lhs.type };
+    // Even if we don't know the values of both operands, there are certain operations which are
+    // illegal no matter what the other operand is, such as division by zero.
+    if (rhs) {
+        if ((op == Token_Type::division || op == Token_Type::remainder) && *rhs.int_value == 0) {
+            return Evaluation_Error::division_by_zero;
+        }
+        if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
+            && (*rhs.int_value < 0 || *rhs.int_value >= lhs.type.width)) {
+            return Evaluation_Error::shift_too_much;
+        }
+    }
+
+    return Value { *type_result };
+}
+
+[[nodiscard]] Evaluation_Result
+evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
+{
+    Type_Evaluation_Result type_result = check_if_expression(lhs.type, condition.type, rhs.type);
+    if (!type_result) {
+        return Evaluation_Error::type_error;
+    }
+    if (lhs && condition && rhs) {
+        return result_from_concrete(evaluate_if_expression(
+            lhs.concrete_value(), condition.concrete_value(), rhs.concrete_value()));
+    }
+    return Value { *type_result };
 }
 
 } // namespace bit_manipulation::bms

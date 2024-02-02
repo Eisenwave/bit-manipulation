@@ -94,6 +94,57 @@ struct Bit_Generic_Type {
 
 using Some_Type = std::variant<Concrete_Type, Bit_Generic_Type>;
 
+struct Concrete_Value {
+    Concrete_Type type;
+    Big_Int int_value;
+
+public:
+    static const Concrete_Value True, False;
+
+    constexpr Concrete_Value(Concrete_Type type, Big_Int value)
+        : type(type)
+        , int_value(value)
+    {
+    }
+
+    struct Conversion_Result;
+
+    constexpr Conversion_Result convert_to(Concrete_Type other) const;
+
+    constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
+    {
+        BIT_MANIPULATION_ASSERT(type.type == Type_Type::Uint);
+        const auto mask = Big_Uint(Big_Uint(1) << type.width) - 1;
+        return { type, Big_Int(Big_Uint(f(Big_Uint(int_value))) & mask) };
+    }
+};
+
+struct Concrete_Value::Conversion_Result {
+    /// @brief The value resulting from the conversion, of type `Uint(N)`.
+    Concrete_Value value;
+    /// @brief `true` if the conversion was lossy, i.e. if the value couldn't be represented in the
+    /// unsigned integer due to limited width.
+    bool lossy;
+};
+
+inline constexpr Concrete_Value Concrete_Value::True { Concrete_Type::Bool, 1 };
+inline constexpr Concrete_Value Concrete_Value::False { Concrete_Type::Bool, 0 };
+
+constexpr auto Concrete_Value::convert_to(Concrete_Type other) const -> Conversion_Result
+{
+    if (type == other) {
+        return { *this, false };
+    }
+    else if (other.type == Type_Type::Uint) {
+        const bool lossy = !other.can_represent(int_value);
+        return { Concrete_Value { other, int_value }, lossy };
+    }
+    BIT_MANIPULATION_ASSERT(false);
+}
+
+/// @brief A class representing a possibly value, predominantly used in semantic analysis and
+/// constant folding.
+/// Unlike `Concrete_Value`, its `int_value` is optional, although its type is always known.
 struct Value {
     Concrete_Type type;
     std::optional<Big_Int> int_value;
@@ -104,6 +155,12 @@ public:
     constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
         : type(type)
         , int_value(value)
+    {
+    }
+
+    constexpr Value(Concrete_Value value)
+        : type(value.type)
+        , int_value(value.int_value)
     {
     }
 
@@ -133,14 +190,17 @@ public:
         return *this;
     }
 
-    struct To_Uint_Result;
+    struct Conversion_Result;
 
-    /// @brief Converts the current value to an unsigned integer of the given width.
-    /// @param width the width, which must be valid for calling `Concrete_Type::Uint`.
-    constexpr To_Uint_Result to_uint(int width) const;
+    constexpr Conversion_Result convert_to(Concrete_Type other) const;
+
+    constexpr Concrete_Value concrete_value() const
+    {
+        return Concrete_Value { type, int_value.value() };
+    }
 };
 
-struct Value::To_Uint_Result {
+struct Value::Conversion_Result {
     /// @brief The value resulting from the conversion, of type `Uint(N)`.
     Value value;
     /// @brief `true` if the conversion was lossy, i.e. if the value couldn't be represented in the
@@ -151,14 +211,19 @@ struct Value::To_Uint_Result {
 inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
 
-constexpr auto Value::to_uint(int width) const -> To_Uint_Result
+constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
 {
-    const auto type = Concrete_Type::Uint(width);
-    if (!int_value) {
-        return { .value = Value { type }, .lossy = false };
+    if (type == other) {
+        return { *this, false };
     }
-    const bool lossy = !type.can_represent(*int_value);
-    return { Value { type, *int_value }, lossy };
+    else if (other.type == Type_Type::Uint) {
+        if (!int_value) {
+            return { Value { other }, false };
+        }
+        const bool lossy = !other.can_represent(*int_value);
+        return { Value { other, *int_value }, lossy };
+    }
+    BIT_MANIPULATION_ASSERT(false);
 }
 
 } // namespace bit_manipulation::bms
