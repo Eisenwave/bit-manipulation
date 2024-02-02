@@ -7,8 +7,6 @@
 namespace bit_manipulation::bms {
 
 enum struct Analysis_Error_Code {
-    /// @brief No error.
-    ok,
     /// @brief A name was already in use when attempting to define a global constant.
     failed_to_define_global_const,
     /// @brief A name was already in use when attempting to define a function.
@@ -59,15 +57,13 @@ enum struct Analysis_Error_Code {
     wrong_number_of_arguments,
 };
 
-struct Analysis_Result {
-    static const Analysis_Result ok;
-
+struct Analysis_Error {
     Analysis_Error_Code code;
     Evaluation_Error evaluation_error;
     Token fail_token;
     Token cause_token;
 
-    constexpr Analysis_Result(Analysis_Error_Code code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Analysis_Error_Code code, Token fail_token, Token cause_token = {})
         : code(code)
         , evaluation_error()
         , fail_token(fail_token)
@@ -75,23 +71,16 @@ struct Analysis_Result {
     {
     }
 
-    constexpr Analysis_Result(Evaluation_Error code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Evaluation_Error code, Token fail_token, Token cause_token = {})
         : code(Analysis_Error_Code::evaluation_error)
         , evaluation_error(code)
         , fail_token(fail_token)
         , cause_token(cause_token)
     {
     }
-
-    [[nodiscard]] constexpr explicit operator bool() const noexcept
-    {
-        return code == Analysis_Error_Code::ok;
-    }
 };
 
-inline constexpr Analysis_Result Analysis_Result::ok = { Analysis_Error_Code::ok, {}, {} };
-
-Analysis_Result analyze(Parsed_Program& program);
+Result<void, Analysis_Error> analyze(Parsed_Program& program);
 
 } // namespace bit_manipulation::bms
 

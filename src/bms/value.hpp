@@ -99,7 +99,7 @@ struct Concrete_Value {
     Big_Int int_value;
 
 public:
-    static const Concrete_Value True, False;
+    static const Concrete_Value Void, True, False;
 
     constexpr Concrete_Value(Concrete_Type type, Big_Int value)
         : type(type)
@@ -132,6 +132,7 @@ struct Concrete_Value::Conversion_Result {
     bool lossy;
 };
 
+inline constexpr Concrete_Value Concrete_Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Concrete_Value Concrete_Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Concrete_Value Concrete_Value::False { Concrete_Type::Bool, 0 };
 
@@ -155,7 +156,7 @@ struct Value {
     std::optional<Big_Int> int_value;
 
 public:
-    static const Value True, False;
+    static const Value Void, True, False;
 
     constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
         : type(type)
@@ -172,6 +173,11 @@ public:
     explicit constexpr operator bool() const noexcept
     {
         return int_value.has_value();
+    }
+
+    constexpr bool is_unknown() const noexcept
+    {
+        return !int_value.has_value();
     }
 
     template <std::invocable<Big_Int> F>
@@ -213,6 +219,7 @@ struct Value::Conversion_Result {
     bool lossy;
 };
 
+inline constexpr Value Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
 

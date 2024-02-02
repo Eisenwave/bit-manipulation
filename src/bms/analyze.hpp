@@ -29,7 +29,7 @@ inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
     return Node_Handle::null;
 }
 
-Analysis_Result analyze_name_lookup(Parsed_Program& program);
+Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);
 
 } // namespace bit_manipulation::bms
 

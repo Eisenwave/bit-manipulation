@@ -12,19 +12,19 @@ struct Virtual_Code_Generator : Analyzer_Base {
     }
 
 public:
-    Analysis_Result operator()(Function_Node& function)
+    Result<void, Analysis_Error> operator()(Function_Node& function)
     {
         return generate_code(function);
     }
 
 private:
-    Analysis_Result generate_code(Node_Handle h)
+    Result<void, Analysis_Error> generate_code(Node_Handle h)
     {
         return std::visit([this](auto& node) { return generate_code(node); }, get_node(h));
     }
 
     template <typename T>
-    Analysis_Result generate_code(T& node)
+    Result<void, Analysis_Error> generate_code(T& node)
     {
         for (Node_Handle child : node.get_children()) {
             if (auto r = generate_code(child); !r) {
@@ -35,7 +35,7 @@ private:
     }
 
     template <>
-    Analysis_Result generate_code(Program_Node&)
+    Result<void, Analysis_Error> generate_code(Program_Node&)
     {
         BIT_MANIPULATION_ASSERT(false);
     }

@@ -24,13 +24,13 @@ struct Instantiator : Analyzer_Base {
     {
     }
 
-    Analysis_Result operator()(int width)
+    Result<void, Analysis_Error> operator()(int width)
     {
         return instantiate(width);
     }
 
 private:
-    Analysis_Result instantiate(int width)
+    Result<void, Analysis_Error> instantiate(int width)
     {
         BIT_MANIPULATION_ASSERT(width > 0);
         BIT_MANIPULATION_ASSERT(width <= uint_max_width);
@@ -39,7 +39,7 @@ private:
             if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
                 Node_Handle instance = clone_node(decl);
                 auto& instance_node = std::get<Function_Node>(get_node(instance));
-                Analysis_Result r = instantiate(instance_node, width);
+                const auto r = instantiate(instance_node, width);
                 if (!r) {
                     return r;
                 }
@@ -47,11 +47,11 @@ private:
             }
         }
 
-        return Analysis_Result::ok;
+        return {};
     }
 
-    Analysis_Result instantiate([[maybe_unused]] Function_Node& instance,
-                                [[maybe_unused]] int width)
+    Result<void, Analysis_Error> instantiate([[maybe_unused]] Function_Node& instance,
+                                             [[maybe_unused]] int width)
     {
         auto& params = std::get<Parameter_List_Node>(get_node(instance.get_parameters()));
         for (Node_Handle p : params.parameters) {
@@ -70,7 +70,7 @@ private:
             }
         }
 
-        return Analysis_Result::ok;
+        return {};
     }
 
     Node_Handle clone_node(Node_Handle h)
@@ -118,27 +118,6 @@ private:
     }
 };
 
-struct Expression_Analysis_Result {
-    Analysis_Result result;
-    std::optional<Value> folded_value;
-
-    Expression_Analysis_Result(Analysis_Result error)
-        : result(error)
-    {
-    }
-
-    Expression_Analysis_Result(Value value)
-        : result(Analysis_Result::ok)
-        , folded_value(value)
-    {
-    }
-
-    [[nodiscard]] constexpr explicit operator bool() const noexcept
-    {
-        return bool(result);
-    }
-};
-
 struct Type_Analyzer : Analyzer_Base {
 private:
     enum struct Context {
@@ -165,24 +144,29 @@ public:
     {
     }
 
-    Analysis_Result operator()()
+    Result<void, Analysis_Error> operator()()
     {
-        Expression_Analysis_Result result = analyze_types(m_program.root_node, Context::regular);
-        return result.result;
+        auto result = analyze_types(m_program.root_node, Context::regular);
+        if (result) {
+            return {};
+        }
+        else {
+            return result.error();
+        }
     }
 
 private:
-    Expression_Analysis_Result analyze_types(Node_Handle handle, Context context)
+    Result<Value, Analysis_Error> analyze_types(Node_Handle handle, Context context)
     {
         if (handle == Node_Handle::null) {
-            return Analysis_Result::ok;
+            return Value::Void;
         }
         return std::visit([this, context](auto& node) { return analyze_types(node, context); },
                           get_node(handle));
     }
 
     template <typename T>
-    Expression_Analysis_Result analyze_types(T& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(T& node, Context context)
     {
         for (Node_Handle h : node.get_children()) {
             auto r = analyze_types(h, context);
@@ -190,11 +174,11 @@ private:
                 return r;
             }
         }
-        return Analysis_Result::ok;
+        return Value::Void;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Function_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Function_Node& node, Context context)
     {
         if (node.is_generic) {
             for (Node_Handle instance : node.instances) {
@@ -203,7 +187,7 @@ private:
                     return r;
                 }
             }
-            return Analysis_Result::ok;
+            return Value::Void;
         }
         if (auto r = analyze_types(node.get_parameters(), context); !r) {
             return r;
@@ -218,15 +202,12 @@ private:
         if (auto r = analyze_types(node.get_body(), context); !r) {
             return r;
         }
-        // The result of functions is never completely known (at least not with the analysis we do).
-        // However, it is still useful to have const_value set for memoization.
-        BIT_MANIPULATION_ASSERT(return_result.folded_value);
-        node.const_value = return_result.folded_value;
-        return Analysis_Result::ok;
+        node.const_value = *return_result;
+        return Value::Void;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Type_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Type_Node& node, Context context)
     {
         if (const auto* const concrete = std::get_if<Concrete_Type>(&node.type)) {
             if (context == Context::return_type) {
@@ -241,19 +222,18 @@ private:
         if (!r) {
             return r;
         }
-        BIT_MANIPULATION_ASSERT(r.folded_value.has_value());
-        if (!r.folded_value->type.is_integer()) {
-            return Analysis_Result { Analysis_Error_Code::width_not_integer,
-                                     get_token(get_node(generic.width)) };
+        if (!r->type.is_integer()) {
+            return Analysis_Error { Analysis_Error_Code::width_not_integer,
+                                    get_token(get_node(generic.width)) };
         }
-        const Big_Int folded_width = r.folded_value->int_value.value();
+        const Big_Int folded_width = r->int_value.value();
         if (folded_width == 0) {
-            return Analysis_Result { Analysis_Error_Code::width_zero,
-                                     get_token(get_node(generic.width)) };
+            return Analysis_Error { Analysis_Error_Code::width_zero,
+                                    get_token(get_node(generic.width)) };
         }
         if (folded_width > uint_max_width) {
-            return Analysis_Result { Analysis_Error_Code::width_too_large,
-                                     get_token(get_node(generic.width)) };
+            return Analysis_Error { Analysis_Error_Code::width_too_large,
+                                    get_token(get_node(generic.width)) };
         }
         const Concrete_Type result = Concrete_Type::Uint(static_cast<int>(folded_width));
         node.type = result;
@@ -264,7 +244,7 @@ private:
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Let_Const_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Let_Const_Node& node, Context context)
     {
         const auto initializer_context
             = node.is_const ? Context::constant_expression : Context::regular;
@@ -280,7 +260,7 @@ private:
             if (!initializer_result) {
                 return initializer_result;
             }
-            node.const_value = initializer_result.folded_value;
+            node.const_value = *initializer_result;
             return node.const_value.value();
         }
 
@@ -298,27 +278,27 @@ private:
             return initializer_result;
         }
 
-        const Evaluation_Result r
-            = evaluate_conversion(*initializer_result.folded_value, type_result.folded_value->type);
+        const Result<Value, Evaluation_Error> r
+            = evaluate_conversion(*initializer_result, type_result->type);
         if (r) {
             node.const_value = *r;
             return *r;
         }
         const Token cause_token = get_token(get_node(node.get_initializer()));
 
-        return Analysis_Result { r.get_error(), node.token, cause_token };
+        return Analysis_Error { r.error(), node.token, cause_token };
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(If_Statement_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(If_Statement_Node& node, Context context)
     {
         auto r = analyze_types(node.get_condition(), context);
         if (!r) {
             return r;
         }
-        if (r.folded_value->type != Concrete_Type::Bool) {
-            return Analysis_Result { Analysis_Error_Code::condition_not_bool, node.token,
-                                     get_token(get_node(node.get_condition())) };
+        if (r->type != Concrete_Type::Bool) {
+            return Analysis_Error { Analysis_Error_Code::condition_not_bool, node.token,
+                                    get_token(get_node(node.get_condition())) };
         }
 
         auto& if_block = std::get<Block_Statement_Node>(get_node(node.get_if_block()));
@@ -330,15 +310,15 @@ private:
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(While_Statement_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(While_Statement_Node& node, Context context)
     {
         auto r = analyze_types(node.get_condition(), context);
         if (!r) {
             return r;
         }
-        if (r.folded_value->type != Concrete_Type::Bool) {
-            return Analysis_Result { Analysis_Error_Code::condition_not_bool, node.token,
-                                     get_token(get_node(node.get_condition())) };
+        if (r->type != Concrete_Type::Bool) {
+            return Analysis_Error { Analysis_Error_Code::condition_not_bool, node.token,
+                                    get_token(get_node(node.get_condition())) };
         }
 
         auto& block = std::get<Block_Statement_Node>(get_node(node.get_block()));
@@ -346,63 +326,63 @@ private:
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Jump_Node&, Context)
+    Result<Value, Analysis_Error> analyze_types(Jump_Node&, Context)
     {
-        return Analysis_Result::ok;
+        return Value::Void;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Return_Statement_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Return_Statement_Node& node, Context context)
     {
         auto r = analyze_types(node.get_expression(), context);
         if (!r) {
             return r;
         }
-        const Evaluation_Result eval_result
-            = evaluate_conversion(r.folded_value.value(), return_info->type);
+        const Result<Value, Evaluation_Error> eval_result
+            = evaluate_conversion(*r, return_info->type);
         if (!eval_result) {
-            return Analysis_Result { eval_result.get_error(), node.token, return_info->token };
+            return Analysis_Error { eval_result.error(), node.token, return_info->token };
         }
         node.const_value = *eval_result;
         return *eval_result;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Assignment_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Assignment_Node& node, Context context)
     {
         BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
 
         Some_Node& looked_up_node = get_node(node.lookup_result);
         if (const auto* const parameter = std::get_if<Parameter_Node>(&looked_up_node)) {
-            return Analysis_Result { Analysis_Error_Code::assigning_parameter, node.token,
-                                     get_token(looked_up_node) };
+            return Analysis_Error { Analysis_Error_Code::assigning_parameter, node.token,
+                                    get_token(looked_up_node) };
         }
         if (const auto* const function = std::get_if<Function_Node>(&looked_up_node)) {
-            return Analysis_Result { Analysis_Error_Code::assigning_function, node.token,
-                                     get_token(looked_up_node) };
+            return Analysis_Error { Analysis_Error_Code::assigning_function, node.token,
+                                    get_token(looked_up_node) };
         }
 
         auto& looked_up_var = std::get<Let_Const_Node>(looked_up_node);
         if (looked_up_var.is_const) {
-            return Analysis_Result { Analysis_Error_Code::assigning_const, node.token,
-                                     get_token(looked_up_node) };
+            return Analysis_Error { Analysis_Error_Code::assigning_const, node.token,
+                                    get_token(looked_up_node) };
         }
 
         auto r = analyze_types(node.get_expression(), context);
         if (!r) {
             return r;
         }
-        const Evaluation_Result eval_result
-            = evaluate_conversion(r.folded_value.value(), looked_up_var.const_value.value().type);
+        const Result<Value, Evaluation_Error> eval_result
+            = evaluate_conversion(*r, looked_up_var.const_value.value().type);
         if (!eval_result) {
-            return Analysis_Result { eval_result.get_error(), node.token, return_info->token };
+            return Analysis_Error { eval_result.error(), node.token, return_info->token };
         }
         node.const_value = *eval_result;
         return *eval_result;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(If_Expression_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(If_Expression_Node& node, Context context)
     {
         auto left_result = analyze_types(node.get_left(), context);
         if (!left_result) {
@@ -412,25 +392,25 @@ private:
         if (!condition_result) {
             return condition_result;
         }
-        if (condition_result.folded_value->type != Concrete_Type::Bool) {
-            return Analysis_Result { Analysis_Error_Code::condition_not_bool, node.token,
-                                     get_token(get_node(node.get_condition())) };
+        if (condition_result->type != Concrete_Type::Bool) {
+            return Analysis_Error { Analysis_Error_Code::condition_not_bool, node.token,
+                                    get_token(get_node(node.get_condition())) };
         }
 
         auto right_result = analyze_types(node.get_right(), context);
         if (!right_result) {
             return right_result;
         }
-        const Evaluation_Result eval_result = evaluate_if_expression(
-            *left_result.folded_value, *condition_result.folded_value, *right_result.folded_value);
+        const Result<Value, Evaluation_Error> eval_result
+            = evaluate_if_expression(*left_result, *condition_result, *right_result);
         if (!eval_result) {
-            return Analysis_Result { eval_result.get_error(), node.token };
+            return Analysis_Error { eval_result.error(), node.token };
         }
         return *eval_result;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Binary_Expression_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Binary_Expression_Node& node, Context context)
     {
         auto left_result = analyze_types(node.get_left(), context);
         if (!left_result) {
@@ -440,33 +420,34 @@ private:
         if (!right_result) {
             return right_result;
         }
-        const Evaluation_Result eval_result = evaluate_binary_operator(
-            left_result.folded_value.value(), node.op, right_result.folded_value.value());
+        const Result<Value, Evaluation_Error> eval_result
+            = evaluate_binary_operator(*left_result, node.op, *right_result);
 
         if (!eval_result) {
-            return Analysis_Result { eval_result.get_error(), node.token };
+            return Analysis_Error { eval_result.error(), node.token };
         }
         return *eval_result;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Prefix_Expression_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Prefix_Expression_Node& node, Context context)
     {
         auto expression_result = analyze_types(node.get_expression(), context);
         if (!expression_result) {
             return expression_result;
         }
-        const Evaluation_Result eval_result
-            = evaluate_unary_operator(node.op, expression_result.folded_value.value());
+        const Result<Value, Evaluation_Error> eval_result
+            = evaluate_unary_operator(node.op, *expression_result);
 
         if (!eval_result) {
-            return Analysis_Result { eval_result.get_error(), node.token };
+            return Analysis_Error { eval_result.error(), node.token };
         }
         return *eval_result;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Function_Call_Expression_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Function_Call_Expression_Node& node,
+                                                Context context)
     {
         BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
 
@@ -475,16 +456,16 @@ private:
         Some_Node& looked_up = get_node(node.lookup_result);
         const auto* const function = std::get_if<Function_Node>(&looked_up);
         if (!function) {
-            return Analysis_Result { Analysis_Error_Code::call_non_function, node.token,
-                                     get_token(looked_up) };
+            return Analysis_Error { Analysis_Error_Code::call_non_function, node.token,
+                                    get_token(looked_up) };
         }
 
         // 2. Verify that we have the right number of arguments.
 
         auto& params = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
         if (params.parameters.size() != node.arguments.size()) {
-            return Analysis_Result { Analysis_Error_Code::wrong_number_of_arguments, node.token,
-                                     function->token };
+            return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, node.token,
+                                    function->token };
         }
 
         // 3. Identify bit-generic parameters and perform implicit instantiation based on the
@@ -528,9 +509,9 @@ private:
             }
             auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
-            auto conv_result = evaluate_conversion(*arg_result.folded_value, param_type);
+            auto conv_result = evaluate_conversion(*arg_result, param_type);
             if (!conv_result) {
-                return Analysis_Result { conv_result.get_error(), node.token, param.token };
+                return Analysis_Error { conv_result.error(), node.token, param.token };
             }
             if (context == Context::constant_expression) {
                 arg_values.push_back(*conv_result);
@@ -546,7 +527,7 @@ private:
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Id_Expression_Node& node, Context context)
+    Result<Value, Analysis_Error> analyze_types(Id_Expression_Node& node, Context context)
     {
         if (node.bit_generic) {
             // instantiation should have assigned a value to all bit-generic id-expressions
@@ -557,13 +538,13 @@ private:
 
         Some_Node& looked_up_node = get_node(node.lookup_result);
         if (const auto* const looked_up_function = std::get_if<Function_Node>(&looked_up_node)) {
-            return Analysis_Result { Analysis_Error_Code::function_in_expression, node.token,
-                                     looked_up_function->token };
+            return Analysis_Error { Analysis_Error_Code::function_in_expression, node.token,
+                                    looked_up_function->token };
         }
         if (const auto* const looked_up_var = std::get_if<Let_Const_Node>(&looked_up_node)) {
             if (context == Context::constant_expression && !looked_up_var->is_const) {
-                return Analysis_Result { Analysis_Error_Code::let_variable_in_constant_expression,
-                                         node.token, looked_up_var->token };
+                return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
+                                        node.token, looked_up_var->token };
             }
             if (looked_up_var->const_value) {
                 return *looked_up_var->const_value;
@@ -571,8 +552,8 @@ private:
         }
         if (const auto* const looked_up_param = std::get_if<Parameter_Node>(&looked_up_node)) {
             if (context == Context::constant_expression) {
-                return Analysis_Result { Analysis_Error_Code::parameter_in_constant_expression,
-                                         node.token, looked_up_param->token };
+                return Analysis_Error { Analysis_Error_Code::parameter_in_constant_expression,
+                                        node.token, looked_up_param->token };
             }
         }
 
@@ -580,16 +561,16 @@ private:
         if (!r) {
             return r;
         }
-        if (!r.folded_value->int_value && context == Context::constant_expression) {
-            return Analysis_Result { Analysis_Error_Code::expected_constant_expression, node.token,
-                                     get_token(looked_up_node) };
+        if (r->is_unknown() && context == Context::constant_expression) {
+            return Analysis_Error { Analysis_Error_Code::expected_constant_expression, node.token,
+                                    get_token(looked_up_node) };
         }
-        node.const_value = *r.folded_value;
-        return *r.folded_value;
+        node.const_value = *r;
+        return *r;
     }
 
     template <>
-    Expression_Analysis_Result analyze_types(Literal_Node& node, Context)
+    Result<Value, Analysis_Error> analyze_types(Literal_Node& node, Context)
     {
         switch (node.token.type) {
         case Token_Type::keyword_bool: {
@@ -607,7 +588,7 @@ private:
             std::optional<Big_Int> value
                 = parse_integer_literal(node.token.extract(m_program.source));
             if (!value) {
-                return Analysis_Result { Analysis_Error_Code::invalid_integer_literal, node.token };
+                return Analysis_Error { Analysis_Error_Code::invalid_integer_literal, node.token };
             }
             const auto result = Value { Concrete_Type::Int, *value };
             node.const_value = result;
@@ -620,7 +601,7 @@ private:
 
 } // namespace
 
-Analysis_Result analyze(Parsed_Program& program)
+Result<void, Analysis_Error> analyze(Parsed_Program& program)
 {
     if (auto r = analyze_name_lookup(program); !r) {
         return r;
