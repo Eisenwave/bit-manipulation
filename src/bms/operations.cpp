@@ -214,7 +214,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
 
     case Type_Type::Bool: {
         if (op == Token_Type::logical_not) {
-            return Concrete_Value { value.type, value.int_value ^ 1 };
+            return Concrete_Value { Concrete_Type::Bool, value.int_value ^ 1 };
         }
         BIT_MANIPULATION_ASSERT(false);
     }
@@ -224,7 +224,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
             return value;
         }
         if (op == Token_Type::minus) {
-            return Concrete_Value { value.type, -value.int_value };
+            return Concrete_Value { Concrete_Type::Int, -value.int_value };
         }
         BIT_MANIPULATION_ASSERT(false);
     }
@@ -289,7 +289,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
         case Token_Type::equals: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
         case Token_Type::not_equals: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
+            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value != rhs.int_value) };
         default: break;
         }
     }
