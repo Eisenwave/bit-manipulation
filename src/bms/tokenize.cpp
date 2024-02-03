@@ -1,6 +1,6 @@
 #include <optional>
 
-#include "bms/tokens.hpp"
+#include "bms/tokenize.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -255,7 +255,7 @@ Source_Position advance_position_by_text(Source_Position pos, std::string_view t
 
 } // namespace
 
-Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexcept
+Result<void, Source_Position> tokenize(std::vector<Token>& out, std::string_view source) noexcept
 {
     Source_Position pos {};
 
@@ -278,7 +278,7 @@ Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexce
             pos.column += part->length;
         }
         else {
-            return { Tokenize_Error_Code::illegal_character, pos };
+            return pos;
         }
     }
 
