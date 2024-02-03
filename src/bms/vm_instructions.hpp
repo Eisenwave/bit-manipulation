@@ -65,20 +65,6 @@ struct Call {
 
 } // namespace ins
 
-enum struct Instruction_Type {
-    load,
-    push,
-    store,
-    jump,
-    jump_if,
-    jump_break,
-    jump_continue,
-    ret,
-    unary_operate,
-    binary_operate,
-    call,
-};
-
 using Instruction = std::variant<ins::Load,
                                  ins::Push,
                                  ins::Store,

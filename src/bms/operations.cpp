@@ -1,4 +1,5 @@
 #include "bms/operations.hpp"
+#include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
 

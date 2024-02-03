@@ -23,10 +23,25 @@ struct Function_Node;
 
 } // namespace ast
 
+enum struct Token_Type : int;
+enum struct Node_Type : int;
+
 enum struct Evaluation_Error : int;
 enum struct Type_Error : int;
 
 struct Parsed_Program;
+
+struct Token;
+
+/// Represents a position in a source file.
+struct Source_Position {
+    /// Line number.
+    Size line;
+    /// Column number.
+    Size column;
+    /// First index in the source file that is part of the syntactical element.
+    Size begin;
+};
 
 } // namespace bit_manipulation::bms
 

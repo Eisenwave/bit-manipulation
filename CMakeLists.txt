@@ -17,7 +17,7 @@ set(HEADERS
     src/bms/tokenize.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
-    src/bms/vm.hpp
+    src/bms/vm_instructions.hpp
     src/config.hpp
     src/io.hpp
     src/result.hpp)

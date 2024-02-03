@@ -382,9 +382,9 @@ using Some_Node = std::variant<Program_Node,
                                Id_Expression_Node,
                                Literal_Node>;
 
-enum struct Node_Type {
-    program, // {function | variable}
-    function, // {parameter}, type, [requires_clause], block_statement
+enum struct Node_Type : int {
+    program,
+    function,
     parameter,
     parameter_list,
     type,

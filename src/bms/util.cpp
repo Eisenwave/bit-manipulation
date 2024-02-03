@@ -1,4 +1,7 @@
 #include "bms/bms.hpp"
+#include "bms/grammar.hpp"
+#include "bms/parsing.hpp"
+#include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -366,7 +369,7 @@ namespace bit_manipulation::bms {
     return "";
 }
 
-[[nodiscard]] constexpr std::string_view node_type_name(ast::Node_Type t)
+[[nodiscard]] std::string_view node_type_name(ast::Node_Type t)
 {
     using enum ast::Node_Type;
 
@@ -393,4 +396,4 @@ namespace bit_manipulation::bms {
     return "";
 }
 
-} // namespace bit_manipulation
+} // namespace bit_manipulation::bms

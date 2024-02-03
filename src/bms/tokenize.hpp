@@ -6,7 +6,7 @@
 
 #include "result.hpp"
 
-#include "bms/tokens.hpp"
+#include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
 

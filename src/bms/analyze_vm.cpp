@@ -4,7 +4,7 @@
 #include "assert.hpp"
 
 #include "bms/operations.hpp"
-#include "bms/vm.hpp"
+#include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {
 
