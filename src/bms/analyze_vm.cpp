@@ -34,7 +34,7 @@ public:
     {
         Instruction next = instructions.at(instruction_counter);
         return std::visit(
-            [this]<typename T>(T& i) {
+            [this]<typename T>(T& i) -> Result<void, Execution_Error> {
                 if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                     return Execution_Error::symbolic_jump;
                 }
@@ -42,7 +42,7 @@ public:
                     return cycle(i);
                 }
             },
-            instructions.at(instruction_counter));
+            next);
     }
 
 private:
@@ -87,10 +87,11 @@ private:
     template <>
     Result<void, Execution_Error> cycle(ins::Jump& jump)
     {
-        if (instruction_counter + jump.offset + 1 >= instructions.size()) {
+        if (Signed_Size(instruction_counter) + jump.offset + 1
+            >= Signed_Size(instructions.size())) {
             return Execution_Error::jump_out_of_program;
         }
-        instruction_counter = instruction_counter + jump.offset + 1;
+        instruction_counter = Size(Signed_Size(instruction_counter) + jump.offset + 1);
         return {};
     }
 
@@ -105,16 +106,18 @@ private:
         if (actual.type != Concrete_Type::Bool) {
             return Execution_Error::jump_if_not_bool;
         }
-        if (instruction_counter + jump_if.offset + 1 >= instructions.size()) {
+        if (Signed_Size(instruction_counter) + jump_if.offset + 1
+            >= Signed_Size(instructions.size())) {
             return Execution_Error::jump_out_of_program;
         }
-        instruction_counter = instruction_counter + 1
-            + (jump_if.expected == bool(actual.int_value) ? jump_if.offset : 0);
+        instruction_counter
+            = Size(Signed_Size(instruction_counter + 1)
+                   + (jump_if.expected == bool(actual.int_value) ? jump_if.offset : 0));
         return {};
     }
 
     template <>
-    Result<void, Execution_Error> cycle(ins::Return& ret)
+    Result<void, Execution_Error> cycle(ins::Return&)
     {
         if (call_stack.empty()) {
             return Execution_Error::pop_call;

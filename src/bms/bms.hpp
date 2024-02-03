@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
 #include "bms/operations.hpp"
+#include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
 

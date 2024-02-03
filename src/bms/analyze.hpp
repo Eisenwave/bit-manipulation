@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_ANALYZE_HPP
 
 #include "bms/bms.hpp"
+#include "bms/parsing.hpp"
 
 namespace bit_manipulation::bms {
 

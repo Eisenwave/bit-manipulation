@@ -45,7 +45,7 @@ template <typename T>
     else {
         return Evaluation_Error::int_to_uint_range_error;
     }
-    return std::nullopt;
+    return {};
 }
 
 [[nodiscard]] Result<void, Evaluation_Error> convert_to_equal_type(Concrete_Value& lhs,

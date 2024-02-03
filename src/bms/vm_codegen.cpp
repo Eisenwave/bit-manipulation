@@ -39,13 +39,13 @@ private:
     Result<void, Analysis_Error> generate_code(Node_Handle h, T& node) = delete;
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Program_Node&)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Program_Node&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("codegen starts at the function level");
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Function_Node& function)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Function_Node& function)
     {
         const auto restore_size = out.size();
 
@@ -64,7 +64,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Parameter_List_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Parameter_List_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         const auto initial_size = out.size();
@@ -90,7 +90,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Type_Node&)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Type_Node&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE(
             "codegen cannot reach type nodes because their parents handle it");
@@ -116,7 +116,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, If_Statement_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, If_Statement_Node& node)
     {
         const auto restore = [this, restore_size = out.size()] {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -155,7 +155,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, While_Statement_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, While_Statement_Node& node)
     {
         const auto initial_size = out.size();
         const auto restore = [this, initial_size] {
@@ -196,7 +196,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Jump_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Jump_Node& node)
     {
         if (node.token.type == Token_Type::keyword_break) {
             out.push_back(ins::Break {});
@@ -210,7 +210,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Return_Statement_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Return_Statement_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -228,7 +228,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Assignment_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Assignment_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto result = generate_code(node.get_expression());
@@ -240,7 +240,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Block_Statement_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Block_Statement_Node& node)
     {
         const auto initial_size = out.size();
         std::vector<Instruction> result;
@@ -256,7 +256,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, If_Expression_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, If_Expression_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -295,7 +295,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Binary_Expression_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Binary_Expression_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -353,7 +353,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Prefix_Expression_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Prefix_Expression_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -370,7 +370,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Function_Call_Expression_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Function_Call_Expression_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -397,7 +397,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Id_Expression_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Id_Expression_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto instruction = node.const_value->int_value
@@ -408,7 +408,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Literal_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Literal_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         BIT_MANIPULATION_ASSERT(node.const_value->int_value);

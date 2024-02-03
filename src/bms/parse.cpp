@@ -10,6 +10,27 @@ using namespace bit_manipulation::bms::ast;
 
 namespace bit_manipulation::bms {
 
+namespace {
+
+/// @brief Tries to shrink the vector to fit the given size.
+/// Unlike `std::vector::resize`, this does not require the type to be default-constructible.
+/// @tparam T the element type
+/// @param vec the vector
+/// @param size the desired size
+/// @return `true` if `size <= vec.size()`, in which case the vector is resized.
+template <typename T>
+bool try_downsize(std::vector<T>& vec, typename std::vector<T>::size_type size)
+{
+    if (size > vec.size()) {
+        return false;
+    }
+    using Difference = std::vector<T>::difference_type;
+    vec.erase(vec.begin() + static_cast<Difference>(size), vec.end());
+    return true;
+}
+
+} // namespace
+
 // =================================================================================================
 
 Program_Node::Program_Node(Token token, std::vector<Node_Handle>&& declarations)
@@ -271,8 +292,8 @@ private:
             BIT_MANIPULATION_ASSERT(m_pos >= restore_pos);
             m_pos = restore_pos;
             // We couldn't have dropped any nodes.
-            BIT_MANIPULATION_ASSERT(m_program.nodes.size() >= restore_nodes);
-            m_program.nodes.resize(restore_nodes);
+            const bool is_downsize = try_downsize(m_program.nodes, restore_nodes);
+            BIT_MANIPULATION_ASSERT(is_downsize);
         }
         return result;
     }

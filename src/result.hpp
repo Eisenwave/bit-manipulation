@@ -61,7 +61,7 @@ public:
             std::construct_at(std::addressof(m_value), other.m_value);
         }
         else {
-            std::construct_at(std::addressof(m_error), other.error);
+            std::construct_at(std::addressof(m_error), other.m_error);
         }
     }
 
@@ -124,8 +124,8 @@ public:
         }
     }
 
-    [[nodiscard]] constexpr ~Result() noexcept(std::is_nothrow_destructible_v<T>
-                                               && std::is_nothrow_destructible_v<Error>)
+    constexpr ~Result() noexcept(std::is_nothrow_destructible_v<T>
+                                 && std::is_nothrow_destructible_v<Error>)
     {
         if (m_has_value) {
             std::destroy_at(std::addressof(m_value));
@@ -270,7 +270,6 @@ private:
 
 public:
     [[nodiscard]] constexpr Result() noexcept
-        requires std::is_copy_constructible_v<T>
         : m_has_value(true)
     {
     }
@@ -297,7 +296,7 @@ public:
         : m_has_value(other.m_has_value)
     {
         if (!other.m_has_value) {
-            std::construct_at(std::addressof(m_error), other.error);
+            std::construct_at(std::addressof(m_error), other.m_error);
         }
     }
 
@@ -357,7 +356,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr ~Result() noexcept(std::is_nothrow_destructible_v<Error>)
+    constexpr ~Result() noexcept(std::is_nothrow_destructible_v<Error>)
     {
         if (!m_has_value) {
             std::destroy_at(std::addressof(m_error));
@@ -374,14 +373,14 @@ public:
         return m_has_value;
     }
 
-    [[nodiscard]] constexpr const void operator*() const
+    constexpr void operator*() const
     {
         if (!m_has_value) {
             throw Bad_Result_Access { "bad result access in operator*" };
         }
     }
 
-    [[nodiscard]] constexpr const void value() const
+    constexpr void value() const
     {
         if (!m_has_value) {
             throw Bad_Result_Access { "bad result access in value()" };

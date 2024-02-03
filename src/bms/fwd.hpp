@@ -17,7 +17,6 @@ enum struct Node_Handle : Size {
     null = std::numeric_limits<Size>::max()
 };
 
-struct Some_Node;
 struct Program_Node;
 struct Function_Node;
 

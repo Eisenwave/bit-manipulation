@@ -1,6 +1,8 @@
 #include <unordered_map>
+#include <vector>
 
 #include "bms/analyze.hpp"
+#include "bms/parsing.hpp"
 
 using namespace bit_manipulation::bms::ast;
 
