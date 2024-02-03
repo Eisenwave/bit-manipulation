@@ -159,13 +159,7 @@ public:
 
     Result<void, Analysis_Error> operator()()
     {
-        auto result = analyze_types(m_program.root_node, Context::regular);
-        if (result) {
-            return {};
-        }
-        else {
-            return result.error();
-        }
+        return analyze_types(m_program.root_node, Context::regular);
     }
 
 private:
@@ -179,6 +173,7 @@ private:
     }
 
     template <typename T>
+        requires(!std::is_const_v<T>)
     Result<void, Analysis_Error> analyze_types(T& node, Context context)
     {
         for (Node_Handle h : node.get_children()) {
@@ -206,9 +201,8 @@ private:
         if (auto r = analyze_types(node.get_parameters(), context); !r) {
             return r;
         }
-        auto return_result = analyze_types(node.get_return_type(), Context::return_type);
-        if (!return_result) {
-            return return_result;
+        if (auto r = analyze_types(node.get_return_type(), Context::return_type); !r) {
+            return r;
         }
         if (auto r = analyze_types(node.get_requires_clause(), Context::constant_expression); !r) {
             return r;
@@ -572,7 +566,7 @@ private:
         // 1. Verify that we call a function.
 
         Some_Node& looked_up = get_node(node.lookup_result);
-        const auto* const function = std::get_if<Function_Node>(&looked_up);
+        auto* const function = std::get_if<Function_Node>(&looked_up);
         if (!function) {
             return Analysis_Error { Analysis_Error_Code::call_non_function, node.token,
                                     get_token(looked_up) };
