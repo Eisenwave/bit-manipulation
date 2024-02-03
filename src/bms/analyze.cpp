@@ -278,15 +278,21 @@ private:
             return initializer_result;
         }
 
+        const Token cause_token = get_token(get_node(node.get_initializer()));
+
+        if (!initializer_result->type.is_convertible_to(type_result->type)) {
+            return Analysis_Error { Type_Error::incompatible_types, node.token, cause_token };
+        }
         const Result<Value, Evaluation_Error> r
             = evaluate_conversion(*initializer_result, type_result->type);
         if (r) {
             node.const_value = *r;
             return *r;
         }
-        const Token cause_token = get_token(get_node(node.get_initializer()));
-
-        return Analysis_Error { r.error(), node.token, cause_token };
+        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
+        // Even if evaluation failed, it is legal if we are in dead code.
+        node.const_value = Value { type_result->type };
+        return *node.const_value;
     }
 
     template <>
@@ -338,12 +344,18 @@ private:
         if (!r) {
             return r;
         }
+        if (!r->type.is_convertible_to(return_info->type)) {
+            return Analysis_Error { Type_Error::incompatible_types, node.token,
+                                    return_info->token };
+        }
+        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         const Result<Value, Evaluation_Error> eval_result
             = evaluate_conversion(*r, return_info->type);
-        if (!eval_result) {
-            return Analysis_Error { eval_result.error(), node.token, return_info->token };
+        if (eval_result) {
+            node.const_value = *eval_result;
+            return *eval_result;
         }
-        node.const_value = *eval_result;
+        node.const_value = Value { return_info->type };
         return *eval_result;
     }
 
@@ -372,10 +384,17 @@ private:
         if (!r) {
             return r;
         }
-        const Result<Value, Evaluation_Error> eval_result
-            = evaluate_conversion(*r, looked_up_var.const_value.value().type);
+        const Concrete_Type dest_type = looked_up_var.const_value.value().type;
+        if (!r->type.is_convertible_to(dest_type)) {
+            return Analysis_Error { Type_Error::incompatible_types, node.token,
+                                    get_token(get_node(node.get_expression())) };
+        }
+
+        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
+        const Result<Value, Evaluation_Error> eval_result = evaluate_conversion(*r, dest_type);
         if (!eval_result) {
-            return Analysis_Error { eval_result.error(), node.token, return_info->token };
+            node.const_value = Value { dest_type };
+            return *node.const_value;
         }
         node.const_value = *eval_result;
         return *eval_result;
@@ -510,9 +529,16 @@ private:
             }
             auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
+            if (!arg_result->type.is_convertible_to(param_type)) {
+                return Analysis_Error { Type_Error::incompatible_types, node.token, param.token };
+            }
+
             auto conv_result = evaluate_conversion(*arg_result, param_type);
+            // FIXME: this code is probably borked
             if (!conv_result) {
-                return Analysis_Error { conv_result.error(), node.token, param.token };
+                if (context == Context::constant_expression) {
+                    return Analysis_Error { conv_result.error(), node.token, param.token };
+                }
             }
             if (context == Context::constant_expression) {
                 arg_values.push_back(*conv_result);

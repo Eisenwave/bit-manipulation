@@ -37,6 +37,8 @@ enum struct Analysis_Error_Code {
     parameter_in_constant_expression,
     /// @brief Attempted to use a function in an expression as if it was a variable.
     function_in_expression,
+    /// @brief Type error in expressions, implicit conversions, etc.
+    type_error,
     /// @brief Evaluation error in constant expressions or constant folding.
     evaluation_error,
     /// @brief Condition of an if statement or while loop is not a `Bool`.
@@ -58,10 +60,11 @@ enum struct Analysis_Error_Code {
 };
 
 struct Analysis_Error {
-    Analysis_Error_Code code;
-    Evaluation_Error evaluation_error;
-    Token fail_token;
-    Token cause_token;
+    Analysis_Error_Code code {};
+    Type_Error type_error {};
+    Evaluation_Error evaluation_error {};
+    Token fail_token {};
+    Token cause_token {};
 
     constexpr Analysis_Error(Analysis_Error_Code code, Token fail_token, Token cause_token = {})
         : code(code)
@@ -74,6 +77,14 @@ struct Analysis_Error {
     constexpr Analysis_Error(Evaluation_Error code, Token fail_token, Token cause_token = {})
         : code(Analysis_Error_Code::evaluation_error)
         , evaluation_error(code)
+        , fail_token(fail_token)
+        , cause_token(cause_token)
+    {
+    }
+
+    constexpr Analysis_Error(Type_Error code, Token fail_token, Token cause_token = {})
+        : code(Analysis_Error_Code::type_error)
+        , type_error(code)
         , fail_token(fail_token)
         , cause_token(cause_token)
     {
