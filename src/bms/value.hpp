@@ -31,6 +31,10 @@ struct Concrete_Value {
 
 public:
     static const Concrete_Value Void, True, False;
+    [[nodiscard]] static constexpr Concrete_Value Int(Big_Int value) noexcept
+    {
+        return { Concrete_Type::Int, value };
+    }
 
     constexpr Concrete_Value(Concrete_Type type, Big_Int value)
         : type(type)
