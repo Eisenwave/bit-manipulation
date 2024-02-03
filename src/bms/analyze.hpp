@@ -9,16 +9,9 @@ struct Analyzer_Base {
     Parsed_Program& m_program;
     ast::Program_Node& m_root;
 
-    Analyzer_Base(Parsed_Program& program)
-        : m_program(program)
-        , m_root(std::get<ast::Program_Node>(program.get_node(program.root_node)))
-    {
-    }
+    Analyzer_Base(Parsed_Program& program);
 
-    ast::Some_Node& get_node(ast::Node_Handle handle)
-    {
-        return m_program.get_node(handle);
-    }
+    ast::Some_Node& get_node(ast::Node_Handle handle);
 };
 
 inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
@@ -26,7 +19,7 @@ inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
     if (Bit_Generic_Type* g = std::get_if<Bit_Generic_Type>(&type)) {
         return g->width;
     }
-    return Node_Handle::null;
+    return ast::Node_Handle::null;
 }
 
 Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);

@@ -4,10 +4,22 @@
 #include "bms/bms.hpp"
 #include "bms/operations.hpp"
 #include "bms/parse_number.hpp"
+#include "bms/parsing.hpp"
 
 using namespace bit_manipulation::bms::ast;
 
 namespace bit_manipulation::bms {
+
+Analyzer_Base::Analyzer_Base(Parsed_Program& program)
+    : m_program(program)
+    , m_root(std::get<ast::Program_Node>(program.get_node(program.root_node)))
+{
+}
+
+ast::Some_Node& Analyzer_Base::get_node(ast::Node_Handle handle)
+{
+    return m_program.get_node(handle);
+}
 
 namespace {
 
