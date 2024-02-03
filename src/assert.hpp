@@ -10,6 +10,9 @@ namespace bit_manipulation {
 #define BIT_MANIPULATION_ASSERT(...)                                                               \
     ((__VA_ARGS__) ? void() : ::bit_manipulation::assert_fail(#__VA_ARGS__))
 
+#define BIT_MANIPULATION_ASSERT_UNREACHABLE(...)                                                   \
+    (::bit_manipulation::assert_fail("Unreachable code reached" __VA_OPT__(": ") __VA_ARGS__))
+
 #if __has_cpp_attribute(assume)
 #define M3DP_ASSUME(...) [[assume(__VA_ARGS__)]]
 #elif defined(__clang__)
