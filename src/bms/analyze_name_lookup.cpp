@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "bms/analyze.hpp"
-#include "bms/parsing.hpp"
+#include "bms/parse.hpp"
 
 using namespace bit_manipulation::bms::ast;
 

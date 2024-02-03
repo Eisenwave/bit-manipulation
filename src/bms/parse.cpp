@@ -4,7 +4,7 @@
 #include "assert.hpp"
 #include "result.hpp"
 
-#include "bms/parsing.hpp"
+#include "bms/parse.hpp"
 
 using namespace bit_manipulation::bms::ast;
 
@@ -24,8 +24,7 @@ bool try_downsize(std::vector<T>& vec, typename std::vector<T>::size_type size)
     if (size > vec.size()) {
         return false;
     }
-    using Difference = std::vector<T>::difference_type;
-    vec.erase(vec.begin() + static_cast<Difference>(size), vec.end());
+    vec.erase(vec.begin() + static_cast<std::vector<T>::difference_type>(size), vec.end());
     return true;
 }
 

@@ -6,8 +6,8 @@
 #include "assert.hpp"
 #include "io.hpp"
 
-#include "bms/bms.hpp"
-#include "bms/parsing.hpp"
+#include "bms/analysis_error.hpp"
+#include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
 namespace bit_manipulation {

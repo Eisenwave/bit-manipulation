@@ -36,6 +36,8 @@ enum struct Type_Error : int {
     int_logical,
     /// @brief Logical operators were applied to Uint.
     uint_logical,
+    /// @brief Logical operators were applied to something other than bool.
+    non_bool_logical,
     /// @brief A binary or n-ary operation with incompatible types was attempted.
     incompatible_types,
     /// @brief A binary or n-ary operation with UInts of different widths was attempted.

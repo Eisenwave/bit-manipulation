@@ -23,7 +23,6 @@ struct Function_Node;
 } // namespace ast
 
 enum struct Token_Type : int;
-enum struct Node_Type : int;
 
 enum struct Evaluation_Error : int;
 enum struct Type_Error : int;

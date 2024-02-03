@@ -93,8 +93,6 @@ struct Analysis_Error {
     }
 };
 
-Result<void, Analysis_Error> analyze(Parsed_Program& program);
-
 } // namespace bit_manipulation::bms
 
 #endif

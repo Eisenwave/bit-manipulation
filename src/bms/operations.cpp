@@ -442,11 +442,14 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
     if (!type_result) {
         return Evaluation_Error::type_error;
     }
-    if (lhs && condition && rhs) {
-        return result_from_concrete(evaluate_if_expression(
-            lhs.concrete_value(), condition.concrete_value(), rhs.concrete_value()));
+    if (!condition.int_value) {
+        return Value { *type_result };
     }
-    return Value { *type_result };
+    const auto [result, lossy] = (*condition.int_value ? lhs : rhs).convert_to(*type_result);
+    if (lossy) {
+        return Evaluation_Error::int_to_uint_range_error;
+    }
+    return result;
 }
 
 } // namespace bit_manipulation::bms

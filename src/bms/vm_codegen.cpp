@@ -1,5 +1,6 @@
 #include "bms/analyze.hpp"
-#include "bms/parsing.hpp"
+#include "bms/ast.hpp"
+#include "bms/parse.hpp"
 #include "bms/vm_instructions.hpp"
 
 using namespace bit_manipulation::bms::ast;

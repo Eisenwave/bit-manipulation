@@ -7,14 +7,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-extension)
 
 set(HEADERS
+    src/ansi.hpp
     src/assert.hpp
+    src/bms/analysis_error.hpp
     src/bms/analyze.hpp
-    src/bms/bms.hpp
+    src/bms/ast.hpp
     src/bms/operations.hpp
     src/bms/parse_number.hpp
-    src/bms/parsing.hpp
+    src/bms/parse.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
+    src/bms/type.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp

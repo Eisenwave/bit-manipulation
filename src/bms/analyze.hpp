@@ -1,8 +1,9 @@
 #ifndef BIT_MANIPULATION_BMS_ANALYZE_HPP
 #define BIT_MANIPULATION_BMS_ANALYZE_HPP
 
-#include "bms/bms.hpp"
-#include "bms/parsing.hpp"
+#include "bms/analysis_error.hpp"
+#include "bms/ast.hpp"
+#include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -24,6 +25,8 @@ inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
 }
 
 Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);
+
+Result<void, Analysis_Error> analyze(Parsed_Program& program);
 
 } // namespace bit_manipulation::bms
 

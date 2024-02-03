@@ -1,6 +1,6 @@
-#include "bms/bms.hpp"
+#include "bms/analysis_error.hpp"
 #include "bms/grammar.hpp"
-#include "bms/parsing.hpp"
+#include "bms/parse.hpp"
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
@@ -365,33 +365,6 @@ namespace bit_manipulation::bms {
     case unary_operator: return "unary_operator";
     case type: return "type";
     case uint: return "uint";
-    }
-    return "";
-}
-
-[[nodiscard]] std::string_view node_type_name(ast::Node_Type t)
-{
-    using enum ast::Node_Type;
-
-    switch (t) {
-    case program: return "program";
-    case function: return "function";
-    case parameter_list: return "parameter_list";
-    case parameter: return "parameter";
-    case type: return "type";
-    case variable: return "variable";
-    case if_statement: return "if_statement";
-    case while_statement: return "while_statement";
-    case jump: return "jump";
-    case return_statement: return "return_statement";
-    case assignment: return "assignment";
-    case block_statement: return "block_statement";
-    case if_expression: return "if_expression";
-    case binary_expression: return "binary_expression";
-    case prefix_expression: return "prefix_expression";
-    case function_call_expression: return "function_call_expression";
-    case id_expression: return "id_expression";
-    case literal: return "literal";
     }
     return "";
 }
