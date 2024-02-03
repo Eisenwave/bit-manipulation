@@ -8,7 +8,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Evaluation_Error {
+enum struct Evaluation_Error : int {
     /// @brief Type-checking of the evaluation failed.
     type_error,
     /// @brief When converting Int to Uint(N), the Int couldn't be represented.
@@ -19,7 +19,7 @@ enum struct Evaluation_Error {
     shift_too_much,
 };
 
-enum struct Type_Error {
+enum struct Type_Error : int {
     /// @brief Use of an invalid operator.
     invalid_operator,
     /// @brief An operation involving Void was attempted.

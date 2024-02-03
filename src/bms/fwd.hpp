@@ -17,7 +17,14 @@ enum struct Node_Handle : Size {
     null = std::numeric_limits<Size>::max()
 };
 
+struct Some_Node;
+struct Program_Node;
+struct Function_Node;
+
 } // namespace ast
+
+enum struct Evaluation_Error : int;
+enum struct Type_Error : int;
 
 struct Parsed_Program;
 
