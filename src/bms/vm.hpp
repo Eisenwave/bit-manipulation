@@ -23,8 +23,8 @@ struct Store {
     ast::Node_Handle target;
 };
 
-/// @brief Jumps to the local instruction at index `label`.
-/// Halts if `label` is invalid.
+/// @brief Jumps to the local instruction at index `current + offset + 1`.
+/// At `offset == 0`, this is a no-op instruction.
 struct Jump {
     Signed_Size offset;
 };
