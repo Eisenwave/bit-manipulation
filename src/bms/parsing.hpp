@@ -11,6 +11,7 @@
 #include "config.hpp"
 #include "result.hpp"
 
+#include "bms/fwd.hpp"
 #include "bms/grammar.hpp"
 #include "bms/tokens.hpp"
 #include "bms/value.hpp"
@@ -108,6 +109,7 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
 
 struct Parameter_List_Node final : detail::Node_Base {
     std::vector<Node_Handle> parameters;
+    std::optional<Value> const_value;
 
     Parameter_List_Node(Token token, std::vector<Node_Handle>&& parameters);
 
