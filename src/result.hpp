@@ -11,8 +11,10 @@ struct Bad_Result_Access : std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
+struct Error_Tag { };
+struct Success_Tag { };
+
 template <typename T, typename Error>
-    requires(!std::same_as<T, Error>)
 struct Result {
 private:
     union {
@@ -22,6 +24,38 @@ private:
     bool m_has_value;
 
 public:
+    [[nodiscard]] constexpr Result(Success_Tag,
+                                   const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
+        requires std::is_copy_constructible_v<T>
+        : m_value(value)
+        , m_has_value(true)
+    {
+    }
+
+    [[nodiscard]] constexpr Result(Success_Tag,
+                                   T&& value) noexcept(std::is_nothrow_move_constructible_v<T>)
+        requires std::is_move_constructible_v<T>
+        : m_value(std::move(value))
+        , m_has_value(true)
+    {
+    }
+
+    [[nodiscard]] constexpr Result(Error_Tag, const Error& error) noexcept(
+        std::is_nothrow_copy_constructible_v<Error>)
+        requires std::is_copy_constructible_v<Error>
+        : m_error(error)
+        , m_has_value(false)
+    {
+    }
+
+    [[nodiscard]] constexpr Result(Error_Tag, Error&& error) noexcept(
+        std::is_nothrow_move_constructible_v<Error>)
+        requires std::is_move_constructible_v<Error>
+        : m_error(std::move(error))
+        , m_has_value(false)
+    {
+    }
+
     [[nodiscard]] constexpr Result(const T& value) noexcept(std::is_nothrow_copy_constructible_v<T>)
         requires std::is_copy_constructible_v<T>
         : m_value(value)
