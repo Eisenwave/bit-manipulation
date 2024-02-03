@@ -12,6 +12,8 @@ set(HEADERS
     src/bms/analysis_error.hpp
     src/bms/analyze.hpp
     src/bms/ast.hpp
+    src/bms/grammar.hpp
+    src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
     src/bms/parse_number.hpp
     src/bms/parse.hpp
