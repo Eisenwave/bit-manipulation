@@ -2,7 +2,6 @@
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
 #include "bms/operations.hpp"
-#include "bms/parsing.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -57,6 +56,8 @@ enum struct Analysis_Error_Code {
     call_non_function,
     /// @brief A function call with the wrong number of arguments was attempted.
     wrong_number_of_arguments,
+    /// @brief Constant evaluation depends on a function whose definition is not yet complete.
+    codegen_call_to_unanalyzed,
 };
 
 struct Analysis_Error {
