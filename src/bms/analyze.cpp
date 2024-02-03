@@ -131,6 +131,8 @@ private:
     }
 };
 
+// =================================================================================================
+
 struct Type_Analyzer : Analyzer_Base {
 private:
     enum struct Context {
@@ -173,8 +175,11 @@ private:
     }
 
     template <typename T>
+    Result<void, Analysis_Error> analyze_types(T& node, Context context) = delete;
+
+    template <typename T>
         requires(!std::is_const_v<T>)
-    Result<void, Analysis_Error> analyze_types(T& node, Context context)
+    Result<void, Analysis_Error> analyze_child_types(T& node, Context context)
     {
         for (Node_Handle h : node.get_children()) {
             auto r = analyze_types(h, context);
@@ -184,6 +189,13 @@ private:
         }
         node.const_value = Value::Void;
         return {};
+    }
+
+    template <>
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Program_Node& node,
+                                                                      Context context)
+    {
+        return analyze_child_types(node, context);
     }
 
     template <>
@@ -212,6 +224,20 @@ private:
         }
         node.const_value = get_const_value(get_node(node.get_return_type()));
         return {};
+    }
+
+    template <>
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Parameter_List_Node& node,
+                                                                      Context context)
+    {
+        return analyze_child_types(node, context);
+    }
+
+    template <>
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Parameter_Node& node,
+                                                                      Context context)
+    {
+        return analyze_child_types(node, context);
     }
 
     template <>
@@ -429,6 +455,13 @@ private:
         }
         node.const_value = *eval_result;
         return {};
+    }
+
+    template <>
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Block_Statement_Node& node,
+                                                                      Context context)
+    {
+        return analyze_child_types(node, context);
     }
 
     template <>
