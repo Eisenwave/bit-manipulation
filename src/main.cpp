@@ -7,6 +7,8 @@
 #include "io.hpp"
 
 #include "bms/bms.hpp"
+#include "bms/parsing.hpp"
+#include "bms/tokenize.hpp"
 
 namespace bit_manipulation {
 namespace {
@@ -21,10 +23,11 @@ Tokenized_File tokenize_file(std::string_view file)
     std::string program = file_to_string(file);
 
     std::vector<bms::Token> tokens;
-    if (const auto result = tokenize(tokens, program)) {
+    if (const Result<void, bms::Source_Position> result = tokenize(tokens, program)) {
         return { std::move(tokens), std::move(program) };
     }
     else {
+        // TODO: diagnostics
         throw std::runtime_error("Failed to tokenize");
     }
 }

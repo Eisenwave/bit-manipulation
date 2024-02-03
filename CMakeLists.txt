@@ -8,14 +8,16 @@ set(WARNING_OPTIONS -Wall -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-e
 
 set(HEADERS
     src/assert.hpp
-    src/bms/vm.hpp
     src/bms/analyze.hpp
     src/bms/bms.hpp
     src/bms/operations.hpp
     src/bms/parse_number.hpp
     src/bms/parsing.hpp
     src/bms/tokens.hpp
+    src/bms/tokenize.hpp
     src/bms/value.hpp
+    src/bms/vm_codegen.hpp
+    src/bms/vm.hpp
     src/config.hpp
     src/io.hpp
     src/result.hpp)

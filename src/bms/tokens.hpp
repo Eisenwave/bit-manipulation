@@ -2,7 +2,6 @@
 #define BIT_MANIPULATION_BMS_TOKENS_HPP
 
 #include <string_view>
-#include <vector>
 
 #include "config.hpp"
 
@@ -172,20 +171,6 @@ struct Token {
         return source.substr(pos.begin, length);
     }
 };
-
-enum struct Tokenize_Error_Code { ok, illegal_character };
-
-struct Tokenize_Error {
-    Tokenize_Error_Code code;
-    Source_Position pos;
-
-    [[nodiscard]] explicit operator bool() const noexcept
-    {
-        return code == Tokenize_Error_Code::ok;
-    }
-};
-
-Tokenize_Error tokenize(std::vector<Token>& out, std::string_view source) noexcept;
 
 } // namespace bit_manipulation::bms
 
