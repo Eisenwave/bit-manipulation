@@ -19,7 +19,7 @@ enum struct Evaluation_Error : int {
     shift_too_much,
 };
 
-enum struct Type_Error : int {
+enum struct Type_Error_Code : int {
     /// @brief Use of an invalid operator.
     invalid_operator,
     /// @brief An operation involving Void was attempted.
@@ -48,13 +48,13 @@ enum struct Type_Error : int {
 
 // Type-only evaluations.
 
-[[nodiscard]] Result<Concrete_Type, Type_Error> check_unary_operator(Token_Type op,
-                                                                     Concrete_Type value) noexcept;
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_unary_operator(Token_Type op, Concrete_Type value) noexcept;
 
-[[nodiscard]] Result<Concrete_Type, Type_Error>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexcept;
 
-[[nodiscard]] Result<Concrete_Type, Type_Error>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept;
 
 // Concrete evaluations.

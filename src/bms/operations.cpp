@@ -74,42 +74,42 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error> result)
 
 // TYPE ============================================================================================
 
-[[nodiscard]] Result<Concrete_Type, Type_Error> check_unary_operator(Token_Type op,
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_unary_operator(Token_Type op,
                                                                      Concrete_Type value) noexcept
 {
     if (!is_unary_operator(op)) {
-        return Type_Error::invalid_operator;
+        return Type_Error_Code::invalid_operator;
     }
 
     switch (value.type) {
 
     case Type_Type::Void: {
-        return Type_Error::void_operation;
+        return Type_Error_Code::void_operation;
     }
 
     case Type_Type::Bool: {
         if (is_arithmetic_operator(op)) {
-            return Type_Error::bool_arithmetic;
+            return Type_Error_Code::bool_arithmetic;
         }
         if (is_bitwise_operator(op)) {
-            return Type_Error::bool_bitwise;
+            return Type_Error_Code::bool_bitwise;
         }
         return value;
     }
 
     case Type_Type::Int: {
         if (is_bitwise_operator(op)) {
-            return Type_Error::int_bitwise;
+            return Type_Error_Code::int_bitwise;
         }
         if (is_logical_operator(op)) {
-            return Type_Error::int_logical;
+            return Type_Error_Code::int_logical;
         }
         return value;
     }
 
     case Type_Type::Uint: {
         if (is_logical_operator(op)) {
-            return Type_Error::uint_logical;
+            return Type_Error_Code::uint_logical;
         }
         return value;
     }
@@ -118,15 +118,15 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error> result)
     }
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexcept
 {
     if (!is_binary_operator(op)) {
-        return Type_Error::invalid_operator;
+        return Type_Error_Code::invalid_operator;
     }
 
     if (!convert_to_equal_type(lhs, rhs)) {
-        return Type_Error::incompatible_types;
+        return Type_Error_Code::incompatible_types;
     }
 
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
@@ -134,38 +134,38 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
     switch (lhs.type) {
 
     case Type_Type::Void: {
-        return Type_Error::void_operation;
+        return Type_Error_Code::void_operation;
     }
 
     case Type_Type::Bool: {
         if (is_arithmetic_operator(op)) {
-            return Type_Error::bool_arithmetic;
+            return Type_Error_Code::bool_arithmetic;
         }
         if (is_bitwise_operator(op)) {
-            return Type_Error::bool_bitwise;
+            return Type_Error_Code::bool_bitwise;
         }
         if (is_relational_comparison_operator(op)) {
-            return Type_Error::bool_relational_comparison;
+            return Type_Error_Code::bool_relational_comparison;
         }
         return Concrete_Type::Bool;
     }
 
     case Type_Type::Int: {
         if (is_bitwise_operator(op)) {
-            return Type_Error::int_bitwise;
+            return Type_Error_Code::int_bitwise;
         }
         if (is_logical_operator(op)) {
-            return Type_Error::int_logical;
+            return Type_Error_Code::int_logical;
         }
         return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
     }
 
     case Type_Type::Uint: {
         if (lhs.width != rhs.width) {
-            return Type_Error::incompatible_widths;
+            return Type_Error_Code::incompatible_widths;
         }
         if (is_logical_operator(op)) {
-            return Type_Error::uint_logical;
+            return Type_Error_Code::uint_logical;
         }
         return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
     }
@@ -174,14 +174,14 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
     }
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept
 {
     if (condition != Concrete_Type::Bool) {
-        return Type_Error::condition_not_bool;
+        return Type_Error_Code::condition_not_bool;
     }
     if (!convert_to_equal_type(lhs, rhs)) {
-        return Type_Error::incompatible_types;
+        return Type_Error_Code::incompatible_types;
     }
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
 
@@ -207,7 +207,7 @@ evaluate_conversion(Concrete_Value value, Concrete_Type to) noexcept
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error>
 evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
 {
-    if (Result<Concrete_Type, Type_Error> r = check_unary_operator(op, value.type); !r) {
+    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error::type_error;
     }
 
@@ -250,7 +250,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error>
 evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) noexcept
 {
-    Result<Concrete_Type, Type_Error> target_type = check_binary_operator(lhs.type, op, rhs.type);
+    Result<Concrete_Type, Type_Error_Code> target_type = check_binary_operator(lhs.type, op, rhs.type);
     if (!target_type) {
         return Evaluation_Error::type_error;
     }
@@ -364,7 +364,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept
 {
-    Result<Concrete_Type, Type_Error> type_result
+    Result<Concrete_Type, Type_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
     if (!type_result) {
         return Evaluation_Error::type_error;
@@ -395,7 +395,7 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
 [[nodiscard]] Result<Value, Evaluation_Error> evaluate_unary_operator(Token_Type op,
                                                                       Value value) noexcept
 {
-    if (Result<Concrete_Type, Type_Error> r = check_unary_operator(op, value.type); !r) {
+    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error::type_error;
     }
     if (!value.int_value) {
@@ -407,7 +407,7 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
 [[nodiscard]] Result<Value, Evaluation_Error>
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
 {
-    const Result<Concrete_Type, Type_Error> type_result
+    const Result<Concrete_Type, Type_Error_Code> type_result
         = check_binary_operator(lhs.type, op, rhs.type);
     if (!type_result) {
         return Evaluation_Error::type_error;
@@ -437,7 +437,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
 [[nodiscard]] Result<Value, Evaluation_Error>
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
 {
-    Result<Concrete_Type, Type_Error> type_result
+    Result<Concrete_Type, Type_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
     if (!type_result) {
         return Evaluation_Error::type_error;

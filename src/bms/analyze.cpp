@@ -301,7 +301,7 @@ private:
         const Token cause_token = get_token(get_node(node.get_initializer()));
         BIT_MANIPULATION_ASSERT(type_node.const_value.has_value());
         if (!initializer_value->type.is_convertible_to(type_node.const_value->type)) {
-            return Analysis_Error { Type_Error::incompatible_types, node.token, cause_token };
+            return Analysis_Error { Type_Error_Code::incompatible_types, node.token, cause_token };
         }
         const Result<Value, Evaluation_Error> r
             = evaluate_conversion(*initializer_value, type_node.const_value->type);
@@ -377,7 +377,7 @@ private:
         auto expr_value = get_const_value(get_node(node.get_expression()));
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
         if (!expr_value->type.is_convertible_to(return_info->type)) {
-            return Analysis_Error { Type_Error::incompatible_types, node.token,
+            return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
                                     return_info->token };
         }
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
@@ -416,7 +416,7 @@ private:
 
         const Concrete_Type dest_type = looked_up_var.const_value.value().type;
         if (!expr_value->type.is_convertible_to(dest_type)) {
-            return Analysis_Error { Type_Error::incompatible_types, node.token,
+            return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
                                     get_token(get_node(node.get_expression())) };
         }
 
@@ -463,7 +463,7 @@ private:
         }
         auto right_value = get_const_value(get_node(node.get_right()));
 
-        Result<Concrete_Type, Type_Error> type_result
+        Result<Concrete_Type, Type_Error_Code> type_result
             = check_if_expression(left_value->type, condition_value->type, right_value->type);
         if (!type_result) {
             return Analysis_Error { type_result.error(), node.token };
@@ -501,7 +501,7 @@ private:
                 = node.op == Token_Type::logical_and || node.op == Token_Type::logical_or;
             if (context == Context::constant_expression && is_short_circuiting) {
                 if (left_value->type != Concrete_Type::Bool) {
-                    return Analysis_Error { Type_Error::non_bool_logical, node.token,
+                    return Analysis_Error { Type_Error_Code::non_bool_logical, node.token,
                                             get_token(left_node) };
                 }
                 // This was analyzed as a constant expression, so a concrete value must have
@@ -519,7 +519,7 @@ private:
         }
         auto right_value = get_const_value(get_node(node.get_right()));
 
-        const Result<Concrete_Type, Type_Error> type_result
+        const Result<Concrete_Type, Type_Error_Code> type_result
             = check_binary_operator(left_value->type, node.op, right_value->type);
         if (!type_result) {
             return Analysis_Error { type_result.error(), node.token };
@@ -544,7 +544,7 @@ private:
         const auto expr_value = get_const_value(get_node(node.get_expression()));
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
-        const Result<Concrete_Type, Type_Error> type_result
+        const Result<Concrete_Type, Type_Error_Code> type_result
             = check_unary_operator(node.op, expr_value->type);
         if (!type_result) {
             return Analysis_Error { type_result.error(), node.token };
@@ -623,7 +623,8 @@ private:
             auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
             if (!arg_value->type.is_convertible_to(param_type)) {
-                return Analysis_Error { Type_Error::incompatible_types, node.token, param.token };
+                return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
+                                        param.token };
             }
 
             Result<Value, Evaluation_Error> conv_result
