@@ -303,7 +303,7 @@ private:
         if (!initializer_value->type.is_convertible_to(type_node.const_value->type)) {
             return Analysis_Error { Type_Error_Code::incompatible_types, node.token, cause_token };
         }
-        const Result<Value, Evaluation_Error> r
+        const Result<Value, Evaluation_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value->type);
         if (r) {
             node.const_value = node.is_const ? *r : Value { r->type };
@@ -381,7 +381,7 @@ private:
                                     return_info->token };
         }
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
-        const Result<Value, Evaluation_Error> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, return_info->type);
         node.const_value = eval_result ? *eval_result : Value { return_info->type };
         return {};
@@ -421,7 +421,7 @@ private:
         }
 
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
-        const Result<Value, Evaluation_Error> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, dest_type);
         if (!eval_result) {
             node.const_value = Value { dest_type };
@@ -468,7 +468,7 @@ private:
         if (!type_result) {
             return Analysis_Error { type_result.error(), node.token };
         }
-        const Result<Value, Evaluation_Error> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_if_expression(*left_value, *condition_value, *right_value);
 
         // Type analysis has already succeeded, and for context expressions, the condition is known.
@@ -525,7 +525,7 @@ private:
             return Analysis_Error { type_result.error(), node.token };
         }
 
-        const Result<Value, Evaluation_Error> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_binary_operator(*left_value, node.op, *right_value);
         if (!eval_result && context == Context::constant_expression) {
             return Analysis_Error { eval_result.error(), node.token };
@@ -549,7 +549,7 @@ private:
         if (!type_result) {
             return Analysis_Error { type_result.error(), node.token };
         }
-        const Result<Value, Evaluation_Error> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_unary_operator(node.op, *expr_value);
         if (!eval_result && context == Context::constant_expression) {
             return Analysis_Error { eval_result.error(), node.token };
@@ -627,7 +627,7 @@ private:
                                         param.token };
             }
 
-            Result<Value, Evaluation_Error> conv_result
+            Result<Value, Evaluation_Error_Code> conv_result
                 = evaluate_conversion(*arg_value, param_type);
             // FIXME: this code is probably borked
             if (context == Context::constant_expression && !conv_result) {

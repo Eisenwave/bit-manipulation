@@ -24,7 +24,7 @@ struct Function_Node;
 
 enum struct Token_Type : int;
 
-enum struct Evaluation_Error : int;
+enum struct Evaluation_Error_Code : int;
 enum struct Execution_Error_Code : int;
 enum struct Type_Error_Code : int;
 

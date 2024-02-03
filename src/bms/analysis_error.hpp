@@ -64,7 +64,7 @@ enum struct Analysis_Error_Code {
 struct Analysis_Error {
     Analysis_Error_Code code {};
     Type_Error_Code type_error {};
-    Evaluation_Error evaluation_error {};
+    Evaluation_Error_Code evaluation_error {};
     Token fail_token {};
     Token cause_token {};
 
@@ -76,7 +76,7 @@ struct Analysis_Error {
     {
     }
 
-    constexpr Analysis_Error(Evaluation_Error code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Evaluation_Error_Code code, Token fail_token, Token cause_token = {})
         : code(Analysis_Error_Code::evaluation_error)
         , evaluation_error(code)
         , fail_token(fail_token)

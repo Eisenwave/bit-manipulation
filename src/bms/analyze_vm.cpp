@@ -201,7 +201,7 @@ private:
         }
         const Concrete_Value operand = stack.back();
         stack.pop_back();
-        const Result<Concrete_Value, Evaluation_Error> result
+        const Result<Concrete_Value, Evaluation_Error_Code> result
             = evaluate_unary_operator(unary_operate.op, operand);
         if (!result) {
             return Execution_Error_Code::evaluation; // TODO better diagnostics
@@ -221,7 +221,7 @@ private:
         stack.pop_back();
         const Concrete_Value lhs = stack.back();
         stack.pop_back();
-        const Result<Concrete_Value, Evaluation_Error> result
+        const Result<Concrete_Value, Evaluation_Error_Code> result
             = evaluate_binary_operator(lhs, binary_operate.op, rhs);
         if (!result) {
             return Execution_Error_Code::evaluation; // TODO better diagnostics

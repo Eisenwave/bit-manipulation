@@ -23,10 +23,10 @@ namespace {
 }
 
 template <typename T>
-[[nodiscard]] Result<void, Evaluation_Error> convert_to_equal_type_impl(T& lhs, T& rhs)
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
     if (!convert_to_equal_type(lhs.type, rhs.type)) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
 
     Concrete_Type lhs_type = lhs.type;
@@ -36,31 +36,31 @@ template <typename T>
         lhs = converted;
     }
     else {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
 
     if (auto [converted, lossy] = lhs.convert_to(rhs_type); !lossy) {
         lhs = converted;
     }
     else {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return {};
 }
 
-[[nodiscard]] Result<void, Evaluation_Error> convert_to_equal_type(Concrete_Value& lhs,
-                                                                   Concrete_Value& rhs)
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Concrete_Value& lhs,
+                                                                        Concrete_Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
 
-[[nodiscard]] Result<void, Evaluation_Error> convert_to_equal_type(Value& lhs, Value& rhs)
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Value& lhs, Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
 
-[[nodiscard]] Result<Value, Evaluation_Error>
-result_from_concrete(Result<Concrete_Value, Evaluation_Error> result)
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
+result_from_concrete(Result<Concrete_Value, Evaluation_Error_Code> result)
 {
     if (result) {
         return Value { result.value() };
@@ -74,8 +74,8 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error> result)
 
 // TYPE ============================================================================================
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_unary_operator(Token_Type op,
-                                                                     Concrete_Type value) noexcept
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_unary_operator(Token_Type op, Concrete_Type value) noexcept
 {
     if (!is_unary_operator(op)) {
         return Type_Error_Code::invalid_operator;
@@ -190,25 +190,25 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
 
 // CONCRETE VALUE ==================================================================================
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_conversion(Concrete_Value value, Concrete_Type to) noexcept
 {
     if (!value.type.is_convertible_to(to)) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
 
     auto [result, lossy] = value.convert_to(to);
     if (lossy) {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return result;
 }
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
 {
     if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
 
     switch (value.type.type) {
@@ -247,15 +247,16 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
     }
 }
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) noexcept
 {
-    Result<Concrete_Type, Type_Error_Code> target_type = check_binary_operator(lhs.type, op, rhs.type);
+    Result<Concrete_Type, Type_Error_Code> target_type
+        = check_binary_operator(lhs.type, op, rhs.type);
     if (!target_type) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
 
-    if (Result<void, Evaluation_Error> r = convert_to_equal_type(lhs, rhs); !r) {
+    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
         return r.error();
     }
 
@@ -279,7 +280,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
         case Token_Type::division:
         case Token_Type::remainder: {
             if (rhs.int_value == 0) {
-                return Evaluation_Error::division_by_zero;
+                return Evaluation_Error_Code::division_by_zero;
             }
             return op == Token_Type::division
                 ? Concrete_Value { lhs.type, lhs.int_value / rhs.int_value }
@@ -361,42 +362,42 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
     }
 }
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept
 {
     Result<Concrete_Type, Type_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
     if (!type_result) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
     const auto [result, lossy] = (condition.int_value ? lhs : rhs).convert_to(*type_result);
     if (lossy) {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return result;
 }
 
 // VALUE ===========================================================================================
 
-[[nodiscard]] Result<Value, Evaluation_Error> evaluate_conversion(Value value,
-                                                                  Concrete_Type to) noexcept
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
+                                                                       Concrete_Type to) noexcept
 {
     if (!value.type.is_convertible_to(to)) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
 
     auto [result, lossy] = value.convert_to(to);
     if (lossy) {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return result;
 }
 
-[[nodiscard]] Result<Value, Evaluation_Error> evaluate_unary_operator(Token_Type op,
-                                                                      Value value) noexcept
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
+                                                                           Value value) noexcept
 {
     if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
     if (!value.int_value) {
         return value;
@@ -404,15 +405,15 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
     return result_from_concrete(evaluate_unary_operator(op, value.concrete_value()));
 }
 
-[[nodiscard]] Result<Value, Evaluation_Error>
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
 {
     const Result<Concrete_Type, Type_Error_Code> type_result
         = check_binary_operator(lhs.type, op, rhs.type);
     if (!type_result) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
-    if (Result<void, Evaluation_Error> r = convert_to_equal_type(lhs, rhs); !r) {
+    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
         return r.error();
     }
     if (lhs && rhs) {
@@ -423,31 +424,31 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
     // illegal no matter what the other operand is, such as division by zero.
     if (rhs) {
         if ((op == Token_Type::division || op == Token_Type::remainder) && *rhs.int_value == 0) {
-            return Evaluation_Error::division_by_zero;
+            return Evaluation_Error_Code::division_by_zero;
         }
         if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
             && (*rhs.int_value < 0 || *rhs.int_value >= lhs.type.width)) {
-            return Evaluation_Error::shift_too_much;
+            return Evaluation_Error_Code::shift_too_much;
         }
     }
 
     return Value { *type_result };
 }
 
-[[nodiscard]] Result<Value, Evaluation_Error>
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
 {
     Result<Concrete_Type, Type_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
     if (!type_result) {
-        return Evaluation_Error::type_error;
+        return Evaluation_Error_Code::type_error;
     }
     if (!condition.int_value) {
         return Value { *type_result };
     }
     const auto [result, lossy] = (*condition.int_value ? lhs : rhs).convert_to(*type_result);
     if (lossy) {
-        return Evaluation_Error::int_to_uint_range_error;
+        return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return result;
 }

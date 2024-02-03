@@ -8,7 +8,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Evaluation_Error : int {
+enum struct Evaluation_Error_Code : int {
     /// @brief Type-checking of the evaluation failed.
     type_error,
     /// @brief When converting Int to Uint(N), the Int couldn't be represented.
@@ -59,30 +59,30 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
 
 // Concrete evaluations.
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_conversion(Concrete_Value value, Concrete_Type to) noexcept;
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept;
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) noexcept;
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept;
 
 // Evaluations.
 
-[[nodiscard]] Result<Value, Evaluation_Error> evaluate_conversion(Value value,
-                                                                  Concrete_Type to) noexcept;
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
+                                                                       Concrete_Type to) noexcept;
 
-[[nodiscard]] Result<Value, Evaluation_Error> evaluate_unary_operator(Token_Type op,
-                                                                      Value value) noexcept;
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
+                                                                           Value value) noexcept;
 
-[[nodiscard]] Result<Value, Evaluation_Error>
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept;
 
-[[nodiscard]] Result<Value, Evaluation_Error>
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept;
 
 } // namespace bit_manipulation::bms
