@@ -25,6 +25,9 @@ struct Concrete_Type {
     static const Concrete_Type Bool;
     static const Concrete_Type Int;
 
+    /// @brief Returns a `Uint` type with the given width.
+    /// @param width an integer in range `[1, uint_max_width]`
+    /// @return The `Uint(width)` type.
     [[nodiscard]] static constexpr Concrete_Type Uint(int width)
     {
         BIT_MANIPULATION_ASSERT(width <= uint_max_width);
@@ -36,18 +39,24 @@ private:
     Type_Type m_type;
     int m_width;
 
-    [[nodiscard]] constexpr explicit Concrete_Type(Type_Type type, int width = 0)
+    [[nodiscard]] constexpr explicit Concrete_Type(Type_Type type, int width)
         : m_type(type)
         , m_width(width)
     {
     }
 
 public:
+    [[nodiscard]] friend constexpr bool operator<=>(Concrete_Type, Concrete_Type) = default;
+
+    /// @brief Returns the type of this type.
+    /// @return The type-type.
     [[nodiscard]] constexpr Type_Type type() const noexcept
     {
         return m_type;
     }
 
+    /// @brief Returns the width of this type, or zero if it has none.
+    /// @return `0` if this type is not a `Uint`, otherwise the width `N` of the `Uint(N)` type.
     [[nodiscard]] constexpr int width() const noexcept
     {
         return m_width;
@@ -75,8 +84,6 @@ public:
         return false;
     }
 
-    [[nodiscard]] friend constexpr bool operator<=>(Concrete_Type, Concrete_Type) = default;
-
     /// @brief Returns `true` if this type is an `Int` or a `Uint` of any width.
     [[nodiscard]] constexpr bool is_integer() const
     {
@@ -90,9 +97,9 @@ public:
     }
 };
 
-inline constexpr Concrete_Type Concrete_Type::Void { Type_Type::Void };
-inline constexpr Concrete_Type Concrete_Type::Bool { Type_Type::Bool };
-inline constexpr Concrete_Type Concrete_Type::Int { Type_Type::Int };
+inline constexpr Concrete_Type Concrete_Type::Void { Type_Type::Void, 0 };
+inline constexpr Concrete_Type Concrete_Type::Bool { Type_Type::Bool, 0 };
+inline constexpr Concrete_Type Concrete_Type::Int { Type_Type::Int, 0 };
 
 } // namespace bit_manipulation::bms
 
