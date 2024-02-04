@@ -8,6 +8,7 @@
 #include "config.hpp"
 
 #include "bms/concrete_type.hpp"
+#include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
 
