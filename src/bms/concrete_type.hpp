@@ -67,19 +67,18 @@ public:
 
     [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
     {
-        if (m_type == Type_Type::Int) {
-            return true;
-        }
-        if (m_type == Type_Type::Bool && (value == 0 || value == 1)) {
-            return true;
-        }
-        if (m_type == Type_Type::Uint) {
+        switch (m_type) {
+        case Type_Type::Void: return false;
+        case Type_Type::Int: return true;
+        case Type_Type::Bool: return value == 0 || value == 1;
+        case Type_Type::Uint: {
             const auto mask = m_width == std::numeric_limits<Big_Uint>::digits
                 ? 0
                 : Big_Uint(Big_Uint(1) << m_width) - 1;
             return (Big_Uint(value) & ~mask) == 0;
         }
-        return false;
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("there are no more types");
     }
 
     /// @brief Returns `true` if this type is an `Int` or a `Uint` of any width.
