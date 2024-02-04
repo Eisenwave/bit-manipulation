@@ -1,9 +1,9 @@
 #include <variant>
 #include <vector>
 
+#include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
-#include "bms/value.hpp"
 
 namespace bit_manipulation::bms {
 namespace ins {

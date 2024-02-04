@@ -1,12 +1,13 @@
 #ifndef BIT_MANIPULATION_LINEAR_MAP_STACK_HPP
 #define BIT_MANIPULATION_LINEAR_MAP_STACK_HPP
 
+#include <optional>
 #include <vector>
 
 #include "result.hpp"
 
+#include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
-#include "bms/value.hpp"
 
 namespace bit_manipulation::bms {
 

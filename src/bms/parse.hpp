@@ -15,7 +15,6 @@
 #include "bms/fwd.hpp"
 #include "bms/grammar.hpp"
 #include "bms/tokens.hpp"
-#include "bms/value.hpp"
 
 namespace bit_manipulation::bms {
 
