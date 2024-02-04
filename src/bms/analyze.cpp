@@ -6,6 +6,8 @@
 #include "bms/operations.hpp"
 #include "bms/parse.hpp"
 #include "bms/parse_number.hpp"
+#include "bms/vm.hpp"
+#include "bms/vm_codegen.hpp"
 
 using namespace bit_manipulation::bms::ast;
 
@@ -165,30 +167,20 @@ private:
 
 // =================================================================================================
 
+enum struct Expression_Context : Default_Underlying {
+    // The default context. Full analysis of functions and everything inside.
+    normal,
+    // A constant expression. Constant evaluation cannot run into an unknown value.
+    constant,
+};
+
 struct Type_Analyzer : Analyzer_Base {
 private:
-    enum struct Analysis_Level : Default_Underlying {
-        /// @brief For analyzing functions only when called by other functions, i.e. it's not
-        /// necessary to analyze the function body.
-        shallow,
-        /// @brief Full analysis of a function, including its body.
-        full,
-        /// @brief Full analysis, recursively, for analyzing functions in constant expressions.
-        deep
-    };
-
-    enum struct Expression_Context : Default_Underlying {
-        // The default context. Full analysis of functions and everything inside.
-        normal,
-        // A constant expression. Constant evaluation cannot run into an unknown value.
-        constant,
-    };
-
     struct Return_Info {
         Concrete_Type type;
         Token token;
     };
-
+    Virtual_Machine constant_evaluation_machine;
     std::optional<Return_Info> return_info;
 
 public:
@@ -244,10 +236,11 @@ private:
     Result<void, Analysis_Error>
     analyze_types(Function_Node& node, Analysis_Level level, Expression_Context)
     {
-        // Early-terminate for already analyzed concrete functions.
-        if (node.const_value) {
+        BIT_MANIPULATION_ASSERT(level != Analysis_Level::unanalyzed);
+        if (node.analysis_so_far >= level) {
             return {};
         }
+
         // If the function is generic, we can never say that analysis succeeded entirely because
         // new implicit instantiations may have been generated in the meantime.
         // For concrete functions, we can memoize the result of type analysis.
@@ -276,12 +269,27 @@ private:
             !r) {
             return r;
         }
-        if (auto r = analyze_types(node.get_body(), level, Expression_Context::normal); !r) {
-            return r;
+        if (node.analysis_so_far < Analysis_Level::shallow) {
+            node.analysis_so_far = Analysis_Level::shallow;
         }
-        if (!node.is_generic) {
-            node.const_value = get_const_value(get_node(node.get_return_type()));
+        if (level >= Analysis_Level::full) {
+            if (auto r = analyze_types(node.get_body(), level, Expression_Context::normal); !r) {
+                return r;
+            }
         }
+        if (level >= Analysis_Level::deep) {
+            // TODO: consider generating code straight into the VM instructions instead of using a
+            // separate vector.
+            Result<std::vector<Instruction>, Analysis_Error> instructions
+                = generate_code(m_program, node);
+            if (!instructions) {
+                return instructions.error();
+            }
+            node.vm_address = constant_evaluation_machine.add_instructions(*instructions);
+        }
+        BIT_MANIPULATION_ASSERT(!node.is_generic);
+        node.const_value = get_const_value(get_node(node.get_return_type()));
+        node.analysis_so_far = level;
         return {};
     }
 
@@ -759,13 +767,18 @@ private:
             ? Analysis_Level::deep
             : Analysis_Level::shallow;
 
-        if (!function->const_value) {
+        {
+            // What we do here is akin to using a caller-saved register.
+            // We would need a whole stack of return infos otherwise.
+            auto preserved_return_info = return_info;
             auto r = analyze_types(*function, inner_level, context);
             if (!r) {
                 return r;
             }
+            return_info = preserved_return_info;
         }
-        BIT_MANIPULATION_ASSERT(function->const_value);
+
+        BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
         Concrete_Type return_type = function->const_value->type;
 
         // 6. Check whether the function can be called with the given arguments and obtain
@@ -779,7 +792,9 @@ private:
 
         // Similar to `arg_values` above, but with implicit conversions applied for the purpose
         // of evaluating the actual function call.
-        std::vector<Concrete_Value> param_values;
+        if (context == Expression_Context::constant) {
+            constant_evaluation_machine.reset();
+        }
 
         for (Size i = 0; i < node.arguments.size(); ++i) {
             auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
@@ -795,13 +810,26 @@ private:
                 if (!conv_result) {
                     return Analysis_Error { conv_result.error(), node.token, param.token };
                 }
-                param_values.push_back(conv_result->concrete_value());
+                constant_evaluation_machine.push(conv_result->concrete_value());
             }
         }
 
         // 7. Constant-evaluate the function call.
+        if (context == Expression_Context::constant) {
+            Result<void, Execution_Error_Code> cycle_result;
+            while ((cycle_result = constant_evaluation_machine.cycle())) { }
+            // Since there is no frame with a return address, the return statement of the function
+            // we execute will fail to pop.
+            if (cycle_result.error() != Execution_Error_Code::pop_call) {
+                return Analysis_Error { cycle_result.error(), node.token };
+            }
+            BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
+            node.const_value = constant_evaluation_machine.pop();
+        }
+        else {
+            node.const_value = Value::unknown_of_type(return_type);
+        }
 
-        node.const_value = Value::unknown_of_type(return_type);
         return {};
     }
 

@@ -9,6 +9,23 @@
 
 namespace bit_manipulation::bms {
 
+enum struct Analysis_Level : Default_Underlying {
+    /// @brief No analysis has taken place.
+    unanalyzed,
+    /// @brief For analyzing functions only when called by other functions, i.e. it's not
+    /// necessary to analyze the function body.
+    shallow,
+    /// @brief Full analysis of a function, including its body.
+    full,
+    /// @brief Full analysis, recursively, for analyzing functions in constant expressions.
+    deep
+};
+
+constexpr auto operator<=>(Analysis_Level x, Analysis_Level y) noexcept
+{
+    return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
+}
+
 struct Analyzer_Base {
     Parsed_Program& m_program;
     ast::Program_Node& m_root;

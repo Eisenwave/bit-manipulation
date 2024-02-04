@@ -6,7 +6,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Analysis_Error_Code {
+enum struct Analysis_Error_Code : Default_Underlying {
     /// @brief A name was already in use when attempting to define a global constant.
     failed_to_define_global_const,
     /// @brief A name was already in use when attempting to define a function.
@@ -39,6 +39,8 @@ enum struct Analysis_Error_Code {
     function_in_expression,
     /// @brief Type error in expressions, implicit conversions, etc.
     type_error,
+    /// @brief Error in the execution of the generated code for constexpr functions.
+    execution_error,
     /// @brief Evaluation error in constant expressions or constant folding.
     evaluation_error,
     /// @brief Condition of an if statement or while loop is not a `Bool`.
@@ -67,6 +69,7 @@ struct Analysis_Error {
     Analysis_Error_Code code {};
     Type_Error_Code type_error {};
     Evaluation_Error_Code evaluation_error {};
+    Execution_Error_Code execution_error {};
     Token fail_token {};
     Token cause_token {};
 
@@ -89,6 +92,14 @@ struct Analysis_Error {
     constexpr Analysis_Error(Type_Error_Code code, Token fail_token, Token cause_token = {})
         : code(Analysis_Error_Code::type_error)
         , type_error(code)
+        , fail_token(fail_token)
+        , cause_token(cause_token)
+    {
+    }
+
+    constexpr Analysis_Error(Execution_Error_Code code, Token fail_token, Token cause_token = {})
+        : code(Analysis_Error_Code::execution_error)
+        , execution_error(code)
         , fail_token(fail_token)
         , cause_token(cause_token)
     {

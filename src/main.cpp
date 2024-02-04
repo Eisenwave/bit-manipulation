@@ -23,7 +23,7 @@ Tokenized_File tokenize_file(std::string_view file)
     std::string program = file_to_string(file);
 
     std::vector<bms::Token> tokens;
-    if (const Result<void, bms::Source_Position> result = tokenize(tokens, program)) {
+    if (const Result<void, bms::Tokenize_Error> result = tokenize(tokens, program)) {
         return { std::move(tokens), std::move(program) };
     }
     else {

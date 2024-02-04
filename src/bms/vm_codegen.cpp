@@ -20,10 +20,10 @@ public:
     }
 
 public:
-    Result<std::vector<Instruction>, Analysis_Error> operator()(Node_Handle h,
-                                                                Function_Node& function)
+    Result<std::vector<Instruction>, Analysis_Error> operator()(Function_Node& function)
     {
-        auto r = generate_code(h, function);
+        // Functions don't need their own handle for any generation.
+        auto r = generate_code(Node_Handle::null, function);
         if (!r) {
             return r.error();
         }
@@ -424,11 +424,10 @@ private:
 } // namespace
 
 Result<std::vector<Instruction>, Analysis_Error> generate_code(Parsed_Program& program,
-                                                               Node_Handle function_handle)
+                                                               Function_Node& function)
 {
-    BIT_MANIPULATION_ASSERT(function_handle != Node_Handle::null);
     Virtual_Code_Generator gen { program };
-    return gen(function_handle, std::get<Function_Node>(program.get_node(function_handle)));
+    return gen(function);
 }
 
 } // namespace bit_manipulation::bms
