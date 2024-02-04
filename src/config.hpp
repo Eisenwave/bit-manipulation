@@ -77,6 +77,9 @@ using Big_Uint = unsigned;
 
 static_assert(sizeof(Int) == sizeof(Uint));
 
+/// @brief The default underlying type for scoped enumerations.
+using Default_Underlying = unsigned char;
+
 // #define M3DP_ENABLE_STATIC_TESTS
 
 } // namespace bit_manipulation

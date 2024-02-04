@@ -10,6 +10,10 @@ namespace {
 constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstuvwxyz"
                                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                                    "0123456789_";
+constexpr std::string_view hexadecimal_digits = "0123456789abcdefABCDEF";
+constexpr std::string_view decimal_digits = "0123456789";
+constexpr std::string_view octal_digits = "01234567";
+constexpr std::string_view binary_digits = "01";
 
 constexpr bool is_digit(char c)
 {
@@ -152,12 +156,14 @@ std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) no
 }
 
 struct Tokenize_Result {
+    static constexpr Size failure_length = 0;
+
     Size length;
     Token_Type type;
 
     [[nodiscard]] explicit operator bool() const
     {
-        return length != 0;
+        return length != failure_length;
     }
 };
 
@@ -166,26 +172,31 @@ Tokenize_Result try_tokenize_literal(std::string_view s)
     if (s.empty() || !is_digit(s[0])) {
         return {};
     }
-    if (s[0] == '0') {
-        if (s.length() > 1) {
-            if (s[1] == 'x' || s[1] == 'b') {
-                const Token_Type type
-                    = s[1] == 'x' ? Token_Type::hexadecimal_literal : Token_Type::binary_literal;
-                const std::string_view allowed_digits
-                    = s[1] == 'x' ? "0123456789abcdefABCDEF" : "01";
-                const Size digits = s.substr(2).find_first_not_of(allowed_digits);
-                const Size result = digits == 0        ? 0
-                    : digits == std::string_view::npos ? s.length()
-                                                       : digits + 2;
-                return { result, type };
-            }
-            const Size digits = s.find_first_not_of("01234567");
-            return { std::min(digits, s.length()), Token_Type::octal_literal };
-        }
-        return { 1, Token_Type::decimal_literal };
+    if (s.starts_with("0x")) {
+        const Size digits = s.substr(2).find_first_not_of(hexadecimal_digits);
+        const Size result = digits == 0        ? Tokenize_Result::failure_length
+            : digits == std::string_view::npos ? s.length()
+                                               : digits + 2;
+        return { result, Token_Type::hexadecimal_literal };
     }
-    const Size digits = s.find_first_not_of("0123456789");
-    const Size result = digits == 0 ? 0 : digits == std::string_view::npos ? s.length() : digits;
+    if (s.starts_with("0b")) {
+        const Size digits = s.substr(2).find_first_not_of(binary_digits);
+        const Size result = digits == 0        ? Tokenize_Result::failure_length
+            : digits == std::string_view::npos ? s.length()
+                                               : digits + 2;
+        return { result, Token_Type::binary_literal };
+    }
+    if (s[0] == '0') {
+        if (s.length() == 1) {
+            return { 1, Token_Type::decimal_literal };
+        }
+        const Size digits = s.find_first_not_of(octal_digits);
+        return { std::min(digits, s.length()), Token_Type::octal_literal };
+    }
+    const Size digits = s.find_first_not_of(decimal_digits);
+    const Size result = digits == 0        ? Tokenize_Result::failure_length
+        : digits == std::string_view::npos ? s.length()
+                                           : digits;
     return { result, Token_Type::decimal_literal };
 }
 
@@ -202,7 +213,7 @@ Tokenize_Result try_tokenize_identifier_or_keyword(std::string_view str)
 {
     const Size identifier_length = try_tokenize_identifier(str);
     if (identifier_length == 0) {
-        return { 0, Token_Type::identifier };
+        return { Tokenize_Result::failure_length, Token_Type::identifier };
     }
     if (std::optional<Token_Type> keyword = keyword_by_name(str.substr(0, identifier_length))) {
         return { identifier_length, *keyword };
@@ -210,7 +221,7 @@ Tokenize_Result try_tokenize_identifier_or_keyword(std::string_view str)
     return { identifier_length, Token_Type::identifier };
 }
 
-std::optional<Tokenize_Result> try_tokenize(std::string_view s)
+Result<Tokenize_Result, Tokenize_Error_Code> try_tokenize(std::string_view s)
 {
     if (s.starts_with("//")) {
         const Size length = std::min(s.find('\n', 2), s.length());
@@ -222,19 +233,22 @@ std::optional<Tokenize_Result> try_tokenize(std::string_view s)
         if (end != std::string_view::npos) {
             return Tokenize_Result { end + 2, Token_Type::block_comment };
         }
-        // An unclosed comment should count as a tokenization failure.
-        return std::nullopt;
+        return Tokenize_Error_Code::unterminated_comment;
     }
     if (const Tokenize_Result r = try_tokenize_identifier_or_keyword(s)) {
         return Tokenize_Result { r.length, r.type };
     }
     if (const Tokenize_Result r = try_tokenize_literal(s)) {
+        if (s.length() > r.length
+            && identifier_characters.find(s[r.length]) != std::string_view::npos) {
+            return Tokenize_Error_Code::integer_suffix;
+        }
         return Tokenize_Result { r.length, r.type };
     }
     if (const std::optional<Token_Type> type = try_identify_fixed_length_token(s)) {
         return Tokenize_Result { token_type_length(*type), *type };
     }
-    return std::nullopt;
+    return Tokenize_Error_Code::illegal_character;
 }
 
 Source_Position advance_position_by_text(Source_Position pos, std::string_view text)
@@ -256,7 +270,7 @@ Source_Position advance_position_by_text(Source_Position pos, std::string_view t
 
 } // namespace
 
-Result<void, Source_Position> tokenize(std::vector<Token>& out, std::string_view source) noexcept
+Result<void, Tokenize_Error> tokenize(std::vector<Token>& out, std::string_view source) noexcept
 {
     Source_Position pos {};
 
@@ -273,14 +287,13 @@ Result<void, Source_Position> tokenize(std::vector<Token>& out, std::string_view
             remainder = remainder.substr(whitespace_length);
         }
 
-        if (std::optional<Tokenize_Result> part = try_tokenize(remainder)) {
-            out.push_back({ pos, part->length, part->type });
-            pos.begin += part->length;
-            pos.column += part->length;
+        Result<Tokenize_Result, Tokenize_Error_Code> part = try_tokenize(remainder);
+        if (!part) {
+            return Tokenize_Error { .code = part.error(), .pos = pos };
         }
-        else {
-            return pos;
-        }
+        out.push_back({ pos, part->length, part->type });
+        pos.begin += part->length;
+        pos.column += part->length;
     }
 
     return {};
