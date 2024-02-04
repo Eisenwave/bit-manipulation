@@ -77,7 +77,7 @@ private:
                 if (id_node && id_node->bit_generic) {
                     // Merely replacing the type isn't enough; we must also give this node a
                     // constant value so that existing name lookup can obtain this value.
-                    id_node->const_value = Value { Concrete_Type::Int, width };
+                    id_node->const_value = Value::Int(width);
                     type_node.type = Concrete_Type::Uint(width);
                 }
             }
@@ -247,7 +247,7 @@ private:
             if (context == Context::return_type) {
                 return_info = Return_Info { .type = *concrete, .token = node.token };
             }
-            node.const_value = Value { *concrete };
+            node.const_value = Value::unknown_of_type(*concrete);
             return {};
         }
 
@@ -276,7 +276,7 @@ private:
         if (context == Context::return_type) {
             return_info = Return_Info { .type = result, .token = node.token };
         }
-        node.const_value = Value { result };
+        node.const_value = Value::unknown_of_type(result);
         return {};
     }
 
@@ -304,7 +304,7 @@ private:
                 // Intentionally "forget" the value determined during constant folding.
                 // For mutable variables, it is possible that the value is modified, and
                 // `const_value` should only be a concrete value for invariants.
-                node.const_value = Value { initializer_value->type };
+                node.const_value = Value::unknown_of_type(initializer_value->type);
             }
             return {};
         }
@@ -315,7 +315,7 @@ private:
             return type_result;
         }
         if (node.get_initializer() == Node_Handle::null) {
-            node.const_value = Value { std::get<Concrete_Type>(type_node.type) };
+            node.const_value = Value::unknown_of_type(std::get<Concrete_Type>(type_node.type));
             return {};
         }
 
@@ -332,7 +332,7 @@ private:
         const Result<Value, Evaluation_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value->type);
         if (r) {
-            node.const_value = node.is_const ? *r : Value { r->type };
+            node.const_value = node.is_const ? *r : Value::unknown_of_type(r->type);
             return {};
         }
         else if (node.is_const) {
@@ -340,7 +340,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         // Even if evaluation failed, it is legal if we are in dead code.
-        node.const_value = Value { type_node.const_value->type };
+        node.const_value = Value::unknown_of_type(type_node.const_value->type);
         return {};
     }
 
@@ -409,7 +409,7 @@ private:
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, return_info->type);
-        node.const_value = eval_result ? *eval_result : Value { return_info->type };
+        node.const_value = eval_result ? *eval_result : Value::unknown_of_type(return_info->type);
         return {};
     }
 
@@ -450,7 +450,7 @@ private:
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, dest_type);
         if (!eval_result) {
-            node.const_value = Value { dest_type };
+            node.const_value = Value::unknown_of_type(dest_type);
             return {};
         }
         node.const_value = *eval_result;
@@ -508,7 +508,7 @@ private:
         // Therefore, it should be impossible for an evaluation to fail.
         BIT_MANIPULATION_ASSERT(context != Context::constant_expression || eval_result.has_value());
 
-        node.const_value = eval_result ? *eval_result : Value { *type_result };
+        node.const_value = eval_result ? *eval_result : Value::unknown_of_type(*type_result);
         return {};
     }
 
@@ -564,7 +564,7 @@ private:
             return Analysis_Error { eval_result.error(), node.token };
         }
 
-        node.const_value = eval_result ? *eval_result : Value { *type_result };
+        node.const_value = eval_result ? *eval_result : Value::unknown_of_type(*type_result);
         return {};
     }
 
@@ -587,7 +587,7 @@ private:
         if (!eval_result && context == Context::constant_expression) {
             return Analysis_Error { eval_result.error(), node.token };
         }
-        node.const_value = eval_result ? *eval_result : Value { *type_result };
+        node.const_value = eval_result ? *eval_result : Value::unknown_of_type(*type_result);
         return {};
     }
 
@@ -676,7 +676,7 @@ private:
 
         // 7. Return results
 
-        node.const_value = Value { return_type.value() };
+        node.const_value = Value::unknown_of_type(return_type.value());
         return {};
     }
 
@@ -746,8 +746,7 @@ private:
             if (!value) {
                 return Analysis_Error { Analysis_Error_Code::invalid_integer_literal, node.token };
             }
-            const auto result = Value { Concrete_Type::Int, *value };
-            node.const_value = result;
+            node.const_value = Value::Int(*value);
             return {};
         }
         default: BIT_MANIPULATION_ASSERT(false);

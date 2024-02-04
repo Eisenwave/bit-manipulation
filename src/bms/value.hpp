@@ -92,13 +92,24 @@ struct Value {
 
 public:
     static const Value Void, True, False;
+    static constexpr Value Int(Big_Int value) noexcept
+    {
+        return Value { Concrete_Type::Int, value };
+    }
 
+    static constexpr Value unknown_of_type(Concrete_Type type) noexcept
+    {
+        return Value { type };
+    }
+
+private:
     constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
         : type(type)
         , int_value(value)
     {
     }
 
+public:
     constexpr Value(Concrete_Value value)
         : type(value.type)
         , int_value(value.int_value)

@@ -432,7 +432,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
         }
     }
 
-    return Value { *type_result };
+    return Value::unknown_of_type(*type_result);
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
@@ -444,7 +444,7 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
         return Evaluation_Error_Code::type_error;
     }
     if (!condition.int_value) {
-        return Value { *type_result };
+        return Value::unknown_of_type(*type_result);
     }
     const auto [result, lossy] = (*condition.int_value ? lhs : rhs).convert_to(*type_result);
     if (lossy) {
