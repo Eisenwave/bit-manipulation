@@ -11,7 +11,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Execution_Error_Code : int {
+enum struct Execution_Error_Code : Default_Underlying {
     load_uninitialized,
     pop,
     pop_call,

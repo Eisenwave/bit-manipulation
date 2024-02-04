@@ -7,7 +7,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Token_Type : int {
+enum struct Token_Type : Default_Underlying {
     // identifier
     identifier,
     // (

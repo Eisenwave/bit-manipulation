@@ -22,11 +22,11 @@ struct Function_Node;
 
 } // namespace ast
 
-enum struct Token_Type : int;
+enum struct Token_Type : Default_Underlying;
 
-enum struct Evaluation_Error_Code : int;
-enum struct Execution_Error_Code : int;
-enum struct Type_Error_Code : int;
+enum struct Evaluation_Error_Code : Default_Underlying;
+enum struct Execution_Error_Code : Default_Underlying;
+enum struct Type_Error_Code : Default_Underlying;
 
 struct Parsed_Program;
 
