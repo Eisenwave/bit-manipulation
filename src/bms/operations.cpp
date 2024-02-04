@@ -7,14 +7,14 @@ namespace {
 
 [[nodiscard]] bool convert_to_equal_type(Concrete_Type& lhs, Concrete_Type& rhs)
 {
-    if (lhs.type == rhs.type) {
+    if (lhs == rhs) {
         return true;
     }
-    if (lhs.type == Type_Type::Int && rhs.type == Type_Type::Uint) {
+    if (lhs.type() == Type_Type::Int && rhs.type() == Type_Type::Uint) {
         lhs = rhs;
         return true;
     }
-    else if (lhs.type == Type_Type::Uint && rhs.type == Type_Type::Int) {
+    else if (lhs.type() == Type_Type::Uint && rhs.type() == Type_Type::Int) {
         rhs = lhs;
         return true;
     }
@@ -81,7 +81,7 @@ check_unary_operator(Token_Type op, Concrete_Type value) noexcept
         return Type_Error_Code::invalid_operator;
     }
 
-    switch (value.type) {
+    switch (value.type()) {
 
     case Type_Type::Void: {
         return Type_Error_Code::void_operation;
@@ -129,9 +129,9 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
         return Type_Error_Code::incompatible_types;
     }
 
-    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
+    BIT_MANIPULATION_ASSERT(lhs == rhs);
 
-    switch (lhs.type) {
+    switch (lhs.type()) {
 
     case Type_Type::Void: {
         return Type_Error_Code::void_operation;
@@ -161,7 +161,7 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
     }
 
     case Type_Type::Uint: {
-        if (lhs.width != rhs.width) {
+        if (lhs.width() != rhs.width()) {
             return Type_Error_Code::incompatible_widths;
         }
         if (is_logical_operator(op)) {
@@ -183,7 +183,7 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
     if (!convert_to_equal_type(lhs, rhs)) {
         return Type_Error_Code::incompatible_types;
     }
-    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
+    BIT_MANIPULATION_ASSERT(lhs == rhs);
 
     return lhs;
 }
@@ -211,7 +211,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
         return Evaluation_Error_Code::type_error;
     }
 
-    switch (value.type.type) {
+    switch (value.type.type()) {
 
     case Type_Type::Bool: {
         if (op == Token_Type::logical_not) {
@@ -269,13 +269,13 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
 
     const auto transform_uint = [&lhs, &rhs](Big_Uint f(Big_Uint, Big_Uint)) -> Concrete_Value {
         Big_Uint result = f(Big_Uint(lhs.int_value), Big_Uint(rhs.int_value));
-        if (lhs.type.width != std::numeric_limits<Big_Uint>::digits) {
-            result &= (Big_Uint(1) << rhs.type.width) - 1;
+        if (lhs.type.width() != std::numeric_limits<Big_Uint>::digits) {
+            result &= (Big_Uint(1) << rhs.type.width()) - 1;
         }
         return Concrete_Value { lhs.type, Big_Int(result) };
     };
 
-    if (lhs.type.type == Type_Type::Int || lhs.type.type == Type_Type::Uint) {
+    if (lhs.type.is_integer()) {
         switch (op) {
         case Token_Type::division:
         case Token_Type::remainder: {
@@ -296,7 +296,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
         }
     }
 
-    switch (lhs.type.type) {
+    switch (lhs.type.type()) {
     case Type_Type::Bool: {
         if (op == Token_Type::logical_and) {
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value && rhs.int_value) };
@@ -427,7 +427,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
             return Evaluation_Error_Code::division_by_zero;
         }
         if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
-            && (*rhs.int_value < 0 || *rhs.int_value >= lhs.type.width)) {
+            && (*rhs.int_value < 0 || *rhs.int_value >= lhs.type.width())) {
             return Evaluation_Error_Code::shift_too_much;
         }
     }

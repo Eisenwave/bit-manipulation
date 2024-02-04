@@ -53,8 +53,8 @@ public:
 
     constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
     {
-        BIT_MANIPULATION_ASSERT(type.type == Type_Type::Uint);
-        const auto mask = Big_Uint(Big_Uint(1) << type.width) - 1;
+        BIT_MANIPULATION_ASSERT(type.is_uint());
+        const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
         return { type, Big_Int(Big_Uint(f(Big_Uint(int_value))) & mask) };
     }
 };
@@ -76,7 +76,7 @@ constexpr auto Concrete_Value::convert_to(Concrete_Type other) const -> Conversi
     if (type == other) {
         return { *this, false };
     }
-    else if (other.type == Type_Type::Uint) {
+    else if (other.is_uint()) {
         const bool lossy = !other.can_represent(int_value);
         return { Concrete_Value { other, int_value }, lossy };
     }
@@ -130,7 +130,7 @@ public:
     constexpr Value and_then_uint(F f) const
     {
         if (int_value) {
-            const auto mask = Big_Uint(Big_Uint(1) << type.width) - 1;
+            const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
             return Value { type, Big_Int(Big_Uint(f(Big_Uint(*int_value))) & mask) };
         }
         return *this;
@@ -163,7 +163,7 @@ constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
     if (type == other) {
         return { *this, false };
     }
-    else if (other.type == Type_Type::Uint) {
+    else if (other.is_uint()) {
         if (!int_value) {
             return { Value { other }, false };
         }

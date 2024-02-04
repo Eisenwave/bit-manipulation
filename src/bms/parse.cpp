@@ -852,10 +852,10 @@ private:
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return m_program.push_node(Type_Node { *t, Concrete_Type { Type_Type::Bool } });
+            return m_program.push_node(Type_Node { *t, Concrete_Type::Bool });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return m_program.push_node(Type_Node { *t, Concrete_Type { Type_Type::Int } });
+            return m_program.push_node(Type_Node { *t, Concrete_Type::Int });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             auto e = match_parenthesized_expression();
