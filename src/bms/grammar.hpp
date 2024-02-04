@@ -6,7 +6,7 @@
 namespace bit_manipulation::bms {
 
 /// @brief A rule in the formal (context-free) grammar of the BMS language.
-enum struct Grammar_Rule {
+enum struct Grammar_Rule : Default_Underlying {
     program, // declaration, { declaration }
     program_declaration, // const_declaration | function_declaration
     const_declaration, // "const", identifier, [":", type], initializer

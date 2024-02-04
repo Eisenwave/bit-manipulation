@@ -167,7 +167,7 @@ private:
 
 struct Type_Analyzer : Analyzer_Base {
 private:
-    enum struct Analysis_Level {
+    enum struct Analysis_Level : Default_Underlying {
         /// @brief For analyzing functions only when called by other functions, i.e. it's not
         /// necessary to analyze the function body.
         shallow,
@@ -177,7 +177,7 @@ private:
         deep
     };
 
-    enum struct Expression_Context {
+    enum struct Expression_Context : Default_Underlying {
         // The default context. Full analysis of functions and everything inside.
         normal,
         // A constant expression. Constant evaluation cannot run into an unknown value.

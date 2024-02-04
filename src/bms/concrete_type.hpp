@@ -7,7 +7,7 @@
 namespace bit_manipulation::bms {
 
 /// @brief A type in the BMS language.
-enum struct Type_Type {
+enum struct Type_Type : Default_Underlying {
     /// @brief A type with no values.
     Void,
     /// @brief A boolean type: true or false.
