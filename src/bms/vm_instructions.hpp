@@ -25,13 +25,13 @@ struct Store {
 
 /// @brief Jumps to the local instruction at index `current + offset + 1`.
 /// At `offset == 0`, this is a no-op instruction.
-struct Jump {
+struct Relative_Jump {
     Signed_Size offset;
 };
 
 /// @brief Pops a boolean value off the stack and if it equals `expected`,
 /// jumps to the local instruction at index `label`.
-struct Jump_If {
+struct Relative_Jump_If {
     Signed_Size offset;
     bool expected;
 };
@@ -60,7 +60,7 @@ struct Binary_Operate {
 /// @brief Pushes the return address.
 // Jumps to the called function.
 struct Call {
-    ast::Node_Handle function;
+    Size address;
 };
 
 } // namespace ins
@@ -68,8 +68,8 @@ struct Call {
 using Instruction = std::variant<ins::Load,
                                  ins::Push,
                                  ins::Store,
-                                 ins::Jump,
-                                 ins::Jump_If,
+                                 ins::Relative_Jump,
+                                 ins::Relative_Jump_If,
                                  ins::Break,
                                  ins::Continue,
                                  ins::Return,

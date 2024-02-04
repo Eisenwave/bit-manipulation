@@ -3,7 +3,7 @@
 
 #include "result.hpp"
 
-#include "bms/bms.hpp"
+#include "bms/analysis_error.hpp"
 #include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {

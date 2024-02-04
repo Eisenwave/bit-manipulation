@@ -78,9 +78,27 @@ struct Program_Node final : detail::Node_Base {
 };
 
 struct Function_Node final : detail::Node_Base, detail::Parent<4> {
+    struct Instance {
+        std::vector<int> widths;
+        Node_Handle handle;
+
+        bool has_widths(const Widths& w) const noexcept
+        {
+            for (Size i = 0; i < widths.size(); ++i) {
+                if (widths[i] != get_width(w, i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    };
+
+    static inline constexpr Size invalid_vm_address = Size(-1);
+
     std::string_view name;
-    std::vector<Node_Handle> instances;
+    std::vector<Instance> instances;
     bool is_generic = false;
+    Size vm_address = invalid_vm_address;
 
     Function_Node(Token token,
                   std::string_view name,
@@ -104,6 +122,21 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     Node_Handle get_body() const
     {
         return children[3];
+    }
+    Function_Node copy_for_instantiation() const
+    {
+        BIT_MANIPULATION_ASSERT(is_generic);
+        return { token, name, children[0], children[1], children[2], children[3] };
+    }
+    const Instance* find_instance(const Widths& w) const
+    {
+        BIT_MANIPULATION_ASSERT(is_generic);
+        for (const Instance& instance : instances) {
+            if (instance.has_widths(w)) {
+                return &instance;
+            }
+        }
+        return nullptr;
     }
 };
 

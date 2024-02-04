@@ -35,6 +35,11 @@ private:
     std::vector<Entry> m_data;
 
 public:
+    void clear() noexcept
+    {
+        m_data.clear();
+    }
+
     Entry* find(ast::Node_Handle key)
     {
         BIT_MANIPULATION_ASSERT(key != sentinel_key);

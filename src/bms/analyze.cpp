@@ -37,56 +37,75 @@ struct Instantiator : Analyzer_Base {
     {
     }
 
-    Result<void, Analysis_Error> operator()(int width)
+    Result<void, Analysis_Error> instantiate_all(const Widths& w)
     {
-        return instantiate(width);
-    }
-
-private:
-    Result<void, Analysis_Error> instantiate(int width)
-    {
-        BIT_MANIPULATION_ASSERT(width > 0);
-        BIT_MANIPULATION_ASSERT(width <= uint_max_width);
-
         for (Node_Handle decl : m_root.declarations) {
             if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
-                Node_Handle instance = clone_node(decl);
-                auto& instance_node = std::get<Function_Node>(get_node(instance));
-                const auto r = instantiate(instance_node, width);
+                auto r = instantiate_function(decl, *f, w);
                 if (!r) {
-                    return r;
+                    return r.error();
                 }
-                f->instances.push_back(instance);
             }
         }
-
         return {};
     }
 
-    Result<void, Analysis_Error> instantiate([[maybe_unused]] Function_Node& instance,
-                                             [[maybe_unused]] int width)
+    Result<const Function_Node::Instance*, Analysis_Error>
+    instantiate_function(Node_Handle h, Function_Node& node, const Widths& w)
     {
+        BIT_MANIPULATION_ASSERT(node.is_generic);
+
+        if (const Function_Node::Instance* const existing = node.find_instance(w)) {
+            return existing;
+        }
+
+        Node_Handle instance = deep_copy(h);
+        auto& instance_node = std::get<Function_Node>(get_node(instance));
+        auto effective_widths = substitute_widths(instance_node, w);
+        if (!effective_widths) {
+            return effective_widths.error();
+        }
+        auto& new_instance = node.instances.emplace_back(std::move(*effective_widths), instance);
+        return &new_instance;
+    }
+
+private:
+    Result<std::vector<int>, Analysis_Error> substitute_widths(Function_Node& instance,
+                                                               const Widths& w)
+    {
+        BIT_MANIPULATION_ASSERT(!instance.is_generic);
+
+        std::vector<int> widths;
+        const auto next_width = [&widths, &w] {
+            const int result = get_width(w, widths.size());
+            widths.push_back(result);
+            return result;
+        };
+
         auto& params = std::get<Parameter_List_Node>(get_node(instance.get_parameters()));
         for (Node_Handle p : params.parameters) {
             auto& param_node = std::get<Parameter_Node>(get_node(p));
             auto& type_node = std::get<Type_Node>(get_node(param_node.get_type()));
-            if (auto* generic_type = std::get_if<Bit_Generic_Type>(&type_node.type)) {
-                BIT_MANIPULATION_ASSERT(generic_type->type == Type_Type::Uint);
-                auto* id_node = std::get_if<Id_Expression_Node>(&get_node(generic_type->width));
-                // If it isn't an id-expression, it cannot be a generic parameter.
-                if (id_node && id_node->bit_generic) {
-                    // Merely replacing the type isn't enough; we must also give this node a
-                    // constant value so that existing name lookup can obtain this value.
-                    id_node->const_value = Value::Int(width);
-                    type_node.type = Concrete_Type::Uint(width);
-                }
+            auto* generic_type = std::get_if<Bit_Generic_Type>(&type_node.type);
+            if (!generic_type) {
+                continue;
+            }
+            BIT_MANIPULATION_ASSERT(generic_type->type == Type_Type::Uint);
+            auto* id_node = std::get_if<Id_Expression_Node>(&get_node(generic_type->width));
+            // If it isn't an id-expression, it cannot be a generic parameter.
+            if (id_node && id_node->bit_generic) {
+                const int width = next_width();
+                // Merely replacing the type isn't enough; we must also give this node a
+                // constant value so that existing name lookup can obtain this value.
+                id_node->const_value = Value::Int(width);
+                type_node.type = Concrete_Type::Uint(width);
             }
         }
 
-        return {};
+        return widths;
     }
 
-    Node_Handle clone_node(Node_Handle h)
+    Node_Handle deep_copy(Node_Handle h)
     {
         // Two passes are necessary.
         // During the first pass, the nodes are all copied and the links to children are updated
@@ -95,36 +114,49 @@ private:
         // the cloned nodes.
         // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
         std::unordered_map<Node_Handle, Node_Handle> remap;
-        const Node_Handle result = clone_node_first_pass(h, remap);
-        clone_node_second_pass(h, remap);
+        const Node_Handle result = deep_copy_for_instantiation(h, remap);
+        deep_update_name_lookup(h, remap);
 
         return result;
     }
 
-    Node_Handle clone_node_first_pass(Node_Handle h,
-                                      std::unordered_map<Node_Handle, Node_Handle>& remap)
+    Node_Handle deep_copy_for_instantiation(Node_Handle h,
+                                            std::unordered_map<Node_Handle, Node_Handle>& remap)
     {
-        const Node_Handle result
-            = std::visit([this]<typename T>(const T& n) { return m_program.push_node(T(n)); },
-                         m_program.get_node(h));
+        const Node_Handle result = copy_single_node_for_instantiation(h);
         remap.emplace(h, result);
 
         for (Node_Handle& child : get_children(m_program.get_node(result))) {
-            child = clone_node_first_pass(child, remap);
+            child = deep_copy_for_instantiation(child, remap);
         }
         return result;
     }
 
-    void clone_node_second_pass(Node_Handle h,
-                                const std::unordered_map<Node_Handle, Node_Handle>& remap)
+    void deep_update_name_lookup(Node_Handle h,
+                                 const std::unordered_map<Node_Handle, Node_Handle>& remap)
     {
+        auto& node = get_node(h);
         std::visit(
             [this, &h, &remap]<typename T>(T& n) {
                 if constexpr (Lookup_Performing_Node<T>) {
                     n.lookup_result = remap.at(h);
                 }
-                for (Node_Handle child : get_children(n)) {
-                    clone_node_second_pass(child, remap);
+            },
+            node);
+        for (Node_Handle child : get_children(node)) {
+            deep_update_name_lookup(child, remap);
+        }
+    }
+
+    Node_Handle copy_single_node_for_instantiation(Node_Handle h)
+    {
+        return std::visit(
+            [this]<typename T>(const T& n) {
+                if constexpr (std::is_same_v<T, Function_Node>) {
+                    return m_program.push_node(n.copy_for_instantiation());
+                }
+                else {
+                    return m_program.push_node(T(n));
                 }
             },
             m_program.get_node(h));
@@ -135,15 +167,21 @@ private:
 
 struct Type_Analyzer : Analyzer_Base {
 private:
-    enum struct Context {
+    enum struct Analysis_Level {
+        /// @brief For analyzing functions only when called by other functions, i.e. it's not
+        /// necessary to analyze the function body.
+        shallow,
+        /// @brief Full analysis of a function, including its body.
+        full,
+        /// @brief Full analysis, recursively, for analyzing functions in constant expressions.
+        deep
+    };
+
+    enum struct Expression_Context {
         // The default context. Full analysis of functions and everything inside.
-        regular,
-        // Return type context. Information is stored in `return_info`.
-        return_type,
+        normal,
         // A constant expression. Constant evaluation cannot run into an unknown value.
-        constant_expression,
-        // A function call. Limited analysis is performed, only to determine if a call is valid.
-        function_call
+        constant,
     };
 
     struct Return_Info {
@@ -161,28 +199,32 @@ public:
 
     Result<void, Analysis_Error> operator()()
     {
-        return analyze_types(m_program.root_node, Context::regular);
+        return analyze_types(m_program.root_node, Analysis_Level::full, Expression_Context::normal);
     }
 
 private:
-    Result<void, Analysis_Error> analyze_types(Node_Handle handle, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Node_Handle handle, Analysis_Level level, Expression_Context context)
     {
         if (handle == Node_Handle::null) {
             return {};
         }
-        return std::visit([this, context](auto& node) { return analyze_types(node, context); },
-                          get_node(handle));
+        return std::visit(
+            [this, level, context](auto& node) { return analyze_types(node, level, context); },
+            get_node(handle));
     }
 
     template <typename T>
-    Result<void, Analysis_Error> analyze_types(T& node, Context context) = delete;
+    Result<void, Analysis_Error> analyze_types(T& node, Analysis_Level, Expression_Context)
+        = delete;
 
     template <typename T>
         requires(!std::is_const_v<T>)
-    Result<void, Analysis_Error> analyze_child_types(T& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_child_types(T& node, Analysis_Level level, Expression_Context context)
     {
         for (Node_Handle h : node.get_children()) {
-            auto r = analyze_types(h, context);
+            auto r = analyze_types(h, level, context);
             if (!r) {
                 return r;
             }
@@ -192,68 +234,91 @@ private:
     }
 
     template <>
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Program_Node& node,
-                                                                      Context context)
+    [[gnu::always_inline]] Result<void, Analysis_Error>
+    analyze_types(Program_Node& node, Analysis_Level level, Expression_Context)
     {
-        return analyze_child_types(node, context);
+        return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Function_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Function_Node& node, Analysis_Level level, Expression_Context)
     {
+        // Early-terminate for already analyzed concrete functions.
+        if (node.const_value) {
+            return {};
+        }
+        // If the function is generic, we can never say that analysis succeeded entirely because
+        // new implicit instantiations may have been generated in the meantime.
+        // For concrete functions, we can memoize the result of type analysis.
         if (node.is_generic) {
-            for (Node_Handle instance : node.instances) {
-                auto r = analyze_types(instance, context);
+            for (const Function_Node::Instance& instance : node.instances) {
+                auto r = analyze_types(instance.handle, level, Expression_Context::normal);
                 if (!r) {
                     return r;
                 }
             }
             return {};
         }
-        if (auto r = analyze_types(node.get_parameters(), context); !r) {
+        BIT_MANIPULATION_ASSERT(node.instances.empty());
+
+        if (auto r = analyze_types(node.get_parameters(), level, Expression_Context::normal); !r) {
             return r;
         }
-        if (auto r = analyze_types(node.get_return_type(), Context::return_type); !r) {
+        if (auto r = analyze_types(node.get_return_type(), level, Expression_Context::normal); !r) {
             return r;
         }
-        if (auto r = analyze_types(node.get_requires_clause(), Context::constant_expression); !r) {
+        auto& return_type = std::get<Type_Node>(get_node(node.get_return_type()));
+        return_info
+            = Return_Info { .type = return_type.const_value->type, .token = return_type.token };
+
+        if (auto r = analyze_types(node.get_requires_clause(), level, Expression_Context::constant);
+            !r) {
             return r;
         }
-        if (auto r = analyze_types(node.get_body(), context); !r) {
+        if (auto r = analyze_types(node.get_body(), level, Expression_Context::normal); !r) {
             return r;
         }
-        node.const_value = get_const_value(get_node(node.get_return_type()));
+        if (!node.is_generic) {
+            node.const_value = get_const_value(get_node(node.get_return_type()));
+        }
         return {};
     }
 
     template <>
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Parameter_List_Node& node,
-                                                                      Context context)
+    [[gnu::always_inline]] Result<void, Analysis_Error>
+    analyze_types(Parameter_List_Node& node, Analysis_Level level, Expression_Context)
     {
-        return analyze_child_types(node, context);
+        return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Parameter_Node& node,
-                                                                      Context context)
+    [[gnu::always_inline]] Result<void, Analysis_Error>
+    analyze_types(Parameter_Node& node, Analysis_Level level, Expression_Context)
     {
-        return analyze_child_types(node, context);
+        // Parameters may be found by name lookup, so this check prevents duplicate analysis.
+        if (node.const_value) {
+            return {};
+        }
+        return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Type_Node& node, Context context)
+    Result<void, Analysis_Error> analyze_types(Type_Node& node, Analysis_Level, Expression_Context)
     {
+        if (node.const_value) {
+            return {};
+        }
         if (const auto* const concrete = std::get_if<Concrete_Type>(&node.type)) {
-            if (context == Context::return_type) {
-                return_info = Return_Info { .type = *concrete, .token = node.token };
-            }
             node.const_value = Value::unknown_of_type(*concrete);
             return {};
         }
 
         const auto& generic = std::get<Bit_Generic_Type>(node.type);
 
-        if (auto r = analyze_types(generic.width, Context::constant_expression); !r) {
+        if (auto r
+            = analyze_types(generic.width, Analysis_Level::deep, Expression_Context::constant);
+            !r) {
             return r;
         }
         auto width = get_const_value(get_node(generic.width));
@@ -273,18 +338,20 @@ private:
         }
         const Concrete_Type result = Concrete_Type::Uint(static_cast<int>(folded_width));
         node.type = result;
-        if (context == Context::return_type) {
-            return_info = Return_Info { .type = result, .token = node.token };
-        }
         node.const_value = Value::unknown_of_type(result);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Let_Const_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Let_Const_Node& node, Analysis_Level level, Expression_Context)
     {
+        if (node.const_value) {
+            return {};
+        }
         const auto initializer_context
-            = node.is_const ? Context::constant_expression : Context::regular;
+            = node.is_const ? Expression_Context::constant : Expression_Context::normal;
+        const auto initializer_level = node.is_const ? Analysis_Level::deep : level;
 
         if (node.get_type() == Node_Handle::null) {
             // If there is no type, there must be an initializer.
@@ -292,7 +359,9 @@ private:
             // Prior analysis should have ensured this already, but we may a well double-check.
             BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
 
-            if (auto r = analyze_types(node.get_initializer(), initializer_context); !r) {
+            if (auto r
+                = analyze_types(node.get_initializer(), initializer_level, initializer_context);
+                !r) {
                 return r;
             }
             auto initializer_value = get_const_value(get_node(node.get_initializer()));
@@ -310,7 +379,7 @@ private:
         }
 
         auto& type_node = std::get<Type_Node>(get_node(node.get_type()));
-        const auto type_result = analyze_types(type_node, context);
+        const auto type_result = analyze_types(type_node, level, Expression_Context::constant);
         if (!type_result) {
             return type_result;
         }
@@ -319,7 +388,9 @@ private:
             return {};
         }
 
-        if (const auto r = analyze_types(node.get_initializer(), initializer_context); !r) {
+        if (const auto r
+            = analyze_types(node.get_initializer(), initializer_level, initializer_context);
+            !r) {
             return r;
         }
         auto initializer_value = get_const_value(get_node(node.get_initializer()));
@@ -338,16 +409,16 @@ private:
         else if (node.is_const) {
             return Analysis_Error { r.error(), node.token, cause_token };
         }
-        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         // Even if evaluation failed, it is legal if we are in dead code.
         node.const_value = Value::unknown_of_type(type_node.const_value->type);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(If_Statement_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(If_Statement_Node& node, Analysis_Level level, Expression_Context)
     {
-        if (auto r = analyze_types(node.get_condition(), context); !r) {
+        if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
             return r;
         }
         auto condition_value = get_const_value(get_node(node.get_condition()));
@@ -358,11 +429,13 @@ private:
         }
 
         auto& if_block = std::get<Block_Statement_Node>(get_node(node.get_if_block()));
-        auto if_result = analyze_types(if_block, context);
+        auto if_result = analyze_types(if_block, level, Expression_Context::normal);
         if (!if_result) {
             return if_result;
         }
-        if (auto else_result = analyze_types(node.get_else_block(), context); !else_result) {
+        if (auto else_result
+            = analyze_types(node.get_else_block(), level, Expression_Context::normal);
+            !else_result) {
             return else_result;
         }
         node.const_value = Value::Void;
@@ -370,9 +443,10 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(While_Statement_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(While_Statement_Node& node, Analysis_Level level, Expression_Context)
     {
-        if (auto r = analyze_types(node.get_condition(), context); !r) {
+        if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
             return r;
         }
         auto condition_value = get_const_value(get_node(node.get_condition()));
@@ -383,21 +457,25 @@ private:
         }
 
         auto& block = std::get<Block_Statement_Node>(get_node(node.get_block()));
+        if (auto r = analyze_types(block, level, Expression_Context::normal); !r) {
+            return r;
+        }
         node.const_value = Value::Void;
-        return analyze_types(block, context);
+        return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Jump_Node& node, Context)
+    Result<void, Analysis_Error> analyze_types(Jump_Node& node, Analysis_Level, Expression_Context)
     {
         node.const_value = Value::Void;
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Return_Statement_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Return_Statement_Node& node, Analysis_Level level, Expression_Context)
     {
-        if (auto r = analyze_types(node.get_expression(), context); !r) {
+        if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
         }
         auto expr_value = get_const_value(get_node(node.get_expression()));
@@ -406,7 +484,6 @@ private:
             return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
                                     return_info->token };
         }
-        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, return_info->type);
         node.const_value = eval_result ? *eval_result : Value::unknown_of_type(return_info->type);
@@ -414,7 +491,8 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Assignment_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Assignment_Node& node, Analysis_Level level, Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
 
@@ -434,7 +512,7 @@ private:
                                     get_token(looked_up_node) };
         }
 
-        if (auto r = analyze_types(node.get_expression(), context); !r) {
+        if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
         }
         auto expr_value = get_const_value(get_node(node.get_expression()));
@@ -446,7 +524,6 @@ private:
                                     get_token(get_node(node.get_expression())) };
         }
 
-        BIT_MANIPULATION_ASSERT(context != Context::constant_expression);
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, dest_type);
         if (!eval_result) {
@@ -458,16 +535,17 @@ private:
     }
 
     template <>
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(Block_Statement_Node& node,
-                                                                      Context context)
+    [[gnu::always_inline]] Result<void, Analysis_Error>
+    analyze_types(Block_Statement_Node& node, Analysis_Level level, Expression_Context)
     {
-        return analyze_child_types(node, context);
+        return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(If_Expression_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(If_Expression_Node& node, Analysis_Level level, Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_condition(), context); !r) {
+        if (auto r = analyze_types(node.get_condition(), level, context); !r) {
             return r;
         }
         auto condition_value = get_const_value(get_node(node.get_condition()));
@@ -475,23 +553,23 @@ private:
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, node.token,
                                     get_token(get_node(node.get_condition())) };
         }
-        Context left_context = context;
-        Context right_context = context;
+        Expression_Context left_context = context;
+        Expression_Context right_context = context;
         // Similar to short-circuiting (see Binary_Expression_Node), we lower the analysis context
-        // to `regular` for the expression that is not evaluated.
+        // to `normal` for the expression that is not evaluated.
         // If we analyzed it as a constant expression, we would require a value from it, and
         // e.g. `1 if true else 0 / 0` would fail, even though it is valid and meant to select `1`.
-        if (context == Context::constant_expression) {
+        if (context == Expression_Context::constant) {
             const bool evaluate_left = condition_value->int_value.value();
-            (evaluate_left ? right_context : left_context) = Context::regular;
+            (evaluate_left ? right_context : left_context) = Expression_Context::normal;
         }
 
-        if (auto r = analyze_types(node.get_left(), left_context); !r) {
+        if (auto r = analyze_types(node.get_left(), level, left_context); !r) {
             return r;
         }
         auto left_value = get_const_value(get_node(node.get_left()));
 
-        if (auto r = analyze_types(node.get_right(), right_context); !r) {
+        if (auto r = analyze_types(node.get_right(), level, right_context); !r) {
             return r;
         }
         auto right_value = get_const_value(get_node(node.get_right()));
@@ -506,16 +584,17 @@ private:
 
         // Type analysis has already succeeded, and for context expressions, the condition is known.
         // Therefore, it should be impossible for an evaluation to fail.
-        BIT_MANIPULATION_ASSERT(context != Context::constant_expression || eval_result.has_value());
+        BIT_MANIPULATION_ASSERT(context != Expression_Context::constant || eval_result.has_value());
 
         node.const_value = eval_result ? *eval_result : Value::unknown_of_type(*type_result);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Binary_Expression_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Binary_Expression_Node& node, Analysis_Level level, Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_left(), context); !r) {
+        if (auto r = analyze_types(node.get_left(), level, context); !r) {
             return r;
         }
         const auto& left_node = get_node(node.get_left());
@@ -532,7 +611,7 @@ private:
             // constant expression analysis, which would also demand a value from `0 / 0`.
             const bool is_short_circuiting
                 = node.op == Token_Type::logical_and || node.op == Token_Type::logical_or;
-            if (context == Context::constant_expression && is_short_circuiting) {
+            if (context == Expression_Context::constant && is_short_circuiting) {
                 if (left_value->type != Concrete_Type::Bool) {
                     return Analysis_Error { Type_Error_Code::non_bool_logical, node.token,
                                             get_token(left_node) };
@@ -542,12 +621,12 @@ private:
                 BIT_MANIPULATION_ASSERT(left_value->int_value.has_value());
                 const bool circuit_breaker = node.op == Token_Type::logical_or;
                 if (*left_value->int_value == circuit_breaker) {
-                    context = Context::regular;
+                    context = Expression_Context::normal;
                 }
             }
         }
 
-        if (auto r = analyze_types(node.get_right(), context); !r) {
+        if (auto r = analyze_types(node.get_right(), level, context); !r) {
             return r;
         }
         auto right_value = get_const_value(get_node(node.get_right()));
@@ -560,7 +639,7 @@ private:
 
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_binary_operator(*left_value, node.op, *right_value);
-        if (!eval_result && context == Context::constant_expression) {
+        if (!eval_result && context == Expression_Context::constant) {
             return Analysis_Error { eval_result.error(), node.token };
         }
 
@@ -569,9 +648,10 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Prefix_Expression_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Prefix_Expression_Node& node, Analysis_Level level, Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_expression(), context); !r) {
+        if (auto r = analyze_types(node.get_expression(), level, context); !r) {
             return r;
         }
         const auto expr_value = get_const_value(get_node(node.get_expression()));
@@ -584,7 +664,7 @@ private:
         }
         const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_unary_operator(node.op, *expr_value);
-        if (!eval_result && context == Context::constant_expression) {
+        if (!eval_result && context == Expression_Context::constant) {
             return Analysis_Error { eval_result.error(), node.token };
         }
         node.const_value = eval_result ? *eval_result : Value::unknown_of_type(*type_result);
@@ -592,97 +672,146 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Function_Call_Expression_Node& node, Context context)
+    Result<void, Analysis_Error> analyze_types(Function_Call_Expression_Node& node,
+                                               Analysis_Level level,
+                                               Expression_Context context)
     {
         BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
+        if (node.const_value) {
+            return {};
+        }
 
-        // 1. Verify that we call a function.
+        // 1. Evaluate arguments.
+
+        std::vector<Value> arg_values;
+        arg_values.reserve(node.arguments.size());
+
+        for (const Node_Handle arg : node.arguments) {
+            if (auto r = analyze_types(arg, level, context); !r) {
+                return r;
+            }
+            arg_values.push_back(get_const_value(get_node(arg)).value());
+        }
+
+        // 2. Verify that we call a function.
 
         Some_Node& looked_up = get_node(node.lookup_result);
-        auto* const function = std::get_if<Function_Node>(&looked_up);
+        auto* function = std::get_if<Function_Node>(&looked_up);
         if (!function) {
             return Analysis_Error { Analysis_Error_Code::call_non_function, node.token,
                                     get_token(looked_up) };
         }
 
-        // 2. Verify that we have the right number of arguments.
+        // 3. Verify that we have the right number of arguments.
+        //    We can perform this test prior to deduction because calling a function with the wrong
+        //    number of arguments is an error before and after instantiating generic functions.
+        //    There is no function overloading.
 
-        auto& params = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
-        if (params.parameters.size() != node.arguments.size()) {
+        auto& possibly_generic_params
+            = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
+        if (possibly_generic_params.parameters.size() != node.arguments.size()) {
             return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, node.token,
                                     function->token };
         }
 
-        // 3. Identify bit-generic parameters and perform implicit instantiation based on the
-        //    bit width of the corresponding arguments.
-
-        // TODO: do this
-
-        // 4. Perform analysis of the called function.
-        //    Except for constant expressions, this can happen in a limited capacity.
-
-        const Context inner_context = context == Context::constant_expression
-            ? Context::constant_expression
-            : Context::function_call;
-
-        std::optional<Concrete_Type> return_type;
-
-        if (!function->is_generic) {
-            if (!function->const_value) {
-                auto r = analyze_types(*function, inner_context);
-                if (!r) {
-                    return r;
+        // 4. If necessary, perform bit-generic argument deduction.
+        //    After deduction is complete, `function` will point to the concrete instance, not to
+        //    the generic function anymore.
+        if (function->is_generic) {
+            std::vector<int> deduced_widths;
+            for (Size i = 0; i < node.arguments.size(); ++i) {
+                auto& param
+                    = std::get<Parameter_Node>(get_node(possibly_generic_params.parameters[i]));
+                auto& type = std::get<Type_Node>(get_node(param.get_type()));
+                auto* gen_type = std::get_if<Bit_Generic_Type>(&type.type);
+                if (!gen_type) {
+                    continue;
                 }
+                auto* gen_expr = std::get_if<Id_Expression_Node>(&get_node(gen_type->width));
+                if (!gen_expr || !gen_expr->bit_generic) {
+                    continue;
+                }
+                if (!arg_values[i].type.is_uint()) {
+                    return Analysis_Error { Analysis_Error_Code::width_deduction_from_non_uint,
+                                            get_token(get_node(node.arguments[i])),
+                                            gen_expr->token };
+                }
+                deduced_widths.push_back(arg_values[i].type.width());
             }
-            BIT_MANIPULATION_ASSERT(function->const_value);
-            return_type = function->const_value->type;
+
+            Result<const Function_Node::Instance*, Analysis_Error> instantiation_result
+                = Instantiator { m_program }.instantiate_function(node.lookup_result, *function,
+                                                                  deduced_widths);
+            if (!instantiation_result) {
+                return instantiation_result.error();
+            }
+            function = &std::get<Function_Node>(get_node((*instantiation_result)->handle));
         }
 
-        // 5. Check whether the function can be called with the given arguments and obtain
-        //    concrete values.
+        // 5. Analyze the called concrete function.
+        //    If we are in a constant expression, the whole function has to be immediately analyzed
+        //    as a constant expression.
+        //    Otherwise, we don't need to analyze the function body immediately.
+        BIT_MANIPULATION_ASSERT(!function->is_generic);
 
-        std::vector<Value> arg_values;
-        if (context == Context::constant_expression) {
-            arg_values.reserve(node.arguments.size());
-        }
+        const auto inner_level
+            = context == Expression_Context::constant || level == Analysis_Level::deep
+            ? Analysis_Level::deep
+            : Analysis_Level::shallow;
 
-        for (Size i = 0; i < node.arguments.size(); ++i) {
-            const Node_Handle arg = node.arguments[i];
-
-            if (auto r = analyze_types(arg, context); !r) {
+        if (!function->const_value) {
+            auto r = analyze_types(*function, inner_level, context);
+            if (!r) {
                 return r;
             }
-            const auto arg_value = get_const_value(get_node(arg));
+        }
+        BIT_MANIPULATION_ASSERT(function->const_value);
+        Concrete_Type return_type = function->const_value->type;
+
+        // 6. Check whether the function can be called with the given arguments and obtain
+        //    concrete values for the parameters if need be.
+
+        auto& params = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
+        // Instantiation (which may have happened) should not be able to change the number of
+        // parameters.
+        BIT_MANIPULATION_ASSERT(params.parameters.size()
+                                == possibly_generic_params.parameters.size());
+
+        // Similar to `arg_values` above, but with implicit conversions applied for the purpose
+        // of evaluating the actual function call.
+        std::vector<Concrete_Value> param_values;
+
+        for (Size i = 0; i < node.arguments.size(); ++i) {
             auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
-            if (!arg_value->type.is_convertible_to(param_type)) {
+            if (arg_values[i].type.is_convertible_to(param_type)) {
                 return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
                                         param.token };
             }
 
             Result<Value, Evaluation_Error_Code> conv_result
-                = evaluate_conversion(*arg_value, param_type);
-            // FIXME: this code is probably borked
-            if (context == Context::constant_expression && !conv_result) {
-                return Analysis_Error { conv_result.error(), node.token, param.token };
-            }
-            if (context == Context::constant_expression) {
-                arg_values.push_back(*conv_result);
+                = evaluate_conversion(arg_values[i], param_type);
+            if (context == Expression_Context::constant) {
+                if (!conv_result) {
+                    return Analysis_Error { conv_result.error(), node.token, param.token };
+                }
+                param_values.push_back(conv_result->concrete_value());
             }
         }
 
-        // 6. If need be, perform constant evaluation of the function call.
-        // TODO:
+        // 7. Constant-evaluate the function call.
 
-        // 7. Return results
-
-        node.const_value = Value::unknown_of_type(return_type.value());
+        node.const_value = Value::unknown_of_type(return_type);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Id_Expression_Node& node, Context context)
+    Result<void, Analysis_Error>
+    analyze_types(Id_Expression_Node& node, Analysis_Level level, Expression_Context context)
     {
+        if (node.const_value) {
+            return {};
+        }
         if (node.bit_generic) {
             // instantiation should have assigned a value to all bit-generic id-expressions
             BIT_MANIPULATION_ASSERT(node.const_value);
@@ -696,7 +825,7 @@ private:
                                     looked_up_function->token };
         }
         if (const auto* const looked_up_var = std::get_if<Let_Const_Node>(&looked_up_node)) {
-            if (context == Context::constant_expression && !looked_up_var->is_const) {
+            if (context == Expression_Context::constant && !looked_up_var->is_const) {
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         node.token, looked_up_var->token };
             }
@@ -706,18 +835,19 @@ private:
             }
         }
         if (const auto* const looked_up_param = std::get_if<Parameter_Node>(&looked_up_node)) {
-            if (context == Context::constant_expression) {
+            if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::parameter_in_constant_expression,
                                         node.token, looked_up_param->token };
             }
         }
 
-        if (auto r = analyze_types(node.lookup_result, context); !r) {
+        // TODO: is this actually necessary?
+        if (auto r = analyze_types(node.lookup_result, level, context); !r) {
             return r;
         }
         const auto lookup_value = get_const_value(looked_up_node);
         BIT_MANIPULATION_ASSERT(lookup_value.has_value());
-        if (context == Context::constant_expression && lookup_value->is_unknown()) {
+        if (context == Expression_Context::constant && lookup_value->is_unknown()) {
             return Analysis_Error { Analysis_Error_Code::expected_constant_expression, node.token,
                                     get_token(looked_up_node) };
         }
@@ -726,8 +856,12 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Literal_Node& node, Context)
+    Result<void, Analysis_Error>
+    analyze_types(Literal_Node& node, Analysis_Level, Expression_Context)
     {
+        if (node.const_value) {
+            return {};
+        }
         switch (node.token.type) {
         case Token_Type::keyword_bool: {
             node.const_value = Value::True;

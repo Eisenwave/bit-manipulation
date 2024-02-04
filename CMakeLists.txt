@@ -25,13 +25,13 @@ set(HEADERS
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
+    src/bms/vm.hpp
     src/config.hpp
     src/io.hpp
     src/result.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/assert.cpp
-    src/bms/analyze_vm.cpp
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
     src/bms/operations.cpp
@@ -40,6 +40,7 @@ add_executable(bmscript ${HEADERS}
     src/bms/tokenize.cpp
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
+    src/bms/vm.cpp
     src/io.cpp
     src/main.cpp)
 

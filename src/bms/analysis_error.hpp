@@ -59,6 +59,8 @@ enum struct Analysis_Error_Code {
     wrong_number_of_arguments,
     /// @brief Constant evaluation depends on a function whose definition is not yet complete.
     codegen_call_to_unanalyzed,
+    /// @brief Attempting to deduce the width of `UInt(N)` from a type that is not `Uint`.
+    width_deduction_from_non_uint,
 };
 
 struct Analysis_Error {
