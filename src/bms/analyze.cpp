@@ -272,10 +272,32 @@ private:
         return_info
             = Return_Info { .type = return_type.const_value->type, .token = return_type.token };
 
-        if (auto r = analyze_types(node.get_requires_clause(), level, Expression_Context::constant);
-            !r) {
-            return r;
+        if (node.get_requires_clause() != Node_Handle::null) {
+            auto& expression_node = get_node(node.get_requires_clause());
+            auto& expr_const_value = get_const_value(expression_node);
+            // Expressions in requires-clauses don't need to be checked twice, but we have to
+            // determine this here instead of in the expression because expressions lack a
+            // checking mechanism for themselves.
+            if (!expr_const_value) {
+                if (auto r = analyze_types(node.get_requires_clause(), Analysis_Level::deep,
+                                           Expression_Context::constant);
+                    !r) {
+                    return r;
+                }
+                node.const_value = expr_const_value;
+                BIT_MANIPULATION_ASSERT(node.const_value && node.const_value->int_value);
+
+                if (node.const_value->type != Concrete_Type::Bool) {
+                    return Analysis_Error { Analysis_Error_Code::requires_clause_note_bool,
+                                            node.token, get_token(expression_node) };
+                }
+                if (node.const_value->int_value != 1) {
+                    return Analysis_Error { Analysis_Error_Code::requires_clause_note_satisfied,
+                                            node.token, get_token(expression_node) };
+                }
+            }
         }
+
         if (node.analysis_so_far < Analysis_Level::shallow) {
             node.analysis_so_far = Analysis_Level::shallow;
         }
