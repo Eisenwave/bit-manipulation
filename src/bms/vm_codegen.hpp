@@ -4,12 +4,13 @@
 #include "result.hpp"
 
 #include "bms/analysis_error.hpp"
+#include "bms/fwd.hpp"
 #include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {
 
 Result<std::vector<Instruction>, Analysis_Error> generate_code(Parsed_Program& program,
-                                                               Function_Node& function);
+                                                               ast::Function_Node& function);
 
 }
 
