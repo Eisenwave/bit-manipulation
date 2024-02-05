@@ -231,13 +231,13 @@ public:
     }
 
 private:
-    bool eof()
+    bool eof() noexcept
     {
         skip_comments();
         return m_pos == m_tokens.size();
     }
 
-    void skip_comments()
+    void skip_comments() noexcept
     {
         while (m_pos != m_tokens.size() && is_comment(m_tokens[m_pos].type)) {
             m_pos += 1;
@@ -245,7 +245,7 @@ private:
     }
 
     template <std::invocable<Token_Type> Predicate>
-    const Token* peek_or_expect(Predicate p, bool increment)
+    const Token* peek_or_expect(Predicate p, bool increment) noexcept
     {
         if (const Token* next = peek(); next && p(next->type)) {
             m_pos += increment;
@@ -254,17 +254,17 @@ private:
         return nullptr;
     }
 
-    const Token* peek()
+    const Token* peek() noexcept
     {
         return !eof() ? &m_tokens[m_pos] : nullptr;
     }
 
-    const Token* peek(Token_Type expected)
+    const Token* peek(Token_Type expected) noexcept
     {
         return peek_or_expect([=](Token_Type t) { return t == expected; }, false);
     }
 
-    const Token* peek(bool (&predicate)(Token_Type))
+    const Token* peek(bool (&predicate)(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, false);
     }
@@ -275,12 +275,12 @@ private:
     /// @param type the expected type
     /// @return The popped token with the given type, or `nullptr` if there is no token, or the
     /// token doesn't match the expected type.
-    const Token* expect(Token_Type type)
+    const Token* expect(Token_Type type) noexcept
     {
         return peek_or_expect([=](Token_Type t) { return t == type; }, true);
     }
 
-    const Token* expect(bool (&predicate)(Token_Type))
+    const Token* expect(bool (&predicate)(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, true);
     }
