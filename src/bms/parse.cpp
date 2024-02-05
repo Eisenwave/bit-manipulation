@@ -326,6 +326,10 @@ private:
 
     Result<Node_Handle, Rule_Error> match_program_declaration()
     {
+        static constexpr Token_Type expected[]
+            = { Token_Type::keyword_const, Token_Type::keyword_function,
+                Token_Type::keyword_static_assert };
+
         if (peek(Token_Type::keyword_const)) {
             return match_const_declaration();
         }
@@ -335,7 +339,7 @@ private:
         if (peek(Token_Type::keyword_static_assert)) {
             return match_static_assertion();
         }
-        return Rule_Error { Grammar_Rule::program_declaration };
+        return Rule_Error { Grammar_Rule::program_declaration, expected };
     }
 
     Result<Node_Handle, Rule_Error> match_let_declaration()
