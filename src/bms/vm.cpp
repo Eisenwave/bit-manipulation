@@ -10,21 +10,6 @@
 
 namespace bit_manipulation::bms {
 
-Result<void, Execution_Error_Code> Virtual_Machine::cycle()
-{
-    Instruction next = m_instructions.at(m_instruction_counter);
-    return std::visit(
-        [this]<typename T>(T& i) -> Result<void, Execution_Error_Code> {
-            if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
-                return Execution_Error_Code::symbolic_jump;
-            }
-            else {
-                return cycle(i);
-            }
-        },
-        next);
-}
-
 template <>
 Result<void, Execution_Error_Code> Virtual_Machine::cycle(ins::Load& load)
 {
@@ -148,6 +133,21 @@ Result<void, Execution_Error_Code> Virtual_Machine::cycle(ins::Call& call)
     m_function_frame_stack.push_frame(return_address);
     m_instruction_counter = call.address;
     return {};
+}
+
+Result<void, Execution_Error_Code> Virtual_Machine::cycle() noexcept
+{
+    Instruction next = m_instructions.at(m_instruction_counter);
+    return std::visit(
+        [this]<typename T>(T& i) -> Result<void, Execution_Error_Code> {
+            if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
+                return Execution_Error_Code::symbolic_jump;
+            }
+            else {
+                return cycle(i);
+            }
+        },
+        next);
 }
 
 } // namespace bit_manipulation::bms
