@@ -11,23 +11,20 @@ namespace {
 
 struct Virtual_Code_Generator : Analyzer_Base {
 private:
-    std::vector<Instruction> out;
+    std::vector<Instruction>& out;
 
 public:
-    Virtual_Code_Generator(Parsed_Program& program)
+    Virtual_Code_Generator(Parsed_Program& program, std::vector<Instruction>& out)
         : Analyzer_Base(program)
+        , out(out)
     {
     }
 
 public:
-    Result<std::vector<Instruction>, Analysis_Error> operator()(Function_Node& function)
+    Result<void, Analysis_Error> operator()(Function_Node& function)
     {
         // Functions don't need their own handle for any generation.
-        auto r = generate_code(Node_Handle::null, function);
-        if (!r) {
-            return r.error();
-        }
-        return std::move(out);
+        return generate_code(Node_Handle::null, function);
     }
 
 private:
@@ -430,10 +427,10 @@ private:
 
 } // namespace
 
-Result<std::vector<Instruction>, Analysis_Error> generate_code(Parsed_Program& program,
-                                                               Function_Node& function)
+Result<void, Analysis_Error>
+generate_code(std::vector<Instruction>& out, Parsed_Program& program, ast::Function_Node& function)
 {
-    Virtual_Code_Generator gen { program };
+    Virtual_Code_Generator gen { program, out };
     return gen(function);
 }
 

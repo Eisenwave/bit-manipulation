@@ -9,8 +9,8 @@
 
 namespace bit_manipulation::bms {
 
-Result<std::vector<Instruction>, Analysis_Error> generate_code(Parsed_Program& program,
-                                                               ast::Function_Node& function);
+Result<void, Analysis_Error>
+generate_code(std::vector<Instruction>& out, Parsed_Program& program, ast::Function_Node& function);
 
 }
 

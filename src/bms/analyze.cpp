@@ -307,14 +307,13 @@ private:
             }
         }
         if (level >= Analysis_Level::deep) {
-            // TODO: consider generating code straight into the VM instructions instead of using a
-            // separate vector.
-            Result<std::vector<Instruction>, Analysis_Error> instructions
-                = generate_code(m_program, node);
+            const Size vm_address = constant_evaluation_machine.instruction_count();
+            Result<void, Analysis_Error> instructions
+                = generate_code(constant_evaluation_machine.instructions(), m_program, node);
             if (!instructions) {
                 return instructions.error();
             }
-            node.vm_address = constant_evaluation_machine.add_instructions(*instructions);
+            node.vm_address = vm_address;
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
         node.const_value = get_const_value(get_node(node.get_return_type()));
