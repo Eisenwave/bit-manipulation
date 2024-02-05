@@ -761,8 +761,7 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
-                                                            *left, *right, op->type });
+        return m_program.push_node(Binary_Expression_Node { *op, *left, *right, op->type });
     }
 
     Result<Node_Handle, Rule_Error> match_comparison_expression()
@@ -784,8 +783,7 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
-                                                            *left, *right, op->type });
+        return m_program.push_node(Binary_Expression_Node { *op, *left, *right, op->type });
     }
 
     Result<Node_Handle, Rule_Error> match_arithmetic_expression()
@@ -802,8 +800,7 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(Binary_Expression_Node { get_token(m_program.get_node(*left)),
-                                                            *left, *right, op->type });
+        return m_program.push_node(Binary_Expression_Node { *op, *left, *right, op->type });
     }
 
     Result<Node_Handle, Rule_Error> match_prefix_expression()
