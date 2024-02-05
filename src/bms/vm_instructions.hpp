@@ -1,3 +1,6 @@
+#ifndef BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
+#define BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
+
 #include <variant>
 #include <vector>
 
@@ -82,3 +85,5 @@ using Instruction = std::variant<ins::Load,
 static_assert(std::is_trivially_copyable_v<Instruction>);
 
 } // namespace bit_manipulation::bms
+
+#endif
