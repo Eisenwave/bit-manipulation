@@ -622,8 +622,11 @@ private:
             }
             return match_else_statement();
         }();
+        if (!else_result) {
+            return else_result;
+        }
 
-        return m_program.push_node(If_Statement_Node { *first, *condition, *block, else_handle });
+        return m_program.push_node(If_Statement_Node { *first, *condition, *block, *else_result });
     }
 
     Result<Node_Handle, Rule_Error> match_else_statement()
