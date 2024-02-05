@@ -288,11 +288,11 @@ private:
                 BIT_MANIPULATION_ASSERT(node.const_value && node.const_value->int_value);
 
                 if (node.const_value->type != Concrete_Type::Bool) {
-                    return Analysis_Error { Analysis_Error_Code::requires_clause_note_bool,
+                    return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool,
                                             node.token, get_token(expression_node) };
                 }
                 if (node.const_value->int_value != 1) {
-                    return Analysis_Error { Analysis_Error_Code::requires_clause_note_satisfied,
+                    return Analysis_Error { Analysis_Error_Code::requires_clause_not_satisfied,
                                             node.token, get_token(expression_node) };
                 }
             }

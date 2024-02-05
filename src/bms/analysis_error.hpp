@@ -83,8 +83,12 @@ enum struct Analysis_Error_Code : Default_Underlying {
     width_deduction_from_non_uint,
     /// @brief The expression in a static assertion is not of type `Bool`.
     static_assert_expression_not_bool,
-    /// @brief The expression in a static assertion evaluated to false.
+    /// @brief The expression in a static assertion evaluated to `false`.
     static_assertion_failed,
+    /// @brief The expression in a requires-clause is not of type `Bool`.
+    requires_clause_not_bool,
+    /// @brief The expression in a requires clause evaluated to `false`.
+    requires_clause_not_satisfied,
 };
 
 struct Analysis_Error {

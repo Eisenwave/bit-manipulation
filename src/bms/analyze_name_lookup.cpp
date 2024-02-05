@@ -82,7 +82,10 @@ public:
 
 private:
     template <typename T>
-    Result<void, Analysis_Error> analyze_symbols_global(Node_Handle handle, T& n) = delete;
+    Result<void, Analysis_Error> analyze_symbols_global(Node_Handle, T&)
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Illegal AST node in global scope");
+    }
 
     template <>
     Result<void, Analysis_Error> analyze_symbols_global(Node_Handle handle, Program_Node& n)
@@ -91,13 +94,7 @@ private:
         for (Node_Handle decl : n.declarations) {
             std::visit(
                 [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
-                    if constexpr (std::is_same_v<T, Let_Const_Node>
-                                  || std::is_same_v<T, Function_Node>) {
-                        return analyze_symbols_global(decl, node);
-                    }
-                    else {
-                        BIT_MANIPULATION_ASSERT(false);
-                    }
+                    return analyze_symbols_global(decl, node);
                 },
                 get_node(decl));
         }
@@ -129,6 +126,12 @@ private:
 
         m_current_function = &n;
         return analyze_symbols_local(handle, m_symbols.push(), n);
+    }
+
+    template <>
+    Result<void, Analysis_Error> analyze_symbols_global(Node_Handle handle, Static_Assert_Node& n)
+    {
+        return analyze_symbols_local(handle, m_symbols, n);
     }
 
     Result<void, Analysis_Error> analyze_symbols_local(Node_Handle handle, Symbol_Table& table)
