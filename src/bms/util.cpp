@@ -342,6 +342,7 @@ namespace bit_manipulation::bms {
     case continue_statement: return "continue_statement";
     case return_statement: return "return_statement";
     case if_statement: return "if_statement";
+    case else_statement: return "else_statement";
     case while_statement: return "while_statement";
     case init_clause: return "init_clause";
     case block_statement: return "block_statement";

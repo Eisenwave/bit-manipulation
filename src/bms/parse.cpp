@@ -616,16 +616,25 @@ private:
         if (!block) {
             return block;
         }
-        auto else_handle = Node_Handle::null;
-        if (expect(Token_Type::keyword_else)) {
-            if (auto else_block = match_block_statement()) {
-                else_handle = *else_block;
+        auto else_result = [this] -> Result<Node_Handle, Rule_Error> {
+            if (!peek(Token_Type::keyword_else)) {
+                return Node_Handle::null;
             }
-            else {
-                return else_block;
-            }
-        }
+            return match_else_statement();
+        }();
+
         return m_program.push_node(If_Statement_Node { *first, *condition, *block, else_handle });
+    }
+
+    Result<Node_Handle, Rule_Error> match_else_statement()
+    {
+        const auto this_rule = Grammar_Rule::else_statement;
+
+        const Token* first = expect(Token_Type::keyword_else);
+        if (!first) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_else> };
+        }
+        return peek(Token_Type::keyword_if) ? match_if_statement() : match_block_statement();
     }
 
     Result<Node_Handle, Rule_Error> match_while_statement()
