@@ -304,6 +304,9 @@ private:
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(Parameter_List_Node& node, Analysis_Level level, Expression_Context)
     {
+        if (node.const_value) {
+            return {};
+        }
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
@@ -311,7 +314,6 @@ private:
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(Parameter_Node& node, Analysis_Level level, Expression_Context)
     {
-        // Parameters may be found by name lookup, so this check prevents duplicate analysis.
         if (node.const_value) {
             return {};
         }
@@ -361,9 +363,12 @@ private:
     Result<void, Analysis_Error>
     analyze_types(Let_Const_Node& node, Analysis_Level level, Expression_Context)
     {
-        if (node.const_value) {
+        // Const nodes contain constant expressions, so if they have been analyzed in the past,
+        // we can be sure that no further analysis is required.
+        if (node.is_const && node.const_value) {
             return {};
         }
+
         const auto initializer_context
             = node.is_const ? Expression_Context::constant : Expression_Context::normal;
         const auto initializer_level = node.is_const ? Analysis_Level::deep : level;
@@ -426,6 +431,36 @@ private:
         }
         // Even if evaluation failed, it is legal if we are in dead code.
         node.const_value = Value::unknown_of_type(type_node.const_value->type);
+        return {};
+    }
+
+    template <>
+    Result<void, Analysis_Error>
+    analyze_types(Static_Assert_Node& node, Analysis_Level, Expression_Context)
+    {
+        // Static assertions never need to be checked twice.
+        if (node.const_value) {
+            BIT_MANIPULATION_ASSERT(node.const_value->int_value);
+            return {};
+        }
+        auto expression_result = analyze_types(node.get_expression(), Analysis_Level::deep,
+                                               Expression_Context::constant);
+        if (!expression_result) {
+            return expression_result;
+        }
+        auto& expression_node = get_node(node.get_expression());
+        node.const_value = get_const_value(expression_node);
+        BIT_MANIPULATION_ASSERT(node.const_value && node.const_value->int_value);
+
+        if (node.const_value->type != Concrete_Type::Bool) {
+            return Analysis_Error { Analysis_Error_Code::static_assert_expression_not_bool,
+                                    node.token, get_token(expression_node) };
+        }
+        if (node.const_value->int_value != 1) {
+            return Analysis_Error { Analysis_Error_Code::static_assertion_failed, node.token,
+                                    get_token(expression_node) };
+        }
+
         return {};
     }
 
@@ -692,9 +727,6 @@ private:
                                                Expression_Context context)
     {
         BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
-        if (node.const_value) {
-            return {};
-        }
 
         // 1. Evaluate arguments.
 
@@ -844,9 +876,6 @@ private:
     Result<void, Analysis_Error>
     analyze_types(Id_Expression_Node& node, Analysis_Level level, Expression_Context context)
     {
-        if (node.const_value) {
-            return {};
-        }
         if (node.bit_generic) {
             // instantiation should have assigned a value to all bit-generic id-expressions
             BIT_MANIPULATION_ASSERT(node.const_value);
@@ -894,7 +923,9 @@ private:
     Result<void, Analysis_Error>
     analyze_types(Literal_Node& node, Analysis_Level, Expression_Context)
     {
+        // Literals never need to be analyzed twice.
         if (node.const_value) {
+            BIT_MANIPULATION_ASSERT(node.const_value->int_value);
             return {};
         }
         switch (node.token.type) {

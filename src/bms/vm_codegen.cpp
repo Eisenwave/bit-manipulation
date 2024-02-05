@@ -117,6 +117,13 @@ private:
     }
 
     template <>
+    Result<void, Analysis_Error> generate_code(Node_Handle, Static_Assert_Node& node)
+    {
+        BIT_MANIPULATION_ASSERT(node.const_value);
+        return {};
+    }
+
+    template <>
     Result<void, Analysis_Error> generate_code(Node_Handle, If_Statement_Node& node)
     {
         const auto restore = [this, restore_size = out.size()] {

@@ -209,6 +209,13 @@ private:
 
     template <>
     Result<void, Analysis_Error>
+    analyze_symbols_local(Node_Handle, Symbol_Table& table, Static_Assert_Node& node)
+    {
+        return analyze_symbols_local(node.get_expression(), table.push());
+    }
+
+    template <>
+    Result<void, Analysis_Error>
     analyze_symbols_local(Node_Handle, Symbol_Table& table, Assignment_Node& node)
     {
         if (!table.find(node.name)) {

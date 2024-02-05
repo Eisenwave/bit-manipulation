@@ -116,6 +116,8 @@ enum struct Token_Type : Default_Underlying {
     keyword_true,
     // false
     keyword_false,
+    // static_assert
+    keyword_static_assert,
 };
 
 [[nodiscard]] std::string_view token_type_name(Token_Type type);

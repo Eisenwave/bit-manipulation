@@ -87,6 +87,13 @@ Let_Const_Node::Let_Const_Node(Token token,
     BIT_MANIPULATION_ASSERT(type != Node_Handle::null || initializer != Node_Handle::null);
 }
 
+Static_Assert_Node::Static_Assert_Node(Token token, Node_Handle expression)
+    : Node_Base { token }
+    , Parent<1> { expression }
+{
+    BIT_MANIPULATION_ASSERT(expression != Node_Handle::null);
+}
+
 If_Statement_Node::If_Statement_Node(Token token,
                                      Node_Handle condition,
                                      Node_Handle if_block,

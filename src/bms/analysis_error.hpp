@@ -81,6 +81,10 @@ enum struct Analysis_Error_Code : Default_Underlying {
     codegen_call_to_unanalyzed,
     /// @brief Attempting to deduce the width of `UInt(N)` from a type that is not `Uint`.
     width_deduction_from_non_uint,
+    /// @brief The expression in a static assertion is not of type `Bool`.
+    static_assert_expression_not_bool,
+    /// @brief The expression in a static assertion evaluated to false.
+    static_assertion_failed,
 };
 
 struct Analysis_Error {

@@ -218,6 +218,16 @@ struct Let_Const_Node final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
+struct Static_Assert_Node final : detail::Node_Base, detail::Parent<1> {
+
+    Static_Assert_Node(Token token, Node_Handle expression);
+
+    Node_Handle get_expression() const
+    {
+        return children[0];
+    }
+};
+
 struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
     If_Statement_Node(Token token,
                       Node_Handle condition,
@@ -372,6 +382,7 @@ using Some_Node = std::variant<Program_Node,
                                Parameter_Node,
                                Type_Node,
                                Let_Const_Node,
+                               Static_Assert_Node,
                                If_Statement_Node,
                                While_Statement_Node,
                                Jump_Node,

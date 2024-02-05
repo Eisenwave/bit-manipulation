@@ -43,6 +43,7 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
         { "true", keyword_true },
         { "false", keyword_false },
         { "requires", keyword_requires },
+        { "static_assert", keyword_static_assert },
     };
 
     for (const auto [name, type] : types_by_name) {

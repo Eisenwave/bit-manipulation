@@ -64,6 +64,7 @@ namespace bit_manipulation::bms {
     case keyword_continue: return "keyword_continue";
     case keyword_true: return "keyword_true";
     case keyword_false: return "keyword_false";
+    case keyword_static_assert: return "static_assert";
     }
     return "";
 }
@@ -127,6 +128,7 @@ namespace bit_manipulation::bms {
     case keyword_continue: return "'continue'";
     case keyword_true: return "'true'";
     case keyword_false: return "'false'";
+    case keyword_static_assert: return "'static_assert'";
     }
     return "";
 }
@@ -197,6 +199,8 @@ namespace bit_manipulation::bms {
     case keyword_function:
     case keyword_requires:
     case keyword_continue: return 8;
+
+    case keyword_static_assert: return 13;
     }
 }
 
@@ -335,6 +339,7 @@ namespace bit_manipulation::bms {
     case requires_clause: return "requires_clause";
     case parameter_sequence: return "parameter_sequence";
     case parameter: return "parameter";
+    case static_assertion: return "static_assertion";
     case statement: return "statement";
     case assignment_statement: return "assignment_statement";
     case assignment: return "assignment";
