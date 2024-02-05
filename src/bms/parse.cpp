@@ -201,7 +201,7 @@ constexpr decltype(X) const_array_one_v[1] = { X };
 // position anyway, and it's more convenient to not deal with it most of the time.
 struct Rule_Error {
     Grammar_Rule rule;
-    std::span<const Token_Type> expected_tokens = {};
+    std::span<const Token_Type> expected_tokens;
 };
 
 struct Parser {
@@ -331,6 +331,9 @@ private:
         }
         if (peek(Token_Type::keyword_function)) {
             return match_function_declaration();
+        }
+        if (peek(Token_Type::keyword_static_assert)) {
+            return match_static_assertion();
         }
         return Rule_Error { Grammar_Rule::program_declaration };
     }
@@ -495,6 +498,20 @@ private:
             return type;
         }
         return m_program.push_node(Parameter_Node { *id, id->extract(m_program.source), *type });
+    }
+
+    Result<Node_Handle, Rule_Error> match_static_assertion()
+    {
+        constexpr auto this_rule = Grammar_Rule::static_assertion;
+        const Token* t = expect(Token_Type::keyword_static_assert);
+        if (!t) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_static_assert> };
+        }
+        auto expression = match_parenthesized_expression();
+        if (!expression) {
+            return expression;
+        }
+        return m_program.push_node(Static_Assert_Node { *t, *expression });
     }
 
     Result<Node_Handle, Rule_Error> match_requires_clause()
