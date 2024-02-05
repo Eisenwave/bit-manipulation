@@ -26,6 +26,13 @@ ast::Some_Node& Analyzer_Base::get_node(ast::Node_Handle handle)
 
 namespace {
 
+template <typename T>
+concept Lookup_Performing_Node = requires(T& t) {
+    {
+        t.lookup_result
+    } -> std::same_as<Node_Handle&>;
+};
+
 /// @brief Class responsible for performing instantiations.
 /// After runnings this analyzer, functions will have attached instance nodes.
 /// These instance nodes are clones of the original function node but where the bit-generic
@@ -139,7 +146,7 @@ private:
     {
         auto& node = get_node(h);
         std::visit(
-            [this, &h, &remap]<typename T>(T& n) {
+            [&h, &remap]<typename T>(T& n) {
                 if constexpr (Lookup_Performing_Node<T>) {
                     n.lookup_result = remap.at(h);
                 }

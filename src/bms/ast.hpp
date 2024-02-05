@@ -6,6 +6,7 @@
 #include <variant>
 #include <vector>
 
+#include "bms/analysis_error.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
@@ -363,26 +364,6 @@ struct Id_Expression_Node final : detail::Node_Base, detail::Parent<0> {
 
 struct Literal_Node final : detail::Node_Base, detail::Parent<0> {
     Literal_Node(Token token);
-};
-
-template <typename T>
-concept Lookup_Performing_Node = requires(T& t) {
-    {
-        t.lookup_result
-    } -> std::same_as<Node_Handle&>;
-};
-
-template <typename T>
-concept Node_Concept = requires(T& n, const T& c) {
-    {
-        n.get_token()
-    } -> std::same_as<Token>;
-    {
-        n.get_children()
-    } -> std::same_as<std::span<Node_Handle>>;
-    {
-        c.get_children()
-    } -> std::same_as<std::span<const Node_Handle>>;
 };
 
 using Some_Node = std::variant<Program_Node,

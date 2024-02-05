@@ -6,6 +6,24 @@
 
 namespace bit_manipulation::bms {
 
+// TODO: this doesn't really belong here, or the header should be renamed
+enum struct Analysis_Level : Default_Underlying {
+    /// @brief No analysis has taken place.
+    unanalyzed,
+    /// @brief For analyzing functions only when called by other functions, i.e. it's not
+    /// necessary to analyze the function body.
+    shallow,
+    /// @brief Full analysis of a function, including its body.
+    full,
+    /// @brief Full analysis, recursively, for analyzing functions in constant expressions.
+    deep
+};
+
+constexpr auto operator<=>(Analysis_Level x, Analysis_Level y) noexcept
+{
+    return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
+}
+
 enum struct Analysis_Error_Code : Default_Underlying {
     /// @brief A name was already in use when attempting to define a global constant.
     failed_to_define_global_const,
