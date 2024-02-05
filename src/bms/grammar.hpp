@@ -21,9 +21,10 @@ enum struct Grammar_Rule : Default_Underlying {
     parameter_sequence, // parameter, { ",", parameter }
     parameter, // identifier, ":", type
     static_assertion, // "static_assert", parenthesized_expression, ";"
-    statement, /* const_declaration
+    statement, /*
           | let_declaration
           | const_declaration
+          | static_assertion
           | assignment_statement
           | break_statement
           | continue_statement

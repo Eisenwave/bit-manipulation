@@ -528,15 +528,22 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         // This is a manually computed FIRST set of the statement rule.
-        static constexpr Token_Type possible_types[]
-            = { Token_Type::keyword_let,      Token_Type::keyword_const,  Token_Type::keyword_break,
-                Token_Type::keyword_continue, Token_Type::keyword_return, Token_Type::keyword_if,
-                Token_Type::keyword_while,    Token_Type::left_brace,     Token_Type::identifier };
+        static constexpr Token_Type possible_types[] = { Token_Type::keyword_let,
+                                                         Token_Type::keyword_const,
+                                                         Token_Type::keyword_static_assert,
+                                                         Token_Type::keyword_break,
+                                                         Token_Type::keyword_continue,
+                                                         Token_Type::keyword_return,
+                                                         Token_Type::keyword_if,
+                                                         Token_Type::keyword_while,
+                                                         Token_Type::left_brace,
+                                                         Token_Type::identifier };
 
         if (const Token* t = peek()) {
             switch (t->type) {
             case Token_Type::keyword_let: return match_let_declaration();
             case Token_Type::keyword_const: return match_const_declaration();
+            case Token_Type::keyword_static_assert: return match_static_assertion();
             case Token_Type::keyword_break: return match_break_statement();
             case Token_Type::keyword_continue: return match_continue_statement();
             case Token_Type::keyword_return: return match_return_statement();
