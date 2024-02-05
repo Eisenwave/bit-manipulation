@@ -616,7 +616,7 @@ private:
         if (!block) {
             return block;
         }
-        auto else_result = [this] -> Result<Node_Handle, Rule_Error> {
+        auto else_result = [this]() -> Result<Node_Handle, Rule_Error> {
             if (!peek(Token_Type::keyword_else)) {
                 return Node_Handle::null;
             }
