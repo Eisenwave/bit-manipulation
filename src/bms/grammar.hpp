@@ -3,6 +3,8 @@
 
 #include <string_view>
 
+#include "config.hpp"
+
 namespace bit_manipulation::bms {
 
 /// @brief A rule in the formal (context-free) grammar of the BMS language.
