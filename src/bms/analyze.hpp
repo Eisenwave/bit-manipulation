@@ -5,6 +5,7 @@
 
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
+#include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
@@ -42,8 +43,6 @@ inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
     }
     return ast::Node_Handle::null;
 }
-
-using Widths = std::variant<int, std::span<const int>>;
 
 constexpr int get_width(const Widths& w, Size i)
 {

@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-#include "bms/analyze.hpp"
+#include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
 #include "bms/value.hpp"
@@ -100,7 +100,7 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     std::vector<Instance> instances;
     bool is_generic = false;
     Size vm_address = invalid_vm_address;
-    Analysis_Level analysis_so_far;
+    Analysis_Level analysis_so_far = Analysis_Level::unanalyzed;
 
     Function_Node(Token token,
                   std::string_view name,
