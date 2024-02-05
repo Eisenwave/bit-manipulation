@@ -735,7 +735,7 @@ private:
         if (!expect(Token_Type::keyword_else)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_else> };
         }
-        auto right = match_binary_expression();
+        auto right = match_if_expression();
         if (!right) {
             return right;
         }

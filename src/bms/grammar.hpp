@@ -43,7 +43,7 @@ enum struct Grammar_Rule : Default_Underlying {
     init_clause, // let_declaration | assignment
     block_statement, // "{" { statement } "}"
     expression, // if_expression
-    if_expression, // binary_expression, ["if", binary_expression, "else", binary_expression]
+    if_expression, // binary_expression, ["if", binary_expression, "else", if_expression]
     binary_expression, // comparison_expression
                        // | prefix_expression, [binary_operator, prefix_expression]
     comparison_expression, // arithmetic_expression, binary_comparison_operator,
