@@ -421,14 +421,7 @@ private:
         if (!expect(Token_Type::assign)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::assign> };
         }
-        auto e = match_expression();
-        if (!e) {
-            return e;
-        }
-        if (!expect(Token_Type::semicolon)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
-        }
-        return e;
+        return match_expression();
     }
 
     Result<Node_Handle, Rule_Error> match_function_declaration()

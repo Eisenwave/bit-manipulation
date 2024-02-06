@@ -14,7 +14,7 @@ enum struct Grammar_Rule : Default_Underlying {
     const_declaration, // "const", identifier, [":", type], initializer
     let_declaration, // "let", identifier, ":", type, ";" | "let", identifier, [":", type],
                      // initializer, ";"
-    initializer, // "=", expression, ";"
+    initializer, // "=", expression
     function_declaration, // "function", identifier, function_header, block_statement
     function_header, // "(", [parameter_sequence], ")", "->", type, [requires_clause]
     requires_clause, // "requires", expression
