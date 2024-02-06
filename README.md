@@ -444,16 +444,22 @@ precedence.
 By comparison, C's `1 + 0 ? a : b` could be either `a` or `b` depending on the precedence of `?:`
 in relation to `+`. 
 
-##### Nesting if-expressions
+##### Nesting and chaining if-expressions
 
-If-expressions cannot be nested due to the mental overhead and the confusion this would create.
-Remember that BMS is a language to be intuitively understood at first glance.
+If-expressions can be chained, but not nested:
+```js
+let x = a if a_condition // OK
+   else b if b_condition
+   else c;
+
+let y = a if true if /* condition */ else false else b; // not allowed
+```
 
 Using parentheses, it is still possible to write:
 ```js
 let x = a if (true if /* condition */ else false) else b;
 ```
-A parenthesized expression can be used in stead of `a` or `b` as well.
+A parenthesized expression can be used instead of `a` or `b` as well.
 
 
 
