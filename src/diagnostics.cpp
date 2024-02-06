@@ -20,6 +20,102 @@ std::string_view to_prose(bms::Tokenize_Error_Code e)
     }
 }
 
+std::string_view to_prose(bms::Analysis_Error_Code e)
+{
+    using enum bms::Analysis_Error_Code;
+    switch (e) {
+    case failed_to_define_global_const:
+        return "A name was already in use when attempting to define a global constant.";
+    case failed_to_define_function:
+        return "A name was already in use when attempting to define a function.";
+    case failed_to_define_parameter:
+        return "A name was already in use when attempting to define a function parameter.";
+    case failed_to_define_variable:
+        return "A name was already in use when attempting to define a variable.";
+    case reference_to_undefined_variable:
+        return "An expression attempted to look up a variable or parameter, but it was not "
+               "defined.";
+    case assignment_of_undefined_variable:
+        return "An assignment attempted to assign a variable which is not defined.";
+    case call_to_undefined_function:
+        return "A function call to an undefined function was attempted.";
+    case width_not_integer: return "The width of Uint must be an integer.";
+    case width_not_const: return "The width of Uint must be a constant expression.";
+    case width_too_large: return "The width of Uint exceeds the maximum.";
+    case width_zero: return "The width of Uint must not be zero.";
+    case expected_constant_expression:
+        return "Expected a constant expression, but was unable to perform constant folding.";
+    case let_variable_in_constant_expression:
+        return "Cannot use variables in a constant expression. Did you mean 'const'?";
+    case parameter_in_constant_expression:
+        return "Cannot use function parameters in a constant expression.";
+    case function_in_expression:
+        return "Attempted to use a function in an expression as if it was a variable.";
+    case type_error: return "Type error.";
+    case execution_error:
+        return "Error in the execution of the generated code for constexpr functions.";
+    case evaluation_error: return "Evaluation error in constant expressions or constant folding.";
+    case condition_not_bool:
+        return "Condition of an if statement or while loop must be of type 'Bool'.";
+    case invalid_integer_literal:
+        return "The given literal is invalid, possibly because it is too large for the compiler's "
+               "internal integer representation.";
+    case assigning_parameter: return "Cannot assign a function parameter.";
+    case assigning_function: return "Cannot assign a function.";
+    case assigning_const: return "Cannot assign a constant. Did you mean to use 'let'?";
+    case call_non_function: return "Cannot call something that is not a function.";
+    case wrong_number_of_arguments: return "Wrong number of arguments provided to function.";
+    case codegen_call_to_unanalyzed:
+        return "Constant evaluation depends on a function whose definition is not yet complete.";
+    case width_deduction_from_non_uint:
+        return "Cannot deduce the width of Uint from a type that is not Uint.";
+    case static_assert_expression_not_bool:
+        return "The expression of a static assertion must be of type 'Bool'.";
+    case static_assertion_failed: return "Static assertion failed.";
+    case requires_clause_not_bool:
+        return "The expression in a requires-clause must be of type 'Bool.";
+    case requires_clause_not_satisfied:
+        return "Requires-clause was not satisfied (expression evaluated to 'false').";
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    }
+}
+
+std::string_view cause_to_prose(bms::Analysis_Error_Code e)
+{
+    using enum bms::Analysis_Error_Code;
+    switch (e) {
+    case failed_to_define_global_const:
+    case failed_to_define_function:
+    case failed_to_define_parameter:
+    case failed_to_define_variable: return "An entity with the same name is already defined here:";
+    case width_not_integer: return "The following expression must be of type 'Int':";
+    case width_not_const: return "The following expression is not a constant expression:";
+    case width_too_large: return "The following expression exceeded the maximum:";
+    case width_zero: return "The following expression evaluated to zero:";
+    case let_variable_in_constant_expression:
+        return "The referenced variable is declared 'let', here:";
+    case parameter_in_constant_expression:
+        return "The referenced entity is defined as a function parameter here:";
+    case function_in_expression: return "The referenced entity is defined as a function here:";
+    case condition_not_bool: return "The following expression must be of type 'Bool':";
+    case assigning_parameter: return "The assigned parameter is defined here:";
+    case assigning_function: return "The assigned function is defined here:";
+    case assigning_const: return "The assigned object is declared 'const' here:";
+    case call_non_function: return "The called entity is declared here:";
+    case wrong_number_of_arguments: return "The arguments must match the following parameter list:";
+    case codegen_call_to_unanalyzed: return "The following function was called:";
+    case width_deduction_from_non_uint: return "The following expression is not of type 'Uint':";
+    case static_assert_expression_not_bool:
+        return "The following expression must be of type 'Bool':";
+    case static_assertion_failed:
+        return "The following expression must evaluate to 'true', but evaluated to 'false':";
+    case requires_clause_not_bool: return "The following expression was not of type 'Bool':";
+    case requires_clause_not_satisfied:
+        return "The following expression must evaluate to 'true', but evaluated to 'false':";
+    default: return "Caused by:";
+    }
+}
+
 std::string_view to_prose(IO_Error_Code e)
 {
     switch (e) {
@@ -55,16 +151,18 @@ print_file_position(std::ostream& out, std::string_view file, bms::Source_Positi
 }
 
 const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
+const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
 
 std::ostream&
 print_affected_line(std::ostream& out, std::string_view source, bms::Source_Position pos)
 {
+    constexpr std::string_view separator = " | ";
+
     const std::string_view line = find_line(source, pos.begin);
     return out << std::right << std::setfill(' ') //
-               << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << " |" //
+               << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << separator //
                << line << '\n' //
-               << std::setw(5) << ""
-               << " |" //
+               << std::setw(5) << "" << separator //
                << std::string(pos.column, ' ') << ansi::h_green << "^\n"
                << ansi::reset;
 }
@@ -86,12 +184,11 @@ std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view source,
                                 bms::Parse_Error error)
 {
-    print_file_position(out, file, error.fail_token.pos);
-    out << ": " << error_prefix //
-        << "while matching '" << grammar_rule_name(error.fail_rule) << "', unexpected token "
-        << token_type_readable_name(error.fail_token.type) << "\n";
-    print_file_position(out, file, error.fail_token.pos);
-    out << ": note: expected ";
+    print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
+    out << "unexpected token " << token_type_readable_name(error.fail_token.type)
+        << " while matching '" << grammar_rule_name(error.fail_rule) << '\n';
+
+    print_file_position(out, file, error.fail_token.pos) << ": " << note_prefix << "expected ";
 
     const std::span<const bms::Token_Type> expected = error.expected_tokens;
     if (expected.size() == 0) {
@@ -109,6 +206,24 @@ std::ostream& print_parse_error(std::ostream& out,
     }
     out << "\n";
     return print_affected_line(out, source, error.fail_token.pos);
+}
+
+std::ostream& print_analysis_error(std::ostream& out,
+                                   std::string_view file,
+                                   std::string_view source,
+                                   bms::Analysis_Error error)
+{
+    print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
+    out << to_prose(error.code) << '\n';
+    print_affected_line(out, source, error.fail_token.pos);
+
+    if (error.cause_token != bms::Token {}) {
+        print_file_position(out, file, error.cause_token.pos)
+            << ": " << note_prefix << cause_to_prose(error.code) << '\n';
+        print_affected_line(out, source, error.cause_token.pos);
+    }
+
+    return out;
 }
 
 std::ostream&

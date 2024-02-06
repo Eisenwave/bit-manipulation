@@ -78,7 +78,7 @@ int check_semantics(std::string_view file)
         return 0;
     }
     else {
-        std::cout << ansi::red << "Analysis error\n" << ansi::reset;
+        print_analysis_error(std::cout, file, f.program, result.error());
         return 1;
     }
 }

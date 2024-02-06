@@ -9,6 +9,7 @@
 #include "ansi.hpp"
 #include "assert.hpp"
 
+#include "bms/analysis_error.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 #include "io.hpp"
@@ -52,6 +53,11 @@ std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
                                 bms::Parse_Error e);
+
+std::ostream& print_analysis_error(std::ostream& out,
+                                   std::string_view file,
+                                   std::string_view source,
+                                   bms::Analysis_Error e);
 
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
