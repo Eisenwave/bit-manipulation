@@ -950,7 +950,7 @@ private:
             return {};
         }
         switch (node.token.type) {
-        case Token_Type::keyword_bool: {
+        case Token_Type::keyword_true: {
             node.const_value = Value::True;
             return {};
         }
@@ -970,7 +970,8 @@ private:
             node.const_value = Value::Int(*value);
             return {};
         }
-        default: BIT_MANIPULATION_ASSERT(false);
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Given token type does not form a valid literal");
         }
     }
 };
