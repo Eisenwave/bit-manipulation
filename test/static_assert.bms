@@ -1,1 +1,10 @@
 static_assert(true);
+static_assert(1 == 1);
+
+const one = 1;
+static_assert(one == 1);
+
+function get_one() -> Int {
+    return 1;
+}
+static_assert(get_one() == 1);
