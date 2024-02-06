@@ -124,7 +124,9 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
     if (!is_binary_operator(op)) {
         return Type_Error_Code::invalid_operator;
     }
-
+    if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
+        return Type_Error_Code::void_operation;
+    }
     if (!convert_to_equal_type(lhs, rhs)) {
         return Type_Error_Code::incompatible_types;
     }
