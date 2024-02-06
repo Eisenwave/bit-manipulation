@@ -290,6 +290,56 @@ public:
         }
         return std::move(m_error);
     }
+
+#ifdef BIT_MANIPULATION_ENABLE_RESULT_MONADIC_INTERFACE
+    template <typename F>
+    [[nodiscard]] auto
+    transform(F&& f) const& -> Result<std::decay_t<std::invoke_result_t<F&&, const T&>>, Error>
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)(m_value) };
+        }
+        else {
+            return { Error_Tag {}, m_error };
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] auto
+    transform(F&& f) & -> Result<std::decay_t<std::invoke_result_t<F&&, T&>>, Error>
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)(m_value) };
+        }
+        else {
+            return { Error_Tag {}, m_error };
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] auto
+    transform(F&& f) const&& -> Result<std::decay_t<std::invoke_result_t<F&&, T&&>>, Error>
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)(std::move(m_value)) };
+        }
+        else {
+            return { Error_Tag {}, std::move(m_error) };
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] auto
+    transform(F&& f) && -> Result<std::decay_t<std::invoke_result_t<F&&, T&&>>, Error>
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)(std::move(m_value)) };
+        }
+        else {
+            return { Error_Tag {}, std::move(m_error) };
+        }
+    }
+#endif
 };
 
 // =================================================================================================
@@ -452,6 +502,30 @@ public:
         }
         return std::move(m_error);
     }
+
+#ifdef BIT_MANIPULATION_ENABLE_RESULT_MONADIC_INTERFACE
+    template <typename F>
+    [[nodiscard]] Result transform(F&& f) const&
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)() };
+        }
+        else {
+            return { Error_Tag {}, m_error };
+        }
+    }
+
+    template <typename F>
+    [[nodiscard]] Result transform(F&& f) &&
+    {
+        if (m_has_value) {
+            return { Success_Tag {}, std::forward<F>(f)() };
+        }
+        else {
+            return { Error_Tag {}, std::move(m_error) };
+        }
+    }
+#endif
 };
 
 } // namespace bit_manipulation
