@@ -30,6 +30,7 @@ public:
     std::variant<map_type::iterator, Node_Handle> emplace(std::string_view symbol,
                                                           ast::Node_Handle node)
     {
+        BIT_MANIPULATION_ASSERT(node != Node_Handle::null);
         if (m_parent != nullptr) {
             if (std::optional<Node_Handle> old = m_parent->find(symbol)) {
                 return *old;
@@ -92,11 +93,14 @@ private:
     {
         BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
         for (Node_Handle decl : n.declarations) {
-            std::visit(
+            auto r = std::visit(
                 [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
                     return analyze_symbols_global(decl, node);
                 },
                 get_node(decl));
+            if (!r) {
+                return r;
+            }
         }
         return {};
     }
@@ -201,9 +205,10 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(Node_Handle, Symbol_Table& table, Const_Node& node)
+    analyze_symbols_local(Node_Handle h, Symbol_Table& table, Const_Node& node)
     {
-        if (std::optional<Node_Handle> old = table.find(node.name)) {
+        auto it_or_handle = m_symbols.emplace(node.name, h);
+        if (Node_Handle* old = std::get_if<Node_Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
                                     get_token(get_node(*old)) };
         }
@@ -212,9 +217,10 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(Node_Handle, Symbol_Table& table, Let_Node& node)
+    analyze_symbols_local(Node_Handle h, Symbol_Table& table, Let_Node& node)
     {
-        if (std::optional<Node_Handle> old = table.find(node.name)) {
+        auto it_or_handle = m_symbols.emplace(node.name, h);
+        if (Node_Handle* old = std::get_if<Node_Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
                                     get_token(get_node(*old)) };
         }
