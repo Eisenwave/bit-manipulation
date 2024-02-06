@@ -107,7 +107,13 @@ try {
         return 1;
     }
 } catch (std::exception& e) {
-    std::cout << "Assertion failed: " << e.what() << '\n';
+    std::cout
+        << ansi::h_red << "Assertion failed! " << ansi::reset
+        << "The following expression evaluated to 'false', but was expected to be 'true':\n\n";
+    std::cout << e.what() << "\n\n";
+    std::cout << ansi::h_black << "This is an internal compiler error. Please report this bug at:\n"
+              << "https://github.com/Eisenwave/bit-manipulation/issues\n"
+              << ansi::reset;
     return 1;
 }
 
