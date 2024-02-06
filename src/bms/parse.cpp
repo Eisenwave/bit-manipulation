@@ -516,6 +516,9 @@ private:
         if (!expression) {
             return expression;
         }
+        if (!expect(Token_Type::semicolon)) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
+        }
         return m_program.push_node(Static_Assert_Node { *t, *expression });
     }
 
