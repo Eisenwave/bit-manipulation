@@ -89,7 +89,7 @@ try {
 
     if (args.size() < 3) {
         const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
-        std::cout << "Usage: " << program_name << " dump_tokens|dump_ast <FILE>\n";
+        std::cout << "Usage: " << program_name << " dump_tokens|dump_ast|verify <FILE>\n";
         return 1;
     }
 
@@ -99,7 +99,7 @@ try {
     else if (args[1] == "dump_ast") {
         return dump_ast(args[2]);
     }
-    else if (args[1] == "semantics") {
+    else if (args[1] == "verify") {
         return check_semantics(args[2]);
     }
     else {
@@ -107,7 +107,7 @@ try {
         return 1;
     }
 } catch (std::exception& e) {
-    std::cout << "Error: " << e.what() << '\n';
+    std::cout << "Assertion failed: " << e.what() << '\n';
     return 1;
 }
 
