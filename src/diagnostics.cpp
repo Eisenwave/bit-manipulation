@@ -186,7 +186,7 @@ std::ostream& print_parse_error(std::ostream& out,
 {
     print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
     out << "unexpected token " << token_type_readable_name(error.fail_token.type)
-        << " while matching '" << grammar_rule_name(error.fail_rule) << '\n';
+        << " while matching '" << grammar_rule_name(error.fail_rule) << "'\n";
 
     print_file_position(out, file, error.fail_token.pos) << ": " << note_prefix << "expected ";
 
