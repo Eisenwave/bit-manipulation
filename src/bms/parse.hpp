@@ -29,6 +29,12 @@ struct Parsed_Program {
         return nodes[static_cast<Size>(handle)];
     }
 
+    const ast::Some_Node& get_node(ast::Node_Handle handle) const&
+    {
+        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        return nodes[static_cast<Size>(handle)];
+    }
+
     ast::Node_Handle push_node(ast::Some_Node&& node) &
     {
         const auto result = static_cast<ast::Node_Handle>(nodes.size());

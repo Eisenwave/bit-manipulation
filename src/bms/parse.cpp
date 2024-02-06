@@ -45,7 +45,7 @@ Function_Node::Function_Node(Token token,
                              Node_Handle requires_clause,
                              Node_Handle body)
     : Node_Base { token }
-    , Parent<4> { parameters, requires_clause, return_type, body }
+    , Parent<4> { parameters, return_type, requires_clause, body }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(return_type != Node_Handle::null);
@@ -221,6 +221,7 @@ public:
     Result<Parsed_Program, Parse_Error> parse()
     {
         if (auto program = match_program()) {
+            m_program.root_node = *program;
             return std::move(m_program);
         }
         else {

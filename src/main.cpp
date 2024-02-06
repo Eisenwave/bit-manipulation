@@ -8,6 +8,7 @@
 #include "io.hpp"
 
 #include "bms/analysis_error.hpp"
+#include "bms/ast.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
@@ -37,12 +38,6 @@ Tokenized_File tokenize_file(std::string_view file)
     }
 }
 
-void print_ast(std::ostream& out, const bms::Parsed_Program& program)
-{
-    (void)out;
-    (void)program;
-}
-
 void dump_tokens(std::string_view file)
 {
     const Tokenized_File f = tokenize_file(file);
@@ -51,9 +46,11 @@ void dump_tokens(std::string_view file)
 
 void dump_ast(std::string_view file)
 {
+    constexpr Size indent_width = 2;
+
     const Tokenized_File f = tokenize_file(file);
     if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
-        return print_ast(std::cout, *parsed);
+        print_ast(std::cout, *parsed, indent_width);
     }
     else {
         print_parse_error(std::cout, file, f.program, parsed.error());

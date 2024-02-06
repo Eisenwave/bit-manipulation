@@ -43,9 +43,6 @@ print_file_position(std::ostream& out, std::string_view file, bms::Source_Positi
 std::ostream&
 print_affected_line(std::ostream& out, std::string_view source, bms::Source_Position pos);
 
-std::ostream&
-print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
-
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,
                                    std::string_view source,
@@ -55,6 +52,11 @@ std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
                                 bms::Parse_Error e);
+
+std::ostream&
+print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
+
+std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width);
 
 } // namespace bit_manipulation
 

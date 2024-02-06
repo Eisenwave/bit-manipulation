@@ -69,30 +69,6 @@ print_affected_line(std::ostream& out, std::string_view source, bms::Source_Posi
                << ansi::reset;
 }
 
-std::ostream&
-print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
-{
-    for (const bms::Token& t : tokens) {
-        const std::string_view text = t.extract(source);
-        out << std::setfill(' ') << std::right //
-            << std::setw(2) << t.pos.line + 1 //
-            << ":" //
-            << std::setw(2) << t.pos.column + 1 << ": " //
-            << std::left //
-            << token_type_name(t.type);
-
-        if (token_type_length(t.type) == 0) {
-            out << "(" << text << ")";
-            if (text.length() > 1) {
-                out << " (" << text.length() << " characters)";
-            }
-        }
-
-        out << '\n';
-    }
-    return out;
-}
-
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,
                                    std::string_view source,
@@ -133,6 +109,84 @@ std::ostream& print_parse_error(std::ostream& out,
     }
     out << "\n";
     return print_affected_line(out, source, error.fail_token.pos);
+}
+
+std::ostream&
+print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
+{
+    for (const bms::Token& t : tokens) {
+        const std::string_view text = t.extract(source);
+        out << std::setfill(' ') << std::right //
+            << std::setw(2) << t.pos.line + 1 //
+            << ":" //
+            << std::setw(2) << t.pos.column + 1 << ": " //
+            << std::left //
+            << token_type_name(t.type);
+
+        if (token_type_length(t.type) == 0) {
+            out << "(" << text << ")";
+            if (text.length() > 1) {
+                out << " (" << text.length() << " characters)";
+            }
+        }
+
+        out << '\n';
+    }
+    return out;
+}
+
+namespace {
+
+struct AST_Printer {
+    std::ostream& out;
+    const bms::Parsed_Program& program;
+    const Size indent_width;
+
+    void print(bms::ast::Node_Handle handle, std::string_view child_name = "", Size level = 0)
+    {
+        out << std::string(indent_width * level, ' ');
+        if (handle != bms::ast::Node_Handle::null) {
+            out << ansi::h_black << static_cast<Size>(handle) << ansi::reset << ':';
+        }
+        if (child_name != "") {
+            out << ansi::h_green << child_name << ansi::black << "=" << ansi::reset;
+        }
+        if (handle == bms::ast::Node_Handle::null) {
+            out << "null\n";
+            return;
+        }
+
+        const bms::ast::Some_Node node = program.get_node(handle);
+        const std::string_view node_name = get_node_name(node);
+        const auto printed_node_name = node_name.substr(0, node_name.length() - 5); // remove _Node
+
+        out << ansi::h_magenta << printed_node_name << ansi::h_black << "(" << ansi::reset
+            << get_token(node).extract(program.source) << ansi::h_black << ")\n"
+            << ansi::reset;
+
+        const auto children = get_children(node);
+        for (Size i = 0; i < children.size(); ++i) {
+            auto name = std::visit(
+                [i](const auto& n) -> std::string_view {
+                    if constexpr (requires { n.child_names; }) {
+                        return n.child_names[i];
+                    }
+                    else {
+                        return "";
+                    }
+                },
+                node);
+            print(children[i], name, level + 1);
+        }
+    }
+};
+
+} // namespace
+
+std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width)
+{
+    AST_Printer { out, program, indent_width }.print(program.root_node);
+    return out;
 }
 
 } // namespace bit_manipulation

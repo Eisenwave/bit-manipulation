@@ -65,6 +65,8 @@ struct Parent<0> {
 } // namespace detail
 
 struct Program_Node final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Program_Node";
+
     std::vector<Node_Handle> declarations;
 
     Program_Node(Token token, std::vector<Node_Handle>&& declarations);
@@ -80,6 +82,10 @@ struct Program_Node final : detail::Node_Base {
 };
 
 struct Function_Node final : detail::Node_Base, detail::Parent<4> {
+    static inline constexpr std::string_view self_name = "Function_Node";
+    static inline constexpr std::string_view child_names[]
+        = { "parameters", "return_type", "requires_clause", "body" };
+
     struct Instance {
         std::vector<int> widths;
         Node_Handle handle;
@@ -144,6 +150,8 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
 };
 
 struct Parameter_List_Node final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Parameter_List_Node";
+
     std::vector<Node_Handle> parameters;
 
     Parameter_List_Node(Token token, std::vector<Node_Handle>&& parameters);
@@ -159,6 +167,9 @@ struct Parameter_List_Node final : detail::Node_Base {
 };
 
 struct Parameter_Node final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Parameter_Node";
+    static inline constexpr std::string_view child_names[] = { "type" };
+
     std::string_view name;
 
     Parameter_Node(Token token, std::string_view name, Node_Handle type);
@@ -173,6 +184,9 @@ template <typename T, typename U>
 using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
 
 struct Type_Node final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Type_Node";
+    static inline constexpr std::string_view child_names[] = { "width" };
+
 private:
     template <typename Self>
     static auto get_children_impl(Self& self) -> std::span<const_like_t<Node_Handle, Self>>
@@ -199,6 +213,9 @@ public:
 };
 
 struct Let_Const_Node final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Let_Const_Node";
+    static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+
     std::string_view name;
     bool is_const;
 
@@ -219,6 +236,8 @@ struct Let_Const_Node final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Static_Assert_Node final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Static_Assert_Node";
+    static inline constexpr std::string_view child_names[] = { "expression" };
 
     Static_Assert_Node(Token token, Node_Handle expression);
 
@@ -229,6 +248,13 @@ struct Static_Assert_Node final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
+    static inline constexpr std::string_view self_name = "If_Statement_Node";
+    static inline constexpr std::string_view child_names[] = {
+        "condition",
+        "if_block",
+        "else_block",
+    };
+
     If_Statement_Node(Token token,
                       Node_Handle condition,
                       Node_Handle if_block,
@@ -249,6 +275,9 @@ struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
 };
 
 struct While_Statement_Node final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "While_Statement_Node";
+    static inline constexpr std::string_view child_names[] = { "condition", "block" };
+
     While_Statement_Node(Token token, Node_Handle condition, Node_Handle block);
 
     Node_Handle get_condition() const
@@ -263,10 +292,14 @@ struct While_Statement_Node final : detail::Node_Base, detail::Parent<2> {
 
 // break, continue
 struct Jump_Node final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Jump_Node";
+
     Jump_Node(Token token);
 };
 
 struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Return_Statement_Node";
+    static inline constexpr std::string_view child_names[] = { "expression" };
 
     Return_Statement_Node(Token token, Node_Handle expression);
 
@@ -277,6 +310,9 @@ struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Assignment_Node";
+    static inline constexpr std::string_view child_names[] = { "expression" };
+
     std::string_view name;
     Node_Handle lookup_result = Node_Handle::null;
 
@@ -289,6 +325,8 @@ struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Block_Statement_Node final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Block_Statement_Node";
+
     std::vector<Node_Handle> statements;
 
     Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements);
@@ -304,6 +342,9 @@ struct Block_Statement_Node final : detail::Node_Base {
 };
 
 struct If_Expression_Node final : detail::Node_Base, detail::Parent<3> {
+    static inline constexpr std::string_view self_name = "If_Expression_Node";
+    static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
+
     If_Expression_Node(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
 
     Node_Handle get_left() const
@@ -321,6 +362,9 @@ struct If_Expression_Node final : detail::Node_Base, detail::Parent<3> {
 };
 
 struct Binary_Expression_Node final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Binary_Expression_Node";
+    static inline constexpr std::string_view child_names[] = { "left", "right" };
+
     Token_Type op;
 
     Binary_Expression_Node(Token token, Node_Handle left, Node_Handle right, Token_Type op);
@@ -336,6 +380,9 @@ struct Binary_Expression_Node final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Prefix_Expression_Node final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Prefix_Expression_Node";
+    static inline constexpr std::string_view child_names[] = { "expression" };
+
     Token_Type op;
 
     Prefix_Expression_Node(Token token, Token_Type opm, Node_Handle operand);
@@ -347,6 +394,8 @@ struct Prefix_Expression_Node final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Function_Call_Expression_Node final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Function_Call_Expression_Node";
+
     std::string_view function;
     std::vector<Node_Handle> arguments;
     Node_Handle lookup_result = Node_Handle::null;
@@ -366,6 +415,8 @@ struct Function_Call_Expression_Node final : detail::Node_Base {
 };
 
 struct Id_Expression_Node final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Id_Expression_Node";
+
     Node_Handle lookup_result = Node_Handle::null;
     bool bit_generic = false;
 
@@ -373,6 +424,8 @@ struct Id_Expression_Node final : detail::Node_Base, detail::Parent<0> {
 };
 
 struct Literal_Node final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Literal_Node";
+
     Literal_Node(Token token);
 };
 
@@ -399,6 +452,11 @@ using Some_Node = std::variant<Program_Node,
 inline Token get_token(const Some_Node& node)
 {
     return std::visit([](const detail::Node_Base& n) { return n.token; }, node);
+}
+
+inline std::string_view get_node_name(const Some_Node& node)
+{
+    return std::visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
 inline std::optional<Value>& get_const_value(Some_Node& node)
