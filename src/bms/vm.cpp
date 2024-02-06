@@ -26,6 +26,7 @@ template <>
 Result<void, Execution_Error_Code> Virtual_Machine::cycle(ins::Push& push)
 {
     m_stack.push_back(push.value);
+    ++m_instruction_counter;
     return {};
 }
 
