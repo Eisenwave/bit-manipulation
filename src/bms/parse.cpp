@@ -570,7 +570,7 @@ private:
             case Token_Type::keyword_if: return match_if_statement();
             case Token_Type::keyword_while: return match_while_statement();
             case Token_Type::left_brace: return match_block_statement();
-            case Token_Type::identifier: return match_assignment();
+            case Token_Type::identifier: return match_assignment_statement();
             default: break;
             }
         }
