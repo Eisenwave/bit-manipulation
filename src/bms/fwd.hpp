@@ -40,6 +40,8 @@ struct Source_Position {
     Size column;
     /// First index in the source file that is part of the syntactical element.
     Size begin;
+
+    friend constexpr auto operator<=>(Source_Position, Source_Position) = default;
 };
 
 } // namespace bit_manipulation::bms

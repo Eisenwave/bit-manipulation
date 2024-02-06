@@ -158,6 +158,8 @@ struct Token {
     {
     }
 
+    friend constexpr auto operator<=>(Token, Token) = default;
+
     [[nodiscard]] std::string_view extract(std::string_view source) const
     {
         return source.substr(pos.begin, length);
