@@ -13,6 +13,48 @@
 namespace bit_manipulation {
 namespace {
 
+std::string_view to_string(bms::Tokenize_Error_Code e)
+{
+    switch (e) {
+    case bms::Tokenize_Error_Code::illegal_character: return "Illegal character encountered.";
+    case bms::Tokenize_Error_Code::integer_suffix:
+        return "Suffix after integer literal is not allowed";
+    case bms::Tokenize_Error_Code::unterminated_comment:
+        return "Unterminated block comment found. '/*' must have a matching '*/'";
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    }
+}
+
+std::string_view find_line(std::string_view source, Size index)
+{
+    Size begin = source.rfind('\n', index);
+    begin = begin != std::string_view::npos ? begin + 1 : 0;
+
+    Size end = std::min(source.find('\n', index + 1), source.size());
+
+    return source.substr(begin, end - begin);
+}
+
+std::ostream& print_file_position(std::string_view file, bms::Source_Position pos)
+{
+    return std::cout << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
+                     << ansi::reset;
+}
+
+const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
+
+std::ostream& print_affected_line(std::string_view source, bms::Source_Position pos)
+{
+    const std::string_view line = find_line(source, pos.begin);
+    return std::cout << std::right << std::setfill(' ') //
+                     << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << " |" //
+                     << line << '\n' //
+                     << std::setw(5) << ""
+                     << " |" //
+                     << std::string(pos.column, ' ') << ansi::h_green << "^\n"
+                     << ansi::reset;
+}
+
 struct Tokenized_File {
     std::vector<bms::Token> tokens;
     std::string program;
@@ -27,8 +69,11 @@ Tokenized_File tokenize_file(std::string_view file)
         return { std::move(tokens), std::move(program) };
     }
     else {
-        // TODO: diagnostics
-        throw std::runtime_error("Failed to tokenize");
+        auto e = result.error();
+        print_file_position(file, e.pos);
+        std::cout << ": " << error_prefix << to_string(e.code) << '\n';
+        print_affected_line(program, e.pos);
+        std::exit(1);
     }
 }
 
@@ -66,37 +111,10 @@ void dump_tokens(std::string_view file)
     print_tokens(std::cout, f);
 }
 
-void print_file_position(std::string_view file, bms::Source_Position pos)
-{
-    std::cout << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column << ansi::reset;
-}
-
-std::string_view find_line(std::string_view source, Size index)
-{
-    Size begin = source.rfind('\n', index);
-    begin = begin != std::string_view::npos ? begin + 1 : 0;
-
-    Size end = std::min(source.find('\n', index + 1), source.size());
-
-    return source.substr(begin, end - begin);
-}
-
-void print_affected_line(std::string_view source, bms::Source_Position pos)
-{
-    const std::string_view line = find_line(source, pos.begin);
-    std::cout << std::right << std::setfill(' ') //
-              << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << " |" //
-              << line << '\n' //
-              << std::setw(5) << ""
-              << " |" //
-              << std::string(pos.column, ' ') << ansi::h_green << "^\n"
-              << ansi::reset;
-}
-
 void print_parse_error(std::string_view file, const Tokenized_File& f, bms::Parse_Error error)
 {
     print_file_position(file, error.fail_token.pos);
-    std::cout << ": " << ansi::h_red << "error: " << ansi::reset //
+    std::cout << ": " << error_prefix //
               << "while matching '" << grammar_rule_name(error.fail_rule) << "', unexpected token "
               << token_type_readable_name(error.fail_token.type) << "\n";
     print_file_position(file, error.fail_token.pos);
