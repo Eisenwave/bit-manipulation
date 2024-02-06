@@ -137,8 +137,8 @@ private:
             return condition;
         }
 
-        auto& blank_jump_to_else
-            = std::get<ins::Relative_Jump_If>(out.emplace_back(ins::Relative_Jump_If { 0, false }));
+        const Size blank_jump_to_else_index = out.size();
+        out.push_back(ins::Relative_Jump_If { 0, false });
         const auto size_before_if = out.size();
         auto if_result = generate_code(node.get_if_block());
         if (!if_result) {
@@ -146,21 +146,23 @@ private:
             return if_result;
         }
 
-        blank_jump_to_else.offset = Signed_Size(out.size() - size_before_if
-                                                + (node.get_else_block() != Node_Handle::null));
+        std::get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset = Signed_Size(
+            out.size() - size_before_if + (node.get_else_block() != Node_Handle::null));
 
-        if (node.get_else_block() != Node_Handle::null) {
-            auto& blank_jump_past_else
-                = std::get<ins::Relative_Jump>(out.emplace_back(ins::Relative_Jump {}));
-            const auto size_before_else = out.size();
-            auto else_result = generate_code(node.get_else_block());
-            if (!else_result) {
-                restore();
-                return else_result;
-            }
-            blank_jump_past_else.offset = Signed_Size(out.size() - size_before_else);
+        if (node.get_else_block() == Node_Handle::null) {
+            return {};
         }
 
+        const Size blank_jump_past_else_index = out.size();
+        out.push_back(ins::Relative_Jump {});
+        const auto size_before_else = out.size();
+        auto else_result = generate_code(node.get_else_block());
+        if (!else_result) {
+            restore();
+            return else_result;
+        }
+        std::get<ins::Relative_Jump>(out[blank_jump_past_else_index]).offset
+            = Signed_Size(out.size() - size_before_else);
         return {};
     }
 
@@ -178,8 +180,8 @@ private:
             return condition;
         }
 
-        auto& blank_jump_past_loop
-            = std::get<ins::Relative_Jump_If>(out.emplace_back(ins::Relative_Jump_If { 0, false }));
+        const Size blank_jump_past_loop_index = out.size();
+        out.push_back(ins::Relative_Jump_If { 0, false });
         const auto size_before_block = out.size();
 
         auto block = generate_code(node.get_block());
@@ -187,7 +189,8 @@ private:
             restore();
             return block;
         }
-        blank_jump_past_loop.offset = Signed_Size(out.size() - size_before_block + 1);
+        std::get<ins::Relative_Jump_If>(out[blank_jump_past_loop_index]).offset
+            = Signed_Size(out.size() - size_before_block + 1);
 
         for (Size i = size_before_block; i < out.size(); ++i) {
             if (std::holds_alternative<ins::Break>(out[i])) {
@@ -200,7 +203,7 @@ private:
             }
         }
 
-        const auto back_offset = -Signed_Size(out.size() - initial_size + 2);
+        const auto back_offset = -Signed_Size(out.size() - initial_size + 1);
         out.push_back(ins::Relative_Jump { back_offset });
         return {};
     }
@@ -282,25 +285,28 @@ private:
         if (!condition) {
             return condition;
         }
-        auto& blank_jump_to_right
-            = std::get<ins::Relative_Jump_If>(out.emplace_back(ins::Relative_Jump_If { 0, false }));
+        const Size blank_jump_to_right_index = out.size();
+        out.push_back(ins::Relative_Jump_If { 0, false });
+
         const auto size_before_left = out.size();
         auto left = generate_code(node.get_left());
         if (!left) {
             restore();
             return left;
         }
-        blank_jump_to_right.offset = Signed_Size(out.size() - size_before_left + 1);
+        std::get<ins::Relative_Jump_If>(out[blank_jump_to_right_index]).offset
+            = Signed_Size(out.size() - size_before_left + 1);
 
-        auto& blank_jump_past_right
-            = std::get<ins::Relative_Jump>(out.emplace_back(ins::Relative_Jump {}));
+        const Size blank_jump_past_right_index = out.size();
+        out.push_back(ins::Relative_Jump {});
         const auto size_before_right = out.size();
         auto right = generate_code(node.get_right());
         if (!right) {
             restore();
             return right;
         }
-        blank_jump_past_right.offset = Signed_Size(out.size() - size_before_right);
+        std::get<ins::Relative_Jump>(out[blank_jump_past_right_index]).offset
+            = Signed_Size(out.size() - size_before_right);
 
         return {};
     }
@@ -338,15 +344,17 @@ private:
             after: ...
             */
             const bool circuit_breaker = node.op == Token_Type::logical_or;
-            auto& blank_jump_to_circuit_break = std::get<ins::Relative_Jump_If>(
-                out.emplace_back(ins::Relative_Jump_If { 0, circuit_breaker }));
+            const Size blank_jump_to_circuit_break_index = out.size();
+            out.push_back(ins::Relative_Jump_If { 0, circuit_breaker });
+
             const auto size_before_right = out.size();
             auto right = generate_code(node.get_right());
             if (!right) {
                 restore();
                 return right;
             }
-            blank_jump_to_circuit_break.offset = Signed_Size(out.size() - size_before_right + 1);
+            std::get<ins::Relative_Jump_If>(out[blank_jump_to_circuit_break_index]).offset
+                = Signed_Size(out.size() - size_before_right + 1);
 
             out.push_back(ins::Relative_Jump { 1 });
             out.push_back(ins::Push { Concrete_Value { Concrete_Type::Bool, circuit_breaker } });
