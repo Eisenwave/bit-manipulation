@@ -102,7 +102,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_global(Node_Handle handle, Let_Const_Node& n)
+    Result<void, Analysis_Error> analyze_symbols_global(Node_Handle handle, Const_Node& n)
     {
         BIT_MANIPULATION_ASSERT(handle != Node_Handle::null);
         auto it_or_handle = m_symbols.emplace(n.name, handle);
@@ -201,7 +201,18 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(Node_Handle, Symbol_Table& table, Let_Const_Node& node)
+    analyze_symbols_local(Node_Handle, Symbol_Table& table, Const_Node& node)
+    {
+        if (std::optional<Node_Handle> old = table.find(node.name)) {
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
+                                    get_token(get_node(*old)) };
+        }
+        return analyze_all_symbols_local(node.get_children(), table);
+    }
+
+    template <>
+    Result<void, Analysis_Error>
+    analyze_symbols_local(Node_Handle, Symbol_Table& table, Let_Node& node)
     {
         if (std::optional<Node_Handle> old = table.find(node.name)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,

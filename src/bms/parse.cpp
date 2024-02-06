@@ -74,15 +74,21 @@ Type_Node::Type_Node(Token token, Some_Type type)
 {
 }
 
-Let_Const_Node::Let_Const_Node(Token token,
-                               Token_Type let_or_const,
-                               std::string_view name,
-                               Node_Handle type,
-                               Node_Handle initializer)
+Const_Node::Const_Node(Token token,
+                       std::string_view name,
+                       Node_Handle type,
+                       Node_Handle initializer)
     : Node_Base { token }
     , Parent<2> { type, initializer }
     , name(name)
-    , is_const(let_or_const == Token_Type::keyword_const)
+{
+    BIT_MANIPULATION_ASSERT(initializer != Node_Handle::null);
+}
+
+Let_Node::Let_Node(Token token, std::string_view name, Node_Handle type, Node_Handle initializer)
+    : Node_Base { token }
+    , Parent<2> { type, initializer }
+    , name(name)
 {
     BIT_MANIPULATION_ASSERT(type != Node_Handle::null || initializer != Node_Handle::null);
 }
@@ -345,29 +351,11 @@ private:
 
     Result<Node_Handle, Rule_Error> match_let_declaration()
     {
-        return match_variable(Token_Type::keyword_let);
-    }
+        const auto this_rule = Grammar_Rule::let_declaration;
 
-    Result<Node_Handle, Rule_Error> match_const_declaration()
-    {
-        return match_variable(Token_Type::keyword_const);
-    }
-
-    Result<Node_Handle, Rule_Error> match_variable(Token_Type const_or_let)
-    {
-        BIT_MANIPULATION_ASSERT(const_or_let == Token_Type::keyword_const
-                                || const_or_let == Token_Type::keyword_let);
-
-        const auto this_rule = const_or_let == Token_Type::keyword_let
-            ? Grammar_Rule::let_declaration
-            : Grammar_Rule::const_declaration;
-        const std::span<const Token_Type> expected_tokens = const_or_let == Token_Type::keyword_let
-            ? const_array_one_v<Token_Type::keyword_let>
-            : const_array_one_v<Token_Type::keyword_const>;
-
-        const Token* t = expect(const_or_let);
+        const Token* t = expect(Token_Type::keyword_let);
         if (!t) {
-            return Rule_Error { this_rule, expected_tokens };
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_let> };
         }
         const Token* id = expect(Token_Type::identifier);
         if (!id) {
@@ -384,16 +372,47 @@ private:
                 return type;
             }
         }
-        const bool mandatory_initializer
-            = const_or_let == Token_Type::keyword_const || type_handle == Node_Handle::null;
-        auto init = match_initializer();
-        if (!init && mandatory_initializer) {
+        auto init = expect(&Parser::match_initializer);
+        if (!init && type_handle == Node_Handle::null) {
             return init;
         }
         if (!expect(Token_Type::semicolon)) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
+        }
+        return m_program.push_node(Let_Node { *t, name, type_handle, *init });
+    }
+
+    Result<Node_Handle, Rule_Error> match_const_declaration()
+    {
+        const auto this_rule = Grammar_Rule::const_declaration;
+
+        const Token* t = expect(Token_Type::keyword_const);
+        if (!t) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_const> };
+        }
+        const Token* id = expect(Token_Type::identifier);
+        if (!id) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        return m_program.push_node(Let_Const_Node { *t, const_or_let, name, type_handle, *init });
+        const std::string_view name = id->extract(m_program.source);
+
+        auto type_handle = Node_Handle::null;
+        if (expect(Token_Type::colon)) {
+            if (auto type = match_type()) {
+                type_handle = *type;
+            }
+            else {
+                return type;
+            }
+        }
+        auto init = match_initializer();
+        if (!init) {
+            return init;
+        }
+        if (!expect(Token_Type::semicolon)) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
+        }
+        return m_program.push_node(Const_Node { *t, name, type_handle, *init });
     }
 
     Result<Node_Handle, Rule_Error> match_initializer()

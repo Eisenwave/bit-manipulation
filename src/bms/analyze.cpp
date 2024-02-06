@@ -382,40 +382,24 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Let_Const_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(Const_Node& node, Analysis_Level level, Expression_Context)
     {
         // Const nodes contain constant expressions, so if they have been analyzed in the past,
         // we can be sure that no further analysis is required.
-        if (node.is_const && node.const_value) {
+        if (node.const_value) {
             return {};
         }
-
-        const auto initializer_context
-            = node.is_const ? Expression_Context::constant : Expression_Context::normal;
-        const auto initializer_level = node.is_const ? Analysis_Level::deep : level;
+        // Const nodes must always have an initializer.
+        BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
 
         if (node.get_type() == Node_Handle::null) {
-            // If there is no type, there must be an initializer.
-            // This is "static type inference".
-            // Prior analysis should have ensured this already, but we may a well double-check.
-            BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
-
-            if (auto r
-                = analyze_types(node.get_initializer(), initializer_level, initializer_context);
+            if (auto r = analyze_types(node.get_initializer(), Analysis_Level::deep,
+                                       Expression_Context::constant);
                 !r) {
                 return r;
             }
-            auto initializer_value = get_const_value(get_node(node.get_initializer()));
-            BIT_MANIPULATION_ASSERT(initializer_value.has_value());
-            if (node.is_const) {
-                node.const_value = initializer_value;
-            }
-            else {
-                // Intentionally "forget" the value determined during constant folding.
-                // For mutable variables, it is possible that the value is modified, and
-                // `const_value` should only be a concrete value for invariants.
-                node.const_value = Value::unknown_of_type(initializer_value->type);
-            }
+            node.const_value = get_const_value(get_node(node.get_initializer()));
+            BIT_MANIPULATION_ASSERT(node.const_value->int_value);
             return {};
         }
 
@@ -424,13 +408,9 @@ private:
         if (!type_result) {
             return type_result;
         }
-        if (node.get_initializer() == Node_Handle::null) {
-            node.const_value = Value::unknown_of_type(std::get<Concrete_Type>(type_node.type));
-            return {};
-        }
 
-        if (const auto r
-            = analyze_types(node.get_initializer(), initializer_level, initializer_context);
+        if (const auto r = analyze_types(node.get_initializer(), Analysis_Level::deep,
+                                         Expression_Context::constant);
             !r) {
             return r;
         }
@@ -443,15 +423,59 @@ private:
         }
         const Result<Value, Evaluation_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value->type);
-        if (r) {
-            node.const_value = node.is_const ? *r : Value::unknown_of_type(r->type);
-            return {};
-        }
-        else if (node.is_const) {
+        if (!r) {
             return Analysis_Error { r.error(), node.token, cause_token };
         }
-        // Even if evaluation failed, it is legal if we are in dead code.
-        node.const_value = Value::unknown_of_type(type_node.const_value->type);
+        node.const_value = *r;
+        return {};
+    }
+
+    template <>
+    Result<void, Analysis_Error>
+    analyze_types(Let_Node& node, Analysis_Level level, Expression_Context)
+    {
+        if (node.get_type() == Node_Handle::null) {
+            // If there is no type, there must be an initializer.
+            // This is "static type inference".
+            // Prior analysis should have ensured this already, but we may a well double-check.
+            BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
+
+            if (auto r = analyze_types(node.get_initializer(), level, Expression_Context::normal);
+                !r) {
+                return r;
+            }
+            auto initializer_value = get_const_value(get_node(node.get_initializer()));
+            BIT_MANIPULATION_ASSERT(initializer_value.has_value());
+            // Intentionally "forget" the value determined during constant folding.
+            // For mutable variables, it is possible that the value is modified, and
+            // `const_value` should only be a concrete value for invariants.
+            node.const_value = Value::unknown_of_type(initializer_value->type);
+            return {};
+        }
+
+        auto& type_node = std::get<Type_Node>(get_node(node.get_type()));
+        const auto type_result = analyze_types(type_node, level, Expression_Context::constant);
+        if (!type_result) {
+            return type_result;
+        }
+        auto& type_node_type = std::get<Concrete_Type>(type_node.type);
+        if (node.get_initializer() == Node_Handle::null) {
+            node.const_value = Value::unknown_of_type(type_node_type);
+            return {};
+        }
+
+        if (const auto r = analyze_types(node.get_initializer(), level, Expression_Context::normal);
+            !r) {
+            return r;
+        }
+        auto initializer_value = get_const_value(get_node(node.get_initializer()));
+
+        const Token cause_token = get_token(get_node(node.get_initializer()));
+        BIT_MANIPULATION_ASSERT(type_node.const_value.has_value());
+        if (!initializer_value->type.is_convertible_to(type_node.const_value->type)) {
+            return Analysis_Error { Type_Error_Code::incompatible_types, node.token, cause_token };
+        }
+        node.const_value = Value::unknown_of_type(type_node_type);
         return {};
     }
 
@@ -577,11 +601,12 @@ private:
                                     get_token(looked_up_node) };
         }
 
-        auto& looked_up_var = std::get<Let_Const_Node>(looked_up_node);
-        if (looked_up_var.is_const) {
+        if (auto* looked_up_const = std::get_if<Const_Node>(&looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_const, node.token,
-                                    get_token(looked_up_node) };
+                                    get_token(*looked_up_const) };
         }
+
+        auto& looked_up_var = std::get<Let_Node>(looked_up_node);
 
         if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
@@ -909,13 +934,22 @@ private:
             return Analysis_Error { Analysis_Error_Code::function_in_expression, node.token,
                                     looked_up_function->token };
         }
-        if (const auto* const looked_up_var = std::get_if<Let_Const_Node>(&looked_up_node)) {
-            if (context == Expression_Context::constant && !looked_up_var->is_const) {
+        if (const auto* const looked_up_var = std::get_if<Let_Node>(&looked_up_node)) {
+            if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         node.token, looked_up_var->token };
             }
+            // TODO: in conjunction with potential changes to name lookup analysis, this would be a
+            // god point to emit a "used before defined" diagnostic
             if (looked_up_var->const_value) {
                 node.const_value = looked_up_var->const_value;
+                return {};
+            }
+        }
+        if (const auto* const looked_up_const = std::get_if<Const_Node>(&looked_up_node)) {
+            // TODO: immediately analyze the const node?
+            if (looked_up_const->const_value) {
+                node.const_value = looked_up_const->const_value;
                 return {};
             }
         }

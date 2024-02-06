@@ -212,18 +212,31 @@ public:
     }
 };
 
-struct Let_Const_Node final : detail::Node_Base, detail::Parent<2> {
-    static inline constexpr std::string_view self_name = "Let_Const_Node";
+struct Const_Node final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Const_Node";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
     std::string_view name;
-    bool is_const;
 
-    Let_Const_Node(Token token,
-                   Token_Type let_or_const,
-                   std::string_view name,
-                   Node_Handle type,
-                   Node_Handle initializer);
+    Const_Node(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
+
+    Node_Handle get_type() const
+    {
+        return children[0];
+    }
+    Node_Handle get_initializer() const
+    {
+        return children[1];
+    }
+};
+
+struct Let_Node final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Let_Node";
+    static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+
+    std::string_view name;
+
+    Let_Node(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
 
     Node_Handle get_type() const
     {
@@ -434,7 +447,8 @@ using Some_Node = std::variant<Program_Node,
                                Parameter_List_Node,
                                Parameter_Node,
                                Type_Node,
-                               Let_Const_Node,
+                               Const_Node,
+                               Let_Node,
                                Static_Assert_Node,
                                If_Statement_Node,
                                While_Statement_Node,

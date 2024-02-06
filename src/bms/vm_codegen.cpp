@@ -95,16 +95,18 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Let_Const_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle h, Const_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
-        if (node.const_value->int_value) {
-            out.push_back(ins::Push { node.const_value->concrete_value() });
-            out.push_back(ins::Store { h });
-            return {};
-        }
-        BIT_MANIPULATION_ASSERT(!node.is_const);
+        out.push_back(ins::Push { node.const_value->concrete_value() });
+        out.push_back(ins::Store { h });
+        return {};
+    }
 
+    template <>
+    Result<void, Analysis_Error> generate_code(Node_Handle h, Let_Node& node)
+    {
+        BIT_MANIPULATION_ASSERT(node.const_value);
         auto init = generate_code(node.get_initializer());
         if (!init) {
             return init;
