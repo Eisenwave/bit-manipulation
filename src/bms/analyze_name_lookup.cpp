@@ -238,11 +238,11 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(Node_Handle, Symbol_Table& table, Assignment_Node& node)
     {
-        if (!table.find(node.name)) {
-            return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable,
-                                    node.token };
+        if (std::optional<Node_Handle> result = table.find(node.name)) {
+            node.lookup_result = *result;
+            return analyze_symbols_local(node.get_expression(), table);
         }
-        return {};
+        return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, node.token };
     }
 
     template <>
