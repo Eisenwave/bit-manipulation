@@ -47,9 +47,11 @@ private:
     {
         const auto restore_size = out.size();
 
-        auto param_result = generate_code(function.get_parameters());
-        if (!param_result) {
-            return param_result;
+        if (function.get_parameters() != Node_Handle::null) {
+            auto param_result = generate_code(function.get_parameters());
+            if (!param_result) {
+                return param_result;
+            }
         }
 
         auto body_result = generate_code(function.get_body());
@@ -95,7 +97,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(Node_Handle h, Const_Node& node)
+    Result<void, Analysis_Error> generate_code(Node_Handle, Const_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         // Const nodes don't produce any codegen because any id expressions that access constants
