@@ -977,14 +977,10 @@ private:
 
 } // namespace
 
-Result<void, Analysis_Error> analyze(Parsed_Program& program)
+Result<void, Analysis_Error> analyze_semantics(Parsed_Program& program)
 {
-    if (auto r = analyze_name_lookup(program); !r) {
-        return r;
-    }
-    else {
-        return r;
-    }
+    Type_Analyzer analyzer { program };
+    return analyzer();
 }
 
 } // namespace bit_manipulation::bms

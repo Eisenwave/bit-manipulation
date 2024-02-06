@@ -8,6 +8,7 @@
 #include "io.hpp"
 
 #include "bms/analysis_error.hpp"
+#include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
@@ -38,23 +39,47 @@ Tokenized_File tokenize_file(std::string_view file)
     }
 }
 
-void dump_tokens(std::string_view file)
+bms::Parsed_Program parse_tokenized(std::string_view file_name, const Tokenized_File& f)
+{
+    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
+        return *parsed;
+    }
+    else {
+        print_parse_error(std::cout, file_name, f.program, parsed.error());
+        std::exit(1);
+    }
+}
+
+int dump_tokens(std::string_view file)
 {
     const Tokenized_File f = tokenize_file(file);
     print_tokens(std::cout, f.tokens, f.program);
+    return 0;
 }
 
-void dump_ast(std::string_view file)
+int dump_ast(std::string_view file)
 {
     constexpr Size indent_width = 2;
 
     const Tokenized_File f = tokenize_file(file);
-    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
-        print_ast(std::cout, *parsed, indent_width);
+    const bms::Parsed_Program p = parse_tokenized(file, f);
+    print_ast(std::cout, p, indent_width);
+    return 0;
+}
+
+int check_semantics(std::string_view file)
+{
+    const Tokenized_File f = tokenize_file(file);
+    bms::Parsed_Program p = parse_tokenized(file, f);
+
+    Result<void, bms::Analysis_Error> result = bms::analyze(p);
+    if (result) {
+        std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
+        return 0;
     }
     else {
-        print_parse_error(std::cout, file, f.program, parsed.error());
-        std::exit(1);
+        std::cout << ansi::red << "Analysis error\n" << ansi::reset;
+        return 1;
     }
 }
 
@@ -69,15 +94,18 @@ try {
     }
 
     if (args[1] == "dump_tokens") {
-        dump_tokens(args[2]);
-        return 0;
+        return dump_tokens(args[2]);
     }
-
-    if (args[1] == "dump_ast") {
-        dump_ast(args[2]);
+    else if (args[1] == "dump_ast") {
+        return dump_ast(args[2]);
     }
-
-    return 0;
+    else if (args[1] == "semantics") {
+        return check_semantics(args[2]);
+    }
+    else {
+        std::cout << "Unknown command '" << args[1] << "'\n";
+        return 1;
+    }
 } catch (std::exception& e) {
     std::cout << "Error: " << e.what() << '\n';
     return 1;

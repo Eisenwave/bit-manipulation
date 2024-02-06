@@ -28,8 +28,15 @@ inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
 }
 
 Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);
+Result<void, Analysis_Error> analyze_semantics(Parsed_Program& program);
 
-Result<void, Analysis_Error> analyze(Parsed_Program& program);
+inline Result<void, Analysis_Error> analyze(Parsed_Program& program)
+{
+    if (auto r = analyze_name_lookup(program); !r) {
+        return r;
+    }
+    return analyze_semantics(program);
+}
 
 } // namespace bit_manipulation::bms
 
