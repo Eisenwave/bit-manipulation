@@ -903,7 +903,7 @@ private:
         for (Size i = 0; i < node.arguments.size(); ++i) {
             auto& param = std::get<Parameter_Node>(get_node(params->parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
-            if (arg_values[i].type.is_convertible_to(param_type)) {
+            if (!arg_values[i].type.is_convertible_to(param_type)) {
                 return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
                                         param.token };
             }
