@@ -80,6 +80,27 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     }
 }
 
+std::string_view to_prose(bms::Type_Error_Code e)
+{
+    using enum bms::Type_Error_Code;
+    switch (e) {
+    case invalid_operator: return "Invalid operator is used.";
+    case void_operation: return "Cannot perform operations for operands of type 'Void'.";
+    case bool_arithmetic: return "Cannot use arithmetic operators for operands of type 'Bool'.";
+    case bool_bitwise: return "Cannot use bitwise operators for operands of type 'Bool'.";
+    case bool_relational_comparison:
+        return "Cannot use relational comparisons between operands of type 'Bool'. Only logical "
+               "comparisons are allowed.";
+    case int_bitwise: return "Cannot use bitwise operators for operands of type 'Int'.";
+    case uint_logical: return "Cannot us logical operators for operands of type 'Uint'.";
+    case non_bool_logical: return "Logical operators can only be applied to 'Bool'.";
+    case incompatible_types: return "Incompatible types for operation or conversion.";
+    case incompatible_widths: return "Incompatible Uint widths for operation or conversion.";
+    case condition_not_bool: return "The condition of an if-expression must be of type 'Bool'";
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    }
+}
+
 std::string_view cause_to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
@@ -213,8 +234,12 @@ std::ostream& print_analysis_error(std::ostream& out,
                                    std::string_view source,
                                    bms::Analysis_Error error)
 {
+    const std::string_view error_prose = error.code == bms::Analysis_Error_Code::type_error
+        ? to_prose(error.type_error)
+        : to_prose(error.code);
+
     print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
-    out << to_prose(error.code) << '\n';
+    out << error_prose << '\n';
     print_affected_line(out, source, error.fail_token.pos);
 
     if (error.cause_token != bms::Token {}) {
