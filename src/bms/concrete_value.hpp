@@ -60,7 +60,7 @@ constexpr auto Concrete_Value::convert_to(Concrete_Type other) const -> Conversi
         const bool lossy = !other.can_represent(int_value);
         return { Concrete_Value { other, int_value }, lossy };
     }
-    BIT_MANIPULATION_ASSERT(false);
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible conversion requested.");
 }
 
 } // namespace bit_manipulation::bms

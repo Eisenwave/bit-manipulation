@@ -110,7 +110,7 @@ constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
         const bool lossy = !other.can_represent(*int_value);
         return { Value { other, *int_value }, lossy };
     }
-    BIT_MANIPULATION_ASSERT(false);
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible conversion requested.");
 }
 
 } // namespace bit_manipulation::bms

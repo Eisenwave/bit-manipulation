@@ -114,7 +114,7 @@ check_unary_operator(Token_Type op, Concrete_Type value) noexcept
         return value;
     }
 
-    default: BIT_MANIPULATION_ASSERT(false);
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected type.");
     }
 }
 
@@ -170,7 +170,7 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
         return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
     }
 
-    default: BIT_MANIPULATION_ASSERT(false);
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected type.");
     }
 }
 
@@ -217,7 +217,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
         if (op == Token_Type::logical_not) {
             return Concrete_Value { Concrete_Type::Bool, value.int_value ^ 1 };
         }
-        BIT_MANIPULATION_ASSERT(false);
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
 
     case Type_Type::Int: {
@@ -227,7 +227,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
         if (op == Token_Type::minus) {
             return Concrete_Value { Concrete_Type::Int, -value.int_value };
         }
-        BIT_MANIPULATION_ASSERT(false);
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Int operation not caught by type-check.");
     }
 
     case Type_Type::Uint: {
@@ -240,10 +240,10 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value) noexcept
         if (op == Token_Type::bitwise_not) {
             return value.transform_uint([](Big_Uint x) { return Big_Uint(~x); });
         }
-        BIT_MANIPULATION_ASSERT(false);
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Uint operation not caught by type-check.");
     }
 
-    default: BIT_MANIPULATION_ASSERT(false);
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported operation not caught by type-check.");
     }
 }
 
@@ -304,7 +304,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
         if (op == Token_Type::logical_or) {
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value || rhs.int_value) };
         }
-        BIT_MANIPULATION_ASSERT(false);
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
 
     case Type_Type::Int: {
@@ -323,7 +323,9 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
             return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value - rhs.int_value) };
         case Token_Type::multiplication: //
             return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value * rhs.int_value) };
-        default: BIT_MANIPULATION_ASSERT(false);
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE(
+                "Unsupported Int operation not caught by type-check.");
         }
     }
 
@@ -354,11 +356,13 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x << y; });
         case Token_Type::shift_right:
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x >> y; });
-        default: BIT_MANIPULATION_ASSERT(false);
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE(
+                "Unsupported Uint operation not caught by type-check.");
         }
     }
 
-    default: BIT_MANIPULATION_ASSERT(false);
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported operation not caught by type-check.");
     }
 }
 
