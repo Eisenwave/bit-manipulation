@@ -28,6 +28,7 @@ set(HEADERS
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
     src/config.hpp
+    src/diagnostics.hpp
     src/io.hpp
     src/result.hpp)
 
@@ -42,6 +43,7 @@ add_executable(bmscript ${HEADERS}
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
+    src/diagnostics.cpp
     src/io.cpp
     src/main.cpp)
 

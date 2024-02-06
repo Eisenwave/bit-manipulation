@@ -5,14 +5,14 @@
 
 namespace bit_manipulation {
 
-std::string file_to_string(std::string_view path)
+Result<std::string, IO_Error_Code> file_to_string(std::string_view path)
 {
     constexpr auto read_size = std::size_t(4096);
     auto stream = std::ifstream(path.data());
     stream.exceptions(std::ios_base::badbit);
 
-    if (not stream) {
-        throw std::ios_base::failure("file does not exist");
+    if (!stream) {
+        return IO_Error_Code::cannot_open;
     }
 
     auto out = std::string();
