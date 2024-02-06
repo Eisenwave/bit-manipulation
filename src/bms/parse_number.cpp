@@ -4,7 +4,7 @@
 
 #include "bms/parse_number.hpp"
 
-namespace bit_manipulation {
+namespace bit_manipulation::bms {
 
 namespace {
 
