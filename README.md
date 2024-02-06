@@ -454,3 +454,46 @@ Using parentheses, it is still possible to write:
 let x = a if (true if /* condition */ else false) else b;
 ```
 A parenthesized expression can be used in stead of `a` or `b` as well.
+
+
+
+### Project philosophy and basic style guide
+
+When contributing to this project, keep a few things in mind:
+
+1. Auto-format the code with clang-format.
+   The rules are defined in `.clang-format`.
+
+1. KISS - keep it stupid simple.
+   Many code style choices were made for the purpose of simplicity.
+   Avoid templates and macros whenever possible.
+
+1. Avoid abbreviations for anything non-local.
+   Write `expression`, not `expr`.
+
+
+### Compilation process
+
+To get you started, here is a summary of how BMS programs are compiled:
+
+1. Source characters are turned into tokens.
+   This happens in `bms/tokenize.cpp`.
+   The output is a `std::vector<Token>`, where tokens don't own the associated string data, but
+   are simply made of a `Source_Position` and `Size` for the length.
+
+2. Tokens are combined into abstract syntax tree (AST) nodes.
+   This happens in `bms/parser.cpp`.
+   The parser actually produces a `std::vector<std::variant<Node_A, Node_B, ...>>`, which
+   minimizes dynamic allocations.
+   The nodes reference each other via `Node_Handle`, which is an index into that vector.
+
+3. Name-lookup analysis is performed in `analyze_name_lookup.cpp`.
+   This fills in the `Node_Handle lookup_result` member for some nodes, so that name lookup
+   results are always easily available in later stages.
+
+4. Semantic analysis is performed in `analyze.cpp`.
+   This involves type-checking expressions and evaluating constant expressions.
+   This is by far the most complex part of the compilation process.
+   Function calls in constant expressions are made possible by compiling analyzed function into
+   VM instructions of a stack machine in `vm_codegen.cpp`.
+   `vm.cpp` is then used for executing these instructions.   
