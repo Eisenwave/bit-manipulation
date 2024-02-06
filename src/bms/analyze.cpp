@@ -338,7 +338,14 @@ private:
         if (node.const_value) {
             return {};
         }
-        return analyze_child_types(node, level, Expression_Context::normal);
+        auto& type = std::get<Type_Node>(get_node(node.get_type()));
+        auto r = analyze_types(type, level, Expression_Context::normal);
+        if (!r) {
+            return r;
+        }
+        BIT_MANIPULATION_ASSERT(type.const_value);
+        node.const_value = type.const_value;
+        return {};
     }
 
     template <>
