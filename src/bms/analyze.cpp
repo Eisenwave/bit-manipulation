@@ -800,9 +800,16 @@ private:
         //    number of arguments is an error before and after instantiating generic functions.
         //    There is no function overloading.
 
-        auto& possibly_generic_params
-            = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
-        if (possibly_generic_params.parameters.size() != node.arguments.size()) {
+        Parameter_List_Node* possibly_generic_params = nullptr;
+        if (function->get_parameters() != Node_Handle::null) {
+            possibly_generic_params
+                = &std::get<Parameter_List_Node>(get_node(function->get_parameters()));
+            if (possibly_generic_params->parameters.size() != node.arguments.size()) {
+                return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, node.token,
+                                        possibly_generic_params->token };
+            }
+        }
+        else if (node.arguments.size() != 0) {
             return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, node.token,
                                     function->token };
         }
@@ -811,10 +818,12 @@ private:
         //    After deduction is complete, `function` will point to the concrete instance, not to
         //    the generic function anymore.
         if (function->is_generic) {
+            // Functions with no parameters cannot be generic.
+            BIT_MANIPULATION_ASSERT(possibly_generic_params != nullptr);
             std::vector<int> deduced_widths;
             for (Size i = 0; i < node.arguments.size(); ++i) {
                 auto& param
-                    = std::get<Parameter_Node>(get_node(possibly_generic_params.parameters[i]));
+                    = std::get<Parameter_Node>(get_node(possibly_generic_params->parameters[i]));
                 auto& type = std::get<Type_Node>(get_node(param.get_type()));
                 auto* gen_type = std::get_if<Bit_Generic_Type>(&type.type);
                 if (!gen_type) {
@@ -869,11 +878,14 @@ private:
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        auto& params = std::get<Parameter_List_Node>(get_node(function->get_parameters()));
+        Parameter_List_Node* params = possibly_generic_params != nullptr
+            ? &std::get<Parameter_List_Node>(get_node(function->get_parameters()))
+            : nullptr;
         // Instantiation (which may have happened) should not be able to change the number of
         // parameters.
-        BIT_MANIPULATION_ASSERT(params.parameters.size()
-                                == possibly_generic_params.parameters.size());
+        BIT_MANIPULATION_ASSERT(possibly_generic_params == nullptr
+                                || params->parameters.size()
+                                    == possibly_generic_params->parameters.size());
 
         // Similar to `arg_values` above, but with implicit conversions applied for the purpose
         // of evaluating the actual function call.
@@ -882,7 +894,7 @@ private:
         }
 
         for (Size i = 0; i < node.arguments.size(); ++i) {
-            auto& param = std::get<Parameter_Node>(get_node(params.parameters[i]));
+            auto& param = std::get<Parameter_Node>(get_node(params->parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
             if (arg_values[i].type.is_convertible_to(param_type)) {
                 return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
