@@ -98,8 +98,8 @@ private:
     Result<void, Analysis_Error> generate_code(Node_Handle h, Const_Node& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
-        out.push_back(ins::Push { node.const_value->concrete_value() });
-        out.push_back(ins::Store { h });
+        // Const nodes don't produce any codegen because any id expressions that access constants
+        // will be constant-folded and emit a `Push` instead.
         return {};
     }
 
