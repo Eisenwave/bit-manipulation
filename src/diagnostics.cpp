@@ -53,7 +53,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Attempted to use a function in an expression as if it was a variable.";
     case type_error: return "Type error.";
     case execution_error:
-        return "Error in the execution of the generated code for constexpr functions.";
+        return "Error in the execution of the generated code for constant-evaluated functions.";
     case evaluation_error: return "Evaluation error in constant expressions or constant folding.";
     case condition_not_bool:
         return "Condition of an if statement or while loop must be of type 'Bool'.";
@@ -97,6 +97,22 @@ std::string_view to_prose(bms::Type_Error_Code e)
     case incompatible_types: return "Incompatible types for operation or conversion.";
     case incompatible_widths: return "Incompatible Uint widths for operation or conversion.";
     case condition_not_bool: return "The condition of an if-expression must be of type 'Bool'";
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    }
+}
+
+std::string_view to_prose(bms::Execution_Error_Code e)
+{
+    using enum bms::Execution_Error_Code;
+    switch (e) {
+    case load_uninitialized: return "Load from uninitialized variable.";
+    case pop: return "Pop from empty stack.";
+    case pop_call: return "Return from outside a function.";
+    case evaluation: return "Error in evaluation of operator.";
+    case jump_out_of_program: return "Jump to address which is outside the program.";
+    case jump_if_not_bool: return "Condition of Jump_If instruction is not of type 'Bool'.";
+    case symbolic_jump: return "Execution of a symbolic jump.";
+    case call_out_of_program: return "Call of a function address which is outside the program.";
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
     }
 }
@@ -242,6 +258,12 @@ std::ostream& print_analysis_error(std::ostream& out,
     out << error_prose << '\n';
     print_affected_line(out, source, error.fail_token.pos);
 
+    if (error.code == bms::Analysis_Error_Code::execution_error) {
+        print_file_position(out, file, error.cause_token.pos)
+            << ": " << note_prefix << to_prose(error.execution_error) << '\n';
+        print_internal_error_notice(out);
+    }
+
     if (error.cause_token != bms::Token {}) {
         print_file_position(out, file, error.cause_token.pos)
             << ": " << note_prefix << cause_to_prose(error.code) << '\n';
@@ -327,6 +349,14 @@ std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, S
 {
     AST_Printer { out, program, indent_width }.print(program.root_node);
     return out;
+}
+
+std::ostream& print_internal_error_notice(std::ostream& out)
+{
+    return out << ansi::h_black
+               << "This is an internal compiler error. Please report this bug at:\n"
+               << "https://github.com/Eisenwave/bit-manipulation/issues\n"
+               << ansi::reset;
 }
 
 } // namespace bit_manipulation

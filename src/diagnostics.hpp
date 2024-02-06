@@ -8,11 +8,12 @@
 
 #include "ansi.hpp"
 #include "assert.hpp"
+#include "io.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
-#include "io.hpp"
+#include "bms/vm.hpp"
 
 namespace bit_manipulation {
 
@@ -63,6 +64,8 @@ std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width);
+
+std::ostream& print_internal_error_notice(std::ostream& out);
 
 } // namespace bit_manipulation
 
