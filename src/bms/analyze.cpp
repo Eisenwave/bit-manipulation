@@ -205,7 +205,7 @@ private:
         if (handle == ast::Handle::null) {
             return {};
         }
-        return std::visit([this, handle, level, context](
+        return fast_visit([this, handle, level, context](
                               auto& node) { return analyze_types(handle, node, level, context); },
                           get_node(handle));
     }

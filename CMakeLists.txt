@@ -5,7 +5,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-extension)
-set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+set(SANITIZER_OPTIONS
+#-fsanitize=address,undefined
+)
 
 set(HEADERS
     src/ansi.hpp
