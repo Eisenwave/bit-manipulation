@@ -30,7 +30,8 @@ set(HEADERS
     src/config.hpp
     src/diagnostics.hpp
     src/io.hpp
-    src/result.hpp)
+    src/result.hpp
+    src/visit.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/assert.cpp

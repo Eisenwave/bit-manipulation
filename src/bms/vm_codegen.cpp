@@ -28,7 +28,7 @@ public:
 private:
     Result<void, Analysis_Error> generate_code(ast::Handle h)
     {
-        return std::visit([this, h](auto& node) { return generate_code(h, node); }, get_node(h));
+        return fast_visit([this, h](auto& node) { return generate_code(h, node); }, get_node(h));
     }
 
     Result<void, Analysis_Error> generate_code(ast::Handle, ast::Program&)

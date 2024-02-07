@@ -142,7 +142,7 @@ private:
                                  const std::unordered_map<ast::Handle, ast::Handle>& remap)
     {
         auto& node = get_node(h);
-        std::visit(
+        fast_visit(
             [&h, &remap]<typename T>(T& n) {
                 if constexpr (Lookup_Performing_Node<T>) {
                     n.lookup_result = remap.at(h);
@@ -156,7 +156,7 @@ private:
 
     ast::Handle copy_single_node_for_instantiation(ast::Handle h)
     {
-        return std::visit(
+        return fast_visit(
             [this]<typename T>(const T& n) {
                 if constexpr (std::is_same_v<T, ast::Function>) {
                     return m_program.push_node(n.copy_for_instantiation());

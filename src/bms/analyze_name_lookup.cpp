@@ -89,7 +89,7 @@ private:
     {
         BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
         for (ast::Handle decl : n.declarations) {
-            auto r = std::visit(
+            auto r = fast_visit(
                 [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
                     return analyze_symbols_global(decl, node);
                 },
@@ -135,7 +135,7 @@ private:
         if (handle == ast::Handle::null) {
             return {};
         }
-        return std::visit([this, handle, &table](
+        return fast_visit([this, handle, &table](
                               auto& node) { return analyze_symbols_local(handle, table, node); },
                           get_node(handle));
     }

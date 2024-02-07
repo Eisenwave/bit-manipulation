@@ -6,6 +6,8 @@
 #include <variant>
 #include <vector>
 
+#include "visit.hpp"
+
 #include "bms/analysis_error.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
@@ -464,32 +466,32 @@ using Some_Node = std::variant<Program,
 
 inline Token get_token(const Some_Node& node)
 {
-    return std::visit([](const detail::Node_Base& n) { return n.token; }, node);
+    return fast_visit([](const detail::Node_Base& n) { return n.token; }, node);
 }
 
 inline std::string_view get_node_name(const Some_Node& node)
 {
-    return std::visit([]<typename T>(const T&) { return T::self_name; }, node);
+    return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
 inline std::optional<Value>& get_const_value(Some_Node& node)
 {
-    return std::visit([](detail::Node_Base& n) -> auto& { return n.const_value; }, node);
+    return fast_visit([](detail::Node_Base& n) -> auto& { return n.const_value; }, node);
 }
 
 inline std::optional<Value> get_const_value(const Some_Node& node)
 {
-    return std::visit([](const detail::Node_Base& n) { return n.const_value; }, node);
+    return fast_visit([](const detail::Node_Base& n) { return n.const_value; }, node);
 }
 
 inline std::span<Handle> get_children(Some_Node& node)
 {
-    return std::visit([](auto& n) { return n.get_children(); }, node);
+    return fast_visit([](auto& n) { return n.get_children(); }, node);
 }
 
 inline std::span<const Handle> get_children(const Some_Node& node)
 {
-    return std::visit([](auto& n) { return n.get_children(); }, node);
+    return fast_visit([](auto& n) { return n.get_children(); }, node);
 }
 
 } // namespace bit_manipulation::bms::ast

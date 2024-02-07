@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "assert.hpp"
+#include "visit.hpp"
 
 #include "bms/linear_map_stack.hpp"
 #include "bms/operations.hpp"
@@ -139,7 +140,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Call& call)
 Result<void, Execution_Error> Virtual_Machine::cycle() noexcept
 {
     Instruction next = m_instructions.at(m_instruction_counter);
-    return std::visit(
+    return fast_visit(
         [this]<typename T>(T& i) -> Result<void, Execution_Error> {
             if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                 return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };

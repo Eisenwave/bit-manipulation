@@ -3,6 +3,7 @@
 #include <span>
 
 #include "diagnostics.hpp"
+#include "visit.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
@@ -353,7 +354,7 @@ struct AST_Printer {
 
         const auto children = get_children(node);
         for (Size i = 0; i < children.size(); ++i) {
-            auto name = std::visit(
+            auto name = fast_visit(
                 [i](const auto& n) -> std::string_view {
                     if constexpr (requires { n.child_names; }) {
                         return n.child_names[i];
