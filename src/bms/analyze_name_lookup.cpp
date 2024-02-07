@@ -160,7 +160,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle handle, Symbol_Table& table, ast::Parameter& node)
     {
-        auto it_or_handle = m_symbols.emplace(node.name, handle);
+        auto it_or_handle = table.emplace(node.name, handle);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
@@ -195,7 +195,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Const& node)
     {
-        auto it_or_handle = m_symbols.emplace(node.name, h);
+        auto it_or_handle = table.emplace(node.name, h);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
@@ -205,7 +205,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Let& node)
     {
-        auto it_or_handle = m_symbols.emplace(node.name, h);
+        auto it_or_handle = table.emplace(node.name, h);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
