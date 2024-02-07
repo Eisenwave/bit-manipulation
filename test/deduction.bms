@@ -1,0 +1,6 @@
+function sqr(x: Uint(N)) -> Uint(N) {
+    return x * x;
+}
+
+const five: Uint(32) = 5;
+static_assert(sqr(five) == 25);

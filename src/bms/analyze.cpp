@@ -44,6 +44,8 @@ concept Lookup_Performing_Node = requires(T& t) {
     } -> std::same_as<ast::Handle&>;
 };
 
+static_assert(Lookup_Performing_Node<ast::Id_Expression>);
+
 /// @brief Class responsible for performing instantiations.
 /// After runnings this analyzer, functions will have attached instance nodes.
 /// These instance nodes are clones of the original function node but where the bit-generic
@@ -51,7 +53,10 @@ concept Lookup_Performing_Node = requires(T& t) {
 /// Also, the id-expression within the bit-generic type will have a constant value, which
 /// facilitates constant propagation in further stages.
 struct Instantiator : Analyzer_Base {
+private:
+    std::unordered_map<ast::Handle, ast::Handle> m_remap;
 
+public:
     Instantiator(Parsed_Program& program)
         : Analyzer_Base(program)
     {
@@ -132,50 +137,61 @@ private:
         // However, this does not yet affect the name lookup results, which must also refer to
         // the cloned nodes.
         // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
-        std::unordered_map<ast::Handle, ast::Handle> remap;
-        const ast::Handle result = deep_copy_for_instantiation(h, remap);
-        deep_update_name_lookup(h, remap);
+
+        m_remap.clear();
+        const ast::Handle result = deep_copy_for_instantiation(h);
+        deep_update_name_lookup(result);
 
         return result;
     }
 
-    ast::Handle deep_copy_for_instantiation(ast::Handle h,
-                                            std::unordered_map<ast::Handle, ast::Handle>& remap)
+    ast::Handle deep_copy_for_instantiation(ast::Handle h)
     {
+        if (h == ast::Handle::null) {
+            return h;
+        }
         const ast::Handle result = copy_single_node_for_instantiation(h);
-        remap.emplace(h, result);
+        m_remap.emplace(h, result);
 
         for (ast::Handle& child : get_children(m_program.get_node(result))) {
-            child = deep_copy_for_instantiation(child, remap);
+            child = deep_copy_for_instantiation(child);
         }
         return result;
     }
 
-    void deep_update_name_lookup(ast::Handle h,
-                                 const std::unordered_map<ast::Handle, ast::Handle>& remap)
+    void deep_update_name_lookup(ast::Handle h)
     {
+        if (h == ast::Handle::null) {
+            return;
+        }
         auto& node = get_node(h);
         fast_visit(
-            [&h, &remap]<typename T>(T& n) {
+            [this, &h]<typename T>(T& n) {
+                if constexpr (std::is_same_v<T, ast::Id_Expression>) {
+                    BIT_MANIPULATION_ASSERT(n.bit_generic || n.lookup_result != ast::Handle::null);
+                }
                 if constexpr (Lookup_Performing_Node<T>) {
-                    n.lookup_result = remap.at(h);
+                    if (n.lookup_result != ast::Handle::null) {
+                        n.lookup_result = m_remap.at(n.lookup_result);
+                    }
                 }
             },
             node);
         for (ast::Handle child : get_children(node)) {
-            deep_update_name_lookup(child, remap);
+            deep_update_name_lookup(child);
         }
     }
 
     ast::Handle copy_single_node_for_instantiation(ast::Handle h)
     {
+        BIT_MANIPULATION_ASSERT(h != ast::Handle::null);
         return fast_visit(
             [this]<typename T>(const T& n) {
-                if constexpr (std::is_same_v<T, ast::Function>) {
+                if constexpr (requires { n.copy_for_instantiation(); }) {
                     return m_program.push_node(n.copy_for_instantiation());
                 }
                 else {
-                    return m_program.push_node(T(n));
+                    return m_program.push_node(n);
                 }
             },
             m_program.get_node(h));
@@ -247,6 +263,8 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Function& node, Analysis_Level level, Expression_Context)
     {
+        // Normally we don't check, but this is tricky to ensure with implicit instantiations etc.
+        BIT_MANIPULATION_ASSERT(&std::get<ast::Function>(get_node(handle)) == &node);
         BIT_MANIPULATION_ASSERT(level != Analysis_Level::unanalyzed);
         if (node.analysis_so_far >= level) {
             return {};
@@ -815,7 +833,7 @@ private:
         //    number of arguments is an error before and after instantiating generic functions.
         //    There is no function overloading.
 
-        ast::Parameter_List* possibly_generic_params = nullptr;
+        const ast::Parameter_List* possibly_generic_params = nullptr;
         if (function->get_parameters() != ast::Handle::null) {
             possibly_generic_params
                 = &std::get<ast::Parameter_List>(get_node(function->get_parameters()));
@@ -840,8 +858,8 @@ private:
                 auto& param
                     = std::get<ast::Parameter>(get_node(possibly_generic_params->parameters[i]));
                 auto& type = std::get<ast::Type>(get_node(param.get_type()));
-                BIT_MANIPULATION_ASSERT(type.const_value);
-                // TODO: analyze the type if not yet analyzed?
+                // If this function is generic, parameter types wouldn't have undergone analysis.
+                BIT_MANIPULATION_ASSERT(!type.const_value);
                 if (type.concrete_width) {
                     continue;
                 }
@@ -862,14 +880,46 @@ private:
             if (!instantiation_result) {
                 return instantiation_result.error();
             }
-            function = &std::get<ast::Function>(get_node((*instantiation_result)->handle));
+            // !!! FIXME: instantiation invalidates all references, which makes analysis
+            // quasi-impossible.
+            // A proper allocator needs to be used so resizing doesn't break analysis.
+            // !!!!!!!!!!
+
+            // Using pointers is merely a workaround for Result not working with references.
+            // The returned pointer is never null.
+            BIT_MANIPULATION_ASSERT(*instantiation_result != nullptr);
+            const auto& instance = **instantiation_result;
+            function = &std::get<ast::Function>(get_node(instance.handle));
+            // Memoization of deduction results.
+            // Future analysis of this function call expression will treat it as a call to a
+            // concrete instance.
+            node.lookup_result = instance.handle;
         }
+
+        // We normally don't split up the analysis functions like this, but here, the AST
+        // was modified by the instantiation, so all pointers and references were invalidated.
+        // For safety, we get rid of everything and start the "second stage" of analysis.
+        return analyze_types_in_call_to_instantiated_function(
+            handle, std::get<ast::Function_Call_Expression>(get_node(handle)), level, context,
+            arg_values);
+    }
+
+    Result<void, Analysis_Error>
+    analyze_types_in_call_to_instantiated_function(ast::Handle handle,
+                                                   ast::Function_Call_Expression& node,
+                                                   Analysis_Level level,
+                                                   Expression_Context context,
+                                                   std::span<const Value> arg_values)
+    {
+        auto& function = std::get<ast::Function>(get_node(node.lookup_result));
+        // The memoization in the first stage should ensure that we are now looking up the instance.
+        // Alternatively, the function wasn't generic in the first place.
+        BIT_MANIPULATION_ASSERT(!function.is_generic);
 
         // 5. Analyze the called concrete function.
         //    If we are in a constant expression, the whole function has to be immediately analyzed
         //    as a constant expression.
         //    Otherwise, we don't need to analyze the function body immediately.
-        BIT_MANIPULATION_ASSERT(!function->is_generic);
 
         const auto inner_level
             = context == Expression_Context::constant || level == Analysis_Level::deep
@@ -880,37 +930,32 @@ private:
             // What we do here is akin to using a caller-saved register.
             // We would need a whole stack of return infos otherwise.
             auto preserved_return_info = return_info;
-            auto r = analyze_types(node.lookup_result, *function, inner_level, context);
+            auto r = analyze_types(node.lookup_result, function, inner_level, context);
             if (!r) {
                 return r;
             }
             return_info = preserved_return_info;
         }
 
-        BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
-        Concrete_Type return_type = function->const_value->type;
+        BIT_MANIPULATION_ASSERT(function.analysis_so_far >= inner_level);
+        Concrete_Type return_type = function.const_value->type;
 
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        ast::Parameter_List* params = possibly_generic_params != nullptr
-            ? &std::get<ast::Parameter_List>(get_node(function->get_parameters()))
-            : nullptr;
-        // Instantiation (which may have happened) should not be able to change the number of
-        // parameters.
-        BIT_MANIPULATION_ASSERT(possibly_generic_params == nullptr
-                                || params->parameters.size()
-                                    == possibly_generic_params->parameters.size());
+        const ast::Parameter_List* params = nullptr;
+        if (function.get_parameters() != ast::Handle::null) {
+            params = &std::get<ast::Parameter_List>(get_node(function.get_parameters()));
+        }
 
-        // Similar to `arg_values` above, but with implicit conversions applied for the purpose
-        // of evaluating the actual function call.
         if (context == Expression_Context::constant) {
-            BIT_MANIPULATION_ASSERT(function->vm_address != ast::Function::invalid_vm_address);
+            BIT_MANIPULATION_ASSERT(function.vm_address != ast::Function::invalid_vm_address);
             constant_evaluation_machine.reset();
-            constant_evaluation_machine.jump_to(function->vm_address);
+            constant_evaluation_machine.jump_to(function.vm_address);
         }
 
         for (Size i = 0; i < node.arguments.size(); ++i) {
+            BIT_MANIPULATION_ASSERT(params != nullptr);
             auto& param = std::get<ast::Parameter>(get_node(params->parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
             if (!arg_values[i].type.is_convertible_to(param_type)) {
@@ -957,9 +1002,11 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        if (node.bit_generic) {
-            // instantiation should have assigned a value to all bit-generic id-expressions
-            BIT_MANIPULATION_ASSERT(node.const_value);
+        if (node.const_value) {
+            // In instantiations of bit-generic id-expressions,
+            // id-expressions don't turn into literals, but "magically" obtain a const_value.
+            // In any other case, a lookup result should exist.
+            // Id-expressions never need to be analyzed twice.
             return {};
         }
         BIT_MANIPULATION_ASSERT(node.lookup_result != ast::Handle::null);
