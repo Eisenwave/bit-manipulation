@@ -37,13 +37,15 @@ private:
     Type_Type m_type;
     int m_width;
 
-    [[nodiscard]] constexpr explicit Concrete_Type(Type_Type type, int width)
+public:
+    [[nodiscard]] constexpr explicit Concrete_Type(Type_Type type, int width = 0)
         : m_type(type)
         , m_width(width)
     {
+        BIT_MANIPULATION_ASSERT(type == Type_Type::Uint || width == 0);
+        BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || (width > 0 && width < uint_max_width));
     }
 
-public:
     [[nodiscard]] friend constexpr bool operator<=>(Concrete_Type, Concrete_Type) = default;
 
     /// @brief Returns the type of this type.

@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "bms/analysis_error.hpp"
+#include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
@@ -180,35 +181,36 @@ struct Parameter final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-template <typename T, typename U>
-using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
-
-struct Type final : detail::Node_Base {
+struct Type final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
 
-private:
-    template <typename Self>
-    static auto get_children_impl(Self& self) -> std::span<const_like_t<Node_Handle, Self>>
+    Type_Type type;
+    std::optional<int> concrete_width;
+
+    Type(Token token, Type_Type type, Node_Handle width);
+
+    Node_Handle get_width() const
     {
-        if (auto* g = std::get_if<Bit_Generic_Type>(&self.type)) {
-            return { &g->width, &g->width + 1 };
+        return children[0];
+    }
+
+    /// @brief Returns a concrete type based on the information in this node, or `std::nullopt`
+    /// if the information is incomplete.
+    /// Namely, if the type is `Uint`, a concrete width must be known, otherwise this function
+    /// always succeeds.
+    /// @return A concrete type, or `std::nullopt`.
+    std::optional<Concrete_Type> concrete_type() noexcept
+    {
+        if (type == Type_Type::Uint) {
+            if (concrete_width) {
+                return Concrete_Type::Uint(*concrete_width);
+            }
+            return std::nullopt;
         }
-        return {};
-    }
-
-public:
-    Some_Type type;
-
-    Type(Token token, Some_Type type);
-
-    std::span<Node_Handle> get_children()
-    {
-        return get_children_impl(*this);
-    }
-    std::span<const Node_Handle> get_children() const
-    {
-        return get_children_impl(*this);
+        // For anything but UInt, why would concrete_width be set?
+        BIT_MANIPULATION_ASSERT(!concrete_width);
+        return Concrete_Type { type };
     }
 };
 

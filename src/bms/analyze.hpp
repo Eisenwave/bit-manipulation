@@ -19,14 +19,6 @@ struct Analyzer_Base {
     ast::Some_Node& get_node(ast::Node_Handle handle);
 };
 
-inline ast::Node_Handle get_bit_generic_expression(Some_Type& type)
-{
-    if (Bit_Generic_Type* g = std::get_if<Bit_Generic_Type>(&type)) {
-        return g->width;
-    }
-    return ast::Node_Handle::null;
-}
-
 Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);
 Result<void, Analysis_Error> analyze_semantics(Parsed_Program& program);
 

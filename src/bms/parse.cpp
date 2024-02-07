@@ -66,10 +66,12 @@ Parameter::Parameter(Token token, std::string_view name, Node_Handle type)
 {
 }
 
-Type::Type(Token token, Some_Type type)
+Type::Type(Token token, Type_Type type, Node_Handle width)
     : Node_Base { token }
+    , Parent<1> { width }
     , type(type)
 {
+    BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || width != Node_Handle::null);
 }
 
 Const::Const(Token token, std::string_view name, Node_Handle type, Node_Handle initializer)
@@ -905,21 +907,22 @@ private:
     Result<ast::Node_Handle, Rule_Error> match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
+        // TODO: parse Void
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return m_program.push_node(ast::Type { *t, Concrete_Type::Bool });
+            return m_program.push_node(ast::Type { *t, Type_Type::Bool, ast::Node_Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return m_program.push_node(ast::Type { *t, Concrete_Type::Int });
+            return m_program.push_node(ast::Type { *t, Type_Type::Int, ast::Node_Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             auto e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return m_program.push_node(ast::Type { *t, Bit_Generic_Type { Type_Type::Uint, *e } });
+            return m_program.push_node(ast::Type { *t, Type_Type::Uint, *e });
         }
 
         return Rule_Error { this_rule, expected };

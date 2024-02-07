@@ -22,7 +22,6 @@ set(HEADERS
     src/bms/parse.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
-    src/bms/type.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp

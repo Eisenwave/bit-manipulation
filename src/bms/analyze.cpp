@@ -93,19 +93,18 @@ private:
         for (ast::Node_Handle p : params.parameters) {
             auto& param_node = std::get<ast::Parameter>(get_node(p));
             auto& type_node = std::get<ast::Type>(get_node(param_node.get_type()));
-            auto* generic_type = std::get_if<Bit_Generic_Type>(&type_node.type);
-            if (!generic_type) {
+            if (type_node.get_width() == ast::Node_Handle::null) {
                 continue;
             }
-            BIT_MANIPULATION_ASSERT(generic_type->type == Type_Type::Uint);
-            auto* id_node = std::get_if<ast::Id_Expression>(&get_node(generic_type->width));
+            BIT_MANIPULATION_ASSERT(type_node.type == Type_Type::Uint);
+            auto* id_node = std::get_if<ast::Id_Expression>(&get_node(type_node.get_width()));
             // If it isn't an id-expression, it cannot be a generic parameter.
             if (id_node && id_node->bit_generic) {
                 const int width = next_width();
                 // Merely replacing the type isn't enough; we must also give this node a
                 // constant value so that existing name lookup can obtain this value.
                 id_node->const_value = Value::Int(width);
-                type_node.type = Concrete_Type::Uint(width);
+                type_node.concrete_width = width;
             }
         }
 
@@ -354,36 +353,33 @@ private:
         if (node.const_value) {
             return {};
         }
-        if (const auto* const concrete = std::get_if<Concrete_Type>(&node.type)) {
-            node.const_value = Value::unknown_of_type(*concrete);
+        if (node.get_width() == ast::Node_Handle::null) {
+            node.const_value = Value::unknown_of_type(node.concrete_type().value());
             return {};
         }
 
-        const auto& generic = std::get<Bit_Generic_Type>(node.type);
-
         if (auto r
-            = analyze_types(generic.width, Analysis_Level::deep, Expression_Context::constant);
+            = analyze_types(node.get_width(), Analysis_Level::deep, Expression_Context::constant);
             !r) {
             return r;
         }
-        auto width = get_const_value(get_node(generic.width));
+        auto width = get_const_value(get_node(node.get_width()));
         BIT_MANIPULATION_ASSERT(width.has_value());
         if (!width->type.is_integer()) {
             return Analysis_Error { Analysis_Error_Code::width_not_integer,
-                                    get_token(get_node(generic.width)) };
+                                    get_token(get_node(node.get_width())) };
         }
         const Big_Int folded_width = width->int_value.value();
         if (folded_width == 0) {
             return Analysis_Error { Analysis_Error_Code::width_zero,
-                                    get_token(get_node(generic.width)) };
+                                    get_token(get_node(node.get_width())) };
         }
         if (folded_width > uint_max_width) {
             return Analysis_Error { Analysis_Error_Code::width_too_large,
-                                    get_token(get_node(generic.width)) };
+                                    get_token(get_node(node.get_width())) };
         }
-        const Concrete_Type result = Concrete_Type::Uint(static_cast<int>(folded_width));
-        node.type = result;
-        node.const_value = Value::unknown_of_type(result);
+        node.concrete_width = static_cast<int>(folded_width);
+        node.const_value = Value::unknown_of_type(node.concrete_type().value());
         return {};
     }
 
@@ -465,9 +461,8 @@ private:
         if (!type_result) {
             return type_result;
         }
-        auto& type_node_type = std::get<Concrete_Type>(type_node.type);
         if (node.get_initializer() == ast::Node_Handle::null) {
-            node.const_value = Value::unknown_of_type(type_node_type);
+            node.const_value = Value::unknown_of_type(type_node.concrete_type().value());
             return {};
         }
 
@@ -482,7 +477,7 @@ private:
         if (!initializer_value->type.is_convertible_to(type_node.const_value->type)) {
             return Analysis_Error { Type_Error_Code::incompatible_types, node.token, cause_token };
         }
-        node.const_value = Value::unknown_of_type(type_node_type);
+        node.const_value = Value::unknown_of_type(type_node.concrete_type().value());
         return {};
     }
 
@@ -832,11 +827,12 @@ private:
                 auto& param
                     = std::get<ast::Parameter>(get_node(possibly_generic_params->parameters[i]));
                 auto& type = std::get<ast::Type>(get_node(param.get_type()));
-                auto* gen_type = std::get_if<Bit_Generic_Type>(&type.type);
-                if (!gen_type) {
+                BIT_MANIPULATION_ASSERT(type.const_value);
+                // TODO: analyze the type if not yet analyzed?
+                if (type.concrete_width) {
                     continue;
                 }
-                auto* gen_expr = std::get_if<ast::Id_Expression>(&get_node(gen_type->width));
+                auto* gen_expr = std::get_if<ast::Id_Expression>(&get_node(type.get_width()));
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }

@@ -175,7 +175,7 @@ private:
                                     get_token(get_node(*old)) };
         }
         auto& type_node = std::get<ast::Type>(get_node(node.get_type()));
-        ast::Node_Handle g = get_bit_generic_expression(type_node.type);
+        ast::Node_Handle g = type_node.get_width();
         if (g == ast::Node_Handle::null) {
             return {};
         }
