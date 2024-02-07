@@ -120,9 +120,27 @@ enum struct Token_Type : Default_Underlying {
     keyword_static_assert,
 };
 
+/// @brief Returns the enumeration name of a token type.
+/// For example, `token_type_name(logical_not)` returns `"logical_not"`.
+/// @param type the token type
+/// @return The enumeration name.
 [[nodiscard]] std::string_view token_type_name(Token_Type type);
 
+/// @brief Returns a human-readable name of a token type.
+/// For example, `token_type_name(logical_not)` returns `'!'`,
+/// and `token_type_name(block_comment)` returns `"block comment"`.
+/// In general, this will print any keywords and symbols in single-quotes, and other tokens as a
+/// human-friendly name.
+/// @param type the token type
+/// @return The human-readable name.
 [[nodiscard]] std::string_view token_type_readable_name(Token_Type type);
+
+/// @brief Returns a human-readable name of a token type.
+/// For example, `token_type_name(logical_not)` returns `!`.
+/// Returns an empty string for variable-length tokens, which cannot be directly represented.
+/// @param type the token type
+/// @return The in-code name.
+[[nodiscard]] std::string_view token_type_code_name(Token_Type type) noexcept;
 
 [[nodiscard]] Size token_type_length(Token_Type type);
 

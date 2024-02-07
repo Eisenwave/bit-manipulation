@@ -67,18 +67,8 @@ using Uint = Uint64;
 
 inline constexpr int uint_max_width = 128;
 
-#ifndef __INTELLISENSE__
-#ifdef __clang__
-using Big_Int = _BitInt(uint_max_width);
-using Big_Uint = unsigned _BitInt(uint_max_width);
-#else
 using Big_Int = Int128;
 using Big_Uint = Uint128;
-#endif
-#else
-using Big_Int = int;
-using Big_Uint = unsigned;
-#endif
 
 static_assert(sizeof(Int) == sizeof(Uint));
 

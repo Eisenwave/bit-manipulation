@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_BMS_HPP
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
+#include "bms/concrete_value.hpp"
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
@@ -95,17 +96,30 @@ enum struct Analysis_Error_Code : Default_Underlying {
     use_of_undefined_constant,
 };
 
+struct Comparison_Failure {
+    Concrete_Value left, right;
+    Token_Type op;
+};
+
 struct Analysis_Error {
     Analysis_Error_Code code {};
     Type_Error_Code type_error {};
     Evaluation_Error_Code evaluation_error {};
     Execution_Error_Code execution_error {};
+    std::optional<Comparison_Failure> comparison_failure;
     ast::Handle fail {};
     ast::Handle cause {};
 
     constexpr Analysis_Error(Analysis_Error_Code code, ast::Handle fail, ast::Handle cause = {})
         : code(code)
-        , evaluation_error()
+        , fail(fail)
+        , cause(cause)
+    {
+    }
+
+    constexpr Analysis_Error(Comparison_Failure comp_fail, ast::Handle fail, ast::Handle cause = {})
+        : code(Analysis_Error_Code::static_assertion_failed)
+        , comparison_failure(comp_fail)
         , fail(fail)
         , cause(cause)
     {

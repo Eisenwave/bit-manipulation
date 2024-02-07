@@ -15,3 +15,26 @@ function log10(x: Int) -> Int {
 }
 
 static_assert(log10(0) == 0);
+static_assert(log10(1) == 0);
+static_assert(log10(2) == 0);
+static_assert(log10(3) == 0);
+static_assert(log10(4) == 0);
+static_assert(log10(5) == 0);
+static_assert(log10(6) == 0);
+static_assert(log10(7) == 0);
+static_assert(log10(8) == 0);
+static_assert(log10(9) == 0);
+
+static_assert(log10(10) == 1);
+static_assert(log10(20) == 1);
+static_assert(log10(50) == 1);
+static_assert(log10(99) == 1);
+
+static_assert(log10(100) == 2);
+static_assert(log10(200) == 2);
+static_assert(log10(999) == 2);
+
+static_assert(log10(1000) == 3);
+
+static_assert(log10(10000) == 4);
+static_assert(log10(10000) == 5);

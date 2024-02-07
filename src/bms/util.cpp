@@ -103,9 +103,9 @@ namespace bit_manipulation::bms {
     case bitwise_or: return "'|'";
     case bitwise_not: return "'~'";
     case bitwise_xor: return "'^'";
-    case logical_and: return "'and'";
-    case logical_or: return "'or'";
-    case logical_not: return "'not'";
+    case logical_and: return "'&&'";
+    case logical_or: return "'||'";
+    case logical_not: return "'!'";
     case right_arrow: return "'->'";
     case double_right_arrow: return "'=>'";
     case dot: return "'.'";
@@ -131,6 +131,63 @@ namespace bit_manipulation::bms {
     case keyword_static_assert: return "'static_assert'";
     }
     return "";
+}
+
+[[nodiscard]] std::string_view token_type_code_name(Token_Type type) noexcept
+{
+    using enum Token_Type;
+
+    switch (type) {
+    case left_brace: return "{";
+    case right_brace: return "}";
+    case block_comment: return "/*";
+    case line_comment: return "//";
+    case assign: return "=";
+    case equals: return "==";
+    case not_equals: return "!=";
+    case plus: return "+";
+    case minus: return "-";
+    case multiplication: return "*";
+    case division: return "/";
+    case remainder: return "%";
+    case less_than: return "<";
+    case greater_than: return ">";
+    case less_or_equal: return "<=";
+    case greater_or_equal: return ">=";
+    case shift_left: return "<<";
+    case shift_right: return ">>";
+    case bitwise_and: return "&";
+    case bitwise_or: return "|";
+    case bitwise_not: return "~";
+    case bitwise_xor: return "^";
+    case logical_and: return "&&";
+    case logical_or: return "||";
+    case logical_not: return "!";
+    case right_arrow: return "->";
+    case double_right_arrow: return "=>";
+    case dot: return ".";
+    case colon: return ":";
+    case comma: return ",";
+    case semicolon: return ";";
+    case keyword_let: return "let";
+    case keyword_const: return "const";
+    case keyword_function: return "function";
+    case keyword_while: return "while";
+    case keyword_if: return "if";
+    case keyword_else: return "else";
+    case keyword_uint: return "Uint";
+    case keyword_int: return "Int";
+    case keyword_bool: return "Bool";
+    case keyword_void: return "Void";
+    case keyword_requires: return "requires";
+    case keyword_return: return "return";
+    case keyword_break: return "break";
+    case keyword_continue: return "continue";
+    case keyword_true: return "true";
+    case keyword_false: return "false";
+    case keyword_static_assert: return "static_assert";
+    default: return "";
+    }
 }
 
 [[nodiscard]] Size token_type_length(Token_Type type)

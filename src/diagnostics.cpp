@@ -5,6 +5,7 @@
 #include "diagnostics.hpp"
 #include "visit.hpp"
 
+#include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
 
@@ -182,6 +183,32 @@ std::string_view to_prose(IO_Error_Code e)
     }
 }
 
+std::string to_string(Uint128 x)
+{
+    constexpr Uint128 p10_uint64 = 10000000000000000000ULL;
+
+    // TODO: use to_chars if supported for 128-bit
+    return x <= std::uint64_t(-1)
+        ? std::to_string(static_cast<std::uint64_t>(x))
+        : to_string(x / p10_uint64) + std::to_string(static_cast<std::uint64_t>(x % p10_uint64));
+}
+
+std::string to_string(Int128 x)
+{
+    return x >= 0 ? to_string(static_cast<Uint128>(x)) : '-' + to_string(-static_cast<Uint128>(x));
+}
+
+std::string to_string(bms::Concrete_Value v)
+{
+    switch (v.type.type()) {
+    case bms::Type_Type::Void: return "Void";
+    case bms::Type_Type::Bool: return v.int_value ? "true" : "false";
+    case bms::Type_Type::Int: return to_string(v.int_value);
+    case bms::Type_Type::Uint: return to_string(static_cast<Big_Uint>(v.int_value));
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
+    }
+}
+
 std::string_view find_line(std::string_view source, Size index)
 {
     BIT_MANIPULATION_ASSERT(index < source.size());
@@ -284,7 +311,17 @@ std::ostream& print_analysis_error(std::ostream& out,
             << ": " << note_prefix << to_prose(error.execution_error) << '\n';
     }
 
-    if (error.cause != bms::ast::Handle::null) {
+    if (error.comparison_failure) {
+        const auto cause_token = get_token(program.get_node(error.cause));
+        print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
+        out << "Comparison evaluated to " //
+            << ansi::h_magenta << to_string(error.comparison_failure->left) << ansi::reset //
+            << ' ' << token_type_code_name(error.comparison_failure->op) << ' ' //
+            << ansi::h_magenta << to_string(error.comparison_failure->right) << ansi::reset << '\n';
+
+        print_affected_line(out, program.source, cause_token.pos);
+    }
+    else if (error.cause != bms::ast::Handle::null) {
         const auto cause_token = get_token(program.get_node(error.cause));
         print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
         if (error.code == bms::Analysis_Error_Code::evaluation_error) {

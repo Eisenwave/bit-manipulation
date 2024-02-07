@@ -24,6 +24,19 @@ ast::Some_Node& Analyzer_Base::get_node(ast::Handle handle)
 
 namespace {
 
+[[nodiscard]] Concrete_Value concrete_value_of(const ast::Some_Node& node)
+{
+    return get_const_value(node).value().concrete_value();
+}
+
+[[nodiscard]] Comparison_Failure comparison_failure_of(const Parsed_Program& program,
+                                                       const ast::Binary_Expression& expression)
+{
+    const Concrete_Value l = concrete_value_of(program.get_node(expression.get_left()));
+    const Concrete_Value r = concrete_value_of(program.get_node(expression.get_right()));
+    return { l, r, expression.op };
+}
+
 template <typename T>
 concept Lookup_Performing_Node = requires(T& t) {
     {
@@ -490,6 +503,12 @@ private:
                                     node.get_expression() };
         }
         if (node.const_value->int_value != 1) {
+            if (const auto* const comparison
+                = std::get_if<ast::Binary_Expression>(&expression_node);
+                comparison && is_comparison_operator(comparison->op)) {
+                return Analysis_Error { comparison_failure_of(m_program, *comparison), handle,
+                                        node.get_expression() };
+            }
             return Analysis_Error { Analysis_Error_Code::static_assertion_failed, handle,
                                     node.get_expression() };
         }
