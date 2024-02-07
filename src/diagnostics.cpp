@@ -17,7 +17,6 @@ std::string to_string(Uint128 x)
 {
     constexpr Uint128 p10_uint64 = 10000000000000000000ULL;
 
-    // TODO: use to_chars if supported for 128-bit
     return x <= std::uint64_t(-1)
         ? std::to_string(static_cast<std::uint64_t>(x))
         : to_string(x / p10_uint64) + std::to_string(static_cast<std::uint64_t>(x % p10_uint64));
