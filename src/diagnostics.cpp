@@ -282,7 +282,6 @@ std::ostream& print_analysis_error(std::ostream& out,
     if (error.code == bms::Analysis_Error_Code::execution_error) {
         print_file_position(out, file, fail_token.pos)
             << ": " << note_prefix << to_prose(error.execution_error) << '\n';
-        print_internal_error_notice(out);
     }
 
     if (error.cause != bms::ast::Handle::null) {
@@ -295,6 +294,10 @@ std::ostream& print_analysis_error(std::ostream& out,
             out << cause_to_prose(error.code) << '\n';
         }
         print_affected_line(out, program.source, cause_token.pos);
+    }
+
+    if (error.code == bms::Analysis_Error_Code::execution_error) {
+        print_internal_error_notice(out);
     }
 
     return out;
