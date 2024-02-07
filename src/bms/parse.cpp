@@ -226,7 +226,9 @@ public:
     }
 
 private:
-    bool eof() noexcept
+    /// @brief Checks whether the parser is at the end of the file, in a way that respects comments.
+    /// @return `true` if the parser has no more tokens to examine.
+    [[nodiscard]] bool eof() noexcept
     {
         skip_comments();
         return m_pos == m_tokens.size();
@@ -249,16 +251,39 @@ private:
         return nullptr;
     }
 
-    const Token* peek() noexcept
+    /// @brief Returns the next token if there is one, without advancing the parser.
+    /// If there is no next token (end of file), `nullptr` is returned.
+    /// @return The next token or `nullptr`.
+    [[nodiscard]] const Token* peek() noexcept
     {
         return !eof() ? &m_tokens[m_pos] : nullptr;
     }
 
+    /// @brief Returns the n-th next token if there is one, without advancing the parser.
+    /// `peek_n(0)` is equivalent to `peek()`.
+    /// @param lookahead the amount of nodes to look ahead
+    /// @return The n-th next token or `nullptr`.
+    [[nodiscard]] const Token* peek_n(Size lookahead) noexcept
+    {
+        const Size restore = m_pos;
+        const Token* result;
+        for (Size i = 0; i <= lookahead; ++i, ++m_pos) {
+            result = peek();
+            if (!result) {
+                break;
+            }
+        }
+        m_pos = restore;
+        return result;
+    }
+
+    /// @return `peek() && peek() == expected ? peek() : nullptr`.
     const Token* peek(Token_Type expected) noexcept
     {
         return peek_or_expect([=](Token_Type t) { return t == expected; }, false);
     }
 
+    /// @return `peek() && predicate(peek()->type) ? peek() : nullptr`.
     const Token* peek(bool (&predicate)(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, false);
@@ -360,14 +385,19 @@ private:
                 return type;
             }
         }
-        auto init = expect(&Parser::match_initializer);
-        if (!init && type_handle == ast::Handle::null) {
-            return init;
+        auto init_handle = ast::Handle::null;
+        if (type_handle == ast::Handle::null || peek(Token_Type::assign)) {
+            auto init = match_initializer();
+            if (!init) {
+                return init;
+            }
+            init_handle = *init;
         }
+
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(ast::Let { *t, name, type_handle, *init });
+        return m_program.push_node(ast::Let { *t, name, type_handle, init_handle });
     }
 
     Result<ast::Handle, Rule_Error> match_const_declaration()
@@ -821,8 +851,11 @@ private:
 
     Result<ast::Handle, Rule_Error> match_postfix_expression()
     {
-        if (auto call = expect(&Parser::match_function_call_expression)) {
-            return call;
+        if (peek(Token_Type::identifier)) {
+            if (const Token* lookahead = peek_n(1);
+                lookahead && lookahead->type == Token_Type::left_parenthesis) {
+                return match_function_call_expression();
+            }
         }
         return match_primary_expression();
     }
