@@ -1,6 +1,5 @@
 function test(n: Int) -> Int {
-    let i = 0;
-    i = i / 0;
+    let i = i;
     while i < n { 
         i = i + 1;
     }

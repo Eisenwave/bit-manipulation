@@ -953,19 +953,22 @@ private:
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         handle, node.lookup_result };
             }
-            // TODO: in conjunction with potential changes to name lookup analysis, this would be a
-            // god point to emit a "used before defined" diagnostic
-            if (looked_up_var->const_value) {
-                node.const_value = looked_up_var->const_value;
-                return {};
+            if (!looked_up_var->const_value) {
+                return Analysis_Error { Analysis_Error_Code::use_of_undefined_variable, handle,
+                                        node.lookup_result };
             }
+            node.const_value = looked_up_var->const_value;
+            return {};
         }
         if (const auto* const looked_up_const = std::get_if<ast::Const>(&looked_up_node)) {
-            // TODO: immediately analyze the const node?
-            if (looked_up_const->const_value) {
-                node.const_value = looked_up_const->const_value;
-                return {};
+            // TODO: consider analyzing it from here, or analyzing global constants
+            //       in a separate pass.
+            if (!looked_up_const->const_value) {
+                return Analysis_Error { Analysis_Error_Code::use_of_undefined_constant, handle,
+                                        node.lookup_result };
             }
+            node.const_value = looked_up_const->const_value;
+            return {};
         }
         if (const auto* const looked_up_param = std::get_if<ast::Parameter>(&looked_up_node)) {
             if (context == Expression_Context::constant) {

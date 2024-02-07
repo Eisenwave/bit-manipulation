@@ -89,6 +89,10 @@ enum struct Analysis_Error_Code : Default_Underlying {
     requires_clause_not_bool,
     /// @brief The expression in a requires clause evaluated to `false`.
     requires_clause_not_satisfied,
+    /// @brief Use of undefined variable.
+    use_of_undefined_variable,
+    /// @brief Use of undefined constant.
+    use_of_undefined_constant,
 };
 
 struct Analysis_Error {

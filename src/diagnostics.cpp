@@ -75,8 +75,9 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     case static_assertion_failed: return "Static assertion failed.";
     case requires_clause_not_bool:
         return "The expression in a requires-clause must be of type 'Bool.";
-    case requires_clause_not_satisfied:
-        return "Requires-clause was not satisfied (expression evaluated to 'false').";
+    case requires_clause_not_satisfied: return "Requires-clause was not satisfied.";
+    case use_of_undefined_variable: return "Use of undefined variable.";
+    case use_of_undefined_constant: return "Use of undefined constant.";
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
     }
 }
@@ -162,6 +163,10 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
     case requires_clause_not_bool: return "The following expression was not of type 'Bool':";
     case requires_clause_not_satisfied:
         return "The following expression must evaluate to 'true', but evaluated to 'false':";
+    case use_of_undefined_variable:
+        return "The following variable is undefined before its first use:";
+    case use_of_undefined_constant:
+        return "The following constant is undefined before its first use:";
     default: return "Caused by:";
     }
 }
