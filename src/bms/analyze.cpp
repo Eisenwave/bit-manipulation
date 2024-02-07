@@ -9,13 +9,11 @@
 #include "bms/vm.hpp"
 #include "bms/vm_codegen.hpp"
 
-using namespace bit_manipulation::bms::ast;
-
 namespace bit_manipulation::bms {
 
 Analyzer_Base::Analyzer_Base(Parsed_Program& program)
     : m_program(program)
-    , m_root(std::get<ast::Program_Node>(program.get_node(program.root_node)))
+    , m_root(std::get<ast::Program>(program.get_node(program.root_node)))
 {
 }
 
@@ -30,7 +28,7 @@ template <typename T>
 concept Lookup_Performing_Node = requires(T& t) {
     {
         t.lookup_result
-    } -> std::same_as<Node_Handle&>;
+    } -> std::same_as<ast::Node_Handle&>;
 };
 
 /// @brief Class responsible for performing instantiations.
@@ -48,8 +46,8 @@ struct Instantiator : Analyzer_Base {
 
     Result<void, Analysis_Error> instantiate_all(const Widths& w)
     {
-        for (Node_Handle decl : m_root.declarations) {
-            if (auto* f = std::get_if<Function_Node>(&get_node(decl))) {
+        for (ast::Node_Handle decl : m_root.declarations) {
+            if (auto* f = std::get_if<ast::Function>(&get_node(decl))) {
                 auto r = instantiate_function(decl, *f, w);
                 if (!r) {
                     return r.error();
@@ -59,17 +57,17 @@ struct Instantiator : Analyzer_Base {
         return {};
     }
 
-    Result<const Function_Node::Instance*, Analysis_Error>
-    instantiate_function(Node_Handle h, Function_Node& node, const Widths& w)
+    Result<const ast::Function::Instance*, Analysis_Error>
+    instantiate_function(ast::Node_Handle h, ast::Function& node, const Widths& w)
     {
         BIT_MANIPULATION_ASSERT(node.is_generic);
 
-        if (const Function_Node::Instance* const existing = node.find_instance(w)) {
+        if (const ast::Function::Instance* const existing = node.find_instance(w)) {
             return existing;
         }
 
-        Node_Handle instance = deep_copy(h);
-        auto& instance_node = std::get<Function_Node>(get_node(instance));
+        ast::Node_Handle instance = deep_copy(h);
+        auto& instance_node = std::get<ast::Function>(get_node(instance));
         auto effective_widths = substitute_widths(instance_node, w);
         if (!effective_widths) {
             return effective_widths.error();
@@ -79,7 +77,7 @@ struct Instantiator : Analyzer_Base {
     }
 
 private:
-    Result<std::vector<int>, Analysis_Error> substitute_widths(Function_Node& instance,
+    Result<std::vector<int>, Analysis_Error> substitute_widths(ast::Function& instance,
                                                                const Widths& w)
     {
         BIT_MANIPULATION_ASSERT(!instance.is_generic);
@@ -91,16 +89,16 @@ private:
             return result;
         };
 
-        auto& params = std::get<Parameter_List_Node>(get_node(instance.get_parameters()));
-        for (Node_Handle p : params.parameters) {
-            auto& param_node = std::get<Parameter_Node>(get_node(p));
-            auto& type_node = std::get<Type_Node>(get_node(param_node.get_type()));
+        auto& params = std::get<ast::Parameter_List>(get_node(instance.get_parameters()));
+        for (ast::Node_Handle p : params.parameters) {
+            auto& param_node = std::get<ast::Parameter>(get_node(p));
+            auto& type_node = std::get<ast::Type>(get_node(param_node.get_type()));
             auto* generic_type = std::get_if<Bit_Generic_Type>(&type_node.type);
             if (!generic_type) {
                 continue;
             }
             BIT_MANIPULATION_ASSERT(generic_type->type == Type_Type::Uint);
-            auto* id_node = std::get_if<Id_Expression_Node>(&get_node(generic_type->width));
+            auto* id_node = std::get_if<ast::Id_Expression>(&get_node(generic_type->width));
             // If it isn't an id-expression, it cannot be a generic parameter.
             if (id_node && id_node->bit_generic) {
                 const int width = next_width();
@@ -114,7 +112,7 @@ private:
         return widths;
     }
 
-    Node_Handle deep_copy(Node_Handle h)
+    ast::Node_Handle deep_copy(ast::Node_Handle h)
     {
         // Two passes are necessary.
         // During the first pass, the nodes are all copied and the links to children are updated
@@ -122,27 +120,29 @@ private:
         // However, this does not yet affect the name lookup results, which must also refer to
         // the cloned nodes.
         // This is done in a second pass, since cloning a cyclic graph in one go is difficult.
-        std::unordered_map<Node_Handle, Node_Handle> remap;
-        const Node_Handle result = deep_copy_for_instantiation(h, remap);
+        std::unordered_map<ast::Node_Handle, ast::Node_Handle> remap;
+        const ast::Node_Handle result = deep_copy_for_instantiation(h, remap);
         deep_update_name_lookup(h, remap);
 
         return result;
     }
 
-    Node_Handle deep_copy_for_instantiation(Node_Handle h,
-                                            std::unordered_map<Node_Handle, Node_Handle>& remap)
+    ast::Node_Handle
+    deep_copy_for_instantiation(ast::Node_Handle h,
+                                std::unordered_map<ast::Node_Handle, ast::Node_Handle>& remap)
     {
-        const Node_Handle result = copy_single_node_for_instantiation(h);
+        const ast::Node_Handle result = copy_single_node_for_instantiation(h);
         remap.emplace(h, result);
 
-        for (Node_Handle& child : get_children(m_program.get_node(result))) {
+        for (ast::Node_Handle& child : get_children(m_program.get_node(result))) {
             child = deep_copy_for_instantiation(child, remap);
         }
         return result;
     }
 
-    void deep_update_name_lookup(Node_Handle h,
-                                 const std::unordered_map<Node_Handle, Node_Handle>& remap)
+    void
+    deep_update_name_lookup(ast::Node_Handle h,
+                            const std::unordered_map<ast::Node_Handle, ast::Node_Handle>& remap)
     {
         auto& node = get_node(h);
         std::visit(
@@ -152,16 +152,16 @@ private:
                 }
             },
             node);
-        for (Node_Handle child : get_children(node)) {
+        for (ast::Node_Handle child : get_children(node)) {
             deep_update_name_lookup(child, remap);
         }
     }
 
-    Node_Handle copy_single_node_for_instantiation(Node_Handle h)
+    ast::Node_Handle copy_single_node_for_instantiation(ast::Node_Handle h)
     {
         return std::visit(
             [this]<typename T>(const T& n) {
-                if constexpr (std::is_same_v<T, Function_Node>) {
+                if constexpr (std::is_same_v<T, ast::Function>) {
                     return m_program.push_node(n.copy_for_instantiation());
                 }
                 else {
@@ -203,9 +203,9 @@ public:
 
 private:
     Result<void, Analysis_Error>
-    analyze_types(Node_Handle handle, Analysis_Level level, Expression_Context context)
+    analyze_types(ast::Node_Handle handle, Analysis_Level level, Expression_Context context)
     {
-        if (handle == Node_Handle::null) {
+        if (handle == ast::Node_Handle::null) {
             return {};
         }
         return std::visit(
@@ -222,7 +222,7 @@ private:
     Result<void, Analysis_Error>
     analyze_child_types(T& node, Analysis_Level level, Expression_Context context)
     {
-        for (Node_Handle h : node.get_children()) {
+        for (ast::Node_Handle h : node.get_children()) {
             auto r = analyze_types(h, level, context);
             if (!r) {
                 return r;
@@ -234,14 +234,14 @@ private:
 
     template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(Program_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Program& node, Analysis_Level level, Expression_Context)
     {
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Function_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Function& node, Analysis_Level level, Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(level != Analysis_Level::unanalyzed);
         if (node.analysis_so_far >= level) {
@@ -252,7 +252,7 @@ private:
         // new implicit instantiations may have been generated in the meantime.
         // For concrete functions, we can memoize the result of type analysis.
         if (node.is_generic) {
-            for (const Function_Node::Instance& instance : node.instances) {
+            for (const ast::Function::Instance& instance : node.instances) {
                 auto r = analyze_types(instance.handle, level, Expression_Context::normal);
                 if (!r) {
                     return r;
@@ -268,11 +268,11 @@ private:
         if (auto r = analyze_types(node.get_return_type(), level, Expression_Context::normal); !r) {
             return r;
         }
-        auto& return_type = std::get<Type_Node>(get_node(node.get_return_type()));
+        auto& return_type = std::get<ast::Type>(get_node(node.get_return_type()));
         return_info
             = Return_Info { .type = return_type.const_value->type, .token = return_type.token };
 
-        if (node.get_requires_clause() != Node_Handle::null) {
+        if (node.get_requires_clause() != ast::Node_Handle::null) {
             auto& expression_node = get_node(node.get_requires_clause());
             auto& expr_const_value = get_const_value(expression_node);
             // Expressions in requires-clauses don't need to be checked twice, but we have to
@@ -323,7 +323,7 @@ private:
 
     template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(Parameter_List_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Parameter_List& node, Analysis_Level level, Expression_Context)
     {
         if (node.const_value) {
             return {};
@@ -333,12 +333,12 @@ private:
 
     template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(Parameter_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Parameter& node, Analysis_Level level, Expression_Context)
     {
         if (node.const_value) {
             return {};
         }
-        auto& type = std::get<Type_Node>(get_node(node.get_type()));
+        auto& type = std::get<ast::Type>(get_node(node.get_type()));
         auto r = analyze_types(type, level, Expression_Context::normal);
         if (!r) {
             return r;
@@ -349,7 +349,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Type_Node& node, Analysis_Level, Expression_Context)
+    Result<void, Analysis_Error> analyze_types(ast::Type& node, Analysis_Level, Expression_Context)
     {
         if (node.const_value) {
             return {};
@@ -389,7 +389,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Const_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Const& node, Analysis_Level level, Expression_Context)
     {
         // Const nodes contain constant expressions, so if they have been analyzed in the past,
         // we can be sure that no further analysis is required.
@@ -397,9 +397,9 @@ private:
             return {};
         }
         // Const nodes must always have an initializer.
-        BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(node.get_initializer() != ast::Node_Handle::null);
 
-        if (node.get_type() == Node_Handle::null) {
+        if (node.get_type() == ast::Node_Handle::null) {
             if (auto r = analyze_types(node.get_initializer(), Analysis_Level::deep,
                                        Expression_Context::constant);
                 !r) {
@@ -410,7 +410,7 @@ private:
             return {};
         }
 
-        auto& type_node = std::get<Type_Node>(get_node(node.get_type()));
+        auto& type_node = std::get<ast::Type>(get_node(node.get_type()));
         const auto type_result = analyze_types(type_node, level, Expression_Context::constant);
         if (!type_result) {
             return type_result;
@@ -439,13 +439,13 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Let_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Let& node, Analysis_Level level, Expression_Context)
     {
-        if (node.get_type() == Node_Handle::null) {
+        if (node.get_type() == ast::Node_Handle::null) {
             // If there is no type, there must be an initializer.
             // This is "static type inference".
             // Prior analysis should have ensured this already, but we may a well double-check.
-            BIT_MANIPULATION_ASSERT(node.get_initializer() != Node_Handle::null);
+            BIT_MANIPULATION_ASSERT(node.get_initializer() != ast::Node_Handle::null);
 
             if (auto r = analyze_types(node.get_initializer(), level, Expression_Context::normal);
                 !r) {
@@ -460,13 +460,13 @@ private:
             return {};
         }
 
-        auto& type_node = std::get<Type_Node>(get_node(node.get_type()));
+        auto& type_node = std::get<ast::Type>(get_node(node.get_type()));
         const auto type_result = analyze_types(type_node, level, Expression_Context::constant);
         if (!type_result) {
             return type_result;
         }
         auto& type_node_type = std::get<Concrete_Type>(type_node.type);
-        if (node.get_initializer() == Node_Handle::null) {
+        if (node.get_initializer() == ast::Node_Handle::null) {
             node.const_value = Value::unknown_of_type(type_node_type);
             return {};
         }
@@ -488,7 +488,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Static_Assert_Node& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Static_Assert& node, Analysis_Level, Expression_Context)
     {
         // Static assertions never need to be checked twice.
         if (node.const_value) {
@@ -518,7 +518,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(If_Statement_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::If_Statement& node, Analysis_Level level, Expression_Context)
     {
         if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
             return r;
@@ -530,7 +530,7 @@ private:
                                     get_token(get_node(node.get_condition())) };
         }
 
-        auto& if_block = std::get<Block_Statement_Node>(get_node(node.get_if_block()));
+        auto& if_block = std::get<ast::Block_Statement>(get_node(node.get_if_block()));
         auto if_result = analyze_types(if_block, level, Expression_Context::normal);
         if (!if_result) {
             return if_result;
@@ -546,7 +546,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(While_Statement_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::While_Statement& node, Analysis_Level level, Expression_Context)
     {
         if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
             return r;
@@ -558,7 +558,7 @@ private:
                                     get_token(get_node(node.get_condition())) };
         }
 
-        auto& block = std::get<Block_Statement_Node>(get_node(node.get_block()));
+        auto& block = std::get<ast::Block_Statement>(get_node(node.get_block()));
         if (auto r = analyze_types(block, level, Expression_Context::normal); !r) {
             return r;
         }
@@ -567,7 +567,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Jump_Node& node, Analysis_Level, Expression_Context)
+    Result<void, Analysis_Error> analyze_types(ast::Jump& node, Analysis_Level, Expression_Context)
     {
         node.const_value = Value::Void;
         return {};
@@ -575,7 +575,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Return_Statement_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Return_Statement& node, Analysis_Level level, Expression_Context)
     {
         if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
@@ -594,26 +594,26 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Assignment_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Assignment& node, Analysis_Level level, Expression_Context)
     {
-        BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(node.lookup_result != ast::Node_Handle::null);
 
-        Some_Node& looked_up_node = get_node(node.lookup_result);
-        if (const auto* const parameter = std::get_if<Parameter_Node>(&looked_up_node)) {
+        ast::Some_Node& looked_up_node = get_node(node.lookup_result);
+        if (const auto* const parameter = std::get_if<ast::Parameter>(&looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_parameter, node.token,
                                     get_token(looked_up_node) };
         }
-        if (const auto* const function = std::get_if<Function_Node>(&looked_up_node)) {
+        if (const auto* const function = std::get_if<ast::Function>(&looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_function, node.token,
                                     get_token(looked_up_node) };
         }
 
-        if (auto* looked_up_const = std::get_if<Const_Node>(&looked_up_node)) {
+        if (auto* looked_up_const = std::get_if<ast::Const>(&looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_const, node.token,
                                     get_token(*looked_up_const) };
         }
 
-        auto& looked_up_var = std::get<Let_Node>(looked_up_node);
+        auto& looked_up_var = std::get<ast::Let>(looked_up_node);
 
         if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
@@ -639,14 +639,14 @@ private:
 
     template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(Block_Statement_Node& node, Analysis_Level level, Expression_Context)
+    analyze_types(ast::Block_Statement& node, Analysis_Level level, Expression_Context)
     {
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(If_Expression_Node& node, Analysis_Level level, Expression_Context context)
+    analyze_types(ast::If_Expression& node, Analysis_Level level, Expression_Context context)
     {
         if (auto r = analyze_types(node.get_condition(), level, context); !r) {
             return r;
@@ -658,7 +658,7 @@ private:
         }
         Expression_Context left_context = context;
         Expression_Context right_context = context;
-        // Similar to short-circuiting (see Binary_Expression_Node), we lower the analysis context
+        // Similar to short-circuiting (see Binary_Expression), we lower the analysis context
         // to `normal` for the expression that is not evaluated.
         // If we analyzed it as a constant expression, we would require a value from it, and
         // e.g. `1 if true else 0 / 0` would fail, even though it is valid and meant to select `1`.
@@ -695,7 +695,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Binary_Expression_Node& node, Analysis_Level level, Expression_Context context)
+    analyze_types(ast::Binary_Expression& node, Analysis_Level level, Expression_Context context)
     {
         if (auto r = analyze_types(node.get_left(), level, context); !r) {
             return r;
@@ -752,7 +752,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Prefix_Expression_Node& node, Analysis_Level level, Expression_Context context)
+    analyze_types(ast::Prefix_Expression& node, Analysis_Level level, Expression_Context context)
     {
         if (auto r = analyze_types(node.get_expression(), level, context); !r) {
             return r;
@@ -775,18 +775,18 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_types(Function_Call_Expression_Node& node,
+    Result<void, Analysis_Error> analyze_types(ast::Function_Call_Expression& node,
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(node.lookup_result != ast::Node_Handle::null);
 
         // 1. Evaluate arguments.
 
         std::vector<Value> arg_values;
         arg_values.reserve(node.arguments.size());
 
-        for (const Node_Handle arg : node.arguments) {
+        for (const ast::Node_Handle arg : node.arguments) {
             if (auto r = analyze_types(arg, level, context); !r) {
                 return r;
             }
@@ -795,8 +795,8 @@ private:
 
         // 2. Verify that we call a function.
 
-        Some_Node& looked_up = get_node(node.lookup_result);
-        auto* function = std::get_if<Function_Node>(&looked_up);
+        ast::Some_Node& looked_up = get_node(node.lookup_result);
+        auto* function = std::get_if<ast::Function>(&looked_up);
         if (!function) {
             return Analysis_Error { Analysis_Error_Code::call_non_function, node.token,
                                     get_token(looked_up) };
@@ -807,10 +807,10 @@ private:
         //    number of arguments is an error before and after instantiating generic functions.
         //    There is no function overloading.
 
-        Parameter_List_Node* possibly_generic_params = nullptr;
-        if (function->get_parameters() != Node_Handle::null) {
+        ast::Parameter_List* possibly_generic_params = nullptr;
+        if (function->get_parameters() != ast::Node_Handle::null) {
             possibly_generic_params
-                = &std::get<Parameter_List_Node>(get_node(function->get_parameters()));
+                = &std::get<ast::Parameter_List>(get_node(function->get_parameters()));
             if (possibly_generic_params->parameters.size() != node.arguments.size()) {
                 return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, node.token,
                                         possibly_generic_params->token };
@@ -830,13 +830,13 @@ private:
             std::vector<int> deduced_widths;
             for (Size i = 0; i < node.arguments.size(); ++i) {
                 auto& param
-                    = std::get<Parameter_Node>(get_node(possibly_generic_params->parameters[i]));
-                auto& type = std::get<Type_Node>(get_node(param.get_type()));
+                    = std::get<ast::Parameter>(get_node(possibly_generic_params->parameters[i]));
+                auto& type = std::get<ast::Type>(get_node(param.get_type()));
                 auto* gen_type = std::get_if<Bit_Generic_Type>(&type.type);
                 if (!gen_type) {
                     continue;
                 }
-                auto* gen_expr = std::get_if<Id_Expression_Node>(&get_node(gen_type->width));
+                auto* gen_expr = std::get_if<ast::Id_Expression>(&get_node(gen_type->width));
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }
@@ -848,13 +848,13 @@ private:
                 deduced_widths.push_back(arg_values[i].type.width());
             }
 
-            Result<const Function_Node::Instance*, Analysis_Error> instantiation_result
+            Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
                 = Instantiator { m_program }.instantiate_function(node.lookup_result, *function,
                                                                   deduced_widths);
             if (!instantiation_result) {
                 return instantiation_result.error();
             }
-            function = &std::get<Function_Node>(get_node((*instantiation_result)->handle));
+            function = &std::get<ast::Function>(get_node((*instantiation_result)->handle));
         }
 
         // 5. Analyze the called concrete function.
@@ -885,8 +885,8 @@ private:
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        Parameter_List_Node* params = possibly_generic_params != nullptr
-            ? &std::get<Parameter_List_Node>(get_node(function->get_parameters()))
+        ast::Parameter_List* params = possibly_generic_params != nullptr
+            ? &std::get<ast::Parameter_List>(get_node(function->get_parameters()))
             : nullptr;
         // Instantiation (which may have happened) should not be able to change the number of
         // parameters.
@@ -901,7 +901,7 @@ private:
         }
 
         for (Size i = 0; i < node.arguments.size(); ++i) {
-            auto& param = std::get<Parameter_Node>(get_node(params->parameters[i]));
+            auto& param = std::get<ast::Parameter>(get_node(params->parameters[i]));
             const Concrete_Type param_type = param.const_value.value().type;
             if (!arg_values[i].type.is_convertible_to(param_type)) {
                 return Analysis_Error { Type_Error_Code::incompatible_types, node.token,
@@ -939,21 +939,21 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Id_Expression_Node& node, Analysis_Level level, Expression_Context context)
+    analyze_types(ast::Id_Expression& node, Analysis_Level level, Expression_Context context)
     {
         if (node.bit_generic) {
             // instantiation should have assigned a value to all bit-generic id-expressions
             BIT_MANIPULATION_ASSERT(node.const_value);
             return {};
         }
-        BIT_MANIPULATION_ASSERT(node.lookup_result != Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(node.lookup_result != ast::Node_Handle::null);
 
-        Some_Node& looked_up_node = get_node(node.lookup_result);
-        if (const auto* const looked_up_function = std::get_if<Function_Node>(&looked_up_node)) {
+        ast::Some_Node& looked_up_node = get_node(node.lookup_result);
+        if (const auto* const looked_up_function = std::get_if<ast::Function>(&looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::function_in_expression, node.token,
                                     looked_up_function->token };
         }
-        if (const auto* const looked_up_var = std::get_if<Let_Node>(&looked_up_node)) {
+        if (const auto* const looked_up_var = std::get_if<ast::Let>(&looked_up_node)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         node.token, looked_up_var->token };
@@ -965,14 +965,14 @@ private:
                 return {};
             }
         }
-        if (const auto* const looked_up_const = std::get_if<Const_Node>(&looked_up_node)) {
+        if (const auto* const looked_up_const = std::get_if<ast::Const>(&looked_up_node)) {
             // TODO: immediately analyze the const node?
             if (looked_up_const->const_value) {
                 node.const_value = looked_up_const->const_value;
                 return {};
             }
         }
-        if (const auto* const looked_up_param = std::get_if<Parameter_Node>(&looked_up_node)) {
+        if (const auto* const looked_up_param = std::get_if<ast::Parameter>(&looked_up_node)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::parameter_in_constant_expression,
                                         node.token, looked_up_param->token };
@@ -995,7 +995,7 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_types(Literal_Node& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Literal& node, Analysis_Level, Expression_Context)
     {
         // Literals never need to be analyzed twice.
         if (node.const_value) {

@@ -320,9 +320,8 @@ struct AST_Printer {
 
         const bms::ast::Some_Node node = program.get_node(handle);
         const std::string_view node_name = get_node_name(node);
-        const auto printed_node_name = node_name.substr(0, node_name.length() - 5); // remove _Node
 
-        out << ansi::h_magenta << printed_node_name << ansi::h_black << "(" << ansi::reset
+        out << ansi::h_magenta << node_name << ansi::h_black << "(" << ansi::reset
             << get_token(node).extract(program.source) << ansi::h_black << ")\n"
             << ansi::reset;
 

@@ -12,7 +12,7 @@ namespace bit_manipulation::bms {
 
 struct Analyzer_Base {
     Parsed_Program& m_program;
-    ast::Program_Node& m_root;
+    ast::Program& m_root;
 
     Analyzer_Base(Parsed_Program& program);
 

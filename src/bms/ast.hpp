@@ -64,12 +64,12 @@ struct Parent<0> {
 
 } // namespace detail
 
-struct Program_Node final : detail::Node_Base {
-    static inline constexpr std::string_view self_name = "Program_Node";
+struct Program final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Program";
 
     std::vector<Node_Handle> declarations;
 
-    Program_Node(Token token, std::vector<Node_Handle>&& declarations);
+    Program(Token token, std::vector<Node_Handle>&& declarations);
 
     std::span<Node_Handle> get_children()
     {
@@ -81,8 +81,8 @@ struct Program_Node final : detail::Node_Base {
     }
 };
 
-struct Function_Node final : detail::Node_Base, detail::Parent<4> {
-    static inline constexpr std::string_view self_name = "Function_Node";
+struct Function final : detail::Node_Base, detail::Parent<4> {
+    static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
         = { "parameters", "return_type", "requires_clause", "body" };
 
@@ -109,12 +109,12 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     Size vm_address = invalid_vm_address;
     Analysis_Level analysis_so_far = Analysis_Level::unanalyzed;
 
-    Function_Node(Token token,
-                  std::string_view name,
-                  Node_Handle parameters,
-                  Node_Handle return_type,
-                  Node_Handle requires_clause,
-                  Node_Handle body);
+    Function(Token token,
+             std::string_view name,
+             Node_Handle parameters,
+             Node_Handle return_type,
+             Node_Handle requires_clause,
+             Node_Handle body);
 
     Node_Handle get_parameters() const
     {
@@ -132,7 +132,7 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     {
         return children[3];
     }
-    Function_Node copy_for_instantiation() const
+    Function copy_for_instantiation() const
     {
         BIT_MANIPULATION_ASSERT(is_generic);
         return { token, name, children[0], children[1], children[2], children[3] };
@@ -149,12 +149,12 @@ struct Function_Node final : detail::Node_Base, detail::Parent<4> {
     }
 };
 
-struct Parameter_List_Node final : detail::Node_Base {
-    static inline constexpr std::string_view self_name = "Parameter_List_Node";
+struct Parameter_List final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Parameter_List";
 
     std::vector<Node_Handle> parameters;
 
-    Parameter_List_Node(Token token, std::vector<Node_Handle>&& parameters);
+    Parameter_List(Token token, std::vector<Node_Handle>&& parameters);
 
     std::span<Node_Handle> get_children()
     {
@@ -166,13 +166,13 @@ struct Parameter_List_Node final : detail::Node_Base {
     }
 };
 
-struct Parameter_Node final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Parameter_Node";
+struct Parameter final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Parameter";
     static inline constexpr std::string_view child_names[] = { "type" };
 
     std::string_view name;
 
-    Parameter_Node(Token token, std::string_view name, Node_Handle type);
+    Parameter(Token token, std::string_view name, Node_Handle type);
 
     Node_Handle get_type() const
     {
@@ -183,8 +183,8 @@ struct Parameter_Node final : detail::Node_Base, detail::Parent<1> {
 template <typename T, typename U>
 using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
 
-struct Type_Node final : detail::Node_Base {
-    static inline constexpr std::string_view self_name = "Type_Node";
+struct Type final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
 
 private:
@@ -200,7 +200,7 @@ private:
 public:
     Some_Type type;
 
-    Type_Node(Token token, Some_Type type);
+    Type(Token token, Some_Type type);
 
     std::span<Node_Handle> get_children()
     {
@@ -212,13 +212,13 @@ public:
     }
 };
 
-struct Const_Node final : detail::Node_Base, detail::Parent<2> {
-    static inline constexpr std::string_view self_name = "Const_Node";
+struct Const final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
     std::string_view name;
 
-    Const_Node(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
+    Const(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
 
     Node_Handle get_type() const
     {
@@ -230,13 +230,13 @@ struct Const_Node final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-struct Let_Node final : detail::Node_Base, detail::Parent<2> {
-    static inline constexpr std::string_view self_name = "Let_Node";
+struct Let final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
     std::string_view name;
 
-    Let_Node(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
+    Let(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
 
     Node_Handle get_type() const
     {
@@ -248,11 +248,11 @@ struct Let_Node final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-struct Static_Assert_Node final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Static_Assert_Node";
+struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Static_Assert_Node(Token token, Node_Handle expression);
+    Static_Assert(Token token, Node_Handle expression);
 
     Node_Handle get_expression() const
     {
@@ -260,18 +260,15 @@ struct Static_Assert_Node final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
-    static inline constexpr std::string_view self_name = "If_Statement_Node";
+struct If_Statement final : detail::Node_Base, detail::Parent<3> {
+    static inline constexpr std::string_view self_name = "If_Statement";
     static inline constexpr std::string_view child_names[] = {
         "condition",
         "if_block",
         "else_block",
     };
 
-    If_Statement_Node(Token token,
-                      Node_Handle condition,
-                      Node_Handle if_block,
-                      Node_Handle else_block);
+    If_Statement(Token token, Node_Handle condition, Node_Handle if_block, Node_Handle else_block);
 
     Node_Handle get_condition() const
     {
@@ -287,11 +284,11 @@ struct If_Statement_Node final : detail::Node_Base, detail::Parent<3> {
     }
 };
 
-struct While_Statement_Node final : detail::Node_Base, detail::Parent<2> {
-    static inline constexpr std::string_view self_name = "While_Statement_Node";
+struct While_Statement final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
-    While_Statement_Node(Token token, Node_Handle condition, Node_Handle block);
+    While_Statement(Token token, Node_Handle condition, Node_Handle block);
 
     Node_Handle get_condition() const
     {
@@ -304,17 +301,17 @@ struct While_Statement_Node final : detail::Node_Base, detail::Parent<2> {
 };
 
 // break, continue
-struct Jump_Node final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Jump_Node";
+struct Jump final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Jump";
 
-    Jump_Node(Token token);
+    Jump(Token token);
 };
 
-struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Return_Statement_Node";
+struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Return_Statement_Node(Token token, Node_Handle expression);
+    Return_Statement(Token token, Node_Handle expression);
 
     Node_Handle get_expression() const
     {
@@ -322,14 +319,14 @@ struct Return_Statement_Node final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Assignment_Node";
+struct Assignment final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Assignment";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
     std::string_view name;
     Node_Handle lookup_result = Node_Handle::null;
 
-    Assignment_Node(Token token, std::string_view name, Node_Handle expression);
+    Assignment(Token token, std::string_view name, Node_Handle expression);
 
     Node_Handle get_expression() const
     {
@@ -337,12 +334,12 @@ struct Assignment_Node final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Block_Statement_Node final : detail::Node_Base {
-    static inline constexpr std::string_view self_name = "Block_Statement_Node";
+struct Block_Statement final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Block_Statement";
 
     std::vector<Node_Handle> statements;
 
-    Block_Statement_Node(Token token, std::vector<Node_Handle>&& statements);
+    Block_Statement(Token token, std::vector<Node_Handle>&& statements);
 
     std::span<Node_Handle> get_children()
     {
@@ -354,11 +351,11 @@ struct Block_Statement_Node final : detail::Node_Base {
     }
 };
 
-struct If_Expression_Node final : detail::Node_Base, detail::Parent<3> {
-    static inline constexpr std::string_view self_name = "If_Expression_Node";
+struct If_Expression final : detail::Node_Base, detail::Parent<3> {
+    static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
-    If_Expression_Node(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
+    If_Expression(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
 
     Node_Handle get_left() const
     {
@@ -374,13 +371,13 @@ struct If_Expression_Node final : detail::Node_Base, detail::Parent<3> {
     }
 };
 
-struct Binary_Expression_Node final : detail::Node_Base, detail::Parent<2> {
-    static inline constexpr std::string_view self_name = "Binary_Expression_Node";
+struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Binary_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "right" };
 
     Token_Type op;
 
-    Binary_Expression_Node(Token token, Node_Handle left, Node_Handle right, Token_Type op);
+    Binary_Expression(Token token, Node_Handle left, Node_Handle right, Token_Type op);
 
     Node_Handle get_left() const
     {
@@ -392,13 +389,13 @@ struct Binary_Expression_Node final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-struct Prefix_Expression_Node final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Prefix_Expression_Node";
+struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Prefix_Expression";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
     Token_Type op;
 
-    Prefix_Expression_Node(Token token, Token_Type opm, Node_Handle operand);
+    Prefix_Expression(Token token, Token_Type opm, Node_Handle operand);
 
     Node_Handle get_expression() const
     {
@@ -406,16 +403,16 @@ struct Prefix_Expression_Node final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Function_Call_Expression_Node final : detail::Node_Base {
-    static inline constexpr std::string_view self_name = "Function_Call_Expression_Node";
+struct Function_Call_Expression final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
     std::string_view function;
     std::vector<Node_Handle> arguments;
     Node_Handle lookup_result = Node_Handle::null;
 
-    Function_Call_Expression_Node(Token token,
-                                  std::string_view function,
-                                  std::vector<Node_Handle>&& arguments);
+    Function_Call_Expression(Token token,
+                             std::string_view function,
+                             std::vector<Node_Handle>&& arguments);
 
     std::span<Node_Handle> get_children()
     {
@@ -427,41 +424,41 @@ struct Function_Call_Expression_Node final : detail::Node_Base {
     }
 };
 
-struct Id_Expression_Node final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Id_Expression_Node";
+struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Id_Expression";
 
     Node_Handle lookup_result = Node_Handle::null;
     bool bit_generic = false;
 
-    Id_Expression_Node(Token token);
+    Id_Expression(Token token);
 };
 
-struct Literal_Node final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Literal_Node";
+struct Literal final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Literal";
 
-    Literal_Node(Token token);
+    Literal(Token token);
 };
 
-using Some_Node = std::variant<Program_Node,
-                               Function_Node,
-                               Parameter_List_Node,
-                               Parameter_Node,
-                               Type_Node,
-                               Const_Node,
-                               Let_Node,
-                               Static_Assert_Node,
-                               If_Statement_Node,
-                               While_Statement_Node,
-                               Jump_Node,
-                               Return_Statement_Node,
-                               Assignment_Node,
-                               Block_Statement_Node,
-                               If_Expression_Node,
-                               Binary_Expression_Node,
-                               Prefix_Expression_Node,
-                               Function_Call_Expression_Node,
-                               Id_Expression_Node,
-                               Literal_Node>;
+using Some_Node = std::variant<Program,
+                               Function,
+                               Parameter_List,
+                               Parameter,
+                               Type,
+                               Const,
+                               Let,
+                               Static_Assert,
+                               If_Statement,
+                               While_Statement,
+                               Jump,
+                               Return_Statement,
+                               Assignment,
+                               Block_Statement,
+                               If_Expression,
+                               Binary_Expression,
+                               Prefix_Expression,
+                               Function_Call_Expression,
+                               Id_Expression,
+                               Literal>;
 
 inline Token get_token(const Some_Node& node)
 {
