@@ -208,7 +208,7 @@ public:
     explicit Parser(std::span<const Token> tokens, std::string_view source)
         : m_tokens { tokens }
         , m_pos { 0 }
-        , m_program { {}, source, ast::Handle::null }
+        , m_program { source }
     {
     }
 
