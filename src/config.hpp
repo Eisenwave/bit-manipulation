@@ -68,8 +68,16 @@ using Uint = Uint64;
 inline constexpr int uint_max_width = 128;
 
 #ifndef __INTELLISENSE__
+#ifdef __clang__
 using Big_Int = _BitInt(uint_max_width);
 using Big_Uint = unsigned _BitInt(uint_max_width);
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+using Big_Int = __int128;
+using Big_Uint = unsigned __int128;
+#pragma GCC diagnostic pop
+#endif
 #else
 using Big_Int = int;
 using Big_Uint = unsigned;
