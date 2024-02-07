@@ -22,6 +22,11 @@ enum struct Execution_Error_Code : Default_Underlying {
     call_out_of_program,
 };
 
+struct Execution_Error {
+    ast::Handle handle;
+    Execution_Error_Code code;
+};
+
 struct Virtual_Machine {
 private:
     std::vector<Instruction> m_instructions;
@@ -30,7 +35,7 @@ private:
     Size m_instruction_counter = 0;
 
 public:
-    Result<void, Execution_Error_Code> cycle() noexcept;
+    Result<void, Execution_Error> cycle() noexcept;
 
     [[nodiscard]] std::vector<Instruction>& instructions() & noexcept
     {
@@ -104,7 +109,7 @@ public:
 
 private:
     template <typename T>
-    Result<void, Execution_Error_Code> cycle(T& instruction) = delete;
+    Result<void, Execution_Error> cycle(T& instruction) = delete;
 };
 
 } // namespace bit_manipulation::bms

@@ -83,7 +83,7 @@ private:
     Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Parameter& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
-        out.push_back(ins::Store { h });
+        out.push_back(ins::Store { { h }, h });
         return {};
     }
 
@@ -111,7 +111,7 @@ private:
         if (!init) {
             return init;
         }
-        out.push_back(ins::Store { h });
+        out.push_back(ins::Store { { h }, h });
         return init;
     }
 
@@ -123,7 +123,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::If_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::If_Statement& node)
     {
         const auto restore = [this, restore_size = out.size()] {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -136,7 +136,7 @@ private:
         }
 
         const Size blank_jump_to_else_index = out.size();
-        out.push_back(ins::Relative_Jump_If { 0, false });
+        out.push_back(ins::Relative_Jump_If { { h }, 0, false });
         const auto size_before_if = out.size();
         auto if_result = generate_code(node.get_if_block());
         if (!if_result) {
@@ -152,7 +152,7 @@ private:
         }
 
         const Size blank_jump_past_else_index = out.size();
-        out.push_back(ins::Relative_Jump {});
+        out.push_back(ins::Relative_Jump { { h }, 0 });
         const auto size_before_else = out.size();
         auto else_result = generate_code(node.get_else_block());
         if (!else_result) {
@@ -165,7 +165,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::While_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::While_Statement& node)
     {
         const auto initial_size = out.size();
         const auto restore = [this, initial_size] {
@@ -179,7 +179,7 @@ private:
         }
 
         const Size blank_jump_past_loop_index = out.size();
-        out.push_back(ins::Relative_Jump_If { 0, false });
+        out.push_back(ins::Relative_Jump_If { { h }, 0, false });
         const auto size_before_block = out.size();
 
         auto block = generate_code(node.get_block());
@@ -193,40 +193,40 @@ private:
         for (Size i = size_before_block; i < out.size(); ++i) {
             if (std::holds_alternative<ins::Break>(out[i])) {
                 const auto past_the_loop = Signed_Size(out.size() - i);
-                out[i] = ins::Relative_Jump { past_the_loop };
+                out[i] = ins::Relative_Jump { { h }, past_the_loop };
             }
             if (std::holds_alternative<ins::Continue>(out[i])) {
                 const auto to_condition = -Signed_Size(i - initial_size) - 1;
-                out[i] = ins::Relative_Jump { to_condition };
+                out[i] = ins::Relative_Jump { { h }, to_condition };
             }
         }
 
         const auto back_offset = -Signed_Size(out.size() - initial_size + 1);
-        out.push_back(ins::Relative_Jump { back_offset });
+        out.push_back(ins::Relative_Jump { { h }, back_offset });
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Jump& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Jump& node)
     {
         if (node.token.type == Token_Type::keyword_break) {
-            out.push_back(ins::Break {});
+            out.push_back(ins::Break { { h } });
             return {};
         }
         if (node.token.type == Token_Type::keyword_continue) {
-            out.push_back(ins::Continue {});
+            out.push_back(ins::Continue { { h } });
             return {};
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("jump nodes must only be break or continue");
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Return_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Return_Statement& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
-            out.push_back(ins::Push { node.const_value->concrete_value() });
-            out.push_back(ins::Return {});
+            out.push_back(ins::Push { { h }, node.const_value->concrete_value() });
+            out.push_back(ins::Return { { h } });
             return {};
         }
 
@@ -234,19 +234,19 @@ private:
         if (!r) {
             return r;
         }
-        out.push_back(ins::Return {});
+        out.push_back(ins::Return { { h } });
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Assignment& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Assignment& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto result = generate_code(node.get_expression());
         if (!result) {
             return result;
         }
-        out.push_back(ins::Store { node.lookup_result });
+        out.push_back(ins::Store { { h }, node.lookup_result });
         return {};
     }
 
@@ -267,11 +267,11 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::If_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::If_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
-            out.push_back(ins::Push { node.const_value->concrete_value() });
+            out.push_back(ins::Push { { h }, node.const_value->concrete_value() });
             return {};
         }
         const auto restore = [this, initial_size = out.size()] {
@@ -284,7 +284,7 @@ private:
             return condition;
         }
         const Size blank_jump_to_right_index = out.size();
-        out.push_back(ins::Relative_Jump_If { 0, false });
+        out.push_back(ins::Relative_Jump_If { { h }, 0, false });
 
         const auto size_before_left = out.size();
         auto left = generate_code(node.get_left());
@@ -296,7 +296,7 @@ private:
             = Signed_Size(out.size() - size_before_left + 1);
 
         const Size blank_jump_past_right_index = out.size();
-        out.push_back(ins::Relative_Jump {});
+        out.push_back(ins::Relative_Jump { { h }, 0 });
         const auto size_before_right = out.size();
         auto right = generate_code(node.get_right());
         if (!right) {
@@ -310,11 +310,11 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Binary_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Binary_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
-            out.push_back(ins::Push { node.const_value->concrete_value() });
+            out.push_back(ins::Push { { h }, node.const_value->concrete_value() });
             return {};
         }
 
@@ -343,7 +343,7 @@ private:
             */
             const bool circuit_breaker = node.op == Token_Type::logical_or;
             const Size blank_jump_to_circuit_break_index = out.size();
-            out.push_back(ins::Relative_Jump_If { 0, circuit_breaker });
+            out.push_back(ins::Relative_Jump_If { { h }, 0, circuit_breaker });
 
             const auto size_before_right = out.size();
             auto right = generate_code(node.get_right());
@@ -354,8 +354,9 @@ private:
             std::get<ins::Relative_Jump_If>(out[blank_jump_to_circuit_break_index]).offset
                 = Signed_Size(out.size() - size_before_right + 1);
 
-            out.push_back(ins::Relative_Jump { 1 });
-            out.push_back(ins::Push { Concrete_Value { Concrete_Type::Bool, circuit_breaker } });
+            out.push_back(ins::Relative_Jump { { h }, 1 });
+            out.push_back(
+                ins::Push { { h }, Concrete_Value { Concrete_Type::Bool, circuit_breaker } });
         }
         else {
             auto right = generate_code(node.get_right());
@@ -363,18 +364,18 @@ private:
                 restore();
                 return right;
             }
-            out.push_back(ins::Binary_Operate { node.op });
+            out.push_back(ins::Binary_Operate { { h }, node.op });
         }
 
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Prefix_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Prefix_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
-            out.push_back(ins::Push { node.const_value->concrete_value() });
+            out.push_back(ins::Push { { h }, node.const_value->concrete_value() });
             return {};
         }
 
@@ -382,7 +383,7 @@ private:
         if (!init) {
             return init;
         }
-        out.push_back(ins::Unary_Operate { node.op });
+        out.push_back(ins::Unary_Operate { { h }, node.op });
         return {};
     }
 
@@ -391,7 +392,7 @@ private:
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
-            out.push_back({ ins::Push { node.const_value->concrete_value() } });
+            out.push_back({ ins::Push { { h }, node.const_value->concrete_value() } });
             return {};
         }
         auto& called = std::get<ast::Function>(get_node(node.lookup_result));
@@ -409,28 +410,28 @@ private:
                 return arg_code;
             }
         }
-        out.push_back(ins::Call { called.vm_address });
+        out.push_back(ins::Call { { h }, called.vm_address });
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Id_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Id_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto instruction = node.const_value->int_value
-            ? Instruction { ins::Push { node.const_value->concrete_value() } }
-            : Instruction { ins::Load { node.lookup_result } };
+            ? Instruction { ins::Push { { h }, node.const_value->concrete_value() } }
+            : Instruction { ins::Load { { h }, node.lookup_result } };
         out.push_back(instruction);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Literal& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Literal& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         BIT_MANIPULATION_ASSERT(node.const_value->int_value);
 
-        out.push_back(ins::Push { node.const_value->concrete_value() });
+        out.push_back(ins::Push { { h }, node.const_value->concrete_value() });
         return {};
     }
 };

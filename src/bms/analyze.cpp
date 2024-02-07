@@ -931,12 +931,13 @@ private:
 
         // 7. Constant-evaluate the function call.
         if (context == Expression_Context::constant) {
-            Result<void, Execution_Error_Code> cycle_result;
+            Result<void, Execution_Error> cycle_result;
             while ((cycle_result = constant_evaluation_machine.cycle())) { }
             // Since there is no frame with a return address, the return statement of the function
             // we execute will fail to pop.
-            if (cycle_result.error() != Execution_Error_Code::pop_call) {
-                return Analysis_Error { cycle_result.error(), handle };
+            if (cycle_result.error().code != Execution_Error_Code::pop_call) {
+                return Analysis_Error { cycle_result.error().code, handle,
+                                        cycle_result.error().handle };
             }
             BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
             node.const_value = constant_evaluation_machine.pop();
