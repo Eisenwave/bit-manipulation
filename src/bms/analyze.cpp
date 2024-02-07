@@ -936,8 +936,12 @@ private:
             // Since there is no frame with a return address, the return statement of the function
             // we execute will fail to pop.
             if (cycle_result.error().code != Execution_Error_Code::pop_call) {
+                if (cycle_result.error().code == Execution_Error_Code::evaluation) {
+                    return Analysis_Error { cycle_result.error().evaluation_error, handle,
+                                            cycle_result.error().handle };
+                }
                 return Analysis_Error { cycle_result.error().code, handle,
-                                        cycle_result.error().handle };
+                                            cycle_result.error().handle };
             }
             BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
             node.const_value = constant_evaluation_machine.pop();

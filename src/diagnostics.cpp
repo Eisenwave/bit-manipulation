@@ -102,6 +102,18 @@ std::string_view to_prose(bms::Type_Error_Code e)
     }
 }
 
+std::string_view to_prose(bms::Evaluation_Error_Code e)
+{
+    using enum bms::Evaluation_Error_Code;
+    switch (e) {
+    case type_error: return "The evaluation violates the type system.";
+    case int_to_uint_range_error: return "Conversion from 'Int' to 'Uint' loses information.";
+    case division_by_zero: return "Division by zero.";
+    case shift_too_much: return "Bit-shift was not less than the operand size.";
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    }
+}
+
 std::string_view to_prose(bms::Execution_Error_Code e)
 {
     using enum bms::Execution_Error_Code;
@@ -269,8 +281,13 @@ std::ostream& print_analysis_error(std::ostream& out,
 
     if (error.cause != bms::ast::Handle::null) {
         const auto cause_token = get_token(program.get_node(error.cause));
-        print_file_position(out, file, cause_token.pos)
-            << ": " << note_prefix << cause_to_prose(error.code) << '\n';
+        print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
+        if (error.code == bms::Analysis_Error_Code::evaluation_error) {
+            out << "Caused by: " << to_prose(error.evaluation_error) << '\n';
+        }
+        else {
+            out << cause_to_prose(error.code) << '\n';
+        }
         print_affected_line(out, program.source, cause_token.pos);
     }
 

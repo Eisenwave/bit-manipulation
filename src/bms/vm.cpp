@@ -97,8 +97,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Unary_Operate& unary_o
     const Result<Concrete_Value, Evaluation_Error_Code> result
         = evaluate_unary_operator(unary_operate.op, operand);
     if (!result) {
-        return Execution_Error { unary_operate.debug_info,
-                                 Execution_Error_Code::evaluation }; // TODO better diagnostics
+        return Execution_Error { unary_operate.debug_info, result.error() };
     }
     m_stack.push_back(*result);
     ++m_instruction_counter;
@@ -118,8 +117,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Binary_Operate& binary
     const Result<Concrete_Value, Evaluation_Error_Code> result
         = evaluate_binary_operator(lhs, binary_operate.op, rhs);
     if (!result) {
-        return Execution_Error { binary_operate.debug_info,
-                                 Execution_Error_Code::evaluation }; // TODO better diagnostics
+        return Execution_Error { binary_operate.debug_info, result.error() };
     }
     m_stack.push_back(*result);
     ++m_instruction_counter;
