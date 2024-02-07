@@ -15,11 +15,12 @@ namespace {
 
 std::string to_string(Uint128 x)
 {
-    constexpr Uint128 p10_uint64 = 10000000000000000000ULL;
+    /// The greatest power of 10 that fits into a 64-bit integer.
+    constexpr Uint128 exp10_19 = 10000000000000000000ull;
 
     return x <= std::uint64_t(-1)
         ? std::to_string(static_cast<std::uint64_t>(x))
-        : to_string(x / p10_uint64) + std::to_string(static_cast<std::uint64_t>(x % p10_uint64));
+        : to_string(x / exp10_19) + std::to_string(static_cast<std::uint64_t>(x % exp10_19));
 }
 
 std::string to_string(Int128 x)
