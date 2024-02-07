@@ -479,9 +479,9 @@ inline std::optional<Value>& get_const_value(Some_Node& node)
     return fast_visit([](detail::Node_Base& n) -> auto& { return n.const_value; }, node);
 }
 
-inline std::optional<Value> get_const_value(const Some_Node& node)
+inline const std::optional<Value>& get_const_value(const Some_Node& node)
 {
-    return fast_visit([](const detail::Node_Base& n) { return n.const_value; }, node);
+    return fast_visit([](const detail::Node_Base& n) -> auto& { return n.const_value; }, node);
 }
 
 inline std::span<Handle> get_children(Some_Node& node)
