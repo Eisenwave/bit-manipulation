@@ -211,10 +211,6 @@ private:
     }
 
     template <typename T>
-    Result<void, Analysis_Error>
-    analyze_types(ast::Handle handle, T& node, Analysis_Level, Expression_Context) = delete;
-
-    template <typename T>
         requires(!std::is_const_v<T>)
     Result<void, Analysis_Error>
     analyze_child_types(T& node, Analysis_Level level, Expression_Context context)
@@ -229,14 +225,12 @@ private:
         return {};
     }
 
-    template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Program& node, Analysis_Level level, Expression_Context)
     {
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Function& node, Analysis_Level level, Expression_Context)
     {
@@ -318,7 +312,6 @@ private:
         return {};
     }
 
-    template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Parameter_List& node, Analysis_Level level, Expression_Context)
     {
@@ -328,7 +321,6 @@ private:
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
-    template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Parameter& node, Analysis_Level level, Expression_Context)
     {
@@ -345,7 +337,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Type& node, Analysis_Level, Expression_Context)
     {
@@ -379,7 +370,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Const& node, Analysis_Level level, Expression_Context)
     {
@@ -430,7 +420,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Let& node, Analysis_Level level, Expression_Context)
     {
@@ -479,7 +468,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Static_Assert& node, Analysis_Level, Expression_Context)
     {
@@ -509,7 +497,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::If_Statement& node,
                                                Analysis_Level level,
@@ -540,7 +527,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::While_Statement& node,
                                                Analysis_Level level,
@@ -565,7 +551,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Jump& node, Analysis_Level, Expression_Context)
     {
@@ -573,7 +558,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Return_Statement& node,
                                                Analysis_Level level,
@@ -594,7 +578,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Assignment& node,
                                                Analysis_Level level,
@@ -603,16 +586,16 @@ private:
         BIT_MANIPULATION_ASSERT(node.lookup_result != ast::Handle::null);
 
         ast::Some_Node& looked_up_node = get_node(node.lookup_result);
-        if (const auto* const parameter = std::get_if<ast::Parameter>(&looked_up_node)) {
+        if (std::holds_alternative<ast::Parameter>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_parameter, handle,
                                     node.lookup_result };
         }
-        if (const auto* const function = std::get_if<ast::Function>(&looked_up_node)) {
+        if (std::holds_alternative<ast::Function>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_function, handle,
                                     node.lookup_result };
         }
 
-        if (auto* looked_up_const = std::get_if<ast::Const>(&looked_up_node)) {
+        if (std::holds_alternative<ast::Const>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_const, handle,
                                     node.lookup_result };
         }
@@ -641,14 +624,12 @@ private:
         return {};
     }
 
-    template <>
     [[gnu::always_inline]] Result<void, Analysis_Error>
     analyze_types(ast::Handle, ast::Block_Statement& node, Analysis_Level level, Expression_Context)
     {
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::If_Expression& node,
                                                Analysis_Level level,
@@ -699,7 +680,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Binary_Expression& node,
                                                Analysis_Level level,
@@ -758,7 +738,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Prefix_Expression& node,
                                                Analysis_Level level,
@@ -784,7 +763,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Function_Call_Expression& node,
                                                Analysis_Level level,
@@ -941,7 +919,7 @@ private:
                                             cycle_result.error().handle };
                 }
                 return Analysis_Error { cycle_result.error().code, handle,
-                                            cycle_result.error().handle };
+                                        cycle_result.error().handle };
             }
             BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
             node.const_value = constant_evaluation_machine.pop();
@@ -953,7 +931,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_types(ast::Handle handle,
                                                ast::Id_Expression& node,
                                                Analysis_Level level,
@@ -1011,7 +988,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_types(ast::Handle handle, ast::Literal& node, Analysis_Level, Expression_Context)
     {

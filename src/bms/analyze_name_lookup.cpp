@@ -85,7 +85,6 @@ private:
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Illegal AST node in global scope");
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Program& n)
     {
         BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
@@ -102,7 +101,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Const& n)
     {
         BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
@@ -114,7 +112,6 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Function& n)
     {
         BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
@@ -128,7 +125,6 @@ private:
         return analyze_symbols_local(handle, m_symbols.push(), n);
     }
 
-    template <>
     Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Static_Assert& n)
     {
         return analyze_symbols_local(handle, m_symbols, n);
@@ -161,7 +157,6 @@ private:
         return analyze_all_symbols_local(node.get_children(), table);
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle handle, Symbol_Table& table, ast::Parameter& node)
     {
@@ -191,14 +186,12 @@ private:
         return {};
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Block_Statement& node)
     {
         return analyze_all_symbols_local(node.get_children(), table.push());
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Const& node)
     {
@@ -209,7 +202,6 @@ private:
         return analyze_all_symbols_local(node.get_children(), table);
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Let& node)
     {
@@ -220,14 +212,12 @@ private:
         return analyze_all_symbols_local(node.get_children(), table);
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Static_Assert& node)
     {
         return analyze_symbols_local(node.get_expression(), table.push());
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Assignment& node)
     {
@@ -238,7 +228,6 @@ private:
         return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, h };
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Function_Call_Expression& node)
     {
@@ -249,7 +238,6 @@ private:
         return Analysis_Error { Analysis_Error_Code::call_to_undefined_function, h };
     }
 
-    template <>
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Id_Expression& node)
     {
