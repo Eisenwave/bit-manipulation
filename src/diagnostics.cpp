@@ -11,6 +11,36 @@
 
 namespace bit_manipulation {
 
+namespace {
+
+std::string to_string(Uint128 x)
+{
+    constexpr Uint128 p10_uint64 = 10000000000000000000ULL;
+
+    // TODO: use to_chars if supported for 128-bit
+    return x <= std::uint64_t(-1)
+        ? std::to_string(static_cast<std::uint64_t>(x))
+        : to_string(x / p10_uint64) + std::to_string(static_cast<std::uint64_t>(x % p10_uint64));
+}
+
+std::string to_string(Int128 x)
+{
+    return x >= 0 ? to_string(static_cast<Uint128>(x)) : '-' + to_string(-static_cast<Uint128>(x));
+}
+
+std::string to_string(bms::Concrete_Value v)
+{
+    switch (v.type.type()) {
+    case bms::Type_Type::Void: return "Void";
+    case bms::Type_Type::Bool: return v.int_value ? "true" : "false";
+    case bms::Type_Type::Int: return to_string(v.int_value);
+    case bms::Type_Type::Uint: return to_string(static_cast<Big_Uint>(v.int_value));
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
+    }
+}
+
+} // namespace
+
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
     switch (e) {
@@ -180,32 +210,6 @@ std::string_view to_prose(IO_Error_Code e)
     case IO_Error_Code::read_error: return "I/O error occurred when reading from file.";
     case IO_Error_Code::write_error: return "I/O error occurred when writing to file.";
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
-    }
-}
-
-std::string to_string(Uint128 x)
-{
-    constexpr Uint128 p10_uint64 = 10000000000000000000ULL;
-
-    // TODO: use to_chars if supported for 128-bit
-    return x <= std::uint64_t(-1)
-        ? std::to_string(static_cast<std::uint64_t>(x))
-        : to_string(x / p10_uint64) + std::to_string(static_cast<std::uint64_t>(x % p10_uint64));
-}
-
-std::string to_string(Int128 x)
-{
-    return x >= 0 ? to_string(static_cast<Uint128>(x)) : '-' + to_string(-static_cast<Uint128>(x));
-}
-
-std::string to_string(bms::Concrete_Value v)
-{
-    switch (v.type.type()) {
-    case bms::Type_Type::Void: return "Void";
-    case bms::Type_Type::Bool: return v.int_value ? "true" : "false";
-    case bms::Type_Type::Int: return to_string(v.int_value);
-    case bms::Type_Type::Uint: return to_string(static_cast<Big_Uint>(v.int_value));
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
     }
 }
 
