@@ -96,38 +96,38 @@ struct Analysis_Error {
     Type_Error_Code type_error {};
     Evaluation_Error_Code evaluation_error {};
     Execution_Error_Code execution_error {};
-    Token fail_token {};
-    Token cause_token {};
+    ast::Handle fail {};
+    ast::Handle cause {};
 
-    constexpr Analysis_Error(Analysis_Error_Code code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Analysis_Error_Code code, ast::Handle fail, ast::Handle cause = {})
         : code(code)
         , evaluation_error()
-        , fail_token(fail_token)
-        , cause_token(cause_token)
+        , fail(fail)
+        , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Evaluation_Error_Code code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Evaluation_Error_Code code, ast::Handle fail, ast::Handle cause = {})
         : code(Analysis_Error_Code::evaluation_error)
         , evaluation_error(code)
-        , fail_token(fail_token)
-        , cause_token(cause_token)
+        , fail(fail)
+        , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Type_Error_Code code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Type_Error_Code code, ast::Handle fail, ast::Handle cause = {})
         : code(Analysis_Error_Code::type_error)
         , type_error(code)
-        , fail_token(fail_token)
-        , cause_token(cause_token)
+        , fail(fail)
+        , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Execution_Error_Code code, Token fail_token, Token cause_token = {})
+    constexpr Analysis_Error(Execution_Error_Code code, ast::Handle fail, ast::Handle cause = {})
         : code(Analysis_Error_Code::execution_error)
         , execution_error(code)
-        , fail_token(fail_token)
-        , cause_token(cause_token)
+        , fail(fail)
+        , cause(cause)
     {
     }
 };

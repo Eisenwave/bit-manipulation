@@ -78,7 +78,7 @@ int check_semantics(std::string_view file)
         return 0;
     }
     else {
-        print_analysis_error(std::cout, file, f.program, result.error());
+        print_analysis_error(std::cout, file, p, result.error());
         return 1;
     }
 }

@@ -4,6 +4,7 @@
 
 #include "diagnostics.hpp"
 
+#include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation {
@@ -247,27 +248,30 @@ std::ostream& print_parse_error(std::ostream& out,
 
 std::ostream& print_analysis_error(std::ostream& out,
                                    std::string_view file,
-                                   std::string_view source,
+                                   const bms::Parsed_Program& program,
                                    bms::Analysis_Error error)
 {
     const std::string_view error_prose = error.code == bms::Analysis_Error_Code::type_error
         ? to_prose(error.type_error)
         : to_prose(error.code);
 
-    print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
+    const auto fail_token = get_token(program.get_node(error.fail));
+
+    print_file_position(out, file, fail_token.pos) << ": " << error_prefix;
     out << error_prose << '\n';
-    print_affected_line(out, source, error.fail_token.pos);
+    print_affected_line(out, program.source, fail_token.pos);
 
     if (error.code == bms::Analysis_Error_Code::execution_error) {
-        print_file_position(out, file, error.cause_token.pos)
+        print_file_position(out, file, fail_token.pos)
             << ": " << note_prefix << to_prose(error.execution_error) << '\n';
         print_internal_error_notice(out);
     }
 
-    if (error.cause_token != bms::Token {}) {
-        print_file_position(out, file, error.cause_token.pos)
+    if (error.cause != bms::ast::Handle::null) {
+        const auto cause_token = get_token(program.get_node(error.cause));
+        print_file_position(out, file, cause_token.pos)
             << ": " << note_prefix << cause_to_prose(error.code) << '\n';
-        print_affected_line(out, source, error.cause_token.pos);
+        print_affected_line(out, program.source, cause_token.pos);
     }
 
     return out;

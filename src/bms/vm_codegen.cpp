@@ -387,7 +387,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Function_Call_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Function_Call_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -396,8 +396,8 @@ private:
         }
         auto& called = std::get<ast::Function>(get_node(node.lookup_result));
         if (!called.const_value || called.vm_address == ast::Function::invalid_vm_address) {
-            return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, node.token,
-                                    called.token };
+            return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, h,
+                                    node.lookup_result };
         }
 
         const Size restore_size = out.size();

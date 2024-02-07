@@ -57,8 +57,8 @@ std::ostream& print_parse_error(std::ostream& out,
 
 std::ostream& print_analysis_error(std::ostream& out,
                                    std::string_view file,
-                                   std::string_view source,
-                                   bms::Analysis_Error e);
+                                   const bms::Parsed_Program& program,
+                                   bms::Analysis_Error error);
 
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);

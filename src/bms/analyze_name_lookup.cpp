@@ -108,8 +108,8 @@ private:
         BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
         auto it_or_handle = m_symbols.emplace(n.name, handle);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, n.token,
-                                    get_token(get_node(*old)) };
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
+                                    *old };
         }
         return {};
     }
@@ -121,8 +121,7 @@ private:
 
         auto it_or_handle = m_symbols.emplace(n.name, handle);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_function, n.token,
-                                    get_token(get_node(*old)) };
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_function, handle, *old };
         }
 
         m_current_function = &n;
@@ -168,8 +167,7 @@ private:
     {
         auto it_or_handle = m_symbols.emplace(node.name, handle);
         if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, node.token,
-                                    get_token(get_node(*old)) };
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
         auto& type_node = std::get<ast::Type>(get_node(node.get_type()));
         ast::Handle g = type_node.get_width();
@@ -181,7 +179,7 @@ private:
             BIT_MANIPULATION_ASSERT(error.code
                                     == Analysis_Error_Code::reference_to_undefined_variable);
             if (auto* id = std::get_if<ast::Id_Expression>(&get_node(g))) {
-                table.emplace(error.fail_token.extract(m_program.source), g);
+                table.emplace(get_token(get_node(error.fail)).extract(m_program.source), g);
                 id->bit_generic = true;
                 BIT_MANIPULATION_ASSERT(m_current_function != nullptr);
                 m_current_function->is_generic = true;
@@ -205,9 +203,8 @@ private:
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Const& node)
     {
         auto it_or_handle = m_symbols.emplace(node.name, h);
-        if (ast::Handle* old = std::get_if<ast::Handle>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
-                                    get_token(get_node(*old)) };
+        if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
         return analyze_all_symbols_local(node.get_children(), table);
     }
@@ -217,9 +214,8 @@ private:
     analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Let& node)
     {
         auto it_or_handle = m_symbols.emplace(node.name, h);
-        if (ast::Handle* old = std::get_if<ast::Handle>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
-                                    get_token(get_node(*old)) };
+        if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
+            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
         return analyze_all_symbols_local(node.get_children(), table);
     }
@@ -233,36 +229,36 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Assignment& node)
+    analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Assignment& node)
     {
         if (std::optional<ast::Handle> result = table.find(node.name)) {
             node.lookup_result = *result;
             return analyze_symbols_local(node.get_expression(), table);
         }
-        return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, node.token };
+        return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, h };
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Function_Call_Expression& node)
+    analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Function_Call_Expression& node)
     {
         if (std::optional<ast::Handle> result = table.find(node.function)) {
             node.lookup_result = *result;
             return analyze_all_symbols_local(node.arguments, table);
         }
-        return Analysis_Error { Analysis_Error_Code::call_to_undefined_function, node.token };
+        return Analysis_Error { Analysis_Error_Code::call_to_undefined_function, h };
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Id_Expression& node)
+    analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Id_Expression& node)
     {
         std::string_view name = node.token.extract(m_program.source);
         if (std::optional<ast::Handle> result = table.find(name)) {
             node.lookup_result = *result;
             return {};
         }
-        return Analysis_Error { Analysis_Error_Code::reference_to_undefined_variable, node.token };
+        return Analysis_Error { Analysis_Error_Code::reference_to_undefined_variable, h };
     }
 };
 
