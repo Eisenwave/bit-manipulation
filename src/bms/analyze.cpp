@@ -886,7 +886,9 @@ private:
         // Similar to `arg_values` above, but with implicit conversions applied for the purpose
         // of evaluating the actual function call.
         if (context == Expression_Context::constant) {
+            BIT_MANIPULATION_ASSERT(function->vm_address != ast::Function::invalid_vm_address);
             constant_evaluation_machine.reset();
+            constant_evaluation_machine.jump_to(function->vm_address);
         }
 
         for (Size i = 0; i < node.arguments.size(); ++i) {
