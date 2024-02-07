@@ -202,6 +202,7 @@ namespace bit_manipulation::bms {
 
     case keyword_static_assert: return 13;
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid token type");
 }
 
 [[nodiscard]] bool is_comment(Token_Type type)
