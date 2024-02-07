@@ -32,9 +32,9 @@ __extension__ typedef signed __int128 Int128;
 #else
 inline constexpr bool has_128_bit_integer = false;
 /// @brief 128-bit unsigned integer not supported.
-using u128 = void;
+using Uint128 = void;
 /// @brief 128-bit signed integer not supported.
-using i128 = void;
+using Int128 = void;
 #endif
 
 /// @brief 64-bit unsigned integer.
@@ -72,11 +72,8 @@ inline constexpr int uint_max_width = 128;
 using Big_Int = _BitInt(uint_max_width);
 using Big_Uint = unsigned _BitInt(uint_max_width);
 #else
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wpedantic"
-using Big_Int = __int128;
-using Big_Uint = unsigned __int128;
-#pragma GCC diagnostic pop
+using Big_Int = Int128;
+using Big_Uint = Uint128;
 #endif
 #else
 using Big_Int = int;
