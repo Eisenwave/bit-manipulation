@@ -103,8 +103,8 @@ std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) no
             if (s[1] == '=') {
                 return less_or_equal;
             }
-            return less_than;
         }
+        return less_than;
     }
     case '>': {
         if (s.length() > 1) {
