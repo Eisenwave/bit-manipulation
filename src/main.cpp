@@ -42,7 +42,7 @@ Tokenized_File tokenize_file(std::string_view file)
 bms::Parsed_Program parse_tokenized(std::string_view file_name, const Tokenized_File& f)
 {
     if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
-        return *parsed;
+        return std::move(*parsed);
     }
     else {
         print_parse_error(std::cout, file_name, f.program, parsed.error());
