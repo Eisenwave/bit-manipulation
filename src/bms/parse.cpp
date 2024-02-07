@@ -929,10 +929,13 @@ private:
     Result<ast::Handle, Rule_Error> match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
-        // TODO: parse Void
         static constexpr Token_Type expected[]
-            = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
+            = { Token_Type::keyword_void, Token_Type::keyword_bool, Token_Type::keyword_int,
+                Token_Type::keyword_uint };
 
+        if (const Token* t = expect(Token_Type::keyword_void)) {
+            return m_program.push_node(ast::Type { *t, Type_Type::Void, ast::Handle::null });
+        }
         if (const Token* t = expect(Token_Type::keyword_bool)) {
             return m_program.push_node(ast::Type { *t, Type_Type::Bool, ast::Handle::null });
         }
