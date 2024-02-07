@@ -6,6 +6,19 @@
 
 #include "assert.hpp"
 
+/*
+This header contains a drop-in replacement for std::visit.
+This is necessary for two reasons:
+
+1. Some standard library implementations are rather bloated and provide poor performance.
+   We want something lightweight which is guaranteed to be as fast as simple switch statement.
+
+2. Even if std::visit gets optimized nicely, its use tends to add a lot of stack frames, which is
+   annoying for debugging.
+   The custom implementation is as shallow as possible.
+
+*/
+
 namespace bit_manipulation {
 
 namespace detail {
@@ -19,7 +32,7 @@ struct Is_Variant<std::variant<Ts...>> : std::true_type { };
 } // namespace detail
 
 #define BIT_MANIPULATION_VISIT_CASE(...)                                                           \
-    case __VA_ARGS__: return static_cast<F&&>(f)(std::get<__VA_ARGS__>(static_cast<V&&>(v)))
+    case __VA_ARGS__: return static_cast<F&&>(f)(::std::get<__VA_ARGS__>(static_cast<V&&>(v)))
 
 template <typename F, typename V>
 constexpr decltype(auto) fast_visit(F&& f, V&& v) = delete;
