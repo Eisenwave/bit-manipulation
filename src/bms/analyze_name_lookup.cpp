@@ -10,7 +10,7 @@ namespace {
 
 struct Symbol_Table {
 private:
-    using map_type = std::unordered_map<std::string_view, ast::Node_Handle>;
+    using map_type = std::unordered_map<std::string_view, ast::Handle>;
     map_type m_symbols;
     Symbol_Table* m_parent = nullptr;
     std::vector<Symbol_Table> m_children;
@@ -25,12 +25,11 @@ public:
         return result;
     }
 
-    std::variant<map_type::iterator, ast::Node_Handle> emplace(std::string_view symbol,
-                                                               ast::Node_Handle node)
+    std::variant<map_type::iterator, ast::Handle> emplace(std::string_view symbol, ast::Handle node)
     {
-        BIT_MANIPULATION_ASSERT(node != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(node != ast::Handle::null);
         if (m_parent != nullptr) {
-            if (std::optional<ast::Node_Handle> old = m_parent->find(symbol)) {
+            if (std::optional<ast::Handle> old = m_parent->find(symbol)) {
                 return *old;
             }
         }
@@ -43,7 +42,7 @@ public:
         }
     }
 
-    std::optional<ast::Node_Handle> find(std::string_view symbol)
+    std::optional<ast::Handle> find(std::string_view symbol)
     {
         if (m_parent != nullptr) {
             if (auto parent_result = m_parent->find(symbol)) {
@@ -81,16 +80,16 @@ public:
 
 private:
     template <typename T>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Node_Handle, T&)
+    Result<void, Analysis_Error> analyze_symbols_global(ast::Handle, T&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Illegal AST node in global scope");
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Node_Handle handle, ast::Program& n)
+    Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Program& n)
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
-        for (ast::Node_Handle decl : n.declarations) {
+        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
+        for (ast::Handle decl : n.declarations) {
             auto r = std::visit(
                 [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
                     return analyze_symbols_global(decl, node);
@@ -104,11 +103,11 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Node_Handle handle, ast::Const& n)
+    Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Const& n)
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
         auto it_or_handle = m_symbols.emplace(n.name, handle);
-        if (auto* old = std::get_if<ast::Node_Handle>(&it_or_handle)) {
+        if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, n.token,
                                     get_token(get_node(*old)) };
         }
@@ -116,12 +115,12 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Node_Handle handle, ast::Function& n)
+    Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Function& n)
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
 
         auto it_or_handle = m_symbols.emplace(n.name, handle);
-        if (auto* old = std::get_if<ast::Node_Handle>(&it_or_handle)) {
+        if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_function, n.token,
                                     get_token(get_node(*old)) };
         }
@@ -131,15 +130,14 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Node_Handle handle,
-                                                        ast::Static_Assert& n)
+    Result<void, Analysis_Error> analyze_symbols_global(ast::Handle handle, ast::Static_Assert& n)
     {
         return analyze_symbols_local(handle, m_symbols, n);
     }
 
-    Result<void, Analysis_Error> analyze_symbols_local(ast::Node_Handle handle, Symbol_Table& table)
+    Result<void, Analysis_Error> analyze_symbols_local(ast::Handle handle, Symbol_Table& table)
     {
-        if (handle == ast::Node_Handle::null) {
+        if (handle == ast::Handle::null) {
             return {};
         }
         return std::visit([this, handle, &table](
@@ -147,8 +145,8 @@ private:
                           get_node(handle));
     }
 
-    Result<void, Analysis_Error>
-    analyze_all_symbols_local(std::span<const ast::Node_Handle> handles, Symbol_Table& table)
+    Result<void, Analysis_Error> analyze_all_symbols_local(std::span<const ast::Handle> handles,
+                                                           Symbol_Table& table)
     {
         for (auto h : handles) {
             if (auto r = analyze_symbols_local(h, table); !r) {
@@ -159,24 +157,23 @@ private:
     }
 
     template <typename T>
-    Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle, Symbol_Table& table, T& node)
+    Result<void, Analysis_Error> analyze_symbols_local(ast::Handle, Symbol_Table& table, T& node)
     {
         return analyze_all_symbols_local(node.get_children(), table);
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle handle, Symbol_Table& table, ast::Parameter& node)
+    analyze_symbols_local(ast::Handle handle, Symbol_Table& table, ast::Parameter& node)
     {
         auto it_or_handle = m_symbols.emplace(node.name, handle);
-        if (auto* old = std::get_if<ast::Node_Handle>(&it_or_handle)) {
+        if (auto* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, node.token,
                                     get_token(get_node(*old)) };
         }
         auto& type_node = std::get<ast::Type>(get_node(node.get_type()));
-        ast::Node_Handle g = type_node.get_width();
-        if (g == ast::Node_Handle::null) {
+        ast::Handle g = type_node.get_width();
+        if (g == ast::Handle::null) {
             return {};
         }
         if (auto r = analyze_symbols_local(g, table); !r) {
@@ -198,17 +195,17 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle, Symbol_Table& table, ast::Block_Statement& node)
+    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Block_Statement& node)
     {
         return analyze_all_symbols_local(node.get_children(), table.push());
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle h, Symbol_Table& table, ast::Const& node)
+    analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Const& node)
     {
         auto it_or_handle = m_symbols.emplace(node.name, h);
-        if (ast::Node_Handle* old = std::get_if<ast::Node_Handle>(&it_or_handle)) {
+        if (ast::Handle* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
                                     get_token(get_node(*old)) };
         }
@@ -217,10 +214,10 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle h, Symbol_Table& table, ast::Let& node)
+    analyze_symbols_local(ast::Handle h, Symbol_Table& table, ast::Let& node)
     {
         auto it_or_handle = m_symbols.emplace(node.name, h);
-        if (ast::Node_Handle* old = std::get_if<ast::Node_Handle>(&it_or_handle)) {
+        if (ast::Handle* old = std::get_if<ast::Handle>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, node.token,
                                     get_token(get_node(*old)) };
         }
@@ -229,16 +226,16 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle, Symbol_Table& table, ast::Static_Assert& node)
+    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Static_Assert& node)
     {
         return analyze_symbols_local(node.get_expression(), table.push());
     }
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle, Symbol_Table& table, ast::Assignment& node)
+    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Assignment& node)
     {
-        if (std::optional<ast::Node_Handle> result = table.find(node.name)) {
+        if (std::optional<ast::Handle> result = table.find(node.name)) {
             node.lookup_result = *result;
             return analyze_symbols_local(node.get_expression(), table);
         }
@@ -246,11 +243,10 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> analyze_symbols_local(ast::Node_Handle,
-                                                       Symbol_Table& table,
-                                                       ast::Function_Call_Expression& node)
+    Result<void, Analysis_Error>
+    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Function_Call_Expression& node)
     {
-        if (std::optional<ast::Node_Handle> result = table.find(node.function)) {
+        if (std::optional<ast::Handle> result = table.find(node.function)) {
             node.lookup_result = *result;
             return analyze_all_symbols_local(node.arguments, table);
         }
@@ -259,10 +255,10 @@ private:
 
     template <>
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Node_Handle, Symbol_Table& table, ast::Id_Expression& node)
+    analyze_symbols_local(ast::Handle, Symbol_Table& table, ast::Id_Expression& node)
     {
         std::string_view name = node.token.extract(m_program.source);
-        if (std::optional<ast::Node_Handle> result = table.find(name)) {
+        if (std::optional<ast::Handle> result = table.find(name)) {
             node.lookup_result = *result;
             return {};
         }

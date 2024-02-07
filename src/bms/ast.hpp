@@ -36,14 +36,14 @@ struct Node_Base {
 
 template <int N>
 struct Parent {
-    Node_Handle children[N];
+    Handle children[N];
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return children;
     }
 
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return children;
     }
@@ -52,12 +52,12 @@ struct Parent {
 template <>
 struct Parent<0> {
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return {};
     }
 
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return {};
     }
@@ -68,15 +68,15 @@ struct Parent<0> {
 struct Program final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Program";
 
-    std::vector<Node_Handle> declarations;
+    std::vector<Handle> declarations;
 
-    Program(Token token, std::vector<Node_Handle>&& declarations);
+    Program(Token token, std::vector<Handle>&& declarations);
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return declarations;
     }
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return declarations;
     }
@@ -89,7 +89,7 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 
     struct Instance {
         std::vector<int> widths;
-        Node_Handle handle;
+        Handle handle;
 
         bool has_widths(const Widths& w) const noexcept
         {
@@ -112,24 +112,24 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 
     Function(Token token,
              std::string_view name,
-             Node_Handle parameters,
-             Node_Handle return_type,
-             Node_Handle requires_clause,
-             Node_Handle body);
+             Handle parameters,
+             Handle return_type,
+             Handle requires_clause,
+             Handle body);
 
-    Node_Handle get_parameters() const
+    Handle get_parameters() const
     {
         return children[0];
     }
-    Node_Handle get_return_type() const
+    Handle get_return_type() const
     {
         return children[1];
     }
-    Node_Handle get_requires_clause() const
+    Handle get_requires_clause() const
     {
         return children[2];
     }
-    Node_Handle get_body() const
+    Handle get_body() const
     {
         return children[3];
     }
@@ -153,15 +153,15 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 struct Parameter_List final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Parameter_List";
 
-    std::vector<Node_Handle> parameters;
+    std::vector<Handle> parameters;
 
-    Parameter_List(Token token, std::vector<Node_Handle>&& parameters);
+    Parameter_List(Token token, std::vector<Handle>&& parameters);
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return parameters;
     }
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return parameters;
     }
@@ -173,9 +173,9 @@ struct Parameter final : detail::Node_Base, detail::Parent<1> {
 
     std::string_view name;
 
-    Parameter(Token token, std::string_view name, Node_Handle type);
+    Parameter(Token token, std::string_view name, Handle type);
 
-    Node_Handle get_type() const
+    Handle get_type() const
     {
         return children[0];
     }
@@ -188,9 +188,9 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
     Type_Type type;
     std::optional<int> concrete_width;
 
-    Type(Token token, Type_Type type, Node_Handle width);
+    Type(Token token, Type_Type type, Handle width);
 
-    Node_Handle get_width() const
+    Handle get_width() const
     {
         return children[0];
     }
@@ -220,13 +220,13 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 
     std::string_view name;
 
-    Const(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
+    Const(Token token, std::string_view name, Handle type, Handle initializer);
 
-    Node_Handle get_type() const
+    Handle get_type() const
     {
         return children[0];
     }
-    Node_Handle get_initializer() const
+    Handle get_initializer() const
     {
         return children[1];
     }
@@ -238,13 +238,13 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 
     std::string_view name;
 
-    Let(Token token, std::string_view name, Node_Handle type, Node_Handle initializer);
+    Let(Token token, std::string_view name, Handle type, Handle initializer);
 
-    Node_Handle get_type() const
+    Handle get_type() const
     {
         return children[0];
     }
-    Node_Handle get_initializer() const
+    Handle get_initializer() const
     {
         return children[1];
     }
@@ -254,9 +254,9 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Static_Assert(Token token, Node_Handle expression);
+    Static_Assert(Token token, Handle expression);
 
-    Node_Handle get_expression() const
+    Handle get_expression() const
     {
         return children[0];
     }
@@ -270,17 +270,17 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
         "else_block",
     };
 
-    If_Statement(Token token, Node_Handle condition, Node_Handle if_block, Node_Handle else_block);
+    If_Statement(Token token, Handle condition, Handle if_block, Handle else_block);
 
-    Node_Handle get_condition() const
+    Handle get_condition() const
     {
         return children[0];
     }
-    Node_Handle get_if_block() const
+    Handle get_if_block() const
     {
         return children[1];
     }
-    Node_Handle get_else_block() const
+    Handle get_else_block() const
     {
         return children[2];
     }
@@ -290,13 +290,13 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
-    While_Statement(Token token, Node_Handle condition, Node_Handle block);
+    While_Statement(Token token, Handle condition, Handle block);
 
-    Node_Handle get_condition() const
+    Handle get_condition() const
     {
         return children[0];
     }
-    Node_Handle get_block() const
+    Handle get_block() const
     {
         return children[1];
     }
@@ -313,9 +313,9 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Return_Statement(Token token, Node_Handle expression);
+    Return_Statement(Token token, Handle expression);
 
-    Node_Handle get_expression() const
+    Handle get_expression() const
     {
         return children[0];
     }
@@ -326,11 +326,11 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view child_names[] = { "expression" };
 
     std::string_view name;
-    Node_Handle lookup_result = Node_Handle::null;
+    Handle lookup_result = Handle::null;
 
-    Assignment(Token token, std::string_view name, Node_Handle expression);
+    Assignment(Token token, std::string_view name, Handle expression);
 
-    Node_Handle get_expression() const
+    Handle get_expression() const
     {
         return children[0];
     }
@@ -339,15 +339,15 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 struct Block_Statement final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Block_Statement";
 
-    std::vector<Node_Handle> statements;
+    std::vector<Handle> statements;
 
-    Block_Statement(Token token, std::vector<Node_Handle>&& statements);
+    Block_Statement(Token token, std::vector<Handle>&& statements);
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return statements;
     }
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return statements;
     }
@@ -357,17 +357,17 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
-    If_Expression(Token token, Node_Handle left, Node_Handle condition, Node_Handle right);
+    If_Expression(Token token, Handle left, Handle condition, Handle right);
 
-    Node_Handle get_left() const
+    Handle get_left() const
     {
         return children[0];
     }
-    Node_Handle get_condition() const
+    Handle get_condition() const
     {
         return children[1];
     }
-    Node_Handle get_right() const
+    Handle get_right() const
     {
         return children[2];
     }
@@ -379,13 +379,13 @@ struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
 
     Token_Type op;
 
-    Binary_Expression(Token token, Node_Handle left, Node_Handle right, Token_Type op);
+    Binary_Expression(Token token, Handle left, Handle right, Token_Type op);
 
-    Node_Handle get_left() const
+    Handle get_left() const
     {
         return children[0];
     }
-    Node_Handle get_right() const
+    Handle get_right() const
     {
         return children[1];
     }
@@ -397,9 +397,9 @@ struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
 
     Token_Type op;
 
-    Prefix_Expression(Token token, Token_Type opm, Node_Handle operand);
+    Prefix_Expression(Token token, Token_Type opm, Handle operand);
 
-    Node_Handle get_expression() const
+    Handle get_expression() const
     {
         return children[0];
     }
@@ -409,18 +409,18 @@ struct Function_Call_Expression final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
     std::string_view function;
-    std::vector<Node_Handle> arguments;
-    Node_Handle lookup_result = Node_Handle::null;
+    std::vector<Handle> arguments;
+    Handle lookup_result = Handle::null;
 
     Function_Call_Expression(Token token,
                              std::string_view function,
-                             std::vector<Node_Handle>&& arguments);
+                             std::vector<Handle>&& arguments);
 
-    std::span<Node_Handle> get_children()
+    std::span<Handle> get_children()
     {
         return arguments;
     }
-    std::span<const Node_Handle> get_children() const
+    std::span<const Handle> get_children() const
     {
         return arguments;
     }
@@ -429,7 +429,7 @@ struct Function_Call_Expression final : detail::Node_Base {
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Id_Expression";
 
-    Node_Handle lookup_result = Node_Handle::null;
+    Handle lookup_result = Handle::null;
     bool bit_generic = false;
 
     Id_Expression(Token token);
@@ -482,12 +482,12 @@ inline std::optional<Value> get_const_value(const Some_Node& node)
     return std::visit([](const detail::Node_Base& n) { return n.const_value; }, node);
 }
 
-inline std::span<Node_Handle> get_children(Some_Node& node)
+inline std::span<Handle> get_children(Some_Node& node)
 {
     return std::visit([](auto& n) { return n.get_children(); }, node);
 }
 
-inline std::span<const Node_Handle> get_children(const Some_Node& node)
+inline std::span<const Handle> get_children(const Some_Node& node)
 {
     return std::visit([](auto& n) { return n.get_children(); }, node);
 }

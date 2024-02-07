@@ -12,7 +12,7 @@ namespace ast {
 /// This is basically just an index, but with more type safety and protection against misuse.
 /// By only giving the user an index in the AST, it's possible to store it as a `std::vector` and
 /// massively reduce the amount of allocations necessary.
-enum struct Node_Handle : Size {
+enum struct Handle : Size {
     // The null handle, representing no node.
     null = std::numeric_limits<Size>::max()
 };

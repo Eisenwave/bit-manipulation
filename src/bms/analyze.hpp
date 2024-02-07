@@ -16,7 +16,7 @@ struct Analyzer_Base {
 
     Analyzer_Base(Parsed_Program& program);
 
-    ast::Some_Node& get_node(ast::Node_Handle handle);
+    ast::Some_Node& get_node(ast::Handle handle);
 };
 
 Result<void, Analysis_Error> analyze_name_lookup(Parsed_Program& program);

@@ -21,23 +21,23 @@ namespace bit_manipulation::bms {
 struct Parsed_Program {
     std::vector<ast::Some_Node> nodes;
     std::string_view source;
-    ast::Node_Handle root_node;
+    ast::Handle root_node;
 
-    ast::Some_Node& get_node(ast::Node_Handle handle) &
+    ast::Some_Node& get_node(ast::Handle handle) &
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
         return nodes[static_cast<Size>(handle)];
     }
 
-    const ast::Some_Node& get_node(ast::Node_Handle handle) const&
+    const ast::Some_Node& get_node(ast::Handle handle) const&
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
         return nodes[static_cast<Size>(handle)];
     }
 
-    ast::Node_Handle push_node(ast::Some_Node&& node) &
+    ast::Handle push_node(ast::Some_Node&& node) &
     {
-        const auto result = static_cast<ast::Node_Handle>(nodes.size());
+        const auto result = static_cast<ast::Handle>(nodes.size());
         nodes.push_back(std::move(node));
         return result;
     }

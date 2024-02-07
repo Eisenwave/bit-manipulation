@@ -304,16 +304,16 @@ struct AST_Printer {
     const bms::Parsed_Program& program;
     const Size indent_width;
 
-    void print(bms::ast::Node_Handle handle, std::string_view child_name = "", Size level = 0)
+    void print(bms::ast::Handle handle, std::string_view child_name = "", Size level = 0)
     {
         out << std::string(indent_width * level, ' ');
-        if (handle != bms::ast::Node_Handle::null) {
+        if (handle != bms::ast::Handle::null) {
             out << ansi::h_black << static_cast<Size>(handle) << ansi::reset << ':';
         }
         if (child_name != "") {
             out << ansi::h_green << child_name << ansi::black << "=" << ansi::reset;
         }
-        if (handle == bms::ast::Node_Handle::null) {
+        if (handle == bms::ast::Handle::null) {
             out << "null\n";
             return;
         }

@@ -30,7 +30,7 @@ bool try_downsize(std::vector<T>& vec, typename std::vector<T>::size_type size)
 
 namespace ast {
 
-Program::Program(Token token, std::vector<ast::Node_Handle>&& declarations)
+Program::Program(Token token, std::vector<ast::Handle>&& declarations)
     : Node_Base { token }
     , declarations(std::move(declarations))
 {
@@ -38,83 +38,79 @@ Program::Program(Token token, std::vector<ast::Node_Handle>&& declarations)
 
 Function::Function(Token token,
                    std::string_view name,
-                   Node_Handle parameters,
-                   Node_Handle return_type,
-                   Node_Handle requires_clause,
-                   Node_Handle body)
+                   Handle parameters,
+                   Handle return_type,
+                   Handle requires_clause,
+                   Handle body)
     : Node_Base { token }
     , Parent<4> { parameters, return_type, requires_clause, body }
     , name(name)
 {
-    BIT_MANIPULATION_ASSERT(return_type != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(body != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(return_type != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(body != ast::Handle::null);
 }
 
-Parameter_List::Parameter_List(Token token, std::vector<ast::Node_Handle>&& parameters)
+Parameter_List::Parameter_List(Token token, std::vector<ast::Handle>&& parameters)
     : Node_Base { token }
     , parameters((std::move(parameters)))
 {
     for (auto h : parameters) {
-        BIT_MANIPULATION_ASSERT(h != ast::Node_Handle::null);
+        BIT_MANIPULATION_ASSERT(h != ast::Handle::null);
     }
 }
 
-Parameter::Parameter(Token token, std::string_view name, Node_Handle type)
+Parameter::Parameter(Token token, std::string_view name, Handle type)
     : Node_Base { token }
     , Parent<1> { type }
     , name(name)
 {
 }
 
-Type::Type(Token token, Type_Type type, Node_Handle width)
+Type::Type(Token token, Type_Type type, Handle width)
     : Node_Base { token }
     , Parent<1> { width }
     , type(type)
 {
-    BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || width != Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || width != Handle::null);
 }
 
-Const::Const(Token token, std::string_view name, Node_Handle type, Node_Handle initializer)
+Const::Const(Token token, std::string_view name, Handle type, Handle initializer)
     : Node_Base { token }
     , Parent<2> { type, initializer }
     , name(name)
 {
-    BIT_MANIPULATION_ASSERT(initializer != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(initializer != ast::Handle::null);
 }
 
-Let::Let(Token token, std::string_view name, Node_Handle type, Node_Handle initializer)
+Let::Let(Token token, std::string_view name, Handle type, Handle initializer)
     : Node_Base { token }
     , Parent<2> { type, initializer }
     , name(name)
 {
-    BIT_MANIPULATION_ASSERT(type != ast::Node_Handle::null
-                            || initializer != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(type != ast::Handle::null || initializer != ast::Handle::null);
 }
 
-Static_Assert::Static_Assert(Token token, Node_Handle expression)
+Static_Assert::Static_Assert(Token token, Handle expression)
     : Node_Base { token }
     , Parent<1> { expression }
 {
-    BIT_MANIPULATION_ASSERT(expression != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(expression != ast::Handle::null);
 }
 
-If_Statement::If_Statement(Token token,
-                           Node_Handle condition,
-                           Node_Handle if_block,
-                           Node_Handle else_block)
+If_Statement::If_Statement(Token token, Handle condition, Handle if_block, Handle else_block)
     : Node_Base { token }
     , Parent<3> { condition, if_block, else_block }
 {
-    BIT_MANIPULATION_ASSERT(condition != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(if_block != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(condition != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(if_block != ast::Handle::null);
 }
 
-While_Statement::While_Statement(Token token, Node_Handle condition, Node_Handle block)
+While_Statement::While_Statement(Token token, Handle condition, Handle block)
     : Node_Base { token }
     , Parent<2> { condition, block }
 {
-    BIT_MANIPULATION_ASSERT(condition != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(block != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(condition != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(block != ast::Handle::null);
 }
 
 Jump::Jump(Token token)
@@ -122,62 +118,56 @@ Jump::Jump(Token token)
 {
 }
 
-Return_Statement::Return_Statement(Token token, Node_Handle expression)
+Return_Statement::Return_Statement(Token token, Handle expression)
     : Node_Base { token }
     , Parent<1> { expression }
 {
-    BIT_MANIPULATION_ASSERT(expression != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(expression != ast::Handle::null);
 }
 
-Assignment::Assignment(Token token, std::string_view name, Node_Handle expression)
+Assignment::Assignment(Token token, std::string_view name, Handle expression)
     : Node_Base { token }
     , Parent<1> { expression }
     , name(name)
 {
-    BIT_MANIPULATION_ASSERT(expression != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(expression != ast::Handle::null);
 }
 
-Block_Statement::Block_Statement(Token token, std::vector<ast::Node_Handle>&& statements)
+Block_Statement::Block_Statement(Token token, std::vector<ast::Handle>&& statements)
     : Node_Base { token }
     , statements(std::move(statements))
 {
 }
 
-If_Expression::If_Expression(Token token,
-                             Node_Handle left,
-                             Node_Handle condition,
-                             Node_Handle right)
+If_Expression::If_Expression(Token token, Handle left, Handle condition, Handle right)
     : Node_Base { token }
     , Parent<3> { left, condition, right }
 {
-    BIT_MANIPULATION_ASSERT(condition != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(left != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(right != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(condition != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(left != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(right != ast::Handle::null);
 }
 
-Binary_Expression::Binary_Expression(Token token,
-                                     Node_Handle left,
-                                     Node_Handle right,
-                                     Token_Type op)
+Binary_Expression::Binary_Expression(Token token, Handle left, Handle right, Token_Type op)
     : Node_Base { token }
     , Parent<2> { left, right }
     , op(op)
 {
-    BIT_MANIPULATION_ASSERT(left != ast::Node_Handle::null);
-    BIT_MANIPULATION_ASSERT(right != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(left != ast::Handle::null);
+    BIT_MANIPULATION_ASSERT(right != ast::Handle::null);
 }
 
-Prefix_Expression::Prefix_Expression(Token token, Token_Type op, Node_Handle operand)
+Prefix_Expression::Prefix_Expression(Token token, Token_Type op, Handle operand)
     : Node_Base { token }
     , Parent<1> { operand }
     , op(op)
 {
-    BIT_MANIPULATION_ASSERT(operand != ast::Node_Handle::null);
+    BIT_MANIPULATION_ASSERT(operand != ast::Handle::null);
 }
 
 Function_Call_Expression::Function_Call_Expression(Token token,
                                                    std::string_view function,
-                                                   std::vector<ast::Node_Handle>&& arguments)
+                                                   std::vector<ast::Handle>&& arguments)
     : Node_Base { token }
     , function(function)
     , arguments(std::move(arguments))
@@ -218,7 +208,7 @@ public:
     explicit Parser(std::span<const Token> tokens, std::string_view source)
         : m_tokens { tokens }
         , m_pos { 0 }
-        , m_program { {}, source, ast::Node_Handle::null }
+        , m_program { {}, source, ast::Handle::null }
     {
     }
 
@@ -293,8 +283,7 @@ private:
     /// @brief Like `match`, but the parser state is not advanced if no match was made.
     /// @param rule the grammar rule
     /// @return the matched result, or `rule`
-    Result<ast::Node_Handle, Rule_Error>
-    expect(Result<ast::Node_Handle, Rule_Error> (Parser::*match)())
+    Result<ast::Handle, Rule_Error> expect(Result<ast::Handle, Rule_Error> (Parser::*match)())
     {
         const Size restore_pos = m_pos;
         const Size restore_nodes = m_program.nodes.size();
@@ -310,13 +299,13 @@ private:
         return result;
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_program()
+    Result<ast::Handle, Rule_Error> match_program()
     {
         auto first = match_program_declaration();
         if (!first) {
             return first;
         }
-        std::vector<ast::Node_Handle> declarations;
+        std::vector<ast::Handle> declarations;
         declarations.push_back(*first);
 
         while (!eof()) {
@@ -330,7 +319,7 @@ private:
             ast::Program { get_token(m_program.get_node(*first)), std::move(declarations) });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_program_declaration()
+    Result<ast::Handle, Rule_Error> match_program_declaration()
     {
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_const, Token_Type::keyword_function,
@@ -348,7 +337,7 @@ private:
         return Rule_Error { Grammar_Rule::program_declaration, expected };
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_let_declaration()
+    Result<ast::Handle, Rule_Error> match_let_declaration()
     {
         const auto this_rule = Grammar_Rule::let_declaration;
 
@@ -362,7 +351,7 @@ private:
         }
         const std::string_view name = id->extract(m_program.source);
 
-        auto type_handle = ast::Node_Handle::null;
+        auto type_handle = ast::Handle::null;
         if (expect(Token_Type::colon)) {
             if (auto type = match_type()) {
                 type_handle = *type;
@@ -372,7 +361,7 @@ private:
             }
         }
         auto init = expect(&Parser::match_initializer);
-        if (!init && type_handle == ast::Node_Handle::null) {
+        if (!init && type_handle == ast::Handle::null) {
             return init;
         }
         if (!expect(Token_Type::semicolon)) {
@@ -381,7 +370,7 @@ private:
         return m_program.push_node(ast::Let { *t, name, type_handle, *init });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_const_declaration()
+    Result<ast::Handle, Rule_Error> match_const_declaration()
     {
         const auto this_rule = Grammar_Rule::const_declaration;
 
@@ -395,7 +384,7 @@ private:
         }
         const std::string_view name = id->extract(m_program.source);
 
-        auto type_handle = ast::Node_Handle::null;
+        auto type_handle = ast::Handle::null;
         if (expect(Token_Type::colon)) {
             if (auto type = match_type()) {
                 type_handle = *type;
@@ -414,7 +403,7 @@ private:
         return m_program.push_node(ast::Const { *t, name, type_handle, *init });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_initializer()
+    Result<ast::Handle, Rule_Error> match_initializer()
     {
         constexpr auto this_rule = Grammar_Rule::initializer;
         if (!expect(Token_Type::assign)) {
@@ -423,7 +412,7 @@ private:
         return match_expression();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_function_declaration()
+    Result<ast::Handle, Rule_Error> match_function_declaration()
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
         const Token* t = expect(Token_Type::keyword_function);
@@ -438,7 +427,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        auto parameters = ast::Node_Handle::null;
+        auto parameters = ast::Handle::null;
         if (!peek(Token_Type::right_parenthesis)) {
             // By first checking whether there is no right parenthesis, we can ensure that there
             // must be parameters.
@@ -461,7 +450,7 @@ private:
         if (!ret) {
             return ret;
         }
-        auto requires_handle = ast::Node_Handle::null;
+        auto requires_handle = ast::Handle::null;
         if (peek(Token_Type::keyword_requires)) {
             if (auto req = match_requires_clause()) {
                 requires_handle = *req;
@@ -479,10 +468,10 @@ private:
                                                    *body });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_parameter_sequence()
+    Result<ast::Handle, Rule_Error> match_parameter_sequence()
     {
         Token first_token;
-        std::vector<ast::Node_Handle> parameters;
+        std::vector<ast::Handle> parameters;
         while (true) {
             auto p = match_parameter();
             if (!p) {
@@ -499,7 +488,7 @@ private:
         return m_program.push_node(ast::Parameter_List { first_token, std::move(parameters) });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_parameter()
+    Result<ast::Handle, Rule_Error> match_parameter()
     {
         constexpr auto this_rule = Grammar_Rule::parameter;
         const Token* id = expect(Token_Type::identifier);
@@ -516,7 +505,7 @@ private:
         return m_program.push_node(ast::Parameter { *id, id->extract(m_program.source), *type });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_static_assertion()
+    Result<ast::Handle, Rule_Error> match_static_assertion()
     {
         constexpr auto this_rule = Grammar_Rule::static_assertion;
         const Token* t = expect(Token_Type::keyword_static_assert);
@@ -533,7 +522,7 @@ private:
         return m_program.push_node(ast::Static_Assert { *t, *expression });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_requires_clause()
+    Result<ast::Handle, Rule_Error> match_requires_clause()
     {
         constexpr auto this_rule = Grammar_Rule::requires_clause;
         const Token* t = expect(Token_Type::keyword_requires);
@@ -543,7 +532,7 @@ private:
         return match_expression();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_statement()
+    Result<ast::Handle, Rule_Error> match_statement()
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         // This is a manually computed FIRST set of the statement rule.
@@ -577,7 +566,7 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_assignment_statement()
+    Result<ast::Handle, Rule_Error> match_assignment_statement()
     {
         constexpr auto this_rule = Grammar_Rule::assignment_statement;
         auto a = match_assignment();
@@ -590,7 +579,7 @@ private:
         return a;
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_assignment()
+    Result<ast::Handle, Rule_Error> match_assignment()
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
         const Token* id = expect(Token_Type::identifier);
@@ -607,7 +596,7 @@ private:
         return m_program.push_node(ast::Assignment { *id, id->extract(m_program.source), *e });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_return_statement()
+    Result<ast::Handle, Rule_Error> match_return_statement()
     {
         constexpr auto this_rule = Grammar_Rule::return_statement;
         const Token* t = expect(Token_Type::keyword_return);
@@ -624,7 +613,7 @@ private:
         return m_program.push_node(ast::Return_Statement { *t, *e });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_break_statement()
+    Result<ast::Handle, Rule_Error> match_break_statement()
     {
         constexpr auto this_rule = Grammar_Rule::break_statement;
         const Token* t = expect(Token_Type::keyword_break);
@@ -637,7 +626,7 @@ private:
         return m_program.push_node(ast::Jump { *t });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_continue_statement()
+    Result<ast::Handle, Rule_Error> match_continue_statement()
     {
         constexpr auto this_rule = Grammar_Rule::continue_statement;
         const Token* t = expect(Token_Type::keyword_continue);
@@ -650,7 +639,7 @@ private:
         return m_program.push_node(ast::Jump { *t });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_if_statement()
+    Result<ast::Handle, Rule_Error> match_if_statement()
     {
         const auto this_rule = Grammar_Rule::if_statement;
 
@@ -666,9 +655,9 @@ private:
         if (!block) {
             return block;
         }
-        auto else_result = [this]() -> Result<ast::Node_Handle, Rule_Error> {
+        auto else_result = [this]() -> Result<ast::Handle, Rule_Error> {
             if (!peek(Token_Type::keyword_else)) {
-                return ast::Node_Handle::null;
+                return ast::Handle::null;
             }
             return match_else_statement();
         }();
@@ -679,7 +668,7 @@ private:
         return m_program.push_node(ast::If_Statement { *first, *condition, *block, *else_result });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_else_statement()
+    Result<ast::Handle, Rule_Error> match_else_statement()
     {
         const auto this_rule = Grammar_Rule::else_statement;
 
@@ -690,7 +679,7 @@ private:
         return peek(Token_Type::keyword_if) ? match_if_statement() : match_block_statement();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_while_statement()
+    Result<ast::Handle, Rule_Error> match_while_statement()
     {
         const auto this_rule = Grammar_Rule::while_statement;
 
@@ -709,14 +698,14 @@ private:
         return m_program.push_node(ast::While_Statement { *first, *condition, *block });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_block_statement()
+    Result<ast::Handle, Rule_Error> match_block_statement()
     {
         constexpr auto this_rule = Grammar_Rule::block_statement;
         const Token* first = expect(Token_Type::left_brace);
         if (!first) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_brace> };
         }
-        std::vector<ast::Node_Handle> statements;
+        std::vector<ast::Handle> statements;
         while (true) {
             if (expect(Token_Type::right_brace)) {
                 return m_program.push_node(ast::Block_Statement { *first, std::move(statements) });
@@ -731,12 +720,12 @@ private:
         BIT_MANIPULATION_UNREACHABLE();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_expression()
+    Result<ast::Handle, Rule_Error> match_expression()
     {
         return match_if_expression();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_if_expression()
+    Result<ast::Handle, Rule_Error> match_if_expression()
     {
         constexpr auto this_rule = Grammar_Rule::if_expression;
         auto left = match_binary_expression();
@@ -758,7 +747,7 @@ private:
             ast::If_Expression { get_token(m_program.get_node(*left)), *left, *condition, *right });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_binary_expression()
+    Result<ast::Handle, Rule_Error> match_binary_expression()
     {
         if (auto comp = expect(&Parser::match_comparison_expression)) {
             return comp;
@@ -779,7 +768,7 @@ private:
         return m_program.push_node(ast::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_comparison_expression()
+    Result<ast::Handle, Rule_Error> match_comparison_expression()
     {
         constexpr auto this_rule = Grammar_Rule::comparison_expression;
         static constexpr Token_Type expected[]
@@ -801,7 +790,7 @@ private:
         return m_program.push_node(ast::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_arithmetic_expression()
+    Result<ast::Handle, Rule_Error> match_arithmetic_expression()
     {
         auto left = match_prefix_expression();
         if (!left) {
@@ -818,7 +807,7 @@ private:
         return m_program.push_node(ast::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_prefix_expression()
+    Result<ast::Handle, Rule_Error> match_prefix_expression()
     {
         if (const Token* t = expect(is_unary_operator)) {
             auto e = match_postfix_expression();
@@ -830,7 +819,7 @@ private:
         return match_postfix_expression();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_postfix_expression()
+    Result<ast::Handle, Rule_Error> match_postfix_expression()
     {
         if (auto call = expect(&Parser::match_function_call_expression)) {
             return call;
@@ -838,7 +827,7 @@ private:
         return match_primary_expression();
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_function_call_expression()
+    Result<ast::Handle, Rule_Error> match_function_call_expression()
     {
         constexpr auto this_rule = Grammar_Rule::function_call_expression;
         const Token* id = expect(Token_Type::identifier);
@@ -849,7 +838,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        std::vector<ast::Node_Handle> arguments;
+        std::vector<ast::Handle> arguments;
         for (bool demand_expression = false; true;) {
             if (!demand_expression && expect(Token_Type::right_parenthesis)) {
                 break;
@@ -865,7 +854,7 @@ private:
             *id, id->extract(m_program.source), std::move(arguments) });
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_primary_expression()
+    Result<ast::Handle, Rule_Error> match_primary_expression()
     {
         constexpr auto this_rule = Grammar_Rule::primary_expression;
         static constexpr Token_Type expected[]
@@ -887,7 +876,7 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    [[maybe_unused]] Result<ast::Node_Handle, Rule_Error> match_parenthesized_expression()
+    [[maybe_unused]] Result<ast::Handle, Rule_Error> match_parenthesized_expression()
     {
         constexpr auto this_rule = Grammar_Rule::parenthesized_expression;
         const Token* t = expect(Token_Type::left_parenthesis);
@@ -904,7 +893,7 @@ private:
         return e;
     }
 
-    Result<ast::Node_Handle, Rule_Error> match_type()
+    Result<ast::Handle, Rule_Error> match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
         // TODO: parse Void
@@ -912,10 +901,10 @@ private:
             = { Token_Type::keyword_bool, Token_Type::keyword_int, Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return m_program.push_node(ast::Type { *t, Type_Type::Bool, ast::Node_Handle::null });
+            return m_program.push_node(ast::Type { *t, Type_Type::Bool, ast::Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return m_program.push_node(ast::Type { *t, Type_Type::Int, ast::Node_Handle::null });
+            return m_program.push_node(ast::Type { *t, Type_Type::Int, ast::Handle::null });
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             auto e = match_parenthesized_expression();

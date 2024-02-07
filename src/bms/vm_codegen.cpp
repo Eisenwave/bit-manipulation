@@ -22,30 +22,30 @@ public:
     Result<void, Analysis_Error> operator()(ast::Function& function)
     {
         // Functions don't need their own handle for any generation.
-        return generate_code(ast::Node_Handle::null, function);
+        return generate_code(ast::Handle::null, function);
     }
 
 private:
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle h)
+    Result<void, Analysis_Error> generate_code(ast::Handle h)
     {
         return std::visit([this, h](auto& node) { return generate_code(h, node); }, get_node(h));
     }
 
     template <typename T>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle h, T& node) = delete;
+    Result<void, Analysis_Error> generate_code(ast::Handle h, T& node) = delete;
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Program&)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Program&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("codegen starts at the function level");
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Function& function)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Function& function)
     {
         const auto restore_size = out.size();
 
-        if (function.get_parameters() != ast::Node_Handle::null) {
+        if (function.get_parameters() != ast::Handle::null) {
             auto param_result = generate_code(function.get_parameters());
             if (!param_result) {
                 return param_result;
@@ -62,7 +62,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Parameter_List& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Parameter_List& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         const auto initial_size = out.size();
@@ -80,7 +80,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle h, ast::Parameter& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Parameter& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         out.push_back(ins::Store { h });
@@ -88,14 +88,14 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Type&)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Type&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE(
             "codegen cannot reach type nodes because their parents handle it");
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Const& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Const& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         // Const nodes don't produce any codegen because any id expressions that access constants
@@ -104,7 +104,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle h, ast::Let& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle h, ast::Let& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto init = generate_code(node.get_initializer());
@@ -116,14 +116,14 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Static_Assert& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Static_Assert& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         return {};
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::If_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::If_Statement& node)
     {
         const auto restore = [this, restore_size = out.size()] {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -145,9 +145,9 @@ private:
         }
 
         std::get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset = Signed_Size(
-            out.size() - size_before_if + (node.get_else_block() != ast::Node_Handle::null));
+            out.size() - size_before_if + (node.get_else_block() != ast::Handle::null));
 
-        if (node.get_else_block() == ast::Node_Handle::null) {
+        if (node.get_else_block() == ast::Handle::null) {
             return {};
         }
 
@@ -165,7 +165,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::While_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::While_Statement& node)
     {
         const auto initial_size = out.size();
         const auto restore = [this, initial_size] {
@@ -207,7 +207,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Jump& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Jump& node)
     {
         if (node.token.type == Token_Type::keyword_break) {
             out.push_back(ins::Break {});
@@ -221,7 +221,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Return_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Return_Statement& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -239,7 +239,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Assignment& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Assignment& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto result = generate_code(node.get_expression());
@@ -251,11 +251,11 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Block_Statement& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Block_Statement& node)
     {
         const auto initial_size = out.size();
         std::vector<Instruction> result;
-        for (ast::Node_Handle child : node.get_children()) {
+        for (ast::Handle child : node.get_children()) {
             auto r = generate_code(child);
             if (!r) {
                 BIT_MANIPULATION_ASSERT(initial_size <= out.size());
@@ -267,7 +267,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::If_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::If_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -310,7 +310,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Binary_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Binary_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -370,7 +370,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Prefix_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Prefix_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -387,8 +387,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle,
-                                               ast::Function_Call_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Function_Call_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         if (node.const_value->int_value) {
@@ -402,7 +401,7 @@ private:
         }
 
         const Size restore_size = out.size();
-        for (ast::Node_Handle arg : node.arguments) {
+        for (ast::Handle arg : node.arguments) {
             auto arg_code = generate_code(arg);
             if (!arg_code) {
                 BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -415,7 +414,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Id_Expression& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Id_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         auto instruction = node.const_value->int_value
@@ -426,7 +425,7 @@ private:
     }
 
     template <>
-    Result<void, Analysis_Error> generate_code(ast::Node_Handle, ast::Literal& node)
+    Result<void, Analysis_Error> generate_code(ast::Handle, ast::Literal& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value);
         BIT_MANIPULATION_ASSERT(node.const_value->int_value);

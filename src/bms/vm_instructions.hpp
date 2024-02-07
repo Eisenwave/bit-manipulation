@@ -13,7 +13,7 @@ namespace ins {
 
 /// @brief Loads a value from `source` and pushes it onto the stack.
 struct Load {
-    ast::Node_Handle source;
+    ast::Handle source;
 };
 
 /// @brief Pushes `value` onto the stack.
@@ -23,7 +23,7 @@ struct Push {
 
 /// @brief Pops a value off the stack and stores it in `target`.
 struct Store {
-    ast::Node_Handle target;
+    ast::Handle target;
 };
 
 /// @brief Jumps to the local instruction at index `current + offset + 1`.
