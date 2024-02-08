@@ -8,7 +8,7 @@
 #include "config.hpp"
 #include "result.hpp"
 
-#include "bms/ast.hpp"
+#include "bms/astp.hpp"
 #include "bms/fwd.hpp"
 #include "bms/grammar.hpp"
 #include "bms/tokens.hpp"
@@ -16,9 +16,9 @@
 namespace bit_manipulation::bms {
 
 struct Parsed_Program {
-    std::vector<ast::Some_Node> nodes;
+    std::vector<astp::Some_Node> nodes;
     std::string_view source;
-    ast::Handle root_node = ast::Handle::null;
+    astp::Handle root_node = astp::Handle::null;
 
     [[nodiscard]] explicit Parsed_Program(std::string_view source)
         : source(source)
@@ -33,23 +33,23 @@ struct Parsed_Program {
     [[nodiscard]] Parsed_Program(Parsed_Program&&) = default;
     Parsed_Program& operator=(Parsed_Program&&) = default;
 
-    ast::Some_Node& get_node(ast::Handle handle) &
+    astp::Some_Node& get_node(astp::Handle handle) &
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
         BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < nodes.size());
         return nodes[static_cast<Size>(handle)];
     }
 
-    const ast::Some_Node& get_node(ast::Handle handle) const&
+    const astp::Some_Node& get_node(astp::Handle handle) const&
     {
-        BIT_MANIPULATION_ASSERT(handle != ast::Handle::null);
+        BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
         BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < nodes.size());
         return nodes[static_cast<Size>(handle)];
     }
 
-    ast::Handle push_node(ast::Some_Node&& node) &
+    astp::Handle push_node(astp::Some_Node&& node) &
     {
-        const auto result = static_cast<ast::Handle>(nodes.size());
+        const auto result = static_cast<astp::Handle>(nodes.size());
         nodes.push_back(std::move(node));
         return result;
     }

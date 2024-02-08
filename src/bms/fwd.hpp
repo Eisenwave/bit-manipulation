@@ -5,7 +5,7 @@
 
 namespace bit_manipulation::bms {
 
-namespace ast {
+namespace astp {
 
 /// A type which represents a handle into the AST.
 /// It can be used only in conjunction with `Parsed_Program`.
@@ -20,13 +20,15 @@ enum struct Handle : Size {
 struct Program;
 struct Function;
 
-} // namespace ast
+} // namespace astp
 
 enum struct Token_Type : Default_Underlying;
 
 enum struct Evaluation_Error_Code : Default_Underlying;
 enum struct Execution_Error_Code : Default_Underlying;
 enum struct Type_Error_Code : Default_Underlying;
+
+enum struct Type_Type : Default_Underlying;
 
 struct Parsed_Program;
 
