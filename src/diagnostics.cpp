@@ -5,6 +5,7 @@
 #include "diagnostics.hpp"
 #include "visit.hpp"
 
+#include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
@@ -304,7 +305,7 @@ std::ostream& print_analysis_error(std::ostream& out,
         ? to_prose(error.type_error)
         : to_prose(error.code);
 
-    const auto fail_token = get_token(program.get_node(error.fail));
+    const auto fail_token = get_token(*error.fail);
 
     print_file_position(out, file, fail_token.pos) << ": " << error_prefix;
     out << error_prose << '\n';
@@ -316,7 +317,7 @@ std::ostream& print_analysis_error(std::ostream& out,
     }
 
     if (error.comparison_failure) {
-        const auto cause_token = get_token(program.get_node(error.cause));
+        const auto cause_token = get_token(*error.cause);
         print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
         out << "Comparison evaluated to " //
             << ansi::h_magenta << to_string(error.comparison_failure->left) << ansi::reset //
@@ -325,8 +326,8 @@ std::ostream& print_analysis_error(std::ostream& out,
 
         print_affected_line(out, program.source, cause_token.pos);
     }
-    else if (error.cause != bms::ast::Handle::null) {
-        const auto cause_token = get_token(program.get_node(error.cause));
+    else if (error.cause != nullptr) {
+        const auto cause_token = get_token(*error.cause);
         print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
         if (error.code == bms::Analysis_Error_Code::evaluation_error) {
             out << "Caused by: " << to_prose(error.evaluation_error) << '\n';
@@ -375,21 +376,21 @@ struct AST_Printer {
     const bms::Parsed_Program& program;
     const Size indent_width;
 
-    void print(bms::ast::Handle handle, std::string_view child_name = "", Size level = 0)
+    void print(bms::astp::Handle handle, std::string_view child_name = "", Size level = 0)
     {
         out << std::string(indent_width * level, ' ');
-        if (handle != bms::ast::Handle::null) {
+        if (handle != bms::astp::Handle::null) {
             out << ansi::h_black << static_cast<Size>(handle) << ansi::reset << ':';
         }
         if (child_name != "") {
             out << ansi::h_green << child_name << ansi::black << "=" << ansi::reset;
         }
-        if (handle == bms::ast::Handle::null) {
+        if (handle == bms::astp::Handle::null) {
             out << "null\n";
             return;
         }
 
-        const bms::ast::Some_Node node = program.get_node(handle);
+        const bms::astp::Some_Node& node = program.get_node(handle);
         const std::string_view node_name = get_node_name(node);
 
         out << ansi::h_magenta << node_name << ansi::h_black << "(" << ansi::reset

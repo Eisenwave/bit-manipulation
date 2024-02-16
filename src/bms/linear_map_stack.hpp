@@ -25,9 +25,10 @@ namespace bit_manipulation::bms {
 /// 2. Return addresses can be associated with the sentinel keys, so that this data structure also
 ///    acts as a call stack.
 struct Linear_Map_Stack {
-    static constexpr ast::Handle sentinel_key = ast::Handle::null;
+    using Key = ast::Some_Node*;
+    static constexpr Key sentinel_key = nullptr;
     struct Entry {
-        ast::Handle key;
+        Key key;
         Concrete_Value value;
     };
 
@@ -40,7 +41,7 @@ public:
         m_data.clear();
     }
 
-    Entry* find(ast::Handle key)
+    Entry* find(Key key)
     {
         BIT_MANIPULATION_ASSERT(key != sentinel_key);
         for (Size i = m_data.size(); i-- != 0 && m_data[i].key != sentinel_key;) {
@@ -51,7 +52,7 @@ public:
         return nullptr;
     }
 
-    Result<Entry*, Entry*> emplace(ast::Handle key, Concrete_Value value)
+    Result<Entry*, Entry*> emplace(Key key, Concrete_Value value)
     {
         if (Entry* const existing = find(key)) {
             return { Error_Tag {}, existing };
@@ -59,7 +60,7 @@ public:
         return { Success_Tag {}, &m_data.emplace_back(key, value) };
     }
 
-    Entry& assign(ast::Handle key, Concrete_Value value)
+    Entry& assign(Key key, Concrete_Value value)
     {
         if (Entry* const existing = find(key)) {
             existing->value = value;

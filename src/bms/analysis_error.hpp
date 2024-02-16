@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
 #include "bms/concrete_value.hpp"
+#include "bms/fwd.hpp"
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
@@ -107,17 +108,21 @@ struct Analysis_Error {
     Evaluation_Error_Code evaluation_error {};
     Execution_Error_Code execution_error {};
     std::optional<Comparison_Failure> comparison_failure;
-    ast::Handle fail {};
-    ast::Handle cause {};
+    ast::Some_Node* fail = nullptr;
+    ast::Some_Node* cause = nullptr;
 
-    constexpr Analysis_Error(Analysis_Error_Code code, ast::Handle fail, ast::Handle cause = {})
+    constexpr Analysis_Error(Analysis_Error_Code code,
+                             ast::Some_Node* fail,
+                             ast::Some_Node* cause = {})
         : code(code)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Comparison_Failure comp_fail, ast::Handle fail, ast::Handle cause = {})
+    constexpr Analysis_Error(Comparison_Failure comp_fail,
+                             ast::Some_Node* fail,
+                             ast::Some_Node* cause = {})
         : code(Analysis_Error_Code::static_assertion_failed)
         , comparison_failure(comp_fail)
         , fail(fail)
@@ -125,7 +130,9 @@ struct Analysis_Error {
     {
     }
 
-    constexpr Analysis_Error(Evaluation_Error_Code code, ast::Handle fail, ast::Handle cause = {})
+    constexpr Analysis_Error(Evaluation_Error_Code code,
+                             ast::Some_Node* fail,
+                             ast::Some_Node* cause = {})
         : code(Analysis_Error_Code::evaluation_error)
         , evaluation_error(code)
         , fail(fail)
@@ -133,7 +140,7 @@ struct Analysis_Error {
     {
     }
 
-    constexpr Analysis_Error(Type_Error_Code code, ast::Handle fail, ast::Handle cause = {})
+    constexpr Analysis_Error(Type_Error_Code code, ast::Some_Node* fail, ast::Some_Node* cause = {})
         : code(Analysis_Error_Code::type_error)
         , type_error(code)
         , fail(fail)
@@ -141,7 +148,9 @@ struct Analysis_Error {
     {
     }
 
-    constexpr Analysis_Error(Execution_Error_Code code, ast::Handle fail, ast::Handle cause = {})
+    constexpr Analysis_Error(Execution_Error_Code code,
+                             ast::Some_Node* fail,
+                             ast::Some_Node* cause = {})
         : code(Analysis_Error_Code::execution_error)
         , execution_error(code)
         , fail(fail)

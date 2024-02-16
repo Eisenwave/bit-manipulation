@@ -71,8 +71,9 @@ int check_semantics(std::string_view file)
 {
     const Tokenized_File f = tokenize_file(file);
     bms::Parsed_Program p = parse_tokenized(file, f);
+    bms::Analyzed_Program a(p);
 
-    Result<void, bms::Analysis_Error> result = bms::analyze(p);
+    Result<void, bms::Analysis_Error> result = bms::analyze(a);
     if (result) {
         std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
         return 0;

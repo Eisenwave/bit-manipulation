@@ -19,8 +19,53 @@ enum struct Handle : Size {
 
 struct Program;
 struct Function;
+struct Parameter_List;
+struct Parameter;
+struct Type;
+struct Const;
+struct Let;
+struct Static_Assert;
+struct If_Statement;
+struct While_Statement;
+struct Jump;
+struct Return_Statement;
+struct Assignment;
+struct Block_Statement;
+struct If_Expression;
+struct Binary_Expression;
+struct Prefix_Expression;
+struct Function_Call_Expression;
+struct Id_Expression;
+struct Literal;
 
 } // namespace astp
+
+namespace ast {
+
+struct Program;
+struct Function;
+struct Parameter_List;
+struct Parameter;
+struct Type;
+struct Const;
+struct Let;
+struct Static_Assert;
+struct If_Statement;
+struct While_Statement;
+struct Jump;
+struct Return_Statement;
+struct Assignment;
+struct Block_Statement;
+struct If_Expression;
+struct Binary_Expression;
+struct Prefix_Expression;
+struct Function_Call_Expression;
+struct Id_Expression;
+struct Literal;
+
+struct Some_Node;
+
+} // namespace ast
 
 enum struct Token_Type : Default_Underlying;
 

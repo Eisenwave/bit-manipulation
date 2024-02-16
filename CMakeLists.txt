@@ -40,6 +40,7 @@ add_executable(bmscript ${HEADERS}
     src/assert.cpp
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
+    src/bms/ast.cpp
     src/bms/operations.cpp
     src/bms/parse_number.cpp
     src/bms/parse.cpp

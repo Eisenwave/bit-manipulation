@@ -5,6 +5,7 @@
 #include <variant>
 
 #include "assert.hpp"
+#include "config.hpp"
 
 /*
 This header contains a drop-in replacement for std::visit.
@@ -24,10 +25,10 @@ namespace bit_manipulation {
 namespace detail {
 
 template <typename T>
-struct Is_Variant : std::false_type { };
-
-template <typename... Ts>
-struct Is_Variant<std::variant<Ts...>> : std::true_type { };
+inline constexpr Size variant_like_size_v
+    = decltype([]<typename... Ts>(std::variant<Ts...>&)
+                   -> std::integral_constant<std::size_t, sizeof...(Ts)> {}(
+                       std::declval<T&>()))::value;
 
 } // namespace detail
 
@@ -38,7 +39,7 @@ template <typename F, typename V>
 constexpr decltype(auto) fast_visit(F&& f, V&& v) = delete;
 
 template <typename F, typename V>
-    requires(std::variant_size_v<std::remove_cvref_t<V>> == 11)
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 11)
 constexpr decltype(auto) fast_visit(F&& f, V&& v)
 {
     if (v.valueless_by_exception()) {
@@ -61,7 +62,7 @@ constexpr decltype(auto) fast_visit(F&& f, V&& v)
 }
 
 template <typename F, typename V>
-    requires(std::variant_size_v<std::remove_cvref_t<V>> == 20)
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 20)
 constexpr decltype(auto) fast_visit(F&& f, V&& v)
 {
     if (v.valueless_by_exception()) {

@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_AST_HPP
 
 #include <optional>
+#include <ranges>
 #include <span>
 #include <variant>
 #include <vector>
@@ -9,6 +10,7 @@
 #include "visit.hpp"
 
 #include "bms/analysis_error.hpp"
+#include "bms/astp.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
@@ -20,78 +22,139 @@ namespace bit_manipulation::bms::ast {
 namespace detail {
 
 struct Node_Base {
-    /// @brief A token which is representative of the current AST node.
-    /// For example, this is the token of the operator for binary expressions.
-    /// This member is important for diagnostics because it indicates where a failure occurred if
-    /// it is related to some AST Node.
-    Token token;
+protected:
+    Token m_token;
     /// @brief If present, indicates that type analysis for an AST node is complete.
     /// For some nodes such as expression nodes, this also indicates the value of the node, if it
     /// is a constant.
-    std::optional<Value> const_value;
+    std::optional<Value> m_const_value;
 
-    explicit Node_Base(Token token)
-        : token(token)
+public:
+    explicit Node_Base(const astp::detail::Node_Base& parsed)
+        : m_token(parsed.token)
     {
+    }
+
+    Token token() const noexcept
+    {
+        return m_token;
+    }
+
+    std::optional<Value>& const_value() noexcept
+    {
+        return m_const_value;
+    }
+
+    const std::optional<Value>& const_value() const noexcept
+    {
+        return m_const_value;
     }
 };
 
 template <int N>
 struct Parent {
-    Handle children[N];
+protected:
+    Some_Node* m_children[N] {};
 
-    std::span<Handle> get_children()
+public:
+    std::span<Some_Node*> get_children()
     {
-        return children;
+        return m_children;
     }
 
-    std::span<const Handle> get_children() const
+    std::span<Some_Node* const> get_children() const
     {
-        return children;
+        return m_children;
+    }
+
+    template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
+    void set_children(Forward_It begin, Sentinel end);
+
+    template <std::ranges::forward_range R>
+    void set_children(R&& r)
+    {
+        set_children(std::ranges::begin(r), std::ranges::end(r));
     }
 };
 
 template <>
 struct Parent<0> {
 
-    std::span<Handle> get_children()
+    std::span<Some_Node*> get_children()
     {
         return {};
     }
 
-    std::span<const Handle> get_children() const
+    std::span<Some_Node* const> get_children() const
     {
         return {};
+    }
+
+    template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
+    void set_children(Forward_It begin, Sentinel end)
+    {
+        BIT_MANIPULATION_ASSERT(begin == end);
+    }
+
+    template <std::ranges::forward_range R>
+    void set_children(R&& r)
+    {
+        set_children(std::ranges::begin(r), std::ranges::end(r));
+    }
+};
+
+struct Dynamic_Parent {
+protected:
+    std::pmr::vector<Some_Node*> m_children;
+
+public:
+    explicit Dynamic_Parent(std::pmr::memory_resource* memory)
+        : m_children(memory)
+    {
+    }
+
+    std::span<Some_Node*> get_children()
+    {
+        return m_children;
+    }
+
+    std::span<Some_Node* const> get_children() const
+    {
+        return m_children;
+    }
+
+    template <std::ranges::forward_range R>
+    void set_children(R&& r)
+    {
+        m_children.clear();
+        m_children.insert(m_children.begin(), r.begin(), r.end());
     }
 };
 
 } // namespace detail
 
-struct Program final : detail::Node_Base {
+struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Program";
 
-    std::vector<Handle> declarations;
-
-    Program(Token token, std::vector<Handle>&& declarations);
-
-    std::span<Handle> get_children()
+    Program(const astp::Program& parsed, std::pmr::memory_resource* memory)
+        : detail::Node_Base(parsed)
+        , detail::Dynamic_Parent(memory)
     {
-        return declarations;
-    }
-    std::span<const Handle> get_children() const
-    {
-        return declarations;
     }
 };
 
 struct Function final : detail::Node_Base, detail::Parent<4> {
+private:
+    struct Copy_for_Instantiation_Tag { };
+
+public:
     static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
         = { "parameters", "return_type", "requires_clause", "body" };
 
     struct Instance {
-        std::vector<int> widths;
-        Handle handle;
+        std::pmr::vector<int> widths;
+        Some_Node* handle;
 
         bool has_widths(const Widths& w) const noexcept
         {
@@ -106,39 +169,50 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 
     static inline constexpr Size invalid_vm_address = Size(-1);
 
-    std::string_view name;
-    std::vector<Instance> instances;
+private:
+    std::string_view m_name;
+
+public:
+    std::pmr::vector<Instance> instances;
     bool is_generic = false;
     Size vm_address = invalid_vm_address;
     Analysis_Level analysis_so_far = Analysis_Level::unanalyzed;
 
-    Function(Token token,
-             std::string_view name,
-             Handle parameters,
-             Handle return_type,
-             Handle requires_clause,
-             Handle body);
+private:
+    Function(const Function& other, Copy_for_Instantiation_Tag);
 
-    Handle get_parameters() const
+public:
+    Function(const astp::Function& parsed)
+        : detail::Node_Base(parsed)
+        , m_name(parsed.name)
     {
-        return children[0];
     }
-    Handle get_return_type() const
+
+    std::string_view get_name() const
     {
-        return children[1];
+        return m_name;
     }
-    Handle get_requires_clause() const
+
+    Some_Node* get_parameters() const
     {
-        return children[2];
+        return m_children[0];
     }
-    Handle get_body() const
+    Some_Node* get_return_type() const
     {
-        return children[3];
+        return m_children[1];
+    }
+    Some_Node* get_requires_clause() const
+    {
+        return m_children[2];
+    }
+    Some_Node* get_body() const
+    {
+        return m_children[3];
     }
     Function copy_for_instantiation() const
     {
         BIT_MANIPULATION_ASSERT(is_generic);
-        return { token, name, children[0], children[1], children[2], children[3] };
+        return { *this, Copy_for_Instantiation_Tag {} };
     }
     const Instance* find_instance(const Widths& w) const
     {
@@ -152,20 +226,13 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
     }
 };
 
-struct Parameter_List final : detail::Node_Base {
+struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Parameter_List";
 
-    std::vector<Handle> parameters;
-
-    Parameter_List(Token token, std::vector<Handle>&& parameters);
-
-    std::span<Handle> get_children()
+    Parameter_List(const astp::Parameter_List& parsed, std::pmr::memory_resource* memory)
+        : detail::Node_Base(parsed)
+        , detail::Dynamic_Parent(memory)
     {
-        return parameters;
-    }
-    std::span<const Handle> get_children() const
-    {
-        return parameters;
     }
 };
 
@@ -173,13 +240,24 @@ struct Parameter final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Parameter";
     static inline constexpr std::string_view child_names[] = { "type" };
 
-    std::string_view name;
+private:
+    std::string_view m_name;
 
-    Parameter(Token token, std::string_view name, Handle type);
-
-    Handle get_type() const
+public:
+    Parameter(const astp::Parameter& parsed)
+        : detail::Node_Base(parsed)
+        , m_name(parsed.name)
     {
-        return children[0];
+    }
+
+    std::string_view get_name()
+    {
+        return m_name;
+    }
+
+    Some_Node* get_type() const
+    {
+        return m_children[0];
     }
 };
 
@@ -187,14 +265,26 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
 
-    Type_Type type;
+private:
+    Type_Type m_type;
+
+public:
     std::optional<int> concrete_width;
 
-    Type(Token token, Type_Type type, Handle width);
-
-    Handle get_width() const
+    Type(const astp::Type& parsed)
+        : detail::Node_Base(parsed)
+        , m_type(parsed.type)
     {
-        return children[0];
+    }
+
+    Type_Type get_type() const
+    {
+        return m_type;
+    }
+
+    Some_Node* get_width() const
+    {
+        return m_children[0];
     }
 
     /// @brief Returns a concrete type based on the information in this node, or `std::nullopt`
@@ -204,7 +294,7 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
     /// @return A concrete type, or `std::nullopt`.
     std::optional<Concrete_Type> concrete_type() noexcept
     {
-        if (type == Type_Type::Uint) {
+        if (m_type == Type_Type::Uint) {
             if (concrete_width) {
                 return Concrete_Type::Uint(*concrete_width);
             }
@@ -212,7 +302,7 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
         }
         // For anything but UInt, why would concrete_width be set?
         BIT_MANIPULATION_ASSERT(!concrete_width);
-        return Concrete_Type { type };
+        return Concrete_Type { m_type };
     }
 };
 
@@ -220,17 +310,28 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
-    std::string_view name;
+private:
+    std::string_view m_name;
 
-    Const(Token token, std::string_view name, Handle type, Handle initializer);
-
-    Handle get_type() const
+public:
+    Const(const astp::Const& parsed)
+        : detail::Node_Base(parsed)
+        , m_name(parsed.name)
     {
-        return children[0];
     }
-    Handle get_initializer() const
+
+    std::string_view get_name() const
     {
-        return children[1];
+        return m_name;
+    }
+
+    Some_Node* get_type() const
+    {
+        return m_children[0];
+    }
+    Some_Node* get_initializer() const
+    {
+        return m_children[1];
     }
 };
 
@@ -238,17 +339,26 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
-    std::string_view name;
+private:
+    std::string_view m_name;
 
-    Let(Token token, std::string_view name, Handle type, Handle initializer);
+public:
+    Let(const astp::Let& parsed)
+        : detail::Node_Base(parsed)
+        , m_name(parsed.name) {};
 
-    Handle get_type() const
+    std::string_view get_name() const
     {
-        return children[0];
+        return m_name;
     }
-    Handle get_initializer() const
+
+    Some_Node* get_type() const
     {
-        return children[1];
+        return m_children[0];
+    }
+    Some_Node* get_initializer() const
+    {
+        return m_children[1];
     }
 };
 
@@ -256,11 +366,14 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Static_Assert(Token token, Handle expression);
-
-    Handle get_expression() const
+    Static_Assert(const astp::Static_Assert& parsed)
+        : detail::Node_Base(parsed)
     {
-        return children[0];
+    }
+
+    Some_Node* get_expression() const
+    {
+        return m_children[0];
     }
 };
 
@@ -272,19 +385,22 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
         "else_block",
     };
 
-    If_Statement(Token token, Handle condition, Handle if_block, Handle else_block);
+    If_Statement(const astp::If_Statement& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
 
-    Handle get_condition() const
+    Some_Node* get_condition() const
     {
-        return children[0];
+        return m_children[0];
     }
-    Handle get_if_block() const
+    Some_Node* get_if_block() const
     {
-        return children[1];
+        return m_children[1];
     }
-    Handle get_else_block() const
+    Some_Node* get_else_block() const
     {
-        return children[2];
+        return m_children[2];
     }
 };
 
@@ -292,15 +408,18 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
-    While_Statement(Token token, Handle condition, Handle block);
-
-    Handle get_condition() const
+    While_Statement(const astp::While_Statement& parsed)
+        : detail::Node_Base(parsed)
     {
-        return children[0];
     }
-    Handle get_block() const
+
+    Some_Node* get_condition() const
     {
-        return children[1];
+        return m_children[0];
+    }
+    Some_Node* get_block() const
+    {
+        return m_children[1];
     }
 };
 
@@ -308,18 +427,24 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 struct Jump final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Jump";
 
-    Jump(Token token);
+    Jump(const astp::Jump& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
 };
 
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Return_Statement(Token token, Handle expression);
-
-    Handle get_expression() const
+    Return_Statement(const astp::Return_Statement& parsed)
+        : detail::Node_Base(parsed)
     {
-        return children[0];
+    }
+
+    Some_Node* get_expression() const
+    {
+        return m_children[0];
     }
 };
 
@@ -328,30 +453,27 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view child_names[] = { "expression" };
 
     std::string_view name;
-    Handle lookup_result = Handle::null;
+    Some_Node* lookup_result = nullptr;
 
-    Assignment(Token token, std::string_view name, Handle expression);
-
-    Handle get_expression() const
+    Assignment(const astp::Assignment& parsed)
+        : detail::Node_Base(parsed)
+        , name(parsed.name)
     {
-        return children[0];
+    }
+
+    Some_Node* get_expression() const
+    {
+        return m_children[0];
     }
 };
 
-struct Block_Statement final : detail::Node_Base {
+struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Block_Statement";
 
-    std::vector<Handle> statements;
-
-    Block_Statement(Token token, std::vector<Handle>&& statements);
-
-    std::span<Handle> get_children()
+    Block_Statement(const astp::Block_Statement& parsed, std::pmr::memory_resource* memory)
+        : detail::Node_Base(parsed)
+        , detail::Dynamic_Parent(memory)
     {
-        return statements;
-    }
-    std::span<const Handle> get_children() const
-    {
-        return statements;
     }
 };
 
@@ -359,19 +481,22 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
-    If_Expression(Token token, Handle left, Handle condition, Handle right);
+    If_Expression(const astp::If_Expression& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
 
-    Handle get_left() const
+    Some_Node* get_left() const
     {
-        return children[0];
+        return m_children[0];
     }
-    Handle get_condition() const
+    Some_Node* get_condition() const
     {
-        return children[1];
+        return m_children[1];
     }
-    Handle get_right() const
+    Some_Node* get_right() const
     {
-        return children[2];
+        return m_children[2];
     }
 };
 
@@ -379,17 +504,28 @@ struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Binary_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "right" };
 
-    Token_Type op;
+private:
+    Token_Type m_op;
 
-    Binary_Expression(Token token, Handle left, Handle right, Token_Type op);
-
-    Handle get_left() const
+public:
+    Binary_Expression(const astp::Binary_Expression& parsed)
+        : detail::Node_Base(parsed)
+        , m_op(parsed.op)
     {
-        return children[0];
     }
-    Handle get_right() const
+
+    Token_Type get_op() const
     {
-        return children[1];
+        return m_op;
+    }
+
+    Some_Node* get_left() const
+    {
+        return m_children[0];
+    }
+    Some_Node* get_right() const
+    {
+        return m_children[1];
     }
 };
 
@@ -397,76 +533,125 @@ struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Prefix_Expression";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Token_Type op;
+private:
+    Token_Type m_op;
 
-    Prefix_Expression(Token token, Token_Type opm, Handle operand);
-
-    Handle get_expression() const
+public:
+    Prefix_Expression(const astp::Prefix_Expression& parsed)
+        : detail::Node_Base(parsed)
+        , m_op(parsed.op)
     {
-        return children[0];
+    }
+
+    Token_Type get_op() const
+    {
+        return m_op;
+    }
+
+    Some_Node* get_expression() const
+    {
+        return m_children[0];
     }
 };
 
-struct Function_Call_Expression final : detail::Node_Base {
+struct Function_Call_Expression final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
-    std::string_view function;
-    std::vector<Handle> arguments;
-    Handle lookup_result = Handle::null;
+private:
+    std::string_view m_name;
 
-    Function_Call_Expression(Token token,
-                             std::string_view function,
-                             std::vector<Handle>&& arguments);
+public:
+    Some_Node* lookup_result = nullptr;
 
-    std::span<Handle> get_children()
+    Function_Call_Expression(const astp::Function_Call_Expression& parsed,
+                             std::pmr::memory_resource* memory)
+        : detail::Node_Base(parsed)
+        , detail::Dynamic_Parent(memory)
+        , m_name(parsed.function)
     {
-        return arguments;
     }
-    std::span<const Handle> get_children() const
+
+    std::string_view get_name() const
     {
-        return arguments;
+        return m_name;
     }
 };
 
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Id_Expression";
 
-    Handle lookup_result = Handle::null;
+    Some_Node* lookup_result = nullptr;
     bool bit_generic = false;
 
-    Id_Expression(Token token);
+    Id_Expression(const astp::Id_Expression& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
 };
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Literal";
 
-    Literal(Token token);
+    Literal(const astp::Literal& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
 };
 
-using Some_Node = std::variant<Program,
-                               Function,
-                               Parameter_List,
-                               Parameter,
-                               Type,
-                               Const,
-                               Let,
-                               Static_Assert,
-                               If_Statement,
-                               While_Statement,
-                               Jump,
-                               Return_Statement,
-                               Assignment,
-                               Block_Statement,
-                               If_Expression,
-                               Binary_Expression,
-                               Prefix_Expression,
-                               Function_Call_Expression,
-                               Id_Expression,
-                               Literal>;
+using Variant = std::variant<Program,
+                             Function,
+                             Parameter_List,
+                             Parameter,
+                             Type,
+                             Const,
+                             Let,
+                             Static_Assert,
+                             If_Statement,
+                             While_Statement,
+                             Jump,
+                             Return_Statement,
+                             Assignment,
+                             Block_Statement,
+                             If_Expression,
+                             Binary_Expression,
+                             Prefix_Expression,
+                             Function_Call_Expression,
+                             Id_Expression,
+                             Literal>;
+
+struct Some_Node : Variant {
+    using Variant::variant;
+};
+
+template <int N>
+template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
+void detail::Parent<N>::set_children(Forward_It begin, Sentinel end)
+{
+    BIT_MANIPULATION_ASSERT(end - begin == N);
+    // This is std::ranges::copy but we don't want the dependency in this header.
+    Some_Node** out = m_children;
+    for (auto it = begin; it != end; ++it) {
+        *out++ = *it;
+    }
+}
+
+namespace detail {
+
+inline const Node_Base& to_node_base(const Some_Node& node) noexcept
+{
+    return fast_visit([](const Node_Base& n) -> const Node_Base& { return n; }, node);
+}
+
+inline Node_Base& to_node_base(Some_Node& node) noexcept
+{
+    return fast_visit([](Node_Base& n) -> Node_Base& { return n; }, node);
+}
+
+} // namespace detail
 
 inline Token get_token(const Some_Node& node)
 {
-    return fast_visit([](const detail::Node_Base& n) { return n.token; }, node);
+    return detail::to_node_base(node).token();
 }
 
 inline std::string_view get_node_name(const Some_Node& node)
@@ -476,20 +661,20 @@ inline std::string_view get_node_name(const Some_Node& node)
 
 inline std::optional<Value>& get_const_value(Some_Node& node)
 {
-    return fast_visit([](detail::Node_Base& n) -> auto& { return n.const_value; }, node);
+    return detail::to_node_base(node).const_value();
 }
 
 inline const std::optional<Value>& get_const_value(const Some_Node& node)
 {
-    return fast_visit([](const detail::Node_Base& n) -> auto& { return n.const_value; }, node);
+    return detail::to_node_base(node).const_value();
 }
 
-inline std::span<Handle> get_children(Some_Node& node)
+inline std::span<Some_Node*> get_children(Some_Node& node)
 {
     return fast_visit([](auto& n) { return n.get_children(); }, node);
 }
 
-inline std::span<const Handle> get_children(const Some_Node& node)
+inline std::span<Some_Node* const> get_children(const Some_Node& node)
 {
     return fast_visit([](auto& n) { return n.get_children(); }, node);
 }

@@ -62,6 +62,7 @@ struct Parent<0> {
 } // namespace detail
 
 struct Program final : detail::Node_Base {
+    using AST_Node = ast::Program;
     static inline constexpr std::string_view self_name = "Program";
 
     std::vector<Handle> declarations;
@@ -79,6 +80,7 @@ struct Program final : detail::Node_Base {
 };
 
 struct Function final : detail::Node_Base, detail::Parent<4> {
+    using AST_Node = ast::Function;
     static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
         = { "parameters", "return_type", "requires_clause", "body" };
@@ -113,6 +115,7 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 };
 
 struct Parameter_List final : detail::Node_Base {
+    using AST_Node = ast::Parameter_List;
     static inline constexpr std::string_view self_name = "Parameter_List";
 
     std::vector<Handle> parameters;
@@ -130,6 +133,7 @@ struct Parameter_List final : detail::Node_Base {
 };
 
 struct Parameter final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Parameter;
     static inline constexpr std::string_view self_name = "Parameter";
     static inline constexpr std::string_view child_names[] = { "type" };
 
@@ -144,6 +148,7 @@ struct Parameter final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Type final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Type;
     static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
 
@@ -158,6 +163,7 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Const final : detail::Node_Base, detail::Parent<2> {
+    using AST_Node = ast::Const;
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
@@ -176,6 +182,7 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Let final : detail::Node_Base, detail::Parent<2> {
+    using AST_Node = ast::Let;
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
 
@@ -194,6 +201,7 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Static_Assert;
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
@@ -206,6 +214,7 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct If_Statement final : detail::Node_Base, detail::Parent<3> {
+    using AST_Node = ast::If_Statement;
     static inline constexpr std::string_view self_name = "If_Statement";
     static inline constexpr std::string_view child_names[] = {
         "condition",
@@ -230,6 +239,7 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
 };
 
 struct While_Statement final : detail::Node_Base, detail::Parent<2> {
+    using AST_Node = ast::While_Statement;
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
@@ -247,12 +257,14 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 
 // break, continue
 struct Jump final : detail::Node_Base, detail::Parent<0> {
+    using AST_Node = ast::Jump;
     static inline constexpr std::string_view self_name = "Jump";
 
     Jump(Token token);
 };
 
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Return_Statement;
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
@@ -265,6 +277,7 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Assignment final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Assignment;
     static inline constexpr std::string_view self_name = "Assignment";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
@@ -279,6 +292,7 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Block_Statement final : detail::Node_Base {
+    using AST_Node = ast::Block_Statement;
     static inline constexpr std::string_view self_name = "Block_Statement";
 
     std::vector<Handle> statements;
@@ -296,6 +310,7 @@ struct Block_Statement final : detail::Node_Base {
 };
 
 struct If_Expression final : detail::Node_Base, detail::Parent<3> {
+    using AST_Node = ast::If_Expression;
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
@@ -316,6 +331,7 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
 };
 
 struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
+    using AST_Node = ast::Binary_Expression;
     static inline constexpr std::string_view self_name = "Binary_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "right" };
 
@@ -334,6 +350,7 @@ struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
+    using AST_Node = ast::Prefix_Expression;
     static inline constexpr std::string_view self_name = "Prefix_Expression";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
@@ -348,6 +365,7 @@ struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
 };
 
 struct Function_Call_Expression final : detail::Node_Base {
+    using AST_Node = ast::Function_Call_Expression;
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
     std::string_view function;
@@ -368,12 +386,14 @@ struct Function_Call_Expression final : detail::Node_Base {
 };
 
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
+    using AST_Node = ast::Id_Expression;
     static inline constexpr std::string_view self_name = "Id_Expression";
 
     Id_Expression(Token token);
 };
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
+    using AST_Node = ast::Literal;
     static inline constexpr std::string_view self_name = "Literal";
 
     Literal(Token token);
