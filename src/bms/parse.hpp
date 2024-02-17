@@ -16,12 +16,14 @@
 namespace bit_manipulation::bms {
 
 struct Parsed_Program {
-    std::vector<astp::Some_Node> nodes;
+    std::pmr::vector<astp::Some_Node> nodes;
     std::string_view source;
     astp::Handle root_node = astp::Handle::null;
 
-    [[nodiscard]] explicit Parsed_Program(std::string_view source)
-        : source(source)
+    [[nodiscard]] explicit Parsed_Program(std::string_view source,
+                                          std::pmr::memory_resource* memory)
+        : nodes(memory)
+        , source(source)
     {
     }
 
@@ -61,7 +63,8 @@ struct Parse_Error {
     Token fail_token;
 };
 
-Result<Parsed_Program, Parse_Error> parse(std::span<const Token> tokens, std::string_view source);
+Result<Parsed_Program, Parse_Error>
+parse(std::span<const Token> tokens, std::string_view source, std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation::bms
 

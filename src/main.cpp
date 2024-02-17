@@ -39,9 +39,11 @@ Tokenized_File tokenize_file(std::string_view file, std::pmr::memory_resource* m
     }
 }
 
-bms::Parsed_Program parse_tokenized(std::string_view file_name, const Tokenized_File& f)
+bms::Parsed_Program parse_tokenized(std::string_view file_name,
+                                    const Tokenized_File& f,
+                                    std::pmr::memory_resource* memory)
 {
-    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program)) {
+    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program, memory)) {
         return std::move(*parsed);
     }
     else {
@@ -62,7 +64,7 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     constexpr Size indent_width = 2;
 
     const Tokenized_File f = tokenize_file(file, memory);
-    const bms::Parsed_Program p = parse_tokenized(file, f);
+    const bms::Parsed_Program p = parse_tokenized(file, f, memory);
     print_ast(std::cout, p, indent_width);
     return 0;
 }
@@ -72,7 +74,7 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
 
     const Tokenized_File f = tokenize_file(file, &memory_resource);
-    bms::Parsed_Program p = parse_tokenized(file, f);
+    bms::Parsed_Program p = parse_tokenized(file, f, &memory_resource);
     bms::Analyzed_Program a(p, &memory_resource);
 
     Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);

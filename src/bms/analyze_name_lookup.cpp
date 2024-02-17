@@ -11,15 +11,18 @@ namespace {
 
 struct Symbol_Table {
 private:
+    struct From_Parent_Tag { };
+
     using map_type = std::pmr::unordered_map<std::string_view, ast::Some_Node*>;
     std::pmr::memory_resource* m_memory;
     map_type m_symbols;
-    Symbol_Table* m_parent = nullptr;
+    const Symbol_Table* m_parent = nullptr;
 
 private:
-    explicit Symbol_Table(Symbol_Table& parent)
+    explicit Symbol_Table(const Symbol_Table& parent, From_Parent_Tag)
         : m_memory(parent.m_memory)
         , m_symbols(m_memory)
+        , m_parent(&parent)
     {
     }
 
@@ -30,9 +33,12 @@ public:
     {
     }
 
+    Symbol_Table(const Symbol_Table&) = delete;
+    Symbol_Table& operator=(const Symbol_Table&) = delete;
+
     Symbol_Table push()
     {
-        return Symbol_Table { *this };
+        return Symbol_Table { *this, From_Parent_Tag {} };
     }
 
     std::variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
@@ -53,7 +59,7 @@ public:
         }
     }
 
-    std::optional<ast::Some_Node*> find(std::string_view symbol)
+    std::optional<ast::Some_Node*> find(std::string_view symbol) const
     {
         if (m_parent != nullptr) {
             if (auto parent_result = m_parent->find(symbol)) {

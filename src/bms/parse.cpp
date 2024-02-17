@@ -13,12 +13,11 @@ namespace {
 
 /// @brief Tries to shrink the vector to fit the given size.
 /// Unlike `std::vector::resize`, this does not require the type to be default-constructible.
-/// @tparam T the element type
 /// @param vec the vector
 /// @param size the desired size
 /// @return `true` if `size <= vec.size()`, in which case the vector is resized.
-template <typename T>
-bool try_downsize(std::vector<T>& vec, typename std::vector<T>::size_type size)
+template <typename T, typename Alloc>
+bool try_downsize(std::vector<T, Alloc>& vec, typename std::vector<T>::size_type size)
 {
     if (size > vec.size()) {
         return false;
@@ -206,10 +205,12 @@ private:
     Parsed_Program m_program;
 
 public:
-    explicit Parser(std::span<const Token> tokens, std::string_view source)
+    explicit Parser(std::span<const Token> tokens,
+                    std::string_view source,
+                    std::pmr::memory_resource* memory)
         : m_tokens { tokens }
         , m_pos { 0 }
-        , m_program { source }
+        , m_program { source, memory }
     {
     }
 
@@ -957,9 +958,10 @@ private:
 
 } // namespace
 
-Result<Parsed_Program, Parse_Error> parse(std::span<const Token> tokens, std::string_view source)
+Result<Parsed_Program, Parse_Error>
+parse(std::span<const Token> tokens, std::string_view source, std::pmr::memory_resource* memory)
 {
-    return Parser(tokens, source).parse();
+    return Parser(tokens, source, memory).parse();
 }
 
 } // namespace bit_manipulation::bms
