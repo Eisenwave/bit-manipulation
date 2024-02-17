@@ -11,7 +11,9 @@ namespace {
 
 [[noreturn]] void assert_fail(const char* expression, std::source_location loc)
 {
-    std::string message = loc.file_name();
+    std::string message;
+    message.reserve(256);
+    message += loc.file_name();
     message += ':';
     message += std::to_string(loc.line());
     message += ": ";
