@@ -219,7 +219,7 @@ public:
     Result<Parsed_Program, Parse_Error> parse()
     {
         if (auto program = match_program()) {
-            m_program.root_node = *program;
+            m_program.root_node = m_program.push_node(std::move(*program));
             return std::move(m_program);
         }
         else {
@@ -309,7 +309,7 @@ private:
         return peek_or_expect(predicate, true);
     }
 
-    using Rule_Result = Result<astp::Handle, Rule_Error>;
+    using Rule_Result = Result<astp::Some_Node, Rule_Error>;
 
     /// @brief Like `match`, but the parser state is not advanced if no match was made.
     /// @param rule the grammar rule
@@ -337,17 +337,16 @@ private:
             return first;
         }
         std::pmr::vector<astp::Handle> declarations(m_memory);
-        declarations.push_back(*first);
+        declarations.push_back(m_program.push_node(std::move(*first)));
 
         while (!eof()) {
             auto d = match_program_declaration();
             if (!d) {
                 return d;
             }
-            declarations.push_back(*d);
+            declarations.push_back(m_program.push_node(std::move(*d)));
         }
-        return m_program.push_node(
-            astp::Program { get_token(m_program.get_node(*first)), std::move(declarations) });
+        return astp::Some_Node { astp::Program { get_token(*first), std::move(declarations) } };
     }
 
     Rule_Result match_program_declaration()
@@ -385,7 +384,7 @@ private:
         auto type_handle = astp::Handle::null;
         if (expect(Token_Type::colon)) {
             if (auto type = match_type()) {
-                type_handle = *type;
+                type_handle = m_program.push_node(std::move(*type));
             }
             else {
                 return type;
@@ -397,13 +396,13 @@ private:
             if (!init) {
                 return init;
             }
-            init_handle = *init;
+            init_handle = m_program.push_node(std::move(*init));
         }
 
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Let { *t, name, type_handle, init_handle });
+        return astp::Some_Node { astp::Let { *t, name, type_handle, init_handle } };
     }
 
     Rule_Result match_const_declaration()
@@ -423,7 +422,7 @@ private:
         auto type_handle = astp::Handle::null;
         if (expect(Token_Type::colon)) {
             if (auto type = match_type()) {
-                type_handle = *type;
+                type_handle = m_program.push_node(std::move(*type));
             }
             else {
                 return type;
@@ -436,7 +435,8 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Const { *t, name, type_handle, *init });
+        return astp::Some_Node { astp::Const { *t, name, type_handle,
+                                               m_program.push_node(std::move(*init)) } };
     }
 
     Rule_Result match_initializer()
@@ -473,7 +473,7 @@ private:
             if (!r) {
                 return r;
             }
-            parameters = *r;
+            parameters = m_program.push_node(std::move(*r));
         }
 
         if (!expect(Token_Type::right_parenthesis)) {
@@ -489,7 +489,7 @@ private:
         auto requires_handle = astp::Handle::null;
         if (peek(Token_Type::keyword_requires)) {
             if (auto req = match_requires_clause()) {
-                requires_handle = *req;
+                requires_handle = m_program.push_node(std::move(*req));
             }
             else {
                 return req;
@@ -499,9 +499,10 @@ private:
         if (!body) {
             return body;
         }
-        return m_program.push_node(astp::Function { *t, name->extract(m_program.source),
-                                                    std::move(parameters), *ret, requires_handle,
-                                                    *body });
+        return astp::Some_Node { astp::Function {
+            *t, name->extract(m_program.source), std::move(parameters),
+            m_program.push_node(std::move(*ret)), requires_handle,
+            m_program.push_node(std::move(*body)) } };
     }
 
     Rule_Result match_parameter_sequence()
@@ -513,15 +514,15 @@ private:
             if (!p) {
                 return p;
             }
-            first_token = get_token(m_program.get_node(*p));
-            parameters.push_back(*p);
+            first_token = std::get<astp::Parameter>(*p).token;
+            parameters.push_back(m_program.push_node(std::move(*p)));
             if (!expect(Token_Type::comma)) {
                 break;
             }
         }
         BIT_MANIPULATION_ASSERT(!parameters.empty());
 
-        return m_program.push_node(astp::Parameter_List { first_token, std::move(parameters) });
+        return astp::Some_Node { astp::Parameter_List { first_token, std::move(parameters) } };
     }
 
     Rule_Result match_parameter()
@@ -538,7 +539,8 @@ private:
         if (!type) {
             return type;
         }
-        return m_program.push_node(astp::Parameter { *id, id->extract(m_program.source), *type });
+        return astp::Some_Node { astp::Parameter { *id, id->extract(m_program.source),
+                                                   m_program.push_node(std::move(*type)) } };
     }
 
     Rule_Result match_static_assertion()
@@ -555,7 +557,8 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Static_Assert { *t, *expression });
+        return astp::Some_Node { astp::Static_Assert {
+            *t, m_program.push_node(std::move(*expression)) } };
     }
 
     Rule_Result match_requires_clause()
@@ -629,7 +632,8 @@ private:
         if (!e) {
             return e;
         }
-        return m_program.push_node(astp::Assignment { *id, id->extract(m_program.source), *e });
+        return astp::Some_Node { astp::Assignment { *id, id->extract(m_program.source),
+                                                    m_program.push_node(std::move(*e)) } };
     }
 
     Rule_Result match_return_statement()
@@ -646,7 +650,8 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Return_Statement { *t, *e });
+        return astp::Some_Node { astp::Return_Statement { *t,
+                                                          m_program.push_node(std::move(*e)) } };
     }
 
     Rule_Result match_break_statement()
@@ -659,7 +664,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Jump { *t });
+        return astp::Some_Node { astp::Jump { *t } };
     }
 
     Rule_Result match_continue_statement()
@@ -672,7 +677,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return m_program.push_node(astp::Jump { *t });
+        return astp::Some_Node { astp::Jump { *t } };
     }
 
     Rule_Result match_if_statement()
@@ -691,17 +696,17 @@ private:
         if (!block) {
             return block;
         }
-        auto else_result = [this]() -> Rule_Result {
-            if (!peek(Token_Type::keyword_else)) {
-                return astp::Handle::null;
+        auto else_handle = astp::Handle::null;
+        if (peek(Token_Type::keyword_else)) {
+            auto r = match_else_statement();
+            if (!r) {
+                return r.error();
             }
-            return match_else_statement();
-        }();
-        if (!else_result) {
-            return else_result;
+            else_handle = m_program.push_node(std::move(*r));
         }
-
-        return m_program.push_node(astp::If_Statement { *first, *condition, *block, *else_result });
+        return astp::Some_Node { astp::If_Statement {
+            *first, m_program.push_node(std::move(*condition)),
+            m_program.push_node(std::move(*block)), else_handle } };
     }
 
     Rule_Result match_else_statement()
@@ -731,7 +736,9 @@ private:
         if (!block) {
             return block;
         }
-        return m_program.push_node(astp::While_Statement { *first, *condition, *block });
+        return astp::Some_Node { astp::While_Statement { *first,
+                                                         m_program.push_node(std::move(*condition)),
+                                                         m_program.push_node(std::move(*block)) } };
     }
 
     Rule_Result match_block_statement()
@@ -744,10 +751,10 @@ private:
         std::pmr::vector<astp::Handle> statements(m_memory);
         while (true) {
             if (expect(Token_Type::right_brace)) {
-                return m_program.push_node(astp::Block_Statement { *first, std::move(statements) });
+                return astp::Some_Node { astp::Block_Statement { *first, std::move(statements) } };
             }
             else if (auto s = match_statement()) {
-                statements.push_back(*s);
+                statements.push_back(m_program.push_node(std::move(*s)));
             }
             else {
                 return s;
@@ -779,8 +786,9 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(astp::If_Expression { get_token(m_program.get_node(*left)),
-                                                         *left, *condition, *right });
+        return astp::Some_Node { astp::If_Expression {
+            get_token(*left), m_program.push_node(std::move(*left)),
+            m_program.push_node(std::move(*condition)), m_program.push_node(std::move(*right)) } };
     }
 
     Rule_Result match_binary_expression()
@@ -801,7 +809,9 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
+        return astp::Some_Node { astp::Binary_Expression {
+            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->type } };
     }
 
     Rule_Result match_comparison_expression()
@@ -823,7 +833,9 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
+        return astp::Some_Node { astp::Binary_Expression {
+            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->type } };
     }
 
     Rule_Result match_arithmetic_expression()
@@ -840,7 +852,9 @@ private:
         if (!right) {
             return right;
         }
-        return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
+        return astp::Some_Node { astp::Binary_Expression {
+            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->type } };
     }
 
     Rule_Result match_prefix_expression()
@@ -850,7 +864,8 @@ private:
             if (!e) {
                 return e;
             }
-            return m_program.push_node(astp::Prefix_Expression { *t, t->type, *e });
+            return astp::Some_Node { astp::Prefix_Expression {
+                *t, t->type, m_program.push_node(std::move(*e)) } };
         }
         return match_postfix_expression();
     }
@@ -886,11 +901,11 @@ private:
             if (!arg) {
                 return arg;
             }
-            arguments.push_back(*arg);
+            arguments.push_back(m_program.push_node(std::move(*arg)));
             demand_expression = expect(Token_Type::comma);
         }
-        return m_program.push_node(astp::Function_Call_Expression {
-            *id, id->extract(m_program.source), std::move(arguments) });
+        return astp::Some_Node { astp::Function_Call_Expression {
+            *id, id->extract(m_program.source), std::move(arguments) } };
     }
 
     Rule_Result match_primary_expression()
@@ -902,10 +917,10 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return m_program.push_node(astp::Literal { *t });
+            return astp::Some_Node { astp::Literal { *t } };
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return m_program.push_node(astp::Id_Expression { *t });
+            return astp::Some_Node { astp::Id_Expression { *t } };
         }
         if (auto e = match_parenthesized_expression()) {
             return e;
@@ -940,20 +955,21 @@ private:
                 Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_void)) {
-            return m_program.push_node(astp::Type { *t, Type_Type::Void, astp::Handle::null });
+            return astp::Some_Node { astp::Type { *t, Type_Type::Void, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return m_program.push_node(astp::Type { *t, Type_Type::Bool, astp::Handle::null });
+            return astp::Some_Node { astp::Type { *t, Type_Type::Bool, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return m_program.push_node(astp::Type { *t, Type_Type::Int, astp::Handle::null });
+            return astp::Some_Node { astp::Type { *t, Type_Type::Int, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             auto e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return m_program.push_node(astp::Type { *t, Type_Type::Uint, *e });
+            return astp::Some_Node { astp::Type { *t, Type_Type::Uint,
+                                                  m_program.push_node(std::move(*e)) } };
         }
 
         return Rule_Error { this_rule, expected };
