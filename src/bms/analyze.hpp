@@ -21,7 +21,7 @@ private:
     std::pmr::vector<ast::Some_Node*> m_nodes;
 
 public:
-    explicit Analyzed_Program(const Parsed_Program& program);
+    explicit Analyzed_Program(const Parsed_Program& program, std::pmr::memory_resource* memory);
 
     Analyzed_Program(const Analyzed_Program&) = delete;
     Analyzed_Program& operator=(const Analyzed_Program&) = delete;
@@ -72,7 +72,7 @@ Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
                                                std::pmr::memory_resource* memory_resource);
 
 Result<void, Analysis_Error> analyze(Analyzed_Program& program,
-                                            std::pmr::memory_resource* memory_resource);
+                                     std::pmr::memory_resource* memory_resource);
 
 } // namespace bit_manipulation::bms
 

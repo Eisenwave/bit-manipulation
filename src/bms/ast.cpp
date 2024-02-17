@@ -48,8 +48,10 @@ ast::Some_Node* Analyzed_Program::from_parser_node(astp::Handle handle,
         parsed.get_node(handle));
 }
 
-Analyzed_Program::Analyzed_Program(const Parsed_Program& program)
+Analyzed_Program::Analyzed_Program(const Parsed_Program& program, std::pmr::memory_resource* memory)
     : m_source(program.source)
+    , m_memory_resource(memory)
+    , m_nodes(memory)
 {
     m_nodes.reserve(program.nodes.size());
     m_root = from_parser_node(program.root_node, program);
