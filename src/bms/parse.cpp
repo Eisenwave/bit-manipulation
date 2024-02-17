@@ -17,12 +17,12 @@ namespace {
 /// @param size the desired size
 /// @return `true` if `size <= vec.size()`, in which case the vector is resized.
 template <typename T, typename Alloc>
-bool try_downsize(std::vector<T, Alloc>& vec, typename std::vector<T>::size_type size)
+bool try_downsize(std::vector<T, Alloc>& vec, typename std::vector<T, Alloc>::size_type size)
 {
     if (size > vec.size()) {
         return false;
     }
-    vec.erase(vec.begin() + static_cast<std::vector<T>::difference_type>(size), vec.end());
+    vec.erase(vec.begin() + static_cast<std::vector<T, Alloc>::difference_type>(size), vec.end());
     return true;
 }
 
@@ -30,7 +30,7 @@ bool try_downsize(std::vector<T, Alloc>& vec, typename std::vector<T>::size_type
 
 namespace astp {
 
-Program::Program(Token token, std::vector<astp::Handle>&& declarations)
+Program::Program(Token token, std::pmr::vector<astp::Handle>&& declarations)
     : Node_Base { token }
     , declarations(std::move(declarations))
 {
@@ -50,7 +50,7 @@ Function::Function(Token token,
     BIT_MANIPULATION_ASSERT(body != astp::Handle::null);
 }
 
-Parameter_List::Parameter_List(Token token, std::vector<astp::Handle>&& parameters)
+Parameter_List::Parameter_List(Token token, std::pmr::vector<astp::Handle>&& parameters)
     : Node_Base { token }
     , parameters((std::move(parameters)))
 {
@@ -133,7 +133,7 @@ Assignment::Assignment(Token token, std::string_view name, Handle expression)
     BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
 }
 
-Block_Statement::Block_Statement(Token token, std::vector<astp::Handle>&& statements)
+Block_Statement::Block_Statement(Token token, std::pmr::vector<astp::Handle>&& statements)
     : Node_Base { token }
     , statements(std::move(statements))
 {
@@ -167,7 +167,7 @@ Prefix_Expression::Prefix_Expression(Token token, Token_Type op, Handle operand)
 
 Function_Call_Expression::Function_Call_Expression(Token token,
                                                    std::string_view function,
-                                                   std::vector<astp::Handle>&& arguments)
+                                                   std::pmr::vector<astp::Handle>&& arguments)
     : Node_Base { token }
     , function(function)
     , arguments(std::move(arguments))
@@ -200,6 +200,7 @@ struct Rule_Error {
 
 struct Parser {
 private:
+    std::pmr::memory_resource* m_memory;
     std::span<const Token> m_tokens;
     Size m_pos;
     Parsed_Program m_program;
@@ -208,7 +209,8 @@ public:
     explicit Parser(std::span<const Token> tokens,
                     std::string_view source,
                     std::pmr::memory_resource* memory)
-        : m_tokens { tokens }
+        : m_memory { memory }
+        , m_tokens { tokens }
         , m_pos { 0 }
         , m_program { source, memory }
     {
@@ -332,7 +334,7 @@ private:
         if (!first) {
             return first;
         }
-        std::vector<astp::Handle> declarations;
+        std::pmr::vector<astp::Handle> declarations(m_memory);
         declarations.push_back(*first);
 
         while (!eof()) {
@@ -503,7 +505,7 @@ private:
     Result<astp::Handle, Rule_Error> match_parameter_sequence()
     {
         Token first_token;
-        std::vector<astp::Handle> parameters;
+        std::pmr::vector<astp::Handle> parameters(m_memory);
         while (true) {
             auto p = match_parameter();
             if (!p) {
@@ -737,7 +739,7 @@ private:
         if (!first) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_brace> };
         }
-        std::vector<astp::Handle> statements;
+        std::pmr::vector<astp::Handle> statements(m_memory);
         while (true) {
             if (expect(Token_Type::right_brace)) {
                 return m_program.push_node(astp::Block_Statement { *first, std::move(statements) });
@@ -873,7 +875,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        std::vector<astp::Handle> arguments;
+        std::pmr::vector<astp::Handle> arguments(m_memory);
         for (bool demand_expression = false; true;) {
             if (!demand_expression && expect(Token_Type::right_parenthesis)) {
                 break;

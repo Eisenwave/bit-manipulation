@@ -65,9 +65,9 @@ struct Program final : detail::Node_Base {
     using AST_Node = ast::Program;
     static inline constexpr std::string_view self_name = "Program";
 
-    std::vector<Handle> declarations;
+    std::pmr::vector<Handle> declarations;
 
-    Program(Token token, std::vector<Handle>&& declarations);
+    Program(Token token, std::pmr::vector<Handle>&& declarations);
 
     std::span<Handle> get_children()
     {
@@ -118,9 +118,9 @@ struct Parameter_List final : detail::Node_Base {
     using AST_Node = ast::Parameter_List;
     static inline constexpr std::string_view self_name = "Parameter_List";
 
-    std::vector<Handle> parameters;
+    std::pmr::vector<Handle> parameters;
 
-    Parameter_List(Token token, std::vector<Handle>&& parameters);
+    Parameter_List(Token token, std::pmr::vector<Handle>&& parameters);
 
     std::span<Handle> get_children()
     {
@@ -295,9 +295,9 @@ struct Block_Statement final : detail::Node_Base {
     using AST_Node = ast::Block_Statement;
     static inline constexpr std::string_view self_name = "Block_Statement";
 
-    std::vector<Handle> statements;
+    std::pmr::vector<Handle> statements;
 
-    Block_Statement(Token token, std::vector<Handle>&& statements);
+    Block_Statement(Token token, std::pmr::vector<Handle>&& statements);
 
     std::span<Handle> get_children()
     {
@@ -369,11 +369,11 @@ struct Function_Call_Expression final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
     std::string_view function;
-    std::vector<Handle> arguments;
+    std::pmr::vector<Handle> arguments;
 
     Function_Call_Expression(Token token,
                              std::string_view function,
-                             std::vector<Handle>&& arguments);
+                             std::pmr::vector<Handle>&& arguments);
 
     std::span<Handle> get_children()
     {
