@@ -17,11 +17,11 @@ namespace bit_manipulation {
 namespace {
 
 struct Tokenized_File {
-    std::vector<bms::Token> tokens;
+    std::pmr::vector<bms::Token> tokens;
     std::string program;
 };
 
-Tokenized_File tokenize_file(std::string_view file)
+Tokenized_File tokenize_file(std::string_view file, std::pmr::memory_resource* memory)
 {
     Result<std::string, IO_Error_Code> program = file_to_string(file);
     if (!program) {
@@ -29,7 +29,7 @@ Tokenized_File tokenize_file(std::string_view file)
         std::exit(1);
     }
 
-    std::vector<bms::Token> tokens;
+    std::pmr::vector<bms::Token> tokens(memory);
     if (const Result<void, bms::Tokenize_Error> result = tokenize(tokens, *program)) {
         return { std::move(tokens), std::move(*program) };
     }
@@ -50,30 +50,32 @@ bms::Parsed_Program parse_tokenized(std::string_view file_name, const Tokenized_
     }
 }
 
-int dump_tokens(std::string_view file)
+int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
 {
-    const Tokenized_File f = tokenize_file(file);
+    const Tokenized_File f = tokenize_file(file, memory);
     print_tokens(std::cout, f.tokens, f.program);
     return 0;
 }
 
-int dump_ast(std::string_view file)
+int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
 {
     constexpr Size indent_width = 2;
 
-    const Tokenized_File f = tokenize_file(file);
+    const Tokenized_File f = tokenize_file(file, memory);
     const bms::Parsed_Program p = parse_tokenized(file, f);
     print_ast(std::cout, p, indent_width);
     return 0;
 }
 
-int check_semantics(std::string_view file)
+int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 {
-    const Tokenized_File f = tokenize_file(file);
+    std::pmr::unsynchronized_pool_resource memory_resource(memory);
+
+    const Tokenized_File f = tokenize_file(file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(file, f);
     bms::Analyzed_Program a(p);
 
-    Result<void, bms::Analysis_Error> result = bms::analyze(a);
+    Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);
     if (result) {
         std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
         return 0;
@@ -94,14 +96,16 @@ try {
         return 1;
     }
 
+    std::pmr::unsynchronized_pool_resource memory;
+
     if (args[1] == "dump_tokens") {
-        return dump_tokens(args[2]);
+        return dump_tokens(args[2], &memory);
     }
     else if (args[1] == "dump_ast") {
-        return dump_ast(args[2]);
+        return dump_ast(args[2], &memory);
     }
     else if (args[1] == "verify") {
-        return check_semantics(args[2]);
+        return check_semantics(args[2], &memory);
     }
     else {
         std::cout << "Unknown command '" << args[1] << "'\n";

@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_VM_HPP
 #define BIT_MANIPULATION_BMS_VM_HPP
 
+#include <memory_resource>
 #include <span>
 #include <vector>
 
@@ -48,20 +49,29 @@ struct Execution_Error {
 
 struct Virtual_Machine {
 private:
-    std::vector<Instruction> m_instructions;
+    std::pmr::unsynchronized_pool_resource m_memory_resource;
+    std::pmr::vector<Instruction> m_instructions;
     Linear_Map_Stack m_function_frame_stack;
-    std::vector<Concrete_Value> m_stack;
+    std::pmr::vector<Concrete_Value> m_stack;
     Size m_instruction_counter = 0;
 
 public:
+    explicit Virtual_Machine(std::pmr::memory_resource* memory)
+        : m_memory_resource(memory)
+        , m_instructions(&m_memory_resource)
+        , m_function_frame_stack(&m_memory_resource)
+        , m_stack(&m_memory_resource)
+    {
+    }
+
     Result<void, Execution_Error> cycle() noexcept;
 
-    [[nodiscard]] std::vector<Instruction>& instructions() & noexcept
+    [[nodiscard]] std::pmr::vector<Instruction>& instructions() & noexcept
     {
         return m_instructions;
     }
 
-    [[nodiscard]] const std::vector<Instruction>& instructions() const& noexcept
+    [[nodiscard]] const std::pmr::vector<Instruction>& instructions() const& noexcept
     {
         return m_instructions;
     }

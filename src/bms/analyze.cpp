@@ -40,13 +40,17 @@ static_assert(Lookup_Performing_Node<ast::Id_Expression>);
 /// parameter types are replaced with concrete types.
 /// Also, the id-expression within the bit-generic type will have a constant value, which
 /// facilitates constant propagation in further stages.
-struct Instantiator : Analyzer_Base {
+struct Instantiator {
 private:
-    std::unordered_map<const ast::Some_Node*, ast::Some_Node*> m_remap;
+    Analyzed_Program& m_program;
+    std::pmr::monotonic_buffer_resource m_memory_resource;
+    std::pmr::unordered_map<const ast::Some_Node*, ast::Some_Node*> m_remap;
 
 public:
-    Instantiator(Analyzed_Program& program)
-        : Analyzer_Base(program)
+    Instantiator(Analyzed_Program& program, std::pmr::memory_resource* memory)
+        : m_program(program)
+        , m_memory_resource(memory)
+        , m_remap(&m_memory_resource)
     {
     }
 
@@ -193,18 +197,22 @@ enum struct Expression_Context : Default_Underlying {
     constant,
 };
 
-struct Type_Analyzer : Analyzer_Base {
+struct Type_Analyzer {
 private:
     struct Return_Info {
         Concrete_Type type;
         ast::Some_Node* handle;
     };
+    Analyzed_Program& m_program;
+    std::pmr::unsynchronized_pool_resource m_memory_resource;
     Virtual_Machine constant_evaluation_machine;
     std::optional<Return_Info> return_info;
 
 public:
-    Type_Analyzer(Analyzed_Program& program)
-        : Analyzer_Base(program)
+    Type_Analyzer(Analyzed_Program& program, std::pmr::memory_resource* memory)
+        : m_program(program)
+        , m_memory_resource(memory)
+        , constant_evaluation_machine(&m_memory_resource)
     {
     }
 
@@ -868,8 +876,8 @@ private:
             }
 
             Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
-                = Instantiator { m_program }.instantiate_function(node.lookup_result, *function,
-                                                                  deduced_widths);
+                = Instantiator { m_program, &m_memory_resource }.instantiate_function(
+                    node.lookup_result, *function, deduced_widths);
             if (!instantiation_result) {
                 return instantiation_result.error();
             }
@@ -1073,10 +1081,21 @@ private:
 
 } // namespace
 
-Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program)
+Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
+                                               std::pmr::memory_resource* memory)
 {
-    Type_Analyzer analyzer { program };
+    Type_Analyzer analyzer { program, memory };
     return analyzer();
+}
+
+Result<void, Analysis_Error> analyze(Analyzed_Program& program, std::pmr::memory_resource* memory)
+{
+    std::pmr::unsynchronized_pool_resource local_memory(memory);
+    if (auto r = analyze_name_lookup(program, &local_memory); !r) {
+        return r;
+    }
+    local_memory.release();
+    return analyze_semantics(program, &local_memory);
 }
 
 } // namespace bit_manipulation::bms

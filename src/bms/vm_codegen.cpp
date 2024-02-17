@@ -7,13 +7,14 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-struct Virtual_Code_Generator : Analyzer_Base {
+struct Virtual_Code_Generator {
 private:
-    std::vector<Instruction>& out;
+    Analyzed_Program& m_program;
+    std::pmr::vector<Instruction>& out;
 
 public:
-    Virtual_Code_Generator(Analyzed_Program& program, std::vector<Instruction>& out)
-        : Analyzer_Base(program)
+    Virtual_Code_Generator(Analyzed_Program& program, std::pmr::vector<Instruction>& out)
+        : m_program(program)
         , out(out)
     {
     }
@@ -416,8 +417,9 @@ private:
 
 } // namespace
 
-Result<void, Analysis_Error>
-generate_code(std::vector<Instruction>& out, Analyzed_Program& program, ast::Function& function)
+Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                           Analyzed_Program& program,
+                                           ast::Function& function)
 {
     Virtual_Code_Generator gen { program, out };
     return gen(function);

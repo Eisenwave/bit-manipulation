@@ -66,25 +66,13 @@ private:
     [[nodiscard]] ast::Some_Node* from_parser_node(astp::Handle, const Parsed_Program&);
 };
 
-struct Analyzer_Base {
-    Analyzed_Program& m_program;
+Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program,
+                                                 std::pmr::memory_resource* memory_resource);
+Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
+                                               std::pmr::memory_resource* memory_resource);
 
-    Analyzer_Base(Analyzed_Program& program)
-        : m_program { program }
-    {
-    }
-};
-
-Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program);
-Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program);
-
-inline Result<void, Analysis_Error> analyze(Analyzed_Program& program)
-{
-    if (auto r = analyze_name_lookup(program); !r) {
-        return r;
-    }
-    return analyze_semantics(program);
-}
+Result<void, Analysis_Error> analyze(Analyzed_Program& program,
+                                            std::pmr::memory_resource* memory_resource);
 
 } // namespace bit_manipulation::bms
 

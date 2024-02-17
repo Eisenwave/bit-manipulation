@@ -228,7 +228,7 @@ struct Tokenizer {
     const std::string_view source;
     Source_Position pos = {};
 
-    Result<void, Tokenize_Error> tokenize(std::vector<Token>& out) noexcept
+    Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out) noexcept
     {
         pos = {};
         while (true) {
@@ -308,7 +308,8 @@ struct Tokenizer {
 
 } // namespace
 
-Result<void, Tokenize_Error> tokenize(std::vector<Token>& out, std::string_view source) noexcept
+Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out,
+                                      std::string_view source) noexcept
 {
     Tokenizer tokenizer { source };
     return tokenizer.tokenize(out);

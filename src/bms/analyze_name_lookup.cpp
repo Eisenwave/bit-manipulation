@@ -11,19 +11,28 @@ namespace {
 
 struct Symbol_Table {
 private:
-    using map_type = std::unordered_map<std::string_view, ast::Some_Node*>;
+    using map_type = std::pmr::unordered_map<std::string_view, ast::Some_Node*>;
+    std::pmr::memory_resource* m_memory;
     map_type m_symbols;
     Symbol_Table* m_parent = nullptr;
-    std::vector<Symbol_Table> m_children;
+
+private:
+    explicit Symbol_Table(Symbol_Table& parent)
+        : m_memory(parent.m_memory)
+        , m_symbols(m_memory)
+    {
+    }
 
 public:
-    Symbol_Table() = default;
-
-    Symbol_Table& push()
+    explicit Symbol_Table(std::pmr::memory_resource* memory)
+        : m_memory(memory)
+        , m_symbols(m_memory)
     {
-        Symbol_Table& result = m_children.emplace_back();
-        result.m_parent = this;
-        return result;
+    }
+
+    Symbol_Table push()
+    {
+        return Symbol_Table { *this };
     }
 
     std::variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
@@ -64,14 +73,17 @@ public:
 /// After running this analyzer, every AST node that performs name lookup
 /// (id-expressions and function calls) will have their `lookup_result` member point to the
 /// looked up node.
-struct Name_Lookup_Analyzer : Analyzer_Base {
+struct Name_Lookup_Analyzer {
 private:
-    Symbol_Table m_symbols;
+    Analyzed_Program& m_program;
+    std::pmr::unsynchronized_pool_resource m_memory_resource;
+    Symbol_Table m_symbols { &m_memory_resource };
     ast::Function* m_current_function = nullptr;
 
 public:
-    Name_Lookup_Analyzer(Analyzed_Program& program)
-        : Analyzer_Base(program)
+    Name_Lookup_Analyzer(Analyzed_Program& program, std::pmr::memory_resource* memory_resource)
+        : m_program(program)
+        , m_memory_resource(memory_resource)
     {
     }
 
@@ -125,7 +137,8 @@ private:
         }
 
         m_current_function = &n;
-        return analyze_symbols_local(handle, m_symbols.push(), n);
+        Symbol_Table local_symbols = m_symbols.push();
+        return analyze_symbols_local(handle, local_symbols, n);
     }
 
     Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle,
@@ -194,7 +207,8 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Block_Statement& node)
     {
-        return analyze_all_symbols_local(node.get_children(), table.push());
+        Symbol_Table symbols_in_block = table.push();
+        return analyze_all_symbols_local(node.get_children(), symbols_in_block);
     }
 
     Result<void, Analysis_Error>
@@ -220,7 +234,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Static_Assert& node)
     {
-        return analyze_symbols_local(node.get_expression(), table.push());
+        return analyze_symbols_local(node.get_expression(), table);
     }
 
     Result<void, Analysis_Error>
@@ -258,9 +272,10 @@ private:
 
 } // namespace
 
-Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program)
+Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program,
+                                                 std::pmr::memory_resource* memory_resource)
 {
-    return Name_Lookup_Analyzer(program)();
+    return Name_Lookup_Analyzer(program, memory_resource)();
 }
 
 } // namespace bit_manipulation::bms

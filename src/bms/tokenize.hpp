@@ -25,7 +25,8 @@ struct Tokenize_Error {
     Source_Position pos;
 };
 
-Result<void, Tokenize_Error> tokenize(std::vector<Token>& out, std::string_view source) noexcept;
+Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out,
+                                      std::string_view source) noexcept;
 
 } // namespace bit_manipulation::bms
 

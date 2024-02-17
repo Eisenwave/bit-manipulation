@@ -33,9 +33,14 @@ struct Linear_Map_Stack {
     };
 
 private:
-    std::vector<Entry> m_data;
+    std::pmr::vector<Entry> m_data;
 
 public:
+    explicit Linear_Map_Stack(std::pmr::memory_resource* memory)
+        : m_data(memory)
+    {
+    }
+
     void clear() noexcept
     {
         m_data.clear();
