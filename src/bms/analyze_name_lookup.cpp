@@ -10,36 +10,28 @@ namespace bit_manipulation::bms {
 namespace {
 
 struct Symbol_Table {
-private:
+public:
     struct From_Parent_Tag { };
-
     using map_type = std::pmr::unordered_map<std::string_view, ast::Some_Node*>;
-    std::pmr::memory_resource* m_memory;
+
+private:
     map_type m_symbols;
     const Symbol_Table* m_parent = nullptr;
 
-private:
-    explicit Symbol_Table(const Symbol_Table& parent, From_Parent_Tag)
-        : m_memory(parent.m_memory)
-        , m_symbols(m_memory)
+public:
+    Symbol_Table(From_Parent_Tag, const Symbol_Table& parent)
+        : m_symbols(parent.m_symbols.get_allocator().resource())
         , m_parent(&parent)
     {
     }
 
-public:
     explicit Symbol_Table(std::pmr::memory_resource* memory)
-        : m_memory(memory)
-        , m_symbols(m_memory)
+        : m_symbols(memory)
     {
     }
 
     Symbol_Table(const Symbol_Table&) = delete;
     Symbol_Table& operator=(const Symbol_Table&) = delete;
-
-    Symbol_Table push()
-    {
-        return Symbol_Table { *this, From_Parent_Tag {} };
-    }
 
     std::variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
                                                               ast::Some_Node* node)
@@ -143,7 +135,7 @@ private:
         }
 
         m_current_function = &n;
-        Symbol_Table local_symbols = m_symbols.push();
+        Symbol_Table local_symbols { Symbol_Table::From_Parent_Tag {}, m_symbols };
         return analyze_symbols_local(handle, local_symbols, n);
     }
 
@@ -213,7 +205,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Block_Statement& node)
     {
-        Symbol_Table symbols_in_block = table.push();
+        Symbol_Table symbols_in_block { Symbol_Table::From_Parent_Tag {}, table };
         return analyze_all_symbols_local(node.get_children(), symbols_in_block);
     }
 
