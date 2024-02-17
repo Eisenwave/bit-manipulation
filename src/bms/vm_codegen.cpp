@@ -238,7 +238,6 @@ private:
     Result<void, Analysis_Error> generate_code(ast::Some_Node*, ast::Block_Statement& node)
     {
         const auto initial_size = out.size();
-        std::vector<Instruction> result;
         for (ast::Some_Node* child : node.get_children()) {
             auto r = generate_code(child);
             if (!r) {
