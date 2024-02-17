@@ -309,10 +309,12 @@ private:
         return peek_or_expect(predicate, true);
     }
 
+    using Rule_Result = Result<astp::Handle, Rule_Error>;
+
     /// @brief Like `match`, but the parser state is not advanced if no match was made.
     /// @param rule the grammar rule
     /// @return the matched result, or `rule`
-    Result<astp::Handle, Rule_Error> expect(Result<astp::Handle, Rule_Error> (Parser::*match)())
+    Rule_Result expect(Rule_Result (Parser::*match)())
     {
         const Size restore_pos = m_pos;
         const Size restore_nodes = m_program.nodes.size();
@@ -328,7 +330,7 @@ private:
         return result;
     }
 
-    Result<astp::Handle, Rule_Error> match_program()
+    Rule_Result match_program()
     {
         auto first = match_program_declaration();
         if (!first) {
@@ -348,7 +350,7 @@ private:
             astp::Program { get_token(m_program.get_node(*first)), std::move(declarations) });
     }
 
-    Result<astp::Handle, Rule_Error> match_program_declaration()
+    Rule_Result match_program_declaration()
     {
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_const, Token_Type::keyword_function,
@@ -366,7 +368,7 @@ private:
         return Rule_Error { Grammar_Rule::program_declaration, expected };
     }
 
-    Result<astp::Handle, Rule_Error> match_let_declaration()
+    Rule_Result match_let_declaration()
     {
         const auto this_rule = Grammar_Rule::let_declaration;
 
@@ -404,7 +406,7 @@ private:
         return m_program.push_node(astp::Let { *t, name, type_handle, init_handle });
     }
 
-    Result<astp::Handle, Rule_Error> match_const_declaration()
+    Rule_Result match_const_declaration()
     {
         const auto this_rule = Grammar_Rule::const_declaration;
 
@@ -437,7 +439,7 @@ private:
         return m_program.push_node(astp::Const { *t, name, type_handle, *init });
     }
 
-    Result<astp::Handle, Rule_Error> match_initializer()
+    Rule_Result match_initializer()
     {
         constexpr auto this_rule = Grammar_Rule::initializer;
         if (!expect(Token_Type::assign)) {
@@ -446,7 +448,7 @@ private:
         return match_expression();
     }
 
-    Result<astp::Handle, Rule_Error> match_function_declaration()
+    Rule_Result match_function_declaration()
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
         const Token* t = expect(Token_Type::keyword_function);
@@ -502,7 +504,7 @@ private:
                                                     *body });
     }
 
-    Result<astp::Handle, Rule_Error> match_parameter_sequence()
+    Rule_Result match_parameter_sequence()
     {
         Token first_token;
         std::pmr::vector<astp::Handle> parameters(m_memory);
@@ -522,7 +524,7 @@ private:
         return m_program.push_node(astp::Parameter_List { first_token, std::move(parameters) });
     }
 
-    Result<astp::Handle, Rule_Error> match_parameter()
+    Rule_Result match_parameter()
     {
         constexpr auto this_rule = Grammar_Rule::parameter;
         const Token* id = expect(Token_Type::identifier);
@@ -539,7 +541,7 @@ private:
         return m_program.push_node(astp::Parameter { *id, id->extract(m_program.source), *type });
     }
 
-    Result<astp::Handle, Rule_Error> match_static_assertion()
+    Rule_Result match_static_assertion()
     {
         constexpr auto this_rule = Grammar_Rule::static_assertion;
         const Token* t = expect(Token_Type::keyword_static_assert);
@@ -556,7 +558,7 @@ private:
         return m_program.push_node(astp::Static_Assert { *t, *expression });
     }
 
-    Result<astp::Handle, Rule_Error> match_requires_clause()
+    Rule_Result match_requires_clause()
     {
         constexpr auto this_rule = Grammar_Rule::requires_clause;
         const Token* t = expect(Token_Type::keyword_requires);
@@ -566,7 +568,7 @@ private:
         return match_expression();
     }
 
-    Result<astp::Handle, Rule_Error> match_statement()
+    Rule_Result match_statement()
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         // This is a manually computed FIRST set of the statement rule.
@@ -600,7 +602,7 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Result<astp::Handle, Rule_Error> match_assignment_statement()
+    Rule_Result match_assignment_statement()
     {
         constexpr auto this_rule = Grammar_Rule::assignment_statement;
         auto a = match_assignment();
@@ -613,7 +615,7 @@ private:
         return a;
     }
 
-    Result<astp::Handle, Rule_Error> match_assignment()
+    Rule_Result match_assignment()
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
         const Token* id = expect(Token_Type::identifier);
@@ -630,7 +632,7 @@ private:
         return m_program.push_node(astp::Assignment { *id, id->extract(m_program.source), *e });
     }
 
-    Result<astp::Handle, Rule_Error> match_return_statement()
+    Rule_Result match_return_statement()
     {
         constexpr auto this_rule = Grammar_Rule::return_statement;
         const Token* t = expect(Token_Type::keyword_return);
@@ -647,7 +649,7 @@ private:
         return m_program.push_node(astp::Return_Statement { *t, *e });
     }
 
-    Result<astp::Handle, Rule_Error> match_break_statement()
+    Rule_Result match_break_statement()
     {
         constexpr auto this_rule = Grammar_Rule::break_statement;
         const Token* t = expect(Token_Type::keyword_break);
@@ -660,7 +662,7 @@ private:
         return m_program.push_node(astp::Jump { *t });
     }
 
-    Result<astp::Handle, Rule_Error> match_continue_statement()
+    Rule_Result match_continue_statement()
     {
         constexpr auto this_rule = Grammar_Rule::continue_statement;
         const Token* t = expect(Token_Type::keyword_continue);
@@ -673,7 +675,7 @@ private:
         return m_program.push_node(astp::Jump { *t });
     }
 
-    Result<astp::Handle, Rule_Error> match_if_statement()
+    Rule_Result match_if_statement()
     {
         const auto this_rule = Grammar_Rule::if_statement;
 
@@ -689,7 +691,7 @@ private:
         if (!block) {
             return block;
         }
-        auto else_result = [this]() -> Result<astp::Handle, Rule_Error> {
+        auto else_result = [this]() -> Rule_Result {
             if (!peek(Token_Type::keyword_else)) {
                 return astp::Handle::null;
             }
@@ -702,7 +704,7 @@ private:
         return m_program.push_node(astp::If_Statement { *first, *condition, *block, *else_result });
     }
 
-    Result<astp::Handle, Rule_Error> match_else_statement()
+    Rule_Result match_else_statement()
     {
         const auto this_rule = Grammar_Rule::else_statement;
 
@@ -713,7 +715,7 @@ private:
         return peek(Token_Type::keyword_if) ? match_if_statement() : match_block_statement();
     }
 
-    Result<astp::Handle, Rule_Error> match_while_statement()
+    Rule_Result match_while_statement()
     {
         const auto this_rule = Grammar_Rule::while_statement;
 
@@ -732,7 +734,7 @@ private:
         return m_program.push_node(astp::While_Statement { *first, *condition, *block });
     }
 
-    Result<astp::Handle, Rule_Error> match_block_statement()
+    Rule_Result match_block_statement()
     {
         constexpr auto this_rule = Grammar_Rule::block_statement;
         const Token* first = expect(Token_Type::left_brace);
@@ -754,12 +756,12 @@ private:
         BIT_MANIPULATION_UNREACHABLE();
     }
 
-    Result<astp::Handle, Rule_Error> match_expression()
+    Rule_Result match_expression()
     {
         return match_if_expression();
     }
 
-    Result<astp::Handle, Rule_Error> match_if_expression()
+    Rule_Result match_if_expression()
     {
         constexpr auto this_rule = Grammar_Rule::if_expression;
         auto left = match_binary_expression();
@@ -781,7 +783,7 @@ private:
                                                          *left, *condition, *right });
     }
 
-    Result<astp::Handle, Rule_Error> match_binary_expression()
+    Rule_Result match_binary_expression()
     {
         if (auto comp = expect(&Parser::match_comparison_expression)) {
             return comp;
@@ -802,7 +804,7 @@ private:
         return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<astp::Handle, Rule_Error> match_comparison_expression()
+    Rule_Result match_comparison_expression()
     {
         constexpr auto this_rule = Grammar_Rule::comparison_expression;
         static constexpr Token_Type expected[]
@@ -824,7 +826,7 @@ private:
         return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<astp::Handle, Rule_Error> match_arithmetic_expression()
+    Rule_Result match_arithmetic_expression()
     {
         auto left = match_prefix_expression();
         if (!left) {
@@ -841,7 +843,7 @@ private:
         return m_program.push_node(astp::Binary_Expression { *op, *left, *right, op->type });
     }
 
-    Result<astp::Handle, Rule_Error> match_prefix_expression()
+    Rule_Result match_prefix_expression()
     {
         if (const Token* t = expect(is_unary_operator)) {
             auto e = match_postfix_expression();
@@ -853,7 +855,7 @@ private:
         return match_postfix_expression();
     }
 
-    Result<astp::Handle, Rule_Error> match_postfix_expression()
+    Rule_Result match_postfix_expression()
     {
         if (peek(Token_Type::identifier)) {
             if (const Token* lookahead = peek_n(1);
@@ -864,7 +866,7 @@ private:
         return match_primary_expression();
     }
 
-    Result<astp::Handle, Rule_Error> match_function_call_expression()
+    Rule_Result match_function_call_expression()
     {
         constexpr auto this_rule = Grammar_Rule::function_call_expression;
         const Token* id = expect(Token_Type::identifier);
@@ -891,7 +893,7 @@ private:
             *id, id->extract(m_program.source), std::move(arguments) });
     }
 
-    Result<astp::Handle, Rule_Error> match_primary_expression()
+    Rule_Result match_primary_expression()
     {
         constexpr auto this_rule = Grammar_Rule::primary_expression;
         static constexpr Token_Type expected[]
@@ -913,7 +915,7 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    [[maybe_unused]] Result<astp::Handle, Rule_Error> match_parenthesized_expression()
+    [[maybe_unused]] Rule_Result match_parenthesized_expression()
     {
         constexpr auto this_rule = Grammar_Rule::parenthesized_expression;
         const Token* t = expect(Token_Type::left_parenthesis);
@@ -930,7 +932,7 @@ private:
         return e;
     }
 
-    Result<astp::Handle, Rule_Error> match_type()
+    Rule_Result match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
         static constexpr Token_Type expected[]
