@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_IO_HPP
 #define BIT_MANIPULATION_IO_HPP
 
+#include <memory_resource>
 #include <string>
 #include <string_view>
 
@@ -14,7 +15,8 @@ enum struct IO_Error_Code {
     write_error,
 };
 
-Result<std::string, IO_Error_Code> file_to_string(std::string_view path);
+Result<std::pmr::string, IO_Error_Code> file_to_string(std::string_view path,
+                                                       std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation
 
