@@ -18,12 +18,12 @@ namespace {
 
 struct Tokenized_File {
     std::pmr::vector<bms::Token> tokens;
-    std::string program;
+    std::pmr::string program;
 };
 
 Tokenized_File tokenize_file(std::string_view file, std::pmr::memory_resource* memory)
 {
-    Result<std::string, IO_Error_Code> program = file_to_string(file);
+    Result<std::pmr::string, IO_Error_Code> program = file_to_string(file, memory);
     if (!program) {
         print_file_location(std::cout, file) << ": " << to_prose(program.error()) << '\n';
         std::exit(1);
