@@ -881,10 +881,6 @@ private:
             if (!instantiation_result) {
                 return instantiation_result.error();
             }
-            // !!! FIXME: instantiation invalidates all references, which makes analysis
-            // quasi-impossible.
-            // A proper allocator needs to be used so resizing doesn't break analysis.
-            // !!!!!!!!!!
 
             // Using pointers is merely a workaround for Result not working with references.
             // The returned pointer is never null.
