@@ -187,10 +187,12 @@ Id_Expression::Id_Expression(Token token, std::string_view identifier)
 {
 }
 
-Literal::Literal(Token token, std::string_view literal)
+Literal::Literal(Token token, std::string_view literal, Token_Type type)
     : Node_Base(token)
     , literal(literal)
+    , type(type)
 {
+    BIT_MANIPULATION_ASSERT(token.type == type);
 }
 
 } // namespace astp
@@ -957,7 +959,7 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return astp::Some_Node { astp::Literal { *t, t->extract(m_program.source) } };
+            return astp::Some_Node { astp::Literal { *t, t->extract(m_program.source), t->type } };
         }
         if (const Token* t = expect(Token_Type::identifier)) {
             return astp::Some_Node { astp::Id_Expression { *t, t->extract(m_program.source) } };

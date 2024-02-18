@@ -647,7 +647,7 @@ public:
     Literal(const astp::Literal& parsed, std::string_view file)
         : detail::Node_Base(parsed, file)
         , m_literal(parsed.literal)
-        , m_type(parsed.token.type)
+        , m_type(parsed.type)
     {
     }
 

@@ -408,8 +408,9 @@ struct Literal final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Literal";
 
     std::string_view literal;
+    Token_Type type;
 
-    Literal(Token token, std::string_view literal);
+    Literal(Token token, std::string_view literal, Token_Type type);
 };
 
 using Some_Node = std::variant<Program,
