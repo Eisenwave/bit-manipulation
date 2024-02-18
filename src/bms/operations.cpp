@@ -25,15 +25,25 @@ namespace {
     return false;
 }
 
+Concrete_Type get_type(const Concrete_Value& v)
+{
+    return v.type;
+}
+
+Concrete_Type get_type(const Value& v)
+{
+    return v.get_type();
+}
+
 template <typename T>
 [[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
-    if (!convert_to_equal_type(lhs.type, rhs.type)) {
+    Concrete_Type lhs_type = get_type(lhs);
+    Concrete_Type rhs_type = get_type(rhs);
+
+    if (!convert_to_equal_type(lhs_type, rhs_type)) {
         return Evaluation_Error_Code::type_error;
     }
-
-    Concrete_Type lhs_type = lhs.type;
-    Concrete_Type rhs_type = rhs.type;
 
     if (auto [converted, lossy] = lhs.convert_to(lhs_type); !lossy) {
         lhs = converted;
@@ -275,7 +285,7 @@ check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args)
 check_builtin_function(Builtin_Function f, std::span<const Value> args) noexcept
 {
     return check_builtin_function_impl(
-        f, args | std::views::transform([](const Value& v) { return v.type; }));
+        f, args | std::views::transform([](const Value& v) { return v.get_type(); }));
 }
 
 // CONCRETE VALUE ==================================================================================
@@ -486,7 +496,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
                                                                        Concrete_Type to) noexcept
 {
-    if (!value.type.is_convertible_to(to)) {
+    if (!value.get_type().is_convertible_to(to)) {
         return Evaluation_Error_Code::type_error;
     }
 
@@ -500,7 +510,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
                                                                            Value value) noexcept
 {
-    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
+    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.get_type()); !r) {
         return Evaluation_Error_Code::type_error;
     }
     if (value.is_unknown()) {
@@ -513,7 +523,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
 {
     const Result<Concrete_Type, Type_Error_Code> type_result
-        = check_binary_operator(lhs.type, op, rhs.type);
+        = check_binary_operator(lhs.get_type(), op, rhs.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
@@ -531,7 +541,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
             return Evaluation_Error_Code::division_by_zero;
         }
         if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
-            && (rhs.as_int() < 0 || rhs.as_int() >= lhs.type.width())) {
+            && (rhs.as_int() < 0 || rhs.as_int() >= lhs.get_type().width())) {
             return Evaluation_Error_Code::shift_too_much;
         }
     }
@@ -543,7 +553,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
 {
     Result<Concrete_Type, Type_Error_Code> type_result
-        = check_if_expression(lhs.type, condition.type, rhs.type);
+        = check_if_expression(lhs.get_type(), condition.get_type(), rhs.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }

@@ -15,9 +15,8 @@ namespace bit_manipulation::bms {
 /// constant folding.
 /// Unlike `Concrete_Value`, its `int_value` is optional, although its type is always known.
 struct Value {
-    Concrete_Type type;
-
 private:
+    Concrete_Type m_type;
     std::optional<Big_Int> m_int_value;
 
 public:
@@ -34,31 +33,36 @@ public:
 
 private:
     constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
-        : type(type)
+        : m_type(type)
         , m_int_value(value)
     {
     }
 
 public:
     constexpr Value(Concrete_Value value)
-        : type(value.type)
+        : m_type(value.type)
         , m_int_value(value.int_value)
     {
     }
 
-    explicit constexpr operator bool() const noexcept
+    explicit constexpr operator bool() const
     {
         return m_int_value.has_value();
     }
 
-    constexpr bool is_known() const noexcept
+    constexpr bool is_known() const
     {
         return m_int_value.has_value();
     }
 
-    constexpr bool is_unknown() const noexcept
+    constexpr bool is_unknown() const
     {
         return !is_known();
+    }
+
+    [[nodiscard]] Concrete_Type get_type() const
+    {
+        return m_type;
     }
 
     template <std::invocable<Big_Int> F>
@@ -66,7 +70,7 @@ public:
     constexpr Value and_then(F f) const
     {
         if (m_int_value) {
-            return Value { type, f(*m_int_value) };
+            return Value { m_type, f(*m_int_value) };
         }
         return *this;
     }
@@ -76,8 +80,8 @@ public:
     constexpr Value and_then_uint(F f) const
     {
         if (m_int_value) {
-            const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
-            return Value { type, Big_Int(Big_Uint(f(Big_Uint(*m_int_value))) & mask) };
+            const auto mask = Big_Uint(Big_Uint(1) << m_type.width()) - 1;
+            return Value { m_type, Big_Int(Big_Uint(f(Big_Uint(*m_int_value))) & mask) };
         }
         return *this;
     }
@@ -92,7 +96,7 @@ public:
     constexpr Concrete_Value concrete_value() const
     {
         BIT_MANIPULATION_ASSERT(is_known());
-        return Concrete_Value { type, *m_int_value };
+        return Concrete_Value { m_type, *m_int_value };
     }
 
     /// @brief Returns the concrete boolean value that this value represents.
@@ -100,7 +104,7 @@ public:
     /// @return A `bool`.
     constexpr bool as_bool() const
     {
-        BIT_MANIPULATION_ASSERT(is_known() && type == Concrete_Type::Bool);
+        BIT_MANIPULATION_ASSERT(is_known() && m_type == Concrete_Type::Bool);
         return bool(*m_int_value);
     }
 
@@ -109,7 +113,7 @@ public:
     /// @return A `Big_Int`.
     constexpr Big_Int as_int() const
     {
-        BIT_MANIPULATION_ASSERT(is_known() && type == Concrete_Type::Int);
+        BIT_MANIPULATION_ASSERT(is_known() && m_type == Concrete_Type::Int);
         return *m_int_value;
     }
 
@@ -118,7 +122,7 @@ public:
     /// @return A `Big_Int`.
     constexpr Big_Uint as_uint() const
     {
-        BIT_MANIPULATION_ASSERT(is_known() && type.is_uint());
+        BIT_MANIPULATION_ASSERT(is_known() && m_type.is_uint());
         return static_cast<Big_Uint>(*m_int_value);
     }
 };
@@ -137,7 +141,7 @@ inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
 
 constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
 {
-    if (type == other) {
+    if (m_type == other) {
         return { *this, false };
     }
     else if (other.is_uint()) {

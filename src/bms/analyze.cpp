@@ -288,7 +288,7 @@ private:
             return r;
         }
         auto& return_type = std::get<ast::Type>(*node.get_return_type());
-        return_info = Return_Info { .type = return_type.const_value()->type,
+        return_info = Return_Info { .type = return_type.const_value()->get_type(),
                                     .handle = node.get_return_type() };
 
         if (node.get_requires_clause() != nullptr) {
@@ -305,7 +305,7 @@ private:
                 node.const_value() = expr_const_value;
                 BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
-                if (node.const_value()->type != Concrete_Type::Bool) {
+                if (node.const_value()->get_type() != Concrete_Type::Bool) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool, handle,
                                             node.get_requires_clause() };
                 }
@@ -384,7 +384,7 @@ private:
         }
         auto width = get_const_value(*node.get_width());
         BIT_MANIPULATION_ASSERT(width.has_value());
-        if (!width->type.is_integer()) {
+        if (!width->get_type().is_integer()) {
             return Analysis_Error { Analysis_Error_Code::width_not_integer, node.get_width() };
         }
         const Big_Int folded_width = width->as_int();
@@ -438,12 +438,12 @@ private:
         auto initializer_value = get_const_value(*node.get_initializer());
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
-        if (!initializer_value->type.is_convertible_to(type_node.const_value()->type)) {
+        if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
         const Result<Value, Evaluation_Error_Code> r
-            = evaluate_conversion(*initializer_value, type_node.const_value()->type);
+            = evaluate_conversion(*initializer_value, type_node.const_value()->get_type());
         if (!r) {
             return Analysis_Error { r.error(), handle, node.get_initializer() };
         }
@@ -469,7 +469,7 @@ private:
             // Intentionally "forget" the value determined during constant folding.
             // For mutable variables, it is possible that the value is modified, and
             // `const_value` should only be a concrete value for invariants.
-            node.const_value() = Value::unknown_of_type(initializer_value->type);
+            node.const_value() = Value::unknown_of_type(initializer_value->get_type());
             return {};
         }
 
@@ -491,7 +491,7 @@ private:
         auto initializer_value = get_const_value(*node.get_initializer());
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
-        if (!initializer_value->type.is_convertible_to(type_node.const_value()->type)) {
+        if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
@@ -517,7 +517,7 @@ private:
         node.const_value() = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
-        if (node.const_value()->type != Concrete_Type::Bool) {
+        if (node.const_value()->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::static_assert_expression_not_bool, handle,
                                     node.get_expression() };
         }
@@ -545,7 +545,7 @@ private:
         }
         auto condition_value = get_const_value(*node.get_condition());
         BIT_MANIPULATION_ASSERT(condition_value.has_value());
-        if (condition_value->type != Concrete_Type::Bool) {
+        if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
                                     node.get_condition() };
         }
@@ -575,7 +575,7 @@ private:
         }
         auto condition_value = get_const_value(*node.get_condition());
         BIT_MANIPULATION_ASSERT(condition_value.has_value());
-        if (condition_value->type != Concrete_Type::Bool) {
+        if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
                                     node.get_condition() };
         }
@@ -616,7 +616,7 @@ private:
         }
         auto expr_value = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
-        if (!expr_value->type.is_convertible_to(return_info->type)) {
+        if (!expr_value->get_type().is_convertible_to(return_info->type)) {
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     return_info->handle };
         }
@@ -656,8 +656,8 @@ private:
         auto expr_value = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
-        const Concrete_Type dest_type = looked_up_var.const_value().value().type;
-        if (!expr_value->type.is_convertible_to(dest_type)) {
+        const Concrete_Type dest_type = looked_up_var.const_value().value().get_type();
+        if (!expr_value->get_type().is_convertible_to(dest_type)) {
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     node.get_expression() };
         }
@@ -689,7 +689,7 @@ private:
             return r;
         }
         auto condition_value = get_const_value(*node.get_condition());
-        if (condition_value->type != Concrete_Type::Bool) {
+        if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
                                     node.get_condition() };
         }
@@ -714,8 +714,8 @@ private:
         }
         auto right_value = get_const_value(*node.get_right());
 
-        Result<Concrete_Type, Type_Error_Code> type_result
-            = check_if_expression(left_value->type, condition_value->type, right_value->type);
+        Result<Concrete_Type, Type_Error_Code> type_result = check_if_expression(
+            left_value->get_type(), condition_value->get_type(), right_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
         }
@@ -752,7 +752,7 @@ private:
             const bool is_short_circuiting = node.get_op() == Token_Type::logical_and
                 || node.get_op() == Token_Type::logical_or;
             if (context == Expression_Context::constant && is_short_circuiting) {
-                if (left_value->type != Concrete_Type::Bool) {
+                if (left_value->get_type() != Concrete_Type::Bool) {
                     return Analysis_Error { Type_Error_Code::non_bool_logical, handle,
                                             node.get_left() };
                 }
@@ -772,7 +772,7 @@ private:
         const auto& right_value = get_const_value(*node.get_right());
 
         const Result<Concrete_Type, Type_Error_Code> type_result
-            = check_binary_operator(left_value->type, node.get_op(), right_value->type);
+            = check_binary_operator(left_value->get_type(), node.get_op(), right_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
         }
@@ -799,7 +799,7 @@ private:
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
         const Result<Concrete_Type, Type_Error_Code> type_result
-            = check_unary_operator(node.get_op(), expr_value->type);
+            = check_unary_operator(node.get_op(), expr_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
         }
@@ -894,11 +894,11 @@ private:
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }
-                if (!arg_values[i].type.is_uint()) {
+                if (!arg_values[i].get_type().is_uint()) {
                     return Analysis_Error { Analysis_Error_Code::width_deduction_from_non_uint,
                                             node.get_children()[i], type.get_width() };
                 }
-                deduced_widths.push_back(arg_values[i].type.width());
+                deduced_widths.push_back(arg_values[i].get_type().width());
             }
 
             Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
@@ -945,7 +945,7 @@ private:
         }
 
         BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
-        Concrete_Type return_type = function->const_value()->type;
+        Concrete_Type return_type = function->const_value()->get_type();
 
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
@@ -964,8 +964,8 @@ private:
         for (Size i = 0; i < node.get_children().size(); ++i) {
             BIT_MANIPULATION_ASSERT(params != nullptr);
             auto& param = std::get<ast::Parameter>(*params->get_children()[i]);
-            const Concrete_Type param_type = param.const_value().value().type;
-            if (!arg_values[i].type.is_convertible_to(param_type)) {
+            const Concrete_Type param_type = param.const_value().value().get_type();
+            if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                         params->get_children()[i] };
             }
