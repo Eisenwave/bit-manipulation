@@ -478,7 +478,7 @@ std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
 {
     for (const bms::Token& t : tokens) {
-        const std::string_view text = t.extract(source);
+        const std::string_view text = source.substr(t.pos.begin, t.pos.length);
         out << std::setfill(' ') << std::right //
             << std::setw(2) << t.pos.line + 1 //
             << ":" //

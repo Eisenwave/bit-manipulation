@@ -175,12 +175,6 @@ struct Token {
     }
 
     friend constexpr auto operator<=>(Token, Token) = default;
-
-    // TODO: remove in favor of Parsed_Program
-    [[nodiscard]] std::string_view extract(std::string_view source) const
-    {
-        return source.substr(pos.begin, pos.length);
-    }
 };
 
 } // namespace bit_manipulation::bms

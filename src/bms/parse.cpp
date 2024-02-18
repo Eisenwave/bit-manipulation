@@ -400,7 +400,7 @@ private:
         if (!id) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        const std::string_view name = id->extract(m_program.source);
+        const std::string_view name = m_program.extract(id->pos);
 
         auto type_handle = astp::Handle::null;
         if (expect(Token_Type::colon)) {
@@ -438,7 +438,7 @@ private:
         if (!id) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
         }
-        const std::string_view name = id->extract(m_program.source);
+        const std::string_view name = m_program.extract(id->pos);
 
         auto type_handle = astp::Handle::null;
         if (expect(Token_Type::colon)) {
@@ -521,7 +521,7 @@ private:
             return body;
         }
         return astp::Some_Node { astp::Function {
-            t->pos, name->extract(m_program.source), std::move(parameters),
+            t->pos, m_program.extract(name->pos), std::move(parameters),
             m_program.push_node(std::move(*ret)), requires_handle,
             m_program.push_node(std::move(*body)) } };
     }
@@ -560,7 +560,7 @@ private:
         if (!type) {
             return type;
         }
-        return astp::Some_Node { astp::Parameter { id->pos, id->extract(m_program.source),
+        return astp::Some_Node { astp::Parameter { id->pos, m_program.extract(id->pos),
                                                    m_program.push_node(std::move(*type)) } };
     }
 
@@ -677,7 +677,7 @@ private:
         if (!e) {
             return e;
         }
-        return astp::Some_Node { astp::Assignment { id->pos, id->extract(m_program.source),
+        return astp::Some_Node { astp::Assignment { id->pos, m_program.extract(id->pos),
                                                     m_program.push_node(std::move(*e)) } };
     }
 
@@ -954,7 +954,7 @@ private:
             demand_expression = expect(Token_Type::comma);
         }
         return astp::Some_Node { astp::Function_Call_Expression {
-            id->pos, id->extract(m_program.source), std::move(arguments) } };
+            id->pos, m_program.extract(id->pos), std::move(arguments) } };
     }
 
     Rule_Result match_primary_expression()
@@ -966,11 +966,10 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return astp::Some_Node { astp::Literal { t->pos, t->extract(m_program.source),
-                                                     t->type } };
+            return astp::Some_Node { astp::Literal { t->pos, m_program.extract(t->pos), t->type } };
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return astp::Some_Node { astp::Id_Expression { t->pos, t->extract(m_program.source) } };
+            return astp::Some_Node { astp::Id_Expression { t->pos, m_program.extract(t->pos) } };
         }
         if (auto e = match_parenthesized_expression()) {
             return e;
