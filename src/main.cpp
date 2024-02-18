@@ -25,7 +25,7 @@ Tokenized_File tokenize_file(std::string_view file, std::pmr::memory_resource* m
 {
     Result<std::pmr::string, IO_Error_Code> program = file_to_string(file, memory);
     if (!program) {
-        print_file_location(std::cout, file) << ": " << to_prose(program.error()) << '\n';
+        print_location_of_file(std::cout, file) << ": " << to_prose(program.error()) << '\n';
         std::exit(1);
     }
 

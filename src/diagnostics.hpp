@@ -37,7 +37,7 @@ std::string_view find_line(std::string_view source, Size index);
 /// @param out the stream to write to.
 /// @param file the file.
 /// @return `out`
-std::ostream& print_file_location(std::ostream& out, std::string_view file);
+std::ostream& print_location_of_file(std::ostream& out, std::string_view file);
 
 std::ostream&
 print_file_position(std::ostream& out, std::string_view file, bms::Source_Position pos);

@@ -40,6 +40,42 @@ std::string to_string(bms::Concrete_Value v)
     }
 }
 
+enum struct Error_Line_Type : Default_Underlying { note, error };
+
+struct Printable_Comparison {
+    std::string left, right;
+    std::string_view op;
+};
+
+struct Error_Line {
+    Error_Line_Type type;
+    std::string_view file;
+    bms::Source_Position pos;
+    std::string message;
+    std::optional<Printable_Comparison> comp {};
+};
+
+struct Printable_Error {
+    std::string_view source;
+    std::pmr::vector<Error_Line> lines {};
+    bool is_internal = false;
+};
+
+// Certain internal errors aren't assertion failures but make it here.
+// For example, an evaluation error can fail as a type error, but that can only happen
+// if prior analysis didn't spot the type error in the first place.
+// Similarly, VM execution errors are also "clean errors", but only end up here as the result
+// of faulty codegen.
+[[nodiscard]] bool is_internal(const bms::Analysis_Error& error)
+{
+    return error.code == bms::Analysis_Error_Code::execution_error
+        || (error.code == bms::Analysis_Error_Code::evaluation_error
+            && error.evaluation_error == bms::Evaluation_Error_Code::type_error);
+}
+
+const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
+const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
+
 } // namespace
 
 std::string_view to_prose(bms::Tokenize_Error_Code e)
@@ -111,6 +147,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     case requires_clause_not_satisfied: return "Requires-clause was not satisfied.";
     case use_of_undefined_variable: return "Use of undefined variable.";
     case use_of_undefined_constant: return "Use of undefined constant.";
+    case empty_return_in_non_void_function: return "Cannot return nothing in a non-void function.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -205,6 +242,8 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The following variable is undefined before its first use:";
     case use_of_undefined_constant:
         return "The following constant is undefined before its first use:";
+    case empty_return_in_non_void_function:
+        return "The function's return type is not declared Void:";
     default: return "Caused by:";
     }
 }
@@ -219,6 +258,106 @@ std::string_view to_prose(IO_Error_Code e)
     }
 }
 
+namespace {
+
+bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
+{
+    return error.code == bms::Analysis_Error_Code::type_error
+        && error.type_error == bms::Type_Error_Code::incompatible_types
+        && std::holds_alternative<bms::ast::Return_Statement>(*error.fail);
+}
+
+[[nodiscard]] Printable_Error make_error_printable(std::string_view file,
+                                                   const bms::Parsed_Program& program,
+                                                   const bms::Analysis_Error& error)
+{
+    Printable_Error result { program.source };
+
+    const auto fail_token = get_token(*error.fail);
+
+    if (is_incompatible_return_type_error(error)) {
+        BIT_MANIPULATION_ASSERT(error.cause);
+        const bool is_void
+            = std::get<bms::ast::Type>(*error.cause).get_type() == bms::Type_Type::Void;
+
+        result.lines.push_back(
+            { Error_Line_Type::error, file, fail_token.pos,
+              is_void ? "Cannot have non-empty return statement in a function returning Void."
+                      : "Invalid conversion between return statement and return type." });
+        result.lines.push_back(
+            { Error_Line_Type::note, file, get_token(*error.cause).pos,
+              is_void ? "Did you mean to 'return;' or declare the return type 'Void'?"
+                      : "Return type is declared here:" });
+        return result;
+    }
+
+    const std::string_view error_prose = error.code == bms::Analysis_Error_Code::type_error
+        ? to_prose(error.type_error)
+        : to_prose(error.code);
+
+    result.lines.push_back(
+        { Error_Line_Type::error, file, fail_token.pos, std::string(error_prose) });
+
+    if (error.code == bms::Analysis_Error_Code::execution_error) {
+        result.lines.push_back({ Error_Line_Type::note, file, fail_token.pos,
+                                 std::string(to_prose(error.execution_error)) });
+    }
+
+    if (error.comparison_failure) {
+        const auto cause_token = get_token(*error.cause);
+        result.lines.push_back(
+            { Error_Line_Type::note, file, cause_token.pos, "Comparison evaluated to ",
+              Printable_Comparison { to_string(error.comparison_failure->left),
+                                     to_string(error.comparison_failure->right),
+                                     token_type_code_name(error.comparison_failure->op) } });
+    }
+    else if (error.cause != nullptr) {
+        const auto cause_token = get_token(*error.cause);
+
+        if (error.code == bms::Analysis_Error_Code::evaluation_error) {
+            auto message = "Caused by: " + std::string(to_prose(error.evaluation_error));
+            result.lines.push_back(
+                { Error_Line_Type::note, file, cause_token.pos, std::move(message) });
+        }
+        else {
+            result.lines.push_back({ Error_Line_Type::note, file, cause_token.pos,
+                                     std::string(cause_to_prose(error.code)) });
+        }
+    }
+
+    result.is_internal = is_internal(error);
+    return result;
+}
+
+} // namespace
+
+std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error)
+{
+    for (const Error_Line& line : error.lines) {
+        print_file_position(out, line.file, line.pos) << ": ";
+        switch (line.type) {
+        case Error_Line_Type::error: out << error_prefix; break;
+        case Error_Line_Type::note: out << note_prefix; break;
+        }
+        out << line.message;
+
+        if (line.comp) {
+            out << ansi::h_magenta << line.comp->left << ansi::reset //
+                << ' ' << line.comp->op << ' ' //
+                << ansi::h_magenta << line.comp->right << ansi::reset;
+        }
+
+        out << '\n';
+        print_affected_line(out, error.source, line.pos);
+    }
+
+    if (error.is_internal) {
+        print_internal_error_notice(out);
+    }
+
+    return out;
+}
+
 std::string_view find_line(std::string_view source, Size index)
 {
     BIT_MANIPULATION_ASSERT(index < source.size());
@@ -231,7 +370,7 @@ std::string_view find_line(std::string_view source, Size index)
     return source.substr(begin, end - begin);
 }
 
-std::ostream& print_file_location(std::ostream& out, std::string_view file)
+std::ostream& print_location_of_file(std::ostream& out, std::string_view file)
 {
     return out << ansi::black << file << ":" << ansi::reset;
 }
@@ -242,9 +381,6 @@ print_file_position(std::ostream& out, std::string_view file, bms::Source_Positi
     return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
                << ansi::reset;
 }
-
-const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
-const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
 
 std::ostream&
 print_affected_line(std::ostream& out, std::string_view source, bms::Source_Position pos)
@@ -306,57 +442,8 @@ std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
                                    bms::Analysis_Error error)
 {
-    const std::string_view error_prose = error.code == bms::Analysis_Error_Code::type_error
-        ? to_prose(error.type_error)
-        : to_prose(error.code);
-
-    const auto fail_token = get_token(*error.fail);
-
-    print_file_position(out, file, fail_token.pos) << ": " << error_prefix;
-    out << error_prose << '\n';
-    print_affected_line(out, program.source, fail_token.pos);
-
-    if (error.code == bms::Analysis_Error_Code::execution_error) {
-        print_file_position(out, file, fail_token.pos)
-            << ": " << note_prefix << to_prose(error.execution_error) << '\n';
-    }
-
-    if (error.comparison_failure) {
-        const auto cause_token = get_token(*error.cause);
-        print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
-        out << "Comparison evaluated to " //
-            << ansi::h_magenta << to_string(error.comparison_failure->left) << ansi::reset //
-            << ' ' << token_type_code_name(error.comparison_failure->op) << ' ' //
-            << ansi::h_magenta << to_string(error.comparison_failure->right) << ansi::reset << '\n';
-
-        print_affected_line(out, program.source, cause_token.pos);
-    }
-    else if (error.cause != nullptr) {
-        const auto cause_token = get_token(*error.cause);
-        print_file_position(out, file, cause_token.pos) << ": " << note_prefix;
-        if (error.code == bms::Analysis_Error_Code::evaluation_error) {
-            out << "Caused by: " << to_prose(error.evaluation_error) << '\n';
-        }
-        else {
-            out << cause_to_prose(error.code) << '\n';
-        }
-        print_affected_line(out, program.source, cause_token.pos);
-    }
-
-    // Certain internal errors aren't assertion failures but make it here.
-    // For example, an evaluation error can fail as a type error, but that can only happen
-    // if prior analysis didn't spot the type error in the first place.
-    // Similarly, VM execution errors are also "clean errors", but only end up here as the result
-    // of faulty codegen.
-    const bool is_internal = error.code == bms::Analysis_Error_Code::execution_error
-        || (error.code == bms::Analysis_Error_Code::evaluation_error
-            && error.evaluation_error == bms::Evaluation_Error_Code::type_error);
-
-    if (is_internal) {
-        print_internal_error_notice(out);
-    }
-
-    return out;
+    const auto printable = make_error_printable(file, program, error);
+    return print_printable_error(out, printable);
 }
 
 std::ostream&
