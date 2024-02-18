@@ -327,7 +327,7 @@ private:
         if (level >= Analysis_Level::deep) {
             const Size vm_address = constant_evaluation_machine.instruction_count();
             Result<void, Analysis_Error> instructions
-                = generate_code(constant_evaluation_machine.instructions(), m_program, node);
+                = generate_code(constant_evaluation_machine.instructions(), node);
             if (!instructions) {
                 return instructions.error();
             }
@@ -822,10 +822,26 @@ private:
             arg_values.push_back(get_const_value(*arg).value());
         }
 
-        // 2. Verify that we call a function.
+        // 2.1. If the function is builtin, evaluate right away.
 
-        ast::Some_Node& looked_up = *node.lookup_result;
-        auto* function = std::get_if<ast::Function>(&looked_up);
+        if (auto* const builtin = std::get_if<ast::Builtin_Function>(node.lookup_result)) {
+            auto type_result = check_builtin_function(builtin->get_function(), arg_values);
+            if (!type_result) {
+                return Analysis_Error { type_result.error(), handle, node.lookup_result };
+            }
+            auto eval_result = evaluate_builtin_function(builtin->get_function(), arg_values);
+            if (!eval_result) {
+                return Analysis_Error { eval_result.error(), handle, node.lookup_result };
+            }
+            BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
+                                    || eval_result.has_value());
+            node.const_value() = *eval_result;
+            return {};
+        }
+
+        // 2.2. Otherwise, verify that we call a function.
+
+        auto* function = std::get_if<ast::Function>(node.lookup_result);
         if (!function) {
             return Analysis_Error { Analysis_Error_Code::call_non_function, handle,
                                     node.lookup_result };
@@ -1072,6 +1088,13 @@ private:
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE("Given token type does not form a valid literal");
         }
+    }
+
+    [[gnu::always_inline]] Result<void, Analysis_Error>
+    analyze_types(ast::Some_Node*, ast::Builtin_Function& node, Analysis_Level, Expression_Context)
+    {
+        BIT_MANIPULATION_ASSERT(node.const_value());
+        return {};
     }
 };
 
