@@ -1,0 +1,8 @@
+function nothing() -> Void {
+    return 1;
+}
+
+function something() -> Int {
+    return 0;
+}
+
