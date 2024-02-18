@@ -370,10 +370,12 @@ struct Function_Call_Expression final : detail::Node_Base {
 
     std::string_view function;
     std::pmr::vector<Handle> arguments;
+    bool is_statement;
 
     Function_Call_Expression(Token token,
                              std::string_view function,
-                             std::pmr::vector<Handle>&& arguments);
+                             std::pmr::vector<Handle>&& arguments,
+                             bool is_statement = false);
 
     std::span<Handle> get_children()
     {

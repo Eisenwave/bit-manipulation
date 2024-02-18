@@ -1,3 +1,4 @@
+#include <memory_resource>
 #include <optional>
 #include <variant>
 
@@ -167,10 +168,12 @@ Prefix_Expression::Prefix_Expression(Token token, Token_Type op, Handle operand)
 
 Function_Call_Expression::Function_Call_Expression(Token token,
                                                    std::string_view function,
-                                                   std::pmr::vector<astp::Handle>&& arguments)
+                                                   std::pmr::vector<astp::Handle>&& arguments,
+                                                   bool is_statement)
     : Node_Base { token }
     , function(function)
     , arguments(std::move(arguments))
+    , is_statement(is_statement)
 {
 }
 
@@ -200,9 +203,13 @@ struct Rule_Error {
 
 struct Parser {
 private:
+    /// @brief Upstream memory resource.
     std::pmr::memory_resource* m_memory;
+    /// @brief The input tokens.
     std::span<const Token> m_tokens;
+    /// @brief The parser position within `m_tokens`.
     Size m_pos;
+    /// @brief The result program.
     Parsed_Program m_program;
 
 public:
@@ -597,7 +604,18 @@ private:
             case Token_Type::keyword_if: return match_if_statement();
             case Token_Type::keyword_while: return match_while_statement();
             case Token_Type::left_brace: return match_block_statement();
-            case Token_Type::identifier: return match_assignment_statement();
+            case Token_Type::identifier: {
+                if (const Token* lookahead = peek_n(1);
+                    lookahead && lookahead->type == Token_Type::assign) {
+                    return match_assignment_statement();
+                }
+                auto r = match_function_call_statement();
+                if (!r) {
+                    return r;
+                }
+                std::get<astp::Function_Call_Expression>(*r).is_statement = true;
+                return r;
+            }
             default: break;
             }
         }
@@ -616,6 +634,19 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
         return a;
+    }
+
+    Rule_Result match_function_call_statement()
+    {
+        constexpr auto this_rule = Grammar_Rule::function_call_statement;
+        auto call = match_function_call_expression();
+        if (!call) {
+            return call;
+        }
+        if (!expect(Token_Type::semicolon)) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
+        }
+        return call;
     }
 
     Rule_Result match_assignment()
