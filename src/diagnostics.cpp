@@ -285,7 +285,11 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     const auto fail_pos = get_source_position(*error.fail);
     const auto cause_pos = [&]() -> std::optional<bms::Source_Position> {
         if (error.cause) {
-            return get_source_position(*error.cause);
+            auto result = get_source_position(*error.cause);
+            if (!result) {
+                return {};
+            }
+            return *result;
         }
         return {};
     }();
@@ -519,7 +523,7 @@ struct AST_Printer {
         const std::string_view node_name = get_node_name(node);
 
         out << ansi::h_magenta << node_name << ansi::h_black << "(" << ansi::reset
-            << get_token(node).extract(program.source) << ansi::h_black << ")\n"
+            << program.extract(get_source_position(node)) << ansi::h_black << ")\n"
             << ansi::reset;
 
         const auto children = get_children(node);

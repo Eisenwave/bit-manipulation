@@ -31,19 +31,19 @@ bool try_downsize(std::vector<T, Alloc>& vec, typename std::vector<T, Alloc>::si
 
 namespace astp {
 
-Program::Program(Token token, std::pmr::vector<astp::Handle>&& declarations)
-    : Node_Base { token }
+Program::Program(Local_Source_Span pos, std::pmr::vector<astp::Handle>&& declarations)
+    : Node_Base { pos }
     , declarations(std::move(declarations))
 {
 }
 
-Function::Function(Token token,
+Function::Function(Local_Source_Span pos,
                    std::string_view name,
                    Handle parameters,
                    Handle return_type,
                    Handle requires_clause,
                    Handle body)
-    : Node_Base { token }
+    : Node_Base { pos }
     , Parent<4> { parameters, return_type, requires_clause, body }
     , name(name)
 {
@@ -51,8 +51,8 @@ Function::Function(Token token,
     BIT_MANIPULATION_ASSERT(body != astp::Handle::null);
 }
 
-Parameter_List::Parameter_List(Token token, std::pmr::vector<astp::Handle>&& parameters)
-    : Node_Base { token }
+Parameter_List::Parameter_List(Local_Source_Span pos, std::pmr::vector<astp::Handle>&& parameters)
+    : Node_Base { pos }
     , parameters((std::move(parameters)))
 {
     for (auto h : parameters) {
@@ -60,92 +60,95 @@ Parameter_List::Parameter_List(Token token, std::pmr::vector<astp::Handle>&& par
     }
 }
 
-Parameter::Parameter(Token token, std::string_view name, Handle type)
-    : Node_Base { token }
+Parameter::Parameter(Local_Source_Span pos, std::string_view name, Handle type)
+    : Node_Base { pos }
     , Parent<1> { type }
     , name(name)
 {
 }
 
-Type::Type(Token token, Type_Type type, Handle width)
-    : Node_Base { token }
+Type::Type(Local_Source_Span pos, Type_Type type, Handle width)
+    : Node_Base { pos }
     , Parent<1> { width }
     , type(type)
 {
     BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || width != Handle::null);
 }
 
-Const::Const(Token token, std::string_view name, Handle type, Handle initializer)
-    : Node_Base { token }
+Const::Const(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer)
+    : Node_Base { pos }
     , Parent<2> { type, initializer }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(initializer != astp::Handle::null);
 }
 
-Let::Let(Token token, std::string_view name, Handle type, Handle initializer)
-    : Node_Base { token }
+Let::Let(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer)
+    : Node_Base { pos }
     , Parent<2> { type, initializer }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(type != astp::Handle::null || initializer != astp::Handle::null);
 }
 
-Static_Assert::Static_Assert(Token token, Handle expression)
-    : Node_Base { token }
+Static_Assert::Static_Assert(Local_Source_Span pos, Handle expression)
+    : Node_Base { pos }
     , Parent<1> { expression }
 {
     BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
 }
 
-If_Statement::If_Statement(Token token, Handle condition, Handle if_block, Handle else_block)
-    : Node_Base { token }
+If_Statement::If_Statement(Local_Source_Span pos,
+                           Handle condition,
+                           Handle if_block,
+                           Handle else_block)
+    : Node_Base { pos }
     , Parent<3> { condition, if_block, else_block }
 {
     BIT_MANIPULATION_ASSERT(condition != astp::Handle::null);
     BIT_MANIPULATION_ASSERT(if_block != astp::Handle::null);
 }
 
-While_Statement::While_Statement(Token token, Handle condition, Handle block)
-    : Node_Base { token }
+While_Statement::While_Statement(Local_Source_Span pos, Handle condition, Handle block)
+    : Node_Base { pos }
     , Parent<2> { condition, block }
 {
     BIT_MANIPULATION_ASSERT(condition != astp::Handle::null);
     BIT_MANIPULATION_ASSERT(block != astp::Handle::null);
 }
 
-Break::Break(Token token)
-    : Node_Base { token }
+Break::Break(Local_Source_Span pos)
+    : Node_Base { pos }
 {
 }
 
-Continue::Continue(Token token)
-    : Node_Base { token }
+Continue::Continue(Local_Source_Span pos)
+    : Node_Base { pos }
 {
 }
 
-Return_Statement::Return_Statement(Token token, Handle expression)
-    : Node_Base { token }
+Return_Statement::Return_Statement(Local_Source_Span pos, Handle expression)
+    : Node_Base { pos }
     , Parent<1> { expression }
 {
 }
 
-Assignment::Assignment(Token token, std::string_view name, Handle expression)
-    : Node_Base { token }
+Assignment::Assignment(Local_Source_Span pos, std::string_view name, Handle expression)
+    : Node_Base { pos }
     , Parent<1> { expression }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
 }
 
-Block_Statement::Block_Statement(Token token, std::pmr::vector<astp::Handle>&& statements)
-    : Node_Base { token }
+Block_Statement::Block_Statement(Local_Source_Span pos, std::pmr::vector<astp::Handle>&& statements)
+    : Node_Base { pos }
     , statements(std::move(statements))
 {
 }
 
-If_Expression::If_Expression(Token token, Handle left, Handle condition, Handle right)
-    : Node_Base { token }
+If_Expression::If_Expression(Local_Source_Span pos, Handle left, Handle condition, Handle right)
+    : Node_Base { pos }
     , Parent<3> { left, condition, right }
 {
     BIT_MANIPULATION_ASSERT(condition != astp::Handle::null);
@@ -153,8 +156,11 @@ If_Expression::If_Expression(Token token, Handle left, Handle condition, Handle 
     BIT_MANIPULATION_ASSERT(right != astp::Handle::null);
 }
 
-Binary_Expression::Binary_Expression(Token token, Handle left, Handle right, Token_Type op)
-    : Node_Base { token }
+Binary_Expression::Binary_Expression(Local_Source_Span pos,
+                                     Handle left,
+                                     Handle right,
+                                     Token_Type op)
+    : Node_Base { pos }
     , Parent<2> { left, right }
     , op(op)
 {
@@ -162,37 +168,36 @@ Binary_Expression::Binary_Expression(Token token, Handle left, Handle right, Tok
     BIT_MANIPULATION_ASSERT(right != astp::Handle::null);
 }
 
-Prefix_Expression::Prefix_Expression(Token token, Token_Type op, Handle operand)
-    : Node_Base { token }
+Prefix_Expression::Prefix_Expression(Local_Source_Span pos, Token_Type op, Handle operand)
+    : Node_Base { pos }
     , Parent<1> { operand }
     , op(op)
 {
     BIT_MANIPULATION_ASSERT(operand != astp::Handle::null);
 }
 
-Function_Call_Expression::Function_Call_Expression(Token token,
+Function_Call_Expression::Function_Call_Expression(Local_Source_Span pos,
                                                    std::string_view function,
                                                    std::pmr::vector<astp::Handle>&& arguments,
                                                    bool is_statement)
-    : Node_Base(token)
+    : Node_Base { pos }
     , function(function)
     , arguments(std::move(arguments))
     , is_statement(is_statement)
 {
 }
 
-Id_Expression::Id_Expression(Token token, std::string_view identifier)
-    : Node_Base(token)
+Id_Expression::Id_Expression(Local_Source_Span pos, std::string_view identifier)
+    : Node_Base { pos }
     , identifier(identifier)
 {
 }
 
-Literal::Literal(Token token, std::string_view literal, Token_Type type)
-    : Node_Base(token)
+Literal::Literal(Local_Source_Span pos, std::string_view literal, Token_Type type)
+    : Node_Base { pos }
     , literal(literal)
     , type(type)
 {
-    BIT_MANIPULATION_ASSERT(token.type == type);
 }
 
 } // namespace astp
@@ -361,7 +366,8 @@ private:
             }
             declarations.push_back(m_program.push_node(std::move(*d)));
         }
-        return astp::Some_Node { astp::Program { get_token(*first), std::move(declarations) } };
+        return astp::Some_Node { astp::Program { get_source_position(*first),
+                                                 std::move(declarations) } };
     }
 
     Rule_Result match_program_declaration()
@@ -417,7 +423,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Let { *t, name, type_handle, init_handle } };
+        return astp::Some_Node { astp::Let { t->pos, name, type_handle, init_handle } };
     }
 
     Rule_Result match_const_declaration()
@@ -450,7 +456,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Const { *t, name, type_handle,
+        return astp::Some_Node { astp::Const { t->pos, name, type_handle,
                                                m_program.push_node(std::move(*init)) } };
     }
 
@@ -515,21 +521,21 @@ private:
             return body;
         }
         return astp::Some_Node { astp::Function {
-            *t, name->extract(m_program.source), std::move(parameters),
+            t->pos, name->extract(m_program.source), std::move(parameters),
             m_program.push_node(std::move(*ret)), requires_handle,
             m_program.push_node(std::move(*body)) } };
     }
 
     Rule_Result match_parameter_sequence()
     {
-        Token first_token;
+        Local_Source_Span first_pos;
         std::pmr::vector<astp::Handle> parameters(m_memory);
         while (true) {
             auto p = match_parameter();
             if (!p) {
                 return p;
             }
-            first_token = std::get<astp::Parameter>(*p).token;
+            first_pos = std::get<astp::Parameter>(*p).pos;
             parameters.push_back(m_program.push_node(std::move(*p)));
             if (!expect(Token_Type::comma)) {
                 break;
@@ -537,7 +543,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(!parameters.empty());
 
-        return astp::Some_Node { astp::Parameter_List { first_token, std::move(parameters) } };
+        return astp::Some_Node { astp::Parameter_List { first_pos, std::move(parameters) } };
     }
 
     Rule_Result match_parameter()
@@ -554,7 +560,7 @@ private:
         if (!type) {
             return type;
         }
-        return astp::Some_Node { astp::Parameter { *id, id->extract(m_program.source),
+        return astp::Some_Node { astp::Parameter { id->pos, id->extract(m_program.source),
                                                    m_program.push_node(std::move(*type)) } };
     }
 
@@ -573,7 +579,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
         return astp::Some_Node { astp::Static_Assert {
-            *t, m_program.push_node(std::move(*expression)) } };
+            t->pos, m_program.push_node(std::move(*expression)) } };
     }
 
     Rule_Result match_requires_clause()
@@ -671,7 +677,7 @@ private:
         if (!e) {
             return e;
         }
-        return astp::Some_Node { astp::Assignment { *id, id->extract(m_program.source),
+        return astp::Some_Node { astp::Assignment { id->pos, id->extract(m_program.source),
                                                     m_program.push_node(std::move(*e)) } };
     }
 
@@ -683,7 +689,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_return> };
         }
         if (expect(Token_Type::semicolon)) {
-            return astp::Some_Node { astp::Return_Statement { *t, astp::Handle::null } };
+            return astp::Some_Node { astp::Return_Statement { t->pos, astp::Handle::null } };
         }
         auto e = match_expression();
         if (!e) {
@@ -692,7 +698,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Return_Statement { *t,
+        return astp::Some_Node { astp::Return_Statement { t->pos,
                                                           m_program.push_node(std::move(*e)) } };
     }
 
@@ -706,7 +712,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Break { *t } };
+        return astp::Some_Node { astp::Break { t->pos } };
     }
 
     Rule_Result match_continue_statement()
@@ -719,7 +725,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Continue { *t } };
+        return astp::Some_Node { astp::Continue { t->pos } };
     }
 
     Rule_Result match_if_statement()
@@ -747,7 +753,7 @@ private:
             else_handle = m_program.push_node(std::move(*r));
         }
         return astp::Some_Node { astp::If_Statement {
-            *first, m_program.push_node(std::move(*condition)),
+            first->pos, m_program.push_node(std::move(*condition)),
             m_program.push_node(std::move(*block)), else_handle } };
     }
 
@@ -778,7 +784,7 @@ private:
         if (!block) {
             return block;
         }
-        return astp::Some_Node { astp::While_Statement { *first,
+        return astp::Some_Node { astp::While_Statement { first->pos,
                                                          m_program.push_node(std::move(*condition)),
                                                          m_program.push_node(std::move(*block)) } };
     }
@@ -793,7 +799,8 @@ private:
         std::pmr::vector<astp::Handle> statements(m_memory);
         while (true) {
             if (expect(Token_Type::right_brace)) {
-                return astp::Some_Node { astp::Block_Statement { *first, std::move(statements) } };
+                return astp::Some_Node { astp::Block_Statement { first->pos,
+                                                                 std::move(statements) } };
             }
             else if (auto s = match_statement()) {
                 statements.push_back(m_program.push_node(std::move(*s)));
@@ -829,7 +836,7 @@ private:
             return right;
         }
         return astp::Some_Node { astp::If_Expression {
-            get_token(*left), m_program.push_node(std::move(*left)),
+            get_source_position(*left), m_program.push_node(std::move(*left)),
             m_program.push_node(std::move(*condition)), m_program.push_node(std::move(*right)) } };
     }
 
@@ -852,7 +859,7 @@ private:
             return right;
         }
         return astp::Some_Node { astp::Binary_Expression {
-            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->pos, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
             op->type } };
     }
 
@@ -876,7 +883,7 @@ private:
             return right;
         }
         return astp::Some_Node { astp::Binary_Expression {
-            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->pos, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
             op->type } };
     }
 
@@ -895,7 +902,7 @@ private:
             return right;
         }
         return astp::Some_Node { astp::Binary_Expression {
-            *op, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
+            op->pos, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
             op->type } };
     }
 
@@ -907,7 +914,7 @@ private:
                 return e;
             }
             return astp::Some_Node { astp::Prefix_Expression {
-                *t, t->type, m_program.push_node(std::move(*e)) } };
+                t->pos, t->type, m_program.push_node(std::move(*e)) } };
         }
         return match_postfix_expression();
     }
@@ -947,7 +954,7 @@ private:
             demand_expression = expect(Token_Type::comma);
         }
         return astp::Some_Node { astp::Function_Call_Expression {
-            *id, id->extract(m_program.source), std::move(arguments) } };
+            id->pos, id->extract(m_program.source), std::move(arguments) } };
     }
 
     Rule_Result match_primary_expression()
@@ -959,10 +966,11 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return astp::Some_Node { astp::Literal { *t, t->extract(m_program.source), t->type } };
+            return astp::Some_Node { astp::Literal { t->pos, t->extract(m_program.source),
+                                                     t->type } };
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return astp::Some_Node { astp::Id_Expression { *t, t->extract(m_program.source) } };
+            return astp::Some_Node { astp::Id_Expression { t->pos, t->extract(m_program.source) } };
         }
         if (auto e = match_parenthesized_expression()) {
             return e;
@@ -997,20 +1005,20 @@ private:
                 Token_Type::keyword_uint };
 
         if (const Token* t = expect(Token_Type::keyword_void)) {
-            return astp::Some_Node { astp::Type { *t, Type_Type::Void, astp::Handle::null } };
+            return astp::Some_Node { astp::Type { t->pos, Type_Type::Void, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_bool)) {
-            return astp::Some_Node { astp::Type { *t, Type_Type::Bool, astp::Handle::null } };
+            return astp::Some_Node { astp::Type { t->pos, Type_Type::Bool, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_int)) {
-            return astp::Some_Node { astp::Type { *t, Type_Type::Int, astp::Handle::null } };
+            return astp::Some_Node { astp::Type { t->pos, Type_Type::Int, astp::Handle::null } };
         }
         if (const Token* t = expect(Token_Type::keyword_uint)) {
             auto e = match_parenthesized_expression();
             if (!e) {
                 return e;
             }
-            return astp::Some_Node { astp::Type { *t, Type_Type::Uint,
+            return astp::Some_Node { astp::Type { t->pos, Type_Type::Uint,
                                                   m_program.push_node(std::move(*e)) } };
         }
 

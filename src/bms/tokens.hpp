@@ -163,24 +163,23 @@ enum struct Token_Type : Default_Underlying {
 [[nodiscard]] bool is_binary_operator(Token_Type type);
 
 struct Token {
-    Local_Source_Position pos {};
-    Size length {};
+    Local_Source_Span pos {};
     Token_Type type {};
 
     [[nodiscard]] Token() = default;
 
-    [[nodiscard]] Token(Local_Source_Position pos, Size length, Token_Type type) noexcept
+    [[nodiscard]] Token(Local_Source_Span pos, Token_Type type) noexcept
         : pos { pos }
-        , length { length }
         , type { type }
     {
     }
 
     friend constexpr auto operator<=>(Token, Token) = default;
 
+    // TODO: remove in favor of Parsed_Program
     [[nodiscard]] std::string_view extract(std::string_view source) const
     {
-        return source.substr(pos.begin, length);
+        return source.substr(pos.begin, pos.length);
     }
 };
 

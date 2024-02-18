@@ -29,7 +29,7 @@ public:
     }
 
 protected:
-    std::optional<Source_Position> m_position;
+    std::optional<Source_Span> m_position;
     /// @brief If present, indicates that type analysis for an AST node is complete.
     /// For some nodes such as expression nodes, this also indicates the value of the node, if it
     /// is a constant.
@@ -42,17 +42,17 @@ protected:
 
 public:
     explicit Node_Base(const astp::detail::Node_Base& parsed, std::string_view file)
-        : m_position(Source_Position { parsed.token.pos, file })
+        : m_position(Source_Span { parsed.pos, file })
     {
     }
 
-    explicit Node_Base(const Source_Position& pos, std::optional<Value> value = {})
+    explicit Node_Base(const Source_Span& pos, std::optional<Value> value = {})
         : m_position(pos)
         , m_const_value(value)
     {
     }
 
-    std::optional<Source_Position> get_position() const
+    std::optional<Source_Span> get_position() const
     {
         return m_position;
     }
@@ -742,7 +742,7 @@ inline std::string_view get_node_name(const Some_Node& node)
     return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
-inline std::optional<Source_Position> get_source_position(const Some_Node& node)
+inline std::optional<Source_Span> get_source_position(const Some_Node& node)
 {
     return detail::to_node_base(node).get_position();
 }

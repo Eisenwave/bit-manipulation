@@ -19,16 +19,7 @@ namespace bit_manipulation::bms::astp {
 namespace detail {
 
 struct Node_Base {
-    /// @brief A token which is representative of the current AST node.
-    /// For example, this is the token of the operator for binary expressions.
-    /// This member is important for diagnostics because it indicates where a failure occurred if
-    /// it is related to some AST Node.
-    Token token;
-
-    explicit Node_Base(Token token)
-        : token(token)
-    {
-    }
+    Local_Source_Span pos;
 };
 
 template <int N>
@@ -68,7 +59,7 @@ struct Program final : detail::Node_Base {
 
     std::pmr::vector<Handle> declarations;
 
-    Program(Token token, std::pmr::vector<Handle>&& declarations);
+    Program(Local_Source_Span pos, std::pmr::vector<Handle>&& declarations);
 
     std::span<Handle> get_children()
     {
@@ -90,7 +81,7 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
 
     std::string_view name;
 
-    Function(Token token,
+    Function(Local_Source_Span pos,
              std::string_view name,
              Handle parameters,
              Handle return_type,
@@ -121,7 +112,7 @@ struct Parameter_List final : detail::Node_Base {
 
     std::pmr::vector<Handle> parameters;
 
-    Parameter_List(Token token, std::pmr::vector<Handle>&& parameters);
+    Parameter_List(Local_Source_Span pos, std::pmr::vector<Handle>&& parameters);
 
     std::span<Handle> get_children()
     {
@@ -140,7 +131,7 @@ struct Parameter final : detail::Node_Base, detail::Parent<1> {
 
     std::string_view name;
 
-    Parameter(Token token, std::string_view name, Handle type);
+    Parameter(Local_Source_Span pos, std::string_view name, Handle type);
 
     Handle get_type() const
     {
@@ -155,7 +146,7 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
 
     Type_Type type;
 
-    Type(Token token, Type_Type type, Handle width);
+    Type(Local_Source_Span pos, Type_Type type, Handle width);
 
     Handle get_width() const
     {
@@ -170,7 +161,7 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 
     std::string_view name;
 
-    Const(Token token, std::string_view name, Handle type, Handle initializer);
+    Const(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer);
 
     Handle get_type() const
     {
@@ -189,7 +180,7 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 
     std::string_view name;
 
-    Let(Token token, std::string_view name, Handle type, Handle initializer);
+    Let(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer);
 
     Handle get_type() const
     {
@@ -206,7 +197,7 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Static_Assert(Token token, Handle expression);
+    Static_Assert(Local_Source_Span pos, Handle expression);
 
     Handle get_expression() const
     {
@@ -223,7 +214,7 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
         "else_block",
     };
 
-    If_Statement(Token token, Handle condition, Handle if_block, Handle else_block);
+    If_Statement(Local_Source_Span pos, Handle condition, Handle if_block, Handle else_block);
 
     Handle get_condition() const
     {
@@ -244,7 +235,7 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
-    While_Statement(Token token, Handle condition, Handle block);
+    While_Statement(Local_Source_Span pos, Handle condition, Handle block);
 
     Handle get_condition() const
     {
@@ -260,14 +251,14 @@ struct Break final : detail::Node_Base, detail::Parent<0> {
     using AST_Node = ast::Break;
     static inline constexpr std::string_view self_name = "Break";
 
-    Break(Token token);
+    Break(Local_Source_Span pos);
 };
 
 struct Continue final : detail::Node_Base, detail::Parent<0> {
     using AST_Node = ast::Continue;
     static inline constexpr std::string_view self_name = "Continue";
 
-    Continue(Token token);
+    Continue(Local_Source_Span pos);
 };
 
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
@@ -275,7 +266,7 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Return_Statement(Token token, Handle expression);
+    Return_Statement(Local_Source_Span pos, Handle expression);
 
     Handle get_expression() const
     {
@@ -290,7 +281,7 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 
     std::string_view name;
 
-    Assignment(Token token, std::string_view name, Handle expression);
+    Assignment(Local_Source_Span pos, std::string_view name, Handle expression);
 
     Handle get_expression() const
     {
@@ -304,7 +295,7 @@ struct Block_Statement final : detail::Node_Base {
 
     std::pmr::vector<Handle> statements;
 
-    Block_Statement(Token token, std::pmr::vector<Handle>&& statements);
+    Block_Statement(Local_Source_Span pos, std::pmr::vector<Handle>&& statements);
 
     std::span<Handle> get_children()
     {
@@ -321,7 +312,7 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
-    If_Expression(Token token, Handle left, Handle condition, Handle right);
+    If_Expression(Local_Source_Span pos, Handle left, Handle condition, Handle right);
 
     Handle get_left() const
     {
@@ -344,7 +335,7 @@ struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
 
     Token_Type op;
 
-    Binary_Expression(Token token, Handle left, Handle right, Token_Type op);
+    Binary_Expression(Local_Source_Span pos, Handle left, Handle right, Token_Type op);
 
     Handle get_left() const
     {
@@ -363,7 +354,7 @@ struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
 
     Token_Type op;
 
-    Prefix_Expression(Token token, Token_Type opm, Handle operand);
+    Prefix_Expression(Local_Source_Span pos, Token_Type opm, Handle operand);
 
     Handle get_expression() const
     {
@@ -379,7 +370,7 @@ struct Function_Call_Expression final : detail::Node_Base {
     std::pmr::vector<Handle> arguments;
     bool is_statement;
 
-    Function_Call_Expression(Token token,
+    Function_Call_Expression(Local_Source_Span pos,
                              std::string_view function,
                              std::pmr::vector<Handle>&& arguments,
                              bool is_statement = false);
@@ -400,7 +391,7 @@ struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
 
     std::string_view identifier;
 
-    Id_Expression(Token token, std::string_view identifier);
+    Id_Expression(Local_Source_Span pos, std::string_view identifier);
 };
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
@@ -410,7 +401,7 @@ struct Literal final : detail::Node_Base, detail::Parent<0> {
     std::string_view literal;
     Token_Type type;
 
-    Literal(Token token, std::string_view literal, Token_Type type);
+    Literal(Local_Source_Span pos, std::string_view literal, Token_Type type);
 };
 
 using Some_Node = std::variant<Program,
@@ -435,9 +426,9 @@ using Some_Node = std::variant<Program,
                                Id_Expression,
                                Literal>;
 
-inline Token get_token(const Some_Node& node)
+inline Local_Source_Span get_source_position(const Some_Node& node)
 {
-    return fast_visit([](const detail::Node_Base& n) { return n.token; }, node);
+    return fast_visit([](const detail::Node_Base& n) -> const auto& { return n; }, node).pos;
 }
 
 inline std::string_view get_node_name(const Some_Node& node)

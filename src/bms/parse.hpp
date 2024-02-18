@@ -55,6 +55,11 @@ struct Parsed_Program {
         nodes.push_back(std::move(node));
         return result;
     }
+
+    [[nodiscard]] std::string_view extract(const Local_Source_Span& span) const
+    {
+        return source.substr(span.begin, span.length);
+    }
 };
 
 struct Parse_Error {
