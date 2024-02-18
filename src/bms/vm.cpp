@@ -11,6 +11,7 @@
 
 namespace bit_manipulation::bms {
 
+// TODO: const-correctness
 template <>
 Result<void, Execution_Error> Virtual_Machine::cycle(ins::Load& load)
 {
@@ -24,14 +25,6 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Load& load)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Push& push)
-{
-    m_stack.push_back(push.value);
-    ++m_instruction_counter;
-    return {};
-}
-
-template <>
 Result<void, Execution_Error> Virtual_Machine::cycle(ins::Store& store)
 {
     if (m_stack.empty()) {
@@ -40,6 +33,25 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Store& store)
     Concrete_Value value = m_stack.back();
     m_stack.pop_back();
     m_function_frame_stack.assign(store.target, value);
+    ++m_instruction_counter;
+    return {};
+}
+
+template <>
+Result<void, Execution_Error> Virtual_Machine::cycle(ins::Push& push)
+{
+    m_stack.push_back(push.value);
+    ++m_instruction_counter;
+    return {};
+}
+
+template <>
+Result<void, Execution_Error> Virtual_Machine::cycle(ins::Pop& pop)
+{
+    if (m_stack.empty()) {
+        return Execution_Error { pop.debug_info, Execution_Error_Code::pop };
+    }
+    m_stack.pop_back();
     ++m_instruction_counter;
     return {};
 }
@@ -137,16 +149,42 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Call& call)
     return {};
 }
 
+template <>
+Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
+{
+    const Size params = builtin_parameter_count(call.function);
+    if (params > m_stack.size()) {
+        return Execution_Error { call.debug_info, Execution_Error_Code::pop };
+    }
+    const Result<Concrete_Value, Evaluation_Error_Code> result = evaluate_builtin_function(
+        call.function, std::span { m_stack.end() - params, m_stack.end() });
+    if (!result) {
+        return Execution_Error { call.debug_info, result.error() };
+    }
+    m_stack.resize(m_stack.size() - params);
+    m_stack.push_back(*result);
+    ++m_instruction_counter;
+    return {};
+}
+
 Result<void, Execution_Error> Virtual_Machine::cycle() noexcept
 {
-    Instruction next = m_instructions.at(m_instruction_counter);
+    const auto counter = m_instruction_counter;
+    Instruction next = m_instructions.at(counter);
     return fast_visit(
-        [this]<typename T>(T& i) -> Result<void, Execution_Error> {
+        [this, counter]<typename T>(T& i) -> Result<void, Execution_Error> {
             if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                 return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };
             }
             else {
-                return cycle(i);
+                auto result = cycle(i);
+                if (!result) {
+                    return result;
+                }
+                if (counter == m_instruction_counter) {
+                    return Execution_Error { i.debug_info, Execution_Error_Code::infinite_loop };
+                }
+                return result;
             }
         },
         next);

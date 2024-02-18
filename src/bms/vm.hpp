@@ -21,6 +21,7 @@ enum struct Execution_Error_Code : Default_Underlying {
     jump_if_not_bool,
     symbolic_jump,
     call_out_of_program,
+    infinite_loop,
 };
 
 struct Execution_Error {
