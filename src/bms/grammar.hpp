@@ -26,6 +26,7 @@ enum struct Grammar_Rule : Default_Underlying {
           | const_declaration
           | static_assertion
           | assignment_statement
+          | function_call_statement
           | break_statement
           | continue_statement
           | return_statement
@@ -33,6 +34,7 @@ enum struct Grammar_Rule : Default_Underlying {
           | while_statement
           | block_statement */
     assignment_statement, // assignment, ";"
+    function_call_statement, // function_call_expression, ";"
     assignment, // identifier, "=", expression
     break_statement, // "break", ";"
     continue_statement, // "continue", ";"

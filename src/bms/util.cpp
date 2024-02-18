@@ -400,6 +400,7 @@ namespace bit_manipulation::bms {
     case static_assertion: return "static_assertion";
     case statement: return "statement";
     case assignment_statement: return "assignment_statement";
+    case function_call_statement: return "function_call_statement";
     case assignment: return "assignment";
     case break_statement: return "break_statement";
     case continue_statement: return "continue_statement";
