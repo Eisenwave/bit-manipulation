@@ -503,7 +503,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
     if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error_Code::type_error;
     }
-    if (!value.int_value) {
+    if (value.is_unknown()) {
         return value;
     }
     return result_from_concrete(evaluate_unary_operator(op, value.concrete_value()));
@@ -527,11 +527,11 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept
     // Even if we don't know the values of both operands, there are certain operations which are
     // illegal no matter what the other operand is, such as division by zero.
     if (rhs) {
-        if ((op == Token_Type::division || op == Token_Type::remainder) && *rhs.int_value == 0) {
+        if ((op == Token_Type::division || op == Token_Type::remainder) && rhs.as_int() == 0) {
             return Evaluation_Error_Code::division_by_zero;
         }
         if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
-            && (*rhs.int_value < 0 || *rhs.int_value >= lhs.type.width())) {
+            && (rhs.as_int() < 0 || rhs.as_int() >= lhs.type.width())) {
             return Evaluation_Error_Code::shift_too_much;
         }
     }
@@ -547,10 +547,10 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    if (!condition.int_value) {
+    if (condition.is_unknown()) {
         return Value::unknown_of_type(*type_result);
     }
-    const auto [result, lossy] = (*condition.int_value ? lhs : rhs).convert_to(*type_result);
+    const auto [result, lossy] = (condition.as_bool() ? lhs : rhs).convert_to(*type_result);
     if (lossy) {
         return Evaluation_Error_Code::int_to_uint_range_error;
     }

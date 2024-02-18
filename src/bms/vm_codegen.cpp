@@ -262,7 +262,7 @@ private:
                                                const ast::If_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (node.const_value()->int_value) {
+        if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
             return {};
         }
@@ -305,7 +305,7 @@ private:
                                                const ast::Binary_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (node.const_value()->int_value) {
+        if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
             return {};
         }
@@ -366,7 +366,7 @@ private:
                                                const ast::Prefix_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (node.const_value()->int_value) {
+        if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
             return {};
         }
@@ -383,7 +383,7 @@ private:
                                                const ast::Function_Call_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (node.const_value()->int_value) {
+        if (node.const_value()->is_known()) {
             if (!node.is_statement()) {
                 out.push_back({ ins::Push { { h }, node.const_value()->concrete_value() } });
             }
@@ -422,7 +422,7 @@ private:
                                                const ast::Id_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        auto instruction = node.const_value()->int_value
+        auto instruction = node.const_value()->is_known()
             ? Instruction { ins::Push { { h }, node.const_value()->concrete_value() } }
             : Instruction { ins::Load { { h }, node.lookup_result } };
         out.push_back(instruction);
@@ -432,7 +432,7 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Literal& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        BIT_MANIPULATION_ASSERT(node.const_value()->int_value);
+        BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
 
         out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
         return {};

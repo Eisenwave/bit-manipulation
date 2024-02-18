@@ -303,13 +303,13 @@ private:
                     return r;
                 }
                 node.const_value() = expr_const_value;
-                BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->int_value);
+                BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
                 if (node.const_value()->type != Concrete_Type::Bool) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool, handle,
                                             node.get_requires_clause() };
                 }
-                if (node.const_value()->int_value != 1) {
+                if (!node.const_value()->as_bool()) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_satisfied,
                                             handle, node.get_requires_clause() };
                 }
@@ -387,7 +387,7 @@ private:
         if (!width->type.is_integer()) {
             return Analysis_Error { Analysis_Error_Code::width_not_integer, node.get_width() };
         }
-        const Big_Int folded_width = width->int_value.value();
+        const Big_Int folded_width = width->as_int();
         if (folded_width == 0) {
             return Analysis_Error { Analysis_Error_Code::width_zero, node.get_width() };
         }
@@ -419,7 +419,7 @@ private:
                 return r;
             }
             node.const_value() = get_const_value(*node.get_initializer());
-            BIT_MANIPULATION_ASSERT(node.const_value()->int_value);
+            BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
 
@@ -506,7 +506,7 @@ private:
     {
         // Static assertions never need to be checked twice.
         if (node.const_value()) {
-            BIT_MANIPULATION_ASSERT(node.const_value()->int_value);
+            BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
         auto expression_result = analyze_types(node.get_expression(), Analysis_Level::deep,
@@ -515,13 +515,13 @@ private:
             return expression_result;
         }
         node.const_value() = get_const_value(*node.get_expression());
-        BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->int_value);
+        BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
         if (node.const_value()->type != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::static_assert_expression_not_bool, handle,
                                     node.get_expression() };
         }
-        if (node.const_value()->int_value != 1) {
+        if (!node.const_value()->as_bool()) {
             if (const auto* const comparison
                 = std::get_if<ast::Binary_Expression>(node.get_expression());
                 comparison && is_comparison_operator(comparison->get_op())) {
@@ -700,7 +700,7 @@ private:
         // If we analyzed it as a constant expression, we would require a value from it, and
         // e.g. `1 if true else 0 / 0` would fail, even though it is valid and meant to select `1`.
         if (context == Expression_Context::constant) {
-            const bool evaluate_left = condition_value->int_value.value();
+            const bool evaluate_left = condition_value->as_bool();
             (evaluate_left ? right_context : left_context) = Expression_Context::normal;
         }
 
@@ -758,9 +758,9 @@ private:
                 }
                 // This was analyzed as a constant expression, so a concrete value must have
                 // emerged.
-                BIT_MANIPULATION_ASSERT(left_value->int_value.has_value());
+                BIT_MANIPULATION_ASSERT(left_value->is_known());
                 const bool circuit_breaker = node.get_op() == Token_Type::logical_or;
-                if (*left_value->int_value == circuit_breaker) {
+                if (left_value->as_bool() == circuit_breaker) {
                     context = Expression_Context::normal;
                 }
             }
@@ -1071,7 +1071,7 @@ private:
     {
         // Literals never need to be analyzed twice.
         if (node.const_value()) {
-            BIT_MANIPULATION_ASSERT(node.const_value()->int_value);
+            BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
         switch (node.token().type) {

@@ -16,7 +16,9 @@ namespace bit_manipulation::bms {
 /// Unlike `Concrete_Value`, its `int_value` is optional, although its type is always known.
 struct Value {
     Concrete_Type type;
-    std::optional<Big_Int> int_value;
+
+private:
+    std::optional<Big_Int> m_int_value;
 
 public:
     static const Value Void, True, False;
@@ -33,25 +35,25 @@ public:
 private:
     constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
         : type(type)
-        , int_value(value)
+        , m_int_value(value)
     {
     }
 
 public:
     constexpr Value(Concrete_Value value)
         : type(value.type)
-        , int_value(value.int_value)
+        , m_int_value(value.int_value)
     {
     }
 
     explicit constexpr operator bool() const noexcept
     {
-        return int_value.has_value();
+        return m_int_value.has_value();
     }
 
     constexpr bool is_known() const noexcept
     {
-        return int_value.has_value();
+        return m_int_value.has_value();
     }
 
     constexpr bool is_unknown() const noexcept
@@ -63,8 +65,8 @@ public:
         requires std::convertible_to<std::invoke_result_t<F, Big_Int>, Big_Int>
     constexpr Value and_then(F f) const
     {
-        if (int_value) {
-            return Value { type, f(*int_value) };
+        if (m_int_value) {
+            return Value { type, f(*m_int_value) };
         }
         return *this;
     }
@@ -73,9 +75,9 @@ public:
         requires std::convertible_to<std::invoke_result_t<F, Big_Uint>, Big_Uint>
     constexpr Value and_then_uint(F f) const
     {
-        if (int_value) {
+        if (m_int_value) {
             const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
-            return Value { type, Big_Int(Big_Uint(f(Big_Uint(*int_value))) & mask) };
+            return Value { type, Big_Int(Big_Uint(f(Big_Uint(*m_int_value))) & mask) };
         }
         return *this;
     }
@@ -84,9 +86,40 @@ public:
 
     constexpr Conversion_Result convert_to(Concrete_Type other) const;
 
+    /// @brief Returns the concrete value that this value represents.
+    /// @throws Throws if `is_unknown()`.
+    /// @return A `Concrete_Value`.
     constexpr Concrete_Value concrete_value() const
     {
-        return Concrete_Value { type, int_value.value() };
+        BIT_MANIPULATION_ASSERT(is_known());
+        return Concrete_Value { type, *m_int_value };
+    }
+
+    /// @brief Returns the concrete boolean value that this value represents.
+    /// @throws Throws if `is_unknown() || type != Concrete_Type::Bool`.
+    /// @return A `bool`.
+    constexpr bool as_bool() const
+    {
+        BIT_MANIPULATION_ASSERT(is_known() && type == Concrete_Type::Bool);
+        return bool(*m_int_value);
+    }
+
+    /// @brief Returns the concrete integer value that this value represents.
+    /// @throws Throws if `is_unknown() || type != Concrete_Type::Int`.
+    /// @return A `Big_Int`.
+    constexpr Big_Int as_int() const
+    {
+        BIT_MANIPULATION_ASSERT(is_known() && type == Concrete_Type::Int);
+        return *m_int_value;
+    }
+
+    /// @brief Returns the concrete unsigned integer value that this value represents.
+    /// @throws Throws if `is_unknown() || !type.is_uint()`.
+    /// @return A `Big_Int`.
+    constexpr Big_Uint as_uint() const
+    {
+        BIT_MANIPULATION_ASSERT(is_known() && type.is_uint());
+        return static_cast<Big_Uint>(*m_int_value);
     }
 };
 
@@ -108,11 +141,11 @@ constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
         return { *this, false };
     }
     else if (other.is_uint()) {
-        if (!int_value) {
+        if (!m_int_value) {
             return { Value { other }, false };
         }
-        const bool lossy = !other.can_represent(*int_value);
-        return { Value { other, *int_value }, lossy };
+        const bool lossy = !other.can_represent(*m_int_value);
+        return { Value { other, *m_int_value }, lossy };
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible conversion requested.");
 }
