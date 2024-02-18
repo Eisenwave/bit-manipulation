@@ -601,6 +601,16 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        if (!node.get_expression()) {
+            BIT_MANIPULATION_ASSERT(return_info);
+            if (return_info->type != Concrete_Type::Void) {
+                return Analysis_Error { Analysis_Error_Code::empty_return_in_non_void_function,
+                                        handle, return_info->handle };
+            }
+            node.const_value() = Concrete_Value::Void;
+            return {};
+        }
+
         if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
         }
