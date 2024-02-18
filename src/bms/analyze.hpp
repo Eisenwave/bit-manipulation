@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "bms/analysis_error.hpp"
-#include "bms/ast.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 
@@ -56,19 +55,12 @@ public:
         return &m_memory_resource;
     }
 
-    template <std::derived_from<ast::detail::Node_Base> T, typename... Args>
-    [[nodiscard]] ast::Some_Node* emplace(Args&&... args)
-    {
-        void* storage = m_memory_resource.allocate(sizeof(ast::Some_Node), alignof(ast::Some_Node));
-        try {
-            auto* result = new (storage) ast::Some_Node(T(std::forward<Args>(args)...));
-            m_nodes.push_back(result);
-            return result;
-        } catch (...) {
-            m_memory_resource.deallocate(storage, sizeof(ast::Some_Node), alignof(ast::Some_Node));
-            throw;
-        }
-    }
+    [[nodiscard]] ast::Some_Node* insert(const ast::Some_Node&);
+    [[nodiscard]] ast::Some_Node* insert(ast::Some_Node&&);
+
+private:
+    template <typename T, typename... Args>
+    [[nodiscard]] ast::Some_Node* emplace(Args&&... args);
 
 private:
     [[nodiscard]] ast::Some_Node* from_parser_node(astp::Handle, const Parsed_Program&);

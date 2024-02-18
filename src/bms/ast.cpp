@@ -18,6 +18,30 @@ Function::Function(const Function& other, Copy_for_Instantiation_Tag)
 
 } // namespace ast
 
+template <typename T, typename... Args>
+[[nodiscard]] ast::Some_Node* Analyzed_Program::emplace(Args&&... args)
+{
+    void* storage = m_memory_resource.allocate(sizeof(ast::Some_Node), alignof(ast::Some_Node));
+    try {
+        auto* result = new (storage) ast::Some_Node(T(std::forward<Args>(args)...));
+        m_nodes.push_back(result);
+        return result;
+    } catch (...) {
+        m_memory_resource.deallocate(storage, sizeof(ast::Some_Node), alignof(ast::Some_Node));
+        throw;
+    }
+}
+
+[[nodiscard]] ast::Some_Node* Analyzed_Program::insert(const ast::Some_Node& node)
+{
+    return emplace<ast::Some_Node>(node);
+}
+
+[[nodiscard]] ast::Some_Node* Analyzed_Program::insert(ast::Some_Node&& node)
+{
+    return emplace<ast::Some_Node>(node);
+}
+
 ast::Some_Node* Analyzed_Program::from_parser_node(astp::Handle handle,
                                                    const Parsed_Program& parsed)
 {

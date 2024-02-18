@@ -8,6 +8,7 @@
 #include "bms/parse_number.hpp"
 #include "bms/vm.hpp"
 #include "bms/vm_codegen.hpp"
+#include "vm_instructions.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -178,10 +179,10 @@ private:
         return fast_visit(
             [this]<typename T>(const T& n) {
                 if constexpr (requires { n.copy_for_instantiation(); }) {
-                    return m_program.emplace<T>(n.copy_for_instantiation());
+                    return m_program.insert(n.copy_for_instantiation());
                 }
                 else {
-                    return m_program.emplace<T>(n);
+                    return m_program.insert(n);
                 }
             },
             *h);

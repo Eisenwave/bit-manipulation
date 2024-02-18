@@ -85,6 +85,7 @@ struct Parsed_Program;
 struct Analyzed_Program;
 
 struct Token;
+struct Instruction;
 
 struct Local_Source_Position;
 struct Local_Source_Span;
