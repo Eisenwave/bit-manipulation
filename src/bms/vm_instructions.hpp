@@ -23,15 +23,18 @@ struct Load : detail::Base {
     ast::Some_Node* source;
 };
 
+/// @brief Pops a value off the stack and stores it in `target`.
+struct Store : detail::Base {
+    ast::Some_Node* target;
+};
+
 /// @brief Pushes `value` onto the stack.
 struct Push : detail::Base {
     Concrete_Value value;
 };
 
-/// @brief Pops a value off the stack and stores it in `target`.
-struct Store : detail::Base {
-    ast::Some_Node* target;
-};
+/// @brief Pops a value off the stack and discards it.
+struct Pop : detail::Base { };
 
 /// @brief Jumps to the local instruction at index `current + offset + 1`.
 /// At `offset == 0`, this is a no-op instruction.
@@ -73,11 +76,17 @@ struct Call : detail::Base {
     Size address;
 };
 
+/// @brief Pops the required parameters off the stack and calls the builtin function.
+struct Builtin_Call : detail::Base {
+    Builtin_Function function;
+};
+
 } // namespace ins
 
 using Instruction = std::variant<ins::Load,
-                                 ins::Push,
                                  ins::Store,
+                                 ins::Push,
+                                 ins::Pop,
                                  ins::Relative_Jump,
                                  ins::Relative_Jump_If,
                                  ins::Break,
@@ -85,7 +94,8 @@ using Instruction = std::variant<ins::Load,
                                  ins::Return,
                                  ins::Unary_Operate,
                                  ins::Binary_Operate,
-                                 ins::Call>;
+                                 ins::Call,
+                                 ins::Builtin_Call>;
 
 // A plain union is possible and relatively safe here because all instructions are trivially
 // copyable and implicit-lifetime types.
