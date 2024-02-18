@@ -70,6 +70,12 @@ enum struct Builtin_Function : Default_Underlying {
 
 // Type-only evaluations.
 
+/// @brief Returns the common type between two types, or `std::nullopt` if there is none.
+/// @param lhs the left type
+/// @param rhs the right ype
+/// @return The common type or `std::nullopt`.
+[[nodiscard]] std::optional<Concrete_Type> get_common_type(Concrete_Type lhs, Concrete_Type rhs);
+
 [[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_unary_operator(Token_Type op,
                                                                           Concrete_Type value);
 

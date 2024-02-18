@@ -6,24 +6,21 @@
 
 namespace bit_manipulation::bms {
 
-namespace {
-
-[[nodiscard]] bool convert_to_equal_type(Concrete_Type& lhs, Concrete_Type& rhs)
+[[nodiscard]] std::optional<Concrete_Type> get_common_type(Concrete_Type lhs, Concrete_Type rhs)
 {
     if (lhs == rhs) {
-        return true;
+        return lhs;
     }
     if (lhs.type() == Type_Type::Int && rhs.type() == Type_Type::Uint) {
-        lhs = rhs;
-        return true;
+        return rhs;
     }
     else if (lhs.type() == Type_Type::Uint && rhs.type() == Type_Type::Int) {
-        rhs = lhs;
-        return true;
+        return lhs;
     }
-
-    return false;
+    return std::nullopt;
 }
+
+namespace {
 
 Concrete_Type get_type(const Concrete_Value& v)
 {
@@ -38,22 +35,20 @@ Concrete_Type get_type(const Value& v)
 template <typename T>
 [[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
-    Concrete_Type lhs_type = get_type(lhs);
-    Concrete_Type rhs_type = get_type(rhs);
-
-    if (!convert_to_equal_type(lhs_type, rhs_type)) {
+    const std::optional<Concrete_Type> common = get_common_type(get_type(lhs), get_type(rhs));
+    if (!common) {
         return Evaluation_Error_Code::type_error;
     }
 
-    if (auto [converted, lossy] = lhs.convert_to(lhs_type); !lossy) {
+    if (auto [converted, lossy] = lhs.convert_to(*common); !lossy) {
         lhs = converted;
     }
     else {
         return Evaluation_Error_Code::int_to_uint_range_error;
     }
 
-    if (auto [converted, lossy] = lhs.convert_to(rhs_type); !lossy) {
-        lhs = converted;
+    if (auto [converted, lossy] = rhs.convert_to(*common); !lossy) {
+        rhs = converted;
     }
     else {
         return Evaluation_Error_Code::int_to_uint_range_error;
@@ -205,11 +200,11 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
     if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
         return Type_Error_Code::void_operation;
     }
-    if (!convert_to_equal_type(lhs, rhs)) {
+    std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
+    if (!common) {
         return Type_Error_Code::incompatible_types;
     }
-
-    BIT_MANIPULATION_ASSERT(lhs == rhs);
+    lhs = rhs = *common;
 
     switch (lhs.type()) {
 
@@ -260,12 +255,11 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
     if (condition != Concrete_Type::Bool) {
         return Type_Error_Code::condition_not_bool;
     }
-    if (!convert_to_equal_type(lhs, rhs)) {
+    const std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
+    if (!common) {
         return Type_Error_Code::incompatible_types;
     }
-    BIT_MANIPULATION_ASSERT(lhs == rhs);
-
-    return lhs;
+    return *common;
 }
 
 [[nodiscard]] Result<Concrete_Type, Type_Error_Code>
