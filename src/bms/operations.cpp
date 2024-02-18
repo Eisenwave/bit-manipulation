@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <ranges>
+
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
@@ -68,6 +71,71 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error_Code> result)
     else {
         return result.error();
     }
+}
+
+template <typename Iter>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function_impl(Builtin_Function f, Iter begin, Iter end) noexcept
+{
+    static_assert(std::random_access_iterator<Iter>);
+    static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Type>);
+    if (builtin_parameter_count(f) != Size(end - begin)) {
+        return Type_Error_Code::wrong_number_of_arguments;
+    }
+    switch (f) {
+    case Builtin_Function::assert: {
+        if (begin[0] != Concrete_Type::Bool) {
+            return Type_Error_Code::wrong_argument_type;
+        }
+        return Concrete_Type::Void;
+    }
+    }
+
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function or fallthrough");
+}
+
+template <typename R>
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function_impl(Builtin_Function f, const R& args) noexcept
+{
+    static_assert(std::ranges::random_access_range<R>);
+    return check_builtin_function_impl(f, std::ranges::begin(args), std::ranges::end(args));
+}
+
+template <typename Iter>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end) noexcept
+{
+    static_assert(std::random_access_iterator<Iter>);
+    static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Value>);
+
+    const auto types
+        = std::ranges::subrange(begin, end) | std::views::transform(&Concrete_Value::type);
+
+    Result<Concrete_Type, Type_Error_Code> type_result = check_builtin_function_impl(f, types);
+    if (!type_result) {
+        return Evaluation_Error_Code::type_error;
+    }
+
+    switch (f) {
+    case Builtin_Function::assert: {
+        if (begin[0].int_value != 1) {
+            return Evaluation_Error_Code::assertion_fail;
+        }
+        return Concrete_Value::Void;
+    }
+    }
+
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function or fallthrough");
+}
+
+template <typename R>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args) noexcept
+{
+    static_assert(std::ranges::random_access_range<R>);
+    return unsafe_evaluate_builtin_function_impl(f, std::ranges::begin(args),
+                                                 std::ranges::end(args));
 }
 
 } // namespace
@@ -188,6 +256,26 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
     BIT_MANIPULATION_ASSERT(lhs == rhs);
 
     return lhs;
+}
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Concrete_Type> args) noexcept
+{
+    return check_builtin_function_impl(f, args);
+}
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args) noexcept
+{
+    return check_builtin_function_impl(
+        f, args | std::views::transform([](const Concrete_Value& v) { return v.type; }));
+}
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Value> args) noexcept
+{
+    return check_builtin_function_impl(
+        f, args | std::views::transform([](const Value& v) { return v.type; }));
 }
 
 // CONCRETE VALUE ==================================================================================
@@ -383,6 +471,16 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
     return result;
 }
 
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args) noexcept
+{
+    auto type_result = check_builtin_function(f, args);
+    if (!type_result) {
+        return Evaluation_Error_Code::type_error;
+    }
+    return unsafe_evaluate_builtin_function_impl(f, args);
+}
+
 // VALUE ===========================================================================================
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
@@ -457,6 +555,24 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept
         return Evaluation_Error_Code::int_to_uint_range_error;
     }
     return result;
+}
+
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
+evaluate_builtin_function(Builtin_Function f, std::span<const Value> args) noexcept
+{
+    auto type_result = check_builtin_function(f, args);
+    if (!type_result) {
+        return Evaluation_Error_Code::type_error;
+    }
+    if (std::ranges::any_of(args, &Value::is_unknown)) {
+        return Value::unknown_of_type(*type_result);
+    }
+    auto eval_result = unsafe_evaluate_builtin_function_impl(
+        f, args | std::views::transform(&Value::concrete_value));
+    if (!eval_result) {
+        return eval_result.error();
+    }
+    return Value { *eval_result };
 }
 
 } // namespace bit_manipulation::bms

@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_BMS_OPERATIONS_HPP
 #define BIT_MANIPULATION_BMS_OPERATIONS_HPP
 
+#include <span>
+
 #include "result.hpp"
 
 #include "bms/fwd.hpp"
@@ -17,6 +19,8 @@ enum struct Evaluation_Error_Code : Default_Underlying {
     division_by_zero,
     /// @brief Shift by operand size or more.
     shift_too_much,
+    /// @brief An assertion failed.
+    assertion_fail,
 };
 
 enum struct Type_Error_Code : Default_Underlying {
@@ -44,7 +48,25 @@ enum struct Type_Error_Code : Default_Underlying {
     incompatible_widths,
     /// @brief The condition of an if expression is not a `Bool`.
     condition_not_bool,
+    /// @brief Wrong number of arguments.
+    wrong_number_of_arguments,
+    /// @brief Wrong argument type for builtin function call.
+    wrong_argument_type,
 };
+
+enum struct Builtin_Function : Default_Underlying {
+    // `fn assert(cond: Bool) -> Void`
+    assert
+};
+
+[[nodiscard]] constexpr Size builtin_parameter_count(Builtin_Function f)
+{
+    using enum Builtin_Function;
+    switch (f) {
+    case assert: return 1;
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
+    }
+}
 
 // Type-only evaluations.
 
@@ -56,6 +78,15 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs) noexc
 
 [[nodiscard]] Result<Concrete_Type, Type_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs) noexcept;
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Concrete_Type> args) noexcept;
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args) noexcept;
+
+[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+check_builtin_function(Builtin_Function f, std::span<const Value> args) noexcept;
 
 // Concrete evaluations.
 
@@ -71,6 +102,9 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs) 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs) noexcept;
 
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args) noexcept;
+
 // Evaluations.
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
@@ -84,6 +118,9 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs) noexcept;
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_if_expression(Value lhs, Value condition, Value rhs) noexcept;
+
+[[nodiscard]] Result<Value, Evaluation_Error_Code>
+evaluate_builtin_function(Builtin_Function f, std::span<const Value> args) noexcept;
 
 } // namespace bit_manipulation::bms
 
