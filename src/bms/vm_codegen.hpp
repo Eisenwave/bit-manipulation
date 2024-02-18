@@ -12,8 +12,7 @@
 namespace bit_manipulation::bms {
 
 Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
-                                           Analyzed_Program& program,
-                                           ast::Function& function);
+                                           const ast::Function& function);
 
 }
 
