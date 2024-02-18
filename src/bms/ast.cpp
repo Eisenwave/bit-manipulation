@@ -29,11 +29,11 @@ ast::Some_Node* Analyzed_Program::from_parser_node(astp::Handle handle,
 
     const auto child_from_parsed = [this]<typename T>(const T& n) {
         using Result = typename T::AST_Node;
-        if constexpr (requires { Result(n, &m_memory_resource); }) {
-            return emplace<Result>(n, &m_memory_resource);
+        if constexpr (requires { Result(n, m_file_name, &m_memory_resource); }) {
+            return emplace<Result>(n, m_file_name, &m_memory_resource);
         }
         else {
-            return emplace<Result>(n);
+            return emplace<Result>(n, m_file_name);
         }
     };
 
@@ -48,8 +48,11 @@ ast::Some_Node* Analyzed_Program::from_parser_node(astp::Handle handle,
         parsed.get_node(handle));
 }
 
-Analyzed_Program::Analyzed_Program(const Parsed_Program& program, std::pmr::memory_resource* memory)
+Analyzed_Program::Analyzed_Program(const Parsed_Program& program,
+                                   std::string_view file_name,
+                                   std::pmr::memory_resource* memory)
     : m_source(program.source)
+    , m_file_name(file_name)
     , m_memory_resource(memory)
     , m_nodes(memory)
 {

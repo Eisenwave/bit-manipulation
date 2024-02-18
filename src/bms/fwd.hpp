@@ -98,15 +98,15 @@ struct Local_Source_Position {
 };
 
 /// Represents the location of a file, combined with the position within that file.
-struct Source_Position {
+struct Source_Position : Local_Source_Position {
     /// File name.
     std::string_view file_name;
-    /// Line number.
-    Size line;
-    /// Column number.
-    Size column;
-    /// First index in the source file that is part of the syntactical element.
-    Size begin;
+
+    Source_Position(Local_Source_Position local, std::string_view file)
+        : Local_Source_Position(local)
+        , file_name(file)
+    {
+    }
 
     friend constexpr auto operator<=>(Source_Position, Source_Position) = default;
 };

@@ -48,8 +48,7 @@ struct Printable_Comparison {
 
 struct Error_Line {
     Error_Line_Type type;
-    std::string_view file;
-    bms::Local_Source_Position pos;
+    std::optional<bms::Source_Position> pos;
     std::string message;
     std::optional<Printable_Comparison> comp {};
 };
@@ -278,13 +277,18 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
         && std::holds_alternative<bms::ast::Return_Statement>(*error.fail);
 }
 
-[[nodiscard]] Printable_Error make_error_printable(std::string_view file,
-                                                   const bms::Parsed_Program& program,
+[[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
                                                    const bms::Analysis_Error& error)
 {
     Printable_Error result { program.source };
 
-    const auto fail_token = get_token(*error.fail);
+    const auto fail_pos = get_source_position(*error.fail);
+    const auto cause_pos = [&]() -> std::optional<bms::Source_Position> {
+        if (error.cause) {
+            return get_source_position(*error.cause);
+        }
+        return {};
+    }();
 
     if (is_incompatible_return_type_error(error)) {
         BIT_MANIPULATION_ASSERT(error.cause);
@@ -292,11 +296,11 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
             = std::get<bms::ast::Type>(*error.cause).get_type() == bms::Type_Type::Void;
 
         result.lines.push_back(
-            { Error_Line_Type::error, file, fail_token.pos,
+            { Error_Line_Type::error, fail_pos,
               is_void ? "Cannot have non-empty return statement in a function returning Void."
                       : "Invalid conversion between return statement and return type." });
         result.lines.push_back(
-            { Error_Line_Type::note, file, get_token(*error.cause).pos,
+            { Error_Line_Type::note, fail_pos,
               is_void ? "Did you mean to 'return;' or declare the return type 'Void'?"
                       : "Return type is declared here:" });
         return result;
@@ -309,33 +313,28 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
                                                                    : to_prose(error.code);
     // clang-format on
 
-    result.lines.push_back(
-        { Error_Line_Type::error, file, fail_token.pos, std::string(error_prose) });
+    result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
 
     if (error.code == bms::Analysis_Error_Code::execution_error) {
-        result.lines.push_back({ Error_Line_Type::note, file, fail_token.pos,
-                                 std::string(to_prose(error.execution_error)) });
+        result.lines.push_back(
+            { Error_Line_Type::note, fail_pos, std::string(to_prose(error.execution_error)) });
     }
 
     if (error.comparison_failure) {
-        const auto cause_token = get_token(*error.cause);
         result.lines.push_back(
-            { Error_Line_Type::note, file, cause_token.pos, "Comparison evaluated to ",
+            { Error_Line_Type::note, cause_pos, "Comparison evaluated to ",
               Printable_Comparison { to_string(error.comparison_failure->left),
                                      to_string(error.comparison_failure->right),
                                      token_type_code_name(error.comparison_failure->op) } });
     }
     else if (error.cause != nullptr) {
-        const auto cause_token = get_token(*error.cause);
-
         if (error.code == bms::Analysis_Error_Code::evaluation_error) {
             auto message = "Caused by: " + std::string(to_prose(error.evaluation_error));
-            result.lines.push_back(
-                { Error_Line_Type::note, file, cause_token.pos, std::move(message) });
+            result.lines.push_back({ Error_Line_Type::note, cause_pos, std::move(message) });
         }
         else {
-            result.lines.push_back({ Error_Line_Type::note, file, cause_token.pos,
-                                     std::string(cause_to_prose(error.code)) });
+            result.lines.push_back(
+                { Error_Line_Type::note, cause_pos, std::string(cause_to_prose(error.code)) });
         }
     }
 
@@ -343,12 +342,28 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     return result;
 }
 
+std::ostream& print_source_position(std::ostream& out,
+                                    const std::optional<bms::Source_Position>& pos)
+{
+    if (!pos) {
+        return out << ansi::black << "(internal)" << ansi::reset;
+    }
+    return print_file_position(out, pos->file_name, bms::Local_Source_Position { *pos });
+}
+
 } // namespace
+
+std::ostream&
+print_file_position(std::ostream& out, std::string_view file, const bms::Local_Source_Position& pos)
+{
+    return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
+               << ansi::reset;
+}
 
 std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error)
 {
     for (const Error_Line& line : error.lines) {
-        print_file_position(out, line.file, line.pos) << ": ";
+        print_source_position(out, line.pos) << ": ";
         switch (line.type) {
         case Error_Line_Type::error: out << error_prefix; break;
         case Error_Line_Type::note: out << note_prefix; break;
@@ -362,7 +377,9 @@ std::ostream& print_printable_error(std::ostream& out, const Printable_Error& er
         }
 
         out << '\n';
-        print_affected_line(out, error.source, line.pos);
+        if (line.pos) {
+            print_affected_line(out, error.source, *line.pos);
+        }
     }
 
     if (error.is_internal) {
@@ -389,15 +406,9 @@ std::ostream& print_location_of_file(std::ostream& out, std::string_view file)
     return out << ansi::black << file << ":" << ansi::reset;
 }
 
-std::ostream&
-print_file_position(std::ostream& out, std::string_view file, bms::Local_Source_Position pos)
-{
-    return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
-               << ansi::reset;
-}
-
-std::ostream&
-print_affected_line(std::ostream& out, std::string_view source, bms::Local_Source_Position pos)
+std::ostream& print_affected_line(std::ostream& out,
+                                  std::string_view source,
+                                  const bms::Local_Source_Position& pos)
 {
     constexpr std::string_view separator = " | ";
 
@@ -452,11 +463,10 @@ std::ostream& print_parse_error(std::ostream& out,
 }
 
 std::ostream& print_analysis_error(std::ostream& out,
-                                   std::string_view file,
                                    const bms::Parsed_Program& program,
                                    bms::Analysis_Error error)
 {
-    const auto printable = make_error_printable(file, program, error);
+    const auto printable = make_error_printable(program, error);
     return print_printable_error(out, printable);
 }
 

@@ -39,11 +39,13 @@ std::string_view find_line(std::string_view source, Size index);
 /// @return `out`
 std::ostream& print_location_of_file(std::ostream& out, std::string_view file);
 
-std::ostream&
-print_file_position(std::ostream& out, std::string_view file, bms::Local_Source_Position pos);
+std::ostream& print_file_position(std::ostream& out,
+                                  std::string_view file,
+                                  const bms::Local_Source_Position& pos);
 
-std::ostream&
-print_affected_line(std::ostream& out, std::string_view source, bms::Local_Source_Position pos);
+std::ostream& print_affected_line(std::ostream& out,
+                                  std::string_view source,
+                                  const bms::Local_Source_Position& pos);
 
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,
@@ -56,7 +58,6 @@ std::ostream& print_parse_error(std::ostream& out,
                                 bms::Parse_Error e);
 
 std::ostream& print_analysis_error(std::ostream& out,
-                                   std::string_view file,
                                    const bms::Parsed_Program& program,
                                    bms::Analysis_Error error);
 

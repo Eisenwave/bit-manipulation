@@ -75,7 +75,7 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 
     const Tokenized_File f = tokenize_file(file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(file, f, &memory_resource);
-    bms::Analyzed_Program a(p, &memory_resource);
+    bms::Analyzed_Program a(p, file, &memory_resource);
 
     Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);
     if (result) {
@@ -83,7 +83,7 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
         return 0;
     }
     else {
-        print_analysis_error(std::cout, file, p, result.error());
+        print_analysis_error(std::cout, p, result.error());
         return 1;
     }
 }

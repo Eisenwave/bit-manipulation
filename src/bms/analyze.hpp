@@ -16,12 +16,15 @@ namespace bit_manipulation::bms {
 struct Analyzed_Program {
 private:
     std::string_view m_source;
+    std::string_view m_file_name;
     ast::Some_Node* m_root = nullptr;
     std::pmr::monotonic_buffer_resource m_memory_resource;
     std::pmr::vector<ast::Some_Node*> m_nodes;
 
 public:
-    explicit Analyzed_Program(const Parsed_Program& program, std::pmr::memory_resource* memory);
+    explicit Analyzed_Program(const Parsed_Program& program,
+                              std::string_view file_name,
+                              std::pmr::memory_resource* memory);
 
     Analyzed_Program(const Analyzed_Program&) = delete;
     Analyzed_Program& operator=(const Analyzed_Program&) = delete;
@@ -33,17 +36,22 @@ public:
         }
     }
 
-    [[nodiscard]] std::string_view get_source() const noexcept
+    [[nodiscard]] std::string_view get_source() const
     {
         return m_source;
     }
 
-    [[nodiscard]] ast::Some_Node* get_root() const noexcept
+    [[nodiscard]] std::string_view get_file_name() const
+    {
+        return m_file_name;
+    }
+
+    [[nodiscard]] ast::Some_Node* get_root() const
     {
         return m_root;
     }
 
-    [[nodiscard]] std::pmr::memory_resource* get_memory_resource() noexcept
+    [[nodiscard]] std::pmr::memory_resource* get_memory_resource()
     {
         return &m_memory_resource;
     }
