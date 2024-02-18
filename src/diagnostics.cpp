@@ -19,14 +19,13 @@ std::string to_string(Uint128 x)
     /// The greatest power of 10 that fits into a 64-bit integer.
     constexpr Uint128 exp10_19 = 10000000000000000000ull;
 
-    return x <= std::uint64_t(-1)
-        ? std::to_string(static_cast<std::uint64_t>(x))
-        : to_string(x / exp10_19) + std::to_string(static_cast<std::uint64_t>(x % exp10_19));
+    return x <= std::uint64_t(-1) ? std::to_string(Uint64(x))
+                                  : to_string(x / exp10_19) + std::to_string(Uint64(x % exp10_19));
 }
 
 std::string to_string(Int128 x)
 {
-    return x >= 0 ? to_string(static_cast<Uint128>(x)) : '-' + to_string(-static_cast<Uint128>(x));
+    return x >= 0 ? to_string(Uint128(x)) : '-' + to_string(-Uint128(x));
 }
 
 std::string to_string(bms::Concrete_Value v)
@@ -35,7 +34,7 @@ std::string to_string(bms::Concrete_Value v)
     case bms::Type_Type::Void: return "Void";
     case bms::Type_Type::Bool: return v.int_value ? "true" : "false";
     case bms::Type_Type::Int: return to_string(v.int_value);
-    case bms::Type_Type::Uint: return to_string(static_cast<Big_Uint>(v.int_value));
+    case bms::Type_Type::Uint: return to_string(Big_Uint(v.int_value));
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
     }
 }
@@ -234,6 +233,7 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
     case parameter_in_constant_expression:
         return "The referenced entity is defined as a function parameter here:";
     case function_in_expression: return "The referenced entity is defined as a function here:";
+    case conversion_error: return "The following expression cannot be converted:";
     case condition_not_bool: return "The following expression must be of type 'Bool':";
     case assigning_parameter: return "The assigned parameter is defined here:";
     case assigning_function: return "The assigned function is defined here:";
