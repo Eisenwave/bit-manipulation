@@ -19,9 +19,14 @@ private:
     const Symbol_Table* m_parent = nullptr;
 
 public:
-    Symbol_Table(From_Parent_Tag, const Symbol_Table& parent)
-        : m_symbols(parent.m_symbols.get_allocator().resource())
+    Symbol_Table(From_Parent_Tag, const Symbol_Table& parent, std::pmr::memory_resource* memory)
+        : m_symbols(memory)
         , m_parent(&parent)
+    {
+    }
+
+    Symbol_Table(From_Parent_Tag, const Symbol_Table& parent)
+        : Symbol_Table(From_Parent_Tag {}, parent, parent.m_symbols.get_allocator().resource())
     {
     }
 
@@ -30,8 +35,17 @@ public:
     {
     }
 
+    explicit Symbol_Table(std::initializer_list<map_type::value_type> init,
+                          std::pmr::memory_resource* memory = std::pmr::get_default_resource())
+        : m_symbols(init, memory)
+    {
+    }
+
     Symbol_Table(const Symbol_Table&) = delete;
+    Symbol_Table(Symbol_Table&&) = default;
+
     Symbol_Table& operator=(const Symbol_Table&) = delete;
+    Symbol_Table& operator=(Symbol_Table&&) = default;
 
     std::variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
                                                               ast::Some_Node* node)
@@ -65,6 +79,12 @@ public:
     }
 };
 
+template <Builtin_Function F>
+ast::Some_Node builtin_function_node = ast::Builtin_Function(F);
+
+const Symbol_Table builtin_symbols { { "assert",
+                                       &builtin_function_node<Builtin_Function::assert> } };
+
 /// @brief Class responsible for performing name lookup.
 /// This involves detecting lookup of undefined variables, duplicate variables, and other name
 /// lookup mistakes.
@@ -75,7 +95,8 @@ struct Name_Lookup_Analyzer {
 private:
     Analyzed_Program& m_program;
     std::pmr::unsynchronized_pool_resource m_memory_resource;
-    Symbol_Table m_symbols { &m_memory_resource };
+    Symbol_Table m_symbols { Symbol_Table::From_Parent_Tag {}, builtin_symbols,
+                             &m_memory_resource };
     ast::Function* m_current_function = nullptr;
 
 public:
