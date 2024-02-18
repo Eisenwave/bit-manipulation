@@ -24,6 +24,7 @@ set(HEADERS
     src/bms/operations.hpp
     src/bms/parse_number.hpp
     src/bms/parse.hpp
+    src/bms/source_position.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
     src/bms/value.hpp

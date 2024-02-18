@@ -8,6 +8,7 @@
 #include "result.hpp"
 
 #include "bms/fwd.hpp"
+#include "bms/source_position.hpp"
 
 namespace bit_manipulation::bms {
 

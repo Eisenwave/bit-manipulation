@@ -5,6 +5,8 @@
 
 #include "config.hpp"
 
+#include "bms/source_position.hpp"
+
 namespace bit_manipulation::bms {
 
 enum struct Token_Type : Default_Underlying {
