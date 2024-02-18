@@ -215,12 +215,15 @@ private:
                                                const ast::Return_Statement& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (node.const_value()->int_value) {
+        if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
             out.push_back(ins::Return { { h } });
             return {};
         }
 
+        // Empty return statements produce Void, so the value is always known.
+        // We should have early-returned already.
+        BIT_MANIPULATION_ASSERT(node.get_expression());
         auto r = generate_code(node.get_expression());
         if (!r) {
             return r;

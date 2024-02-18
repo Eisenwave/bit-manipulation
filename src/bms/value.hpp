@@ -49,9 +49,14 @@ public:
         return int_value.has_value();
     }
 
+    constexpr bool is_known() const noexcept
+    {
+        return int_value.has_value();
+    }
+
     constexpr bool is_unknown() const noexcept
     {
-        return !int_value.has_value();
+        return !is_known();
     }
 
     template <std::invocable<Big_Int> F>
