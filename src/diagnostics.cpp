@@ -111,8 +111,8 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     case requires_clause_not_satisfied: return "Requires-clause was not satisfied.";
     case use_of_undefined_variable: return "Use of undefined variable.";
     case use_of_undefined_constant: return "Use of undefined constant.";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 std::string_view to_prose(bms::Type_Error_Code e)
@@ -127,13 +127,16 @@ std::string_view to_prose(bms::Type_Error_Code e)
         return "Cannot use relational comparisons between operands of type 'Bool'. Only logical "
                "comparisons are allowed.";
     case int_bitwise: return "Cannot use bitwise operators for operands of type 'Int'.";
+    case int_logical: return "Cannot use logical operators for operands of type 'Int'.";
     case uint_logical: return "Cannot us logical operators for operands of type 'Uint'.";
     case non_bool_logical: return "Logical operators can only be applied to 'Bool'.";
     case incompatible_types: return "Incompatible types for operation or conversion.";
     case incompatible_widths: return "Incompatible Uint widths for operation or conversion.";
     case condition_not_bool: return "The condition of an if-expression must be of type 'Bool'";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    case wrong_number_of_arguments: return "Wrong number of arguments for function call.";
+    case wrong_argument_type: return "Wrong argument types for function call.";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 std::string_view to_prose(bms::Evaluation_Error_Code e)
@@ -144,8 +147,9 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
     case int_to_uint_range_error: return "Conversion from 'Int' to 'Uint' loses information.";
     case division_by_zero: return "Division by zero.";
     case shift_too_much: return "Bit-shift was not less than the operand size.";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    case assertion_fail: return "Assertion failed.";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 std::string_view to_prose(bms::Execution_Error_Code e)
@@ -160,8 +164,9 @@ std::string_view to_prose(bms::Execution_Error_Code e)
     case jump_if_not_bool: return "Condition of Jump_If instruction is not of type 'Bool'.";
     case symbolic_jump: return "Execution of a symbolic jump.";
     case call_out_of_program: return "Call of a function address which is outside the program.";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    case infinite_loop: return "Infinite loop in VM execution.";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 std::string_view cause_to_prose(bms::Analysis_Error_Code e)
@@ -338,7 +343,16 @@ std::ostream& print_analysis_error(std::ostream& out,
         print_affected_line(out, program.source, cause_token.pos);
     }
 
-    if (error.code == bms::Analysis_Error_Code::execution_error) {
+    // Certain internal errors aren't assertion failures but make it here.
+    // For example, an evaluation error can fail as a type error, but that can only happen
+    // if prior analysis didn't spot the type error in the first place.
+    // Similarly, VM execution errors are also "clean errors", but only end up here as the result
+    // of faulty codegen.
+    const bool is_internal = error.code == bms::Analysis_Error_Code::execution_error
+        || (error.code == bms::Analysis_Error_Code::evaluation_error
+            && error.evaluation_error == bms::Evaluation_Error_Code::type_error);
+
+    if (is_internal) {
         print_internal_error_notice(out);
     }
 
