@@ -1,0 +1,7 @@
+function test(x: Int) -> Int
+{
+    assert(x != 0);
+    return 0;
+}
+
+static_assert(test(0) == 0);
