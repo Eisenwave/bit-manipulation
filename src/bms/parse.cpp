@@ -114,7 +114,12 @@ While_Statement::While_Statement(Token token, Handle condition, Handle block)
     BIT_MANIPULATION_ASSERT(block != astp::Handle::null);
 }
 
-Jump::Jump(Token token)
+Break::Break(Token token)
+    : Node_Base { token }
+{
+}
+
+Continue::Continue(Token token)
     : Node_Base { token }
 {
 }
@@ -169,20 +174,22 @@ Function_Call_Expression::Function_Call_Expression(Token token,
                                                    std::string_view function,
                                                    std::pmr::vector<astp::Handle>&& arguments,
                                                    bool is_statement)
-    : Node_Base { token }
+    : Node_Base(token)
     , function(function)
     , arguments(std::move(arguments))
     , is_statement(is_statement)
 {
 }
 
-Id_Expression::Id_Expression(Token token)
-    : Node_Base { token }
+Id_Expression::Id_Expression(Token token, std::string_view identifier)
+    : Node_Base(token)
+    , identifier(identifier)
 {
 }
 
-Literal::Literal(Token token)
-    : Node_Base { token }
+Literal::Literal(Token token, std::string_view literal)
+    : Node_Base(token)
+    , literal(literal)
 {
 }
 
@@ -697,7 +704,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Jump { *t } };
+        return astp::Some_Node { astp::Break { *t } };
     }
 
     Rule_Result match_continue_statement()
@@ -710,7 +717,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Jump { *t } };
+        return astp::Some_Node { astp::Continue { *t } };
     }
 
     Rule_Result match_if_statement()
@@ -950,10 +957,10 @@ private:
                 Token_Type::identifier,      Token_Type::left_parenthesis };
 
         if (const Token* t = expect(is_literal)) {
-            return astp::Some_Node { astp::Literal { *t } };
+            return astp::Some_Node { astp::Literal { *t, t->extract(m_program.source) } };
         }
         if (const Token* t = expect(Token_Type::identifier)) {
-            return astp::Some_Node { astp::Id_Expression { *t } };
+            return astp::Some_Node { astp::Id_Expression { *t, t->extract(m_program.source) } };
         }
         if (auto e = match_parenthesized_expression()) {
             return e;

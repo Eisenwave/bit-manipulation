@@ -49,7 +49,7 @@ struct Printable_Comparison {
 struct Error_Line {
     Error_Line_Type type;
     std::string_view file;
-    bms::Source_Position pos;
+    bms::Local_Source_Position pos;
     std::string message;
     std::optional<Printable_Comparison> comp {};
 };
@@ -390,14 +390,14 @@ std::ostream& print_location_of_file(std::ostream& out, std::string_view file)
 }
 
 std::ostream&
-print_file_position(std::ostream& out, std::string_view file, bms::Source_Position pos)
+print_file_position(std::ostream& out, std::string_view file, bms::Local_Source_Position pos)
 {
     return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
                << ansi::reset;
 }
 
 std::ostream&
-print_affected_line(std::ostream& out, std::string_view source, bms::Source_Position pos)
+print_affected_line(std::ostream& out, std::string_view source, bms::Local_Source_Position pos)
 {
     constexpr std::string_view separator = " | ";
 

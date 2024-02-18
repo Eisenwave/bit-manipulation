@@ -590,7 +590,14 @@ private:
     }
 
     Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Jump& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Some_Node*, ast::Break& node, Analysis_Level, Expression_Context)
+    {
+        node.const_value() = Value::Void;
+        return {};
+    }
+
+    Result<void, Analysis_Error>
+    analyze_types(ast::Some_Node*, ast::Continue& node, Analysis_Level, Expression_Context)
     {
         node.const_value() = Value::Void;
         return {};
@@ -1074,7 +1081,7 @@ private:
             BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
-        switch (node.token().type) {
+        switch (node.get_type()) {
         case Token_Type::keyword_true: {
             node.const_value() = Value::True;
             return {};
@@ -1087,8 +1094,7 @@ private:
         case Token_Type::octal_literal:
         case Token_Type::decimal_literal:
         case Token_Type::hexadecimal_literal: {
-            std::optional<Big_Int> value
-                = parse_integer_literal(node.token().extract(m_program.get_source()));
+            std::optional<Big_Int> value = parse_integer_literal(node.get_literal());
             if (!value) {
                 return Analysis_Error { Analysis_Error_Code::invalid_integer_literal, handle };
             }

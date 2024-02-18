@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_BMS_FWD_HPP
 #define BIT_MANIPULATION_BMS_FWD_HPP
 
+#include <string_view>
+
 #include "config.hpp"
 
 namespace bit_manipulation::bms {
@@ -27,7 +29,8 @@ struct Let;
 struct Static_Assert;
 struct If_Statement;
 struct While_Statement;
-struct Jump;
+struct Break;
+struct Continue;
 struct Return_Statement;
 struct Assignment;
 struct Block_Statement;
@@ -52,7 +55,8 @@ struct Let;
 struct Static_Assert;
 struct If_Statement;
 struct While_Statement;
-struct Jump;
+struct Break;
+struct Continue;
 struct Return_Statement;
 struct Assignment;
 struct Block_Statement;
@@ -82,7 +86,21 @@ struct Parsed_Program;
 struct Token;
 
 /// Represents a position in a source file.
+struct Local_Source_Position {
+    /// Line number.
+    Size line;
+    /// Column number.
+    Size column;
+    /// First index in the source file that is part of the syntactical element.
+    Size begin;
+
+    friend constexpr auto operator<=>(Local_Source_Position, Local_Source_Position) = default;
+};
+
+/// Represents the location of a file, combined with the position within that file.
 struct Source_Position {
+    /// File name.
+    std::string_view file_name;
     /// Line number.
     Size line;
     /// Column number.

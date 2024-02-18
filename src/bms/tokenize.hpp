@@ -22,7 +22,7 @@ enum struct Tokenize_Error_Code : Default_Underlying {
 
 struct Tokenize_Error {
     Tokenize_Error_Code code;
-    Source_Position pos;
+    Local_Source_Position pos;
 };
 
 Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out,

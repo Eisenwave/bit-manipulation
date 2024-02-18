@@ -226,7 +226,7 @@ Tokenize_Result try_tokenize_identifier_or_keyword(std::string_view str)
 
 struct Tokenizer {
     const std::string_view source;
-    Source_Position pos = {};
+    Local_Source_Position pos = {};
 
     Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out) noexcept
     {
@@ -276,9 +276,9 @@ struct Tokenizer {
         if (const Tokenize_Result r = try_tokenize_literal(s)) {
             if (s.length() > r.length
                 && identifier_characters.find(s[r.length]) != std::string_view::npos) {
-                const Source_Position error_pos = { .line = pos.line,
-                                                    .column = pos.column + r.length,
-                                                    .begin = pos.begin + r.length };
+                const Local_Source_Position error_pos = { .line = pos.line,
+                                                          .column = pos.column + r.length,
+                                                          .begin = pos.begin + r.length };
                 return Tokenize_Error { Tokenize_Error_Code::integer_suffix, error_pos };
             }
             return Tokenize_Result { r.length, r.type };

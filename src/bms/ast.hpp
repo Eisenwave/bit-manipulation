@@ -435,11 +435,19 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-// break, continue
-struct Jump final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Jump";
+struct Break final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Break";
 
-    Jump(const astp::Jump& parsed)
+    Break(const astp::Break& parsed)
+        : detail::Node_Base(parsed)
+    {
+    }
+};
+
+struct Continue final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Continue";
+
+    Continue(const astp::Continue& parsed)
         : detail::Node_Base(parsed)
     {
     }
@@ -599,21 +607,46 @@ public:
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Id_Expression";
 
+private:
+    std::string_view m_identifier;
+
+public:
     Some_Node* lookup_result = nullptr;
     bool bit_generic = false;
 
     Id_Expression(const astp::Id_Expression& parsed)
         : detail::Node_Base(parsed)
+        , m_identifier(parsed.identifier)
     {
+    }
+
+    std::string_view get_identifier() const
+    {
+        return m_identifier;
     }
 };
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Literal";
 
+private:
+    std::string_view m_literal;
+
+public:
     Literal(const astp::Literal& parsed)
         : detail::Node_Base(parsed)
+        , m_literal(parsed.literal)
     {
+    }
+
+    Token_Type get_type() const
+    {
+        return m_token.type;
+    }
+
+    std::string_view get_literal() const
+    {
+        return m_literal;
     }
 };
 
@@ -649,7 +682,8 @@ using Variant = std::variant<Program,
                              Static_Assert,
                              If_Statement,
                              While_Statement,
-                             Jump,
+                             Break,
+                             Continue,
                              Return_Statement,
                              Assignment,
                              Block_Statement,

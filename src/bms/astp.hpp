@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_ASTP_HPP
 
 #include <span>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -255,12 +256,18 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-// break, continue
-struct Jump final : detail::Node_Base, detail::Parent<0> {
-    using AST_Node = ast::Jump;
-    static inline constexpr std::string_view self_name = "Jump";
+struct Break final : detail::Node_Base, detail::Parent<0> {
+    using AST_Node = ast::Break;
+    static inline constexpr std::string_view self_name = "Break";
 
-    Jump(Token token);
+    Break(Token token);
+};
+
+struct Continue final : detail::Node_Base, detail::Parent<0> {
+    using AST_Node = ast::Continue;
+    static inline constexpr std::string_view self_name = "Continue";
+
+    Continue(Token token);
 };
 
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
@@ -391,14 +398,18 @@ struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
     using AST_Node = ast::Id_Expression;
     static inline constexpr std::string_view self_name = "Id_Expression";
 
-    Id_Expression(Token token);
+    std::string_view identifier;
+
+    Id_Expression(Token token, std::string_view identifier);
 };
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
     using AST_Node = ast::Literal;
     static inline constexpr std::string_view self_name = "Literal";
 
-    Literal(Token token);
+    std::string_view literal;
+
+    Literal(Token token, std::string_view literal);
 };
 
 using Some_Node = std::variant<Program,
@@ -411,7 +422,8 @@ using Some_Node = std::variant<Program,
                                Static_Assert,
                                If_Statement,
                                While_Statement,
-                               Jump,
+                               Break,
+                               Continue,
                                Return_Statement,
                                Assignment,
                                Block_Statement,

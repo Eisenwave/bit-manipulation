@@ -163,13 +163,13 @@ enum struct Token_Type : Default_Underlying {
 [[nodiscard]] bool is_binary_operator(Token_Type type);
 
 struct Token {
-    Source_Position pos {};
+    Local_Source_Position pos {};
     Size length {};
     Token_Type type {};
 
     [[nodiscard]] Token() = default;
 
-    [[nodiscard]] Token(Source_Position pos, Size length, Token_Type type) noexcept
+    [[nodiscard]] Token(Local_Source_Position pos, Size length, Token_Type type) noexcept
         : pos { pos }
         , length { length }
         , type { type }

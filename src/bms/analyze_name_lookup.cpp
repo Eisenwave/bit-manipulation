@@ -211,7 +211,7 @@ private:
             BIT_MANIPULATION_ASSERT(error.code
                                     == Analysis_Error_Code::reference_to_undefined_variable);
             if (auto* id = std::get_if<ast::Id_Expression>(g)) {
-                table.emplace(get_token(*error.fail).extract(m_program.get_source()), g);
+                table.emplace(id->get_identifier(), g);
                 id->bit_generic = true;
                 BIT_MANIPULATION_ASSERT(m_current_function != nullptr);
                 m_current_function->is_generic = true;
@@ -280,8 +280,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Id_Expression& node)
     {
-        std::string_view name = node.token().extract(m_program.get_source());
-        if (std::optional<ast::Some_Node*> result = table.find(name)) {
+        if (std::optional<ast::Some_Node*> result = table.find(node.get_identifier())) {
             node.lookup_result = *result;
             return {};
         }

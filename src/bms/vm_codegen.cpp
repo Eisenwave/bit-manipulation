@@ -198,17 +198,16 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Jump& node)
+    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Break&)
     {
-        if (node.token().type == Token_Type::keyword_break) {
-            out.push_back(ins::Break { { h } });
-            return {};
-        }
-        if (node.token().type == Token_Type::keyword_continue) {
-            out.push_back(ins::Continue { { h } });
-            return {};
-        }
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("jump nodes must only be break or continue");
+        out.push_back(ins::Break { { h } });
+        return {};
+    }
+
+    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Continue&)
+    {
+        out.push_back(ins::Continue { { h } });
+        return {};
     }
 
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
