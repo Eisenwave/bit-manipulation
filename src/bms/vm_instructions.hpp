@@ -14,18 +14,18 @@ namespace ins {
 namespace detail {
 struct Base {
     /// @brief The AST node which emitted this instruction.
-    ast::Some_Node* debug_info;
+    const ast::Some_Node* debug_info;
 };
 } // namespace detail
 
 /// @brief Loads a value from `source` and pushes it onto the stack.
 struct Load : detail::Base {
-    ast::Some_Node* source;
+    const ast::Some_Node* source;
 };
 
 /// @brief Pops a value off the stack and stores it in `target`.
 struct Store : detail::Base {
-    ast::Some_Node* target;
+    const ast::Some_Node* target;
 };
 
 /// @brief Pushes `value` onto the stack.

@@ -25,21 +25,21 @@ enum struct Execution_Error_Code : Default_Underlying {
 };
 
 struct Execution_Error {
-    /// @brief The handle of the AST node which has emitted the failed instruction.
-    ast::Some_Node* handle;
+    /// @brief The pointer to the AST node which has emitted the failed instruction.
+    const ast::Some_Node* handle;
     /// @brief The error code.
     Execution_Error_Code code;
     /// @brief The evaluation error. Only set to a meaningful value when `code` is `evaluation`.
     Evaluation_Error_Code evaluation_error = {};
 
-    [[nodiscard]] constexpr Execution_Error(ast::Some_Node* handle,
+    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle,
                                             Execution_Error_Code code) noexcept
         : handle(handle)
         , code(code)
     {
     }
 
-    [[nodiscard]] constexpr Execution_Error(ast::Some_Node* handle,
+    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle,
                                             Evaluation_Error_Code code) noexcept
         : handle(handle)
         , code(Execution_Error_Code::evaluation)

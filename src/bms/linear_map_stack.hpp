@@ -25,7 +25,7 @@ namespace bit_manipulation::bms {
 /// 2. Return addresses can be associated with the sentinel keys, so that this data structure also
 ///    acts as a call stack.
 struct Linear_Map_Stack {
-    using Key = ast::Some_Node*;
+    using Key = const ast::Some_Node*;
     static constexpr Key sentinel_key = nullptr;
     struct Entry {
         Key key;
