@@ -22,6 +22,12 @@ namespace bit_manipulation::bms::ast {
 namespace detail {
 
 struct Node_Base {
+public:
+    [[nodiscard]] static Node_Base make_builtin() noexcept
+    {
+        return Node_Base { {}, Value::unknown_of_type(Concrete_Type::Void) };
+    }
+
 protected:
     Token m_token;
     /// @brief If present, indicates that type analysis for an AST node is complete.
@@ -32,6 +38,12 @@ protected:
 public:
     explicit Node_Base(const astp::detail::Node_Base& parsed)
         : m_token(parsed.token)
+    {
+    }
+
+    explicit Node_Base(Token token, std::optional<Value> value)
+        : m_token(token)
+        , m_const_value(value)
     {
     }
 
@@ -559,6 +571,7 @@ struct Function_Call_Expression final : detail::Node_Base, detail::Dynamic_Paren
 
 private:
     std::string_view m_name;
+    bool m_is_statement;
 
 public:
     Some_Node* lookup_result = nullptr;
@@ -568,12 +581,18 @@ public:
         : detail::Node_Base(parsed)
         , detail::Dynamic_Parent(memory)
         , m_name(parsed.function)
+        , m_is_statement(parsed.is_statement)
     {
     }
 
     std::string_view get_name() const
     {
         return m_name;
+    }
+
+    bool is_statement() const
+    {
+        return m_is_statement;
     }
 };
 
@@ -598,6 +617,28 @@ struct Literal final : detail::Node_Base, detail::Parent<0> {
     }
 };
 
+struct Builtin_Function final : detail::Node_Base, detail::Parent<0> {
+private:
+    struct Copy_for_Instantiation_Tag { };
+
+public:
+    static inline constexpr std::string_view self_name = "Builtin_Function";
+
+    bms::Builtin_Function m_function;
+
+public:
+    Builtin_Function(bms::Builtin_Function function)
+        : detail::Node_Base(detail::Node_Base::make_builtin())
+        , m_function(function)
+    {
+    }
+
+    bms::Builtin_Function get_function() const
+    {
+        return m_function;
+    }
+};
+
 using Variant = std::variant<Program,
                              Function,
                              Parameter_List,
@@ -617,7 +658,8 @@ using Variant = std::variant<Program,
                              Prefix_Expression,
                              Function_Call_Expression,
                              Id_Expression,
-                             Literal>;
+                             Literal,
+                             Builtin_Function>;
 
 struct Some_Node : Variant {
     using Variant::variant;
