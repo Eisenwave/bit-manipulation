@@ -123,7 +123,6 @@ Return_Statement::Return_Statement(Token token, Handle expression)
     : Node_Base { token }
     , Parent<1> { expression }
 {
-    BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
 }
 
 Assignment::Assignment(Token token, std::string_view name, Handle expression)
@@ -673,6 +672,9 @@ private:
         const Token* t = expect(Token_Type::keyword_return);
         if (!t) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_return> };
+        }
+        if (expect(Token_Type::semicolon)) {
+            return astp::Some_Node { astp::Return_Statement { *t, astp::Handle::null } };
         }
         auto e = match_expression();
         if (!e) {

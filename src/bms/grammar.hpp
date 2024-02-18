@@ -38,7 +38,7 @@ enum struct Grammar_Rule : Default_Underlying {
     assignment, // identifier, "=", expression
     break_statement, // "break", ";"
     continue_statement, // "continue", ";"
-    return_statement, // "return", expression, ";"
+    return_statement, // "return", [expression], ";"
     if_statement, // "if", expression, block_statement, [else_statement]
     else_statement, // "else", (if_statement | block_statement)
     while_statement, // "while", expression, block_statement;
