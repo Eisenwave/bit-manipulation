@@ -72,6 +72,7 @@ enum struct Token_Type : Default_Underlying;
 enum struct Evaluation_Error_Code : Default_Underlying;
 enum struct Execution_Error_Code : Default_Underlying;
 enum struct Type_Error_Code : Default_Underlying;
+enum struct Conversion_Error_Code : Default_Underlying;
 
 enum struct Type_Type : Default_Underlying;
 enum struct Builtin_Function : Default_Underlying;

@@ -442,7 +442,7 @@ private:
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
-        const Result<Value, Evaluation_Error_Code> r
+        const Result<Value, Conversion_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value()->get_type());
         if (!r) {
             return Analysis_Error { r.error(), handle, node.get_initializer() };
@@ -620,7 +620,7 @@ private:
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
                                     return_info->handle };
         }
-        const Result<Value, Evaluation_Error_Code> eval_result
+        const Result<Value, Conversion_Error_Code> eval_result
             = evaluate_conversion(*expr_value, return_info->type);
         node.const_value() = eval_result ? *eval_result : Value::unknown_of_type(return_info->type);
         return {};
@@ -662,7 +662,7 @@ private:
                                     node.get_expression() };
         }
 
-        const Result<Value, Evaluation_Error_Code> eval_result
+        const Result<Value, Conversion_Error_Code> eval_result
             = evaluate_conversion(*expr_value, dest_type);
         if (!eval_result) {
             node.const_value() = Value::unknown_of_type(dest_type);
@@ -970,7 +970,7 @@ private:
                                         params->get_children()[i] };
             }
 
-            Result<Value, Evaluation_Error_Code> conv_result
+            Result<Value, Conversion_Error_Code> conv_result
                 = evaluate_conversion(arg_values[i], param_type);
             if (context == Expression_Context::constant) {
                 if (!conv_result) {

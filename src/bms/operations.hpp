@@ -13,8 +13,8 @@ namespace bit_manipulation::bms {
 enum struct Evaluation_Error_Code : Default_Underlying {
     /// @brief Type-checking of the evaluation failed.
     type_error,
-    /// @brief When converting Int to Uint(N), the Int couldn't be represented.
-    int_to_uint_range_error,
+    /// @brief Error during a conversion necessary for the evaluation.
+    conversion_error,
     /// @brief Division by zero.
     division_by_zero,
     /// @brief Shift by operand size or more.
@@ -96,7 +96,7 @@ check_builtin_function(Builtin_Function f, std::span<const Value> args);
 
 // Concrete evaluations.
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+[[nodiscard]] Result<Concrete_Value, Conversion_Error_Code>
 evaluate_conversion(Concrete_Value value, Concrete_Type to);
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
@@ -113,7 +113,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 
 // Evaluations.
 
-[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
+[[nodiscard]] Result<Value, Conversion_Error_Code> evaluate_conversion(Value value,
                                                                        Concrete_Type to);
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,

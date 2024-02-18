@@ -63,6 +63,8 @@ enum struct Analysis_Error_Code : Default_Underlying {
     execution_error,
     /// @brief Evaluation error in constant expressions or constant folding.
     evaluation_error,
+    /// @brief Error in attempted implicit or explicit conversion.
+    conversion_error,
     /// @brief Condition of an if statement or while loop is not a `Bool`.
     condition_not_bool,
     /// @brief A given literal is invalid, possibly because it is too large for the compiler's
@@ -109,6 +111,7 @@ struct Analysis_Error {
     Type_Error_Code type_error {};
     Evaluation_Error_Code evaluation_error {};
     Execution_Error_Code execution_error {};
+    Conversion_Error_Code conversion_error {};
     std::optional<Comparison_Failure> comparison_failure;
     const ast::Some_Node* fail = nullptr;
     const ast::Some_Node* cause = nullptr;
@@ -157,6 +160,16 @@ struct Analysis_Error {
                              const ast::Some_Node* cause = {})
         : code(Analysis_Error_Code::execution_error)
         , execution_error(code)
+        , fail(fail)
+        , cause(cause)
+    {
+    }
+
+    constexpr Analysis_Error(Conversion_Error_Code code,
+                             const ast::Some_Node* fail,
+                             const ast::Some_Node* cause = {})
+        : code(Analysis_Error_Code::conversion_error)
+        , conversion_error(code)
         , fail(fail)
         , cause(cause)
     {

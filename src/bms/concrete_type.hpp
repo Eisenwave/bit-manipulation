@@ -67,20 +67,29 @@ public:
         return *this == other || (other.m_type == Type_Type::Uint && m_type == Type_Type::Int);
     }
 
-    [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
+    /// @brief Returns a mask which covers the bits of the value representation of this type.
+    /// For example, if this type is is `Uint(4)`, this function returns `0xf`.
+    /// If this type is `Int`, returns a mask where all bits are set.
+    /// If this type is `Bool`, returns `1`.
+    /// If this type is `Void`, returns `0`.
+    /// @return A mask which covers the value representation of this type.
+    [[nodiscard]] constexpr Big_Uint get_mask() const
     {
         switch (m_type) {
-        case Type_Type::Void: return false;
-        case Type_Type::Int: return true;
-        case Type_Type::Bool: return value == 0 || value == 1;
-        case Type_Type::Uint: {
-            const auto mask = m_width == std::numeric_limits<Big_Uint>::digits
+        case Type_Type::Void: return 0;
+        case Type_Type::Bool: return 1;
+        case Type_Type::Int: return Big_Uint(-1);
+        case Type_Type::Uint:
+            return m_width == std::numeric_limits<Big_Uint>::digits
                 ? 0
                 : Big_Uint(Big_Uint(1) << m_width) - 1;
-            return (Big_Uint(value) & ~mask) == 0;
         }
-        }
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("there are no more types");
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown type.");
+    }
+
+    [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
+    {
+        return m_type != Type_Type::Void && (Big_Uint(value) & ~get_mask()) == 0;
     }
 
     /// @brief Returns `true` if this type is an `Int` or a `Uint` of any width.

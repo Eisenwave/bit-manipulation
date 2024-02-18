@@ -33,36 +33,36 @@ Concrete_Type get_type(const Value& v)
 }
 
 template <typename T>
-[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
+[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
     const std::optional<Concrete_Type> common = get_common_type(get_type(lhs), get_type(rhs));
     if (!common) {
-        return Evaluation_Error_Code::type_error;
+        return Conversion_Error_Code::not_convertible;
     }
 
-    if (auto [converted, lossy] = lhs.convert_to(*common); !lossy) {
-        lhs = converted;
+    if (auto lhs_result = lhs.convert_to(*common, Conversion_Type::lossless_numeric)) {
+        lhs = *lhs_result;
     }
     else {
-        return Evaluation_Error_Code::int_to_uint_range_error;
+        return lhs_result.error();
     }
 
-    if (auto [converted, lossy] = rhs.convert_to(*common); !lossy) {
-        rhs = converted;
+    if (auto rhs_result = rhs.convert_to(*common, Conversion_Type::lossless_numeric)) {
+        rhs = *rhs_result;
     }
     else {
-        return Evaluation_Error_Code::int_to_uint_range_error;
+        return rhs_result.error();
     }
     return {};
 }
 
-[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Concrete_Value& lhs,
+[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type(Concrete_Value& lhs,
                                                                         Concrete_Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
 
-[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Value& lhs, Value& rhs)
+[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type(Value& lhs, Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
@@ -284,18 +284,10 @@ check_builtin_function(Builtin_Function f, std::span<const Value> args)
 
 // CONCRETE VALUE ==================================================================================
 
-[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
+[[nodiscard]] Result<Concrete_Value, Conversion_Error_Code>
 evaluate_conversion(Concrete_Value value, Concrete_Type to)
 {
-    if (!value.type.is_convertible_to(to)) {
-        return Evaluation_Error_Code::type_error;
-    }
-
-    auto [result, lossy] = value.convert_to(to);
-    if (lossy) {
-        return Evaluation_Error_Code::int_to_uint_range_error;
-    }
-    return result;
+    return value.convert_to(to, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
@@ -350,8 +342,8 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
         return Evaluation_Error_Code::type_error;
     }
 
-    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
-        return r.error();
+    if (Result<void, Conversion_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
+        return Evaluation_Error_Code::conversion_error;
     }
 
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
@@ -468,17 +460,18 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    const auto [result, lossy] = (condition.int_value ? lhs : rhs).convert_to(*type_result);
-    if (lossy) {
-        return Evaluation_Error_Code::int_to_uint_range_error;
+    const auto result = (condition.int_value ? lhs : rhs)
+                            .convert_to(*type_result, Conversion_Type::lossless_numeric);
+    if (!result) {
+        return Evaluation_Error_Code::conversion_error;
     }
-    return result;
+    return *result;
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args)
 {
-    auto type_result = check_builtin_function(f, args);
+    const auto type_result = check_builtin_function(f, args);
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
@@ -487,18 +480,10 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 
 // VALUE ===========================================================================================
 
-[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
+[[nodiscard]] Result<Value, Conversion_Error_Code> evaluate_conversion(Value value,
                                                                        Concrete_Type to)
 {
-    if (!value.get_type().is_convertible_to(to)) {
-        return Evaluation_Error_Code::type_error;
-    }
-
-    auto [result, lossy] = value.convert_to(to);
-    if (lossy) {
-        return Evaluation_Error_Code::int_to_uint_range_error;
-    }
-    return result;
+    return value.convert_to(to, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
@@ -521,8 +506,8 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
-        return r.error();
+    if (Result<void, Conversion_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
+        return Evaluation_Error_Code::conversion_error;
     }
     if (lhs && rhs) {
         return result_from_concrete(
@@ -554,11 +539,12 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs)
     if (condition.is_unknown()) {
         return Value::unknown_of_type(*type_result);
     }
-    const auto [result, lossy] = (condition.as_bool() ? lhs : rhs).convert_to(*type_result);
-    if (lossy) {
-        return Evaluation_Error_Code::int_to_uint_range_error;
+    const auto result = (condition.as_bool() ? lhs : rhs)
+                            .convert_to(*type_result, Conversion_Type::lossless_numeric);
+    if (!result) {
+        return Evaluation_Error_Code::conversion_error;
     }
-    return result;
+    return *result;
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
@@ -571,7 +557,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Value> args)
     if (std::ranges::any_of(args, &Value::is_unknown)) {
         return Value::unknown_of_type(*type_result);
     }
-    auto eval_result = unsafe_evaluate_builtin_function_impl(
+    const auto eval_result = unsafe_evaluate_builtin_function_impl(
         f, args | std::views::transform(&Value::concrete_value));
     if (!eval_result) {
         return eval_result.error();

@@ -1,9 +1,23 @@
 #ifndef BIT_MANIPULATION_CONCRETE_VALUE_HPP
 #define BIT_MANIPULATION_CONCRETE_VALUE_HPP
 
+#include "result.hpp"
+
 #include "bms/concrete_type.hpp"
 
 namespace bit_manipulation::bms {
+
+enum struct Conversion_Type : Default_Underlying {
+    /// @brief A numeric conversion which fails if any information is lost.
+    lossless_numeric,
+    /// @brief A numeric conversion where any non-representable information is discarded.
+    truncating_numeric,
+};
+
+enum struct Conversion_Error_Code : Default_Underlying {
+    not_convertible,
+    int_to_uint_range_error,
+};
 
 struct Concrete_Value {
     Concrete_Type type;
@@ -27,9 +41,25 @@ public:
     {
     }
 
-    struct Conversion_Result;
-
-    constexpr Conversion_Result convert_to(Concrete_Type other) const;
+    constexpr Result<Concrete_Value, Conversion_Error_Code>
+    convert_to(Concrete_Type other, Conversion_Type conversion) const
+    {
+        if (type == other) {
+            return *this;
+        }
+        if (!type.is_convertible_to(other)) {
+            return Conversion_Error_Code::not_convertible;
+        }
+        if (other.is_uint()) {
+            const auto truncated = Big_Uint(int_value) & other.get_mask();
+            if (conversion == Conversion_Type::lossless_numeric
+                && truncated != Big_Uint(int_value)) {
+                return Conversion_Error_Code::int_to_uint_range_error;
+            }
+            return Concrete_Value { other, Big_Int(truncated) };
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible type conversion requested.");
+    }
 
     constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
     {
@@ -39,29 +69,9 @@ public:
     }
 };
 
-struct Concrete_Value::Conversion_Result {
-    /// @brief The value resulting from the conversion, of type `Uint(N)`.
-    Concrete_Value value;
-    /// @brief `true` if the conversion was lossy, i.e. if the value couldn't be represented in the
-    /// unsigned integer due to limited width.
-    bool lossy;
-};
-
 inline constexpr Concrete_Value Concrete_Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Concrete_Value Concrete_Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Concrete_Value Concrete_Value::False { Concrete_Type::Bool, 0 };
-
-constexpr auto Concrete_Value::convert_to(Concrete_Type other) const -> Conversion_Result
-{
-    if (type == other) {
-        return { *this, false };
-    }
-    else if (other.is_uint()) {
-        const bool lossy = !other.can_represent(int_value);
-        return { Concrete_Value { other, int_value }, lossy };
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible conversion requested.");
-}
 
 } // namespace bit_manipulation::bms
 

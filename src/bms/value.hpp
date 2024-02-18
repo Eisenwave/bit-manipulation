@@ -86,9 +86,21 @@ public:
         return *this;
     }
 
-    struct Conversion_Result;
-
-    constexpr Conversion_Result convert_to(Concrete_Type other) const;
+    constexpr Result<Value, Conversion_Error_Code> convert_to(Concrete_Type other,
+                                                              Conversion_Type conversion) const
+    {
+        if (!m_type.is_convertible_to(other)) {
+            return Conversion_Error_Code::not_convertible;
+        }
+        if (is_unknown()) {
+            return Value::unknown_of_type(other);
+        }
+        auto result = concrete_value().convert_to(other, conversion);
+        if (!result) {
+            return result.error();
+        }
+        return Value { *result };
+    }
 
     /// @brief Returns the concrete value that this value represents.
     /// @throws Throws if `is_unknown()`.
@@ -127,32 +139,9 @@ public:
     }
 };
 
-struct Value::Conversion_Result {
-    /// @brief The value resulting from the conversion, of type `Uint(N)`.
-    Value value;
-    /// @brief `true` if the conversion was lossy, i.e. if the value couldn't be represented in the
-    /// unsigned integer due to limited width.
-    bool lossy;
-};
-
 inline constexpr Value Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
-
-constexpr auto Value::convert_to(Concrete_Type other) const -> Conversion_Result
-{
-    if (m_type == other) {
-        return { *this, false };
-    }
-    else if (other.is_uint()) {
-        if (!m_int_value) {
-            return { Value { other }, false };
-        }
-        const bool lossy = !other.can_represent(*m_int_value);
-        return { Value { other, *m_int_value }, lossy };
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible conversion requested.");
-}
 
 } // namespace bit_manipulation::bms
 

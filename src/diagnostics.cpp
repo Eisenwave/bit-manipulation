@@ -122,6 +122,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     case function_in_expression:
         return "Attempted to use a function in an expression as if it was a variable.";
     case type_error: return "Type error.";
+    case conversion_error: return "Implicit conversion is invalid.";
     case execution_error:
         return "Error in the execution of the generated code for constant-evaluated functions.";
     case evaluation_error: return "Evaluation error in constant expressions or constant folding.";
@@ -181,7 +182,7 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
     using enum bms::Evaluation_Error_Code;
     switch (e) {
     case type_error: return "The evaluation violates the type system.";
-    case int_to_uint_range_error: return "Conversion from 'Int' to 'Uint' loses information.";
+    case conversion_error: return "The evaluation involves an invalid implicit conversion.";
     case division_by_zero: return "Division by zero.";
     case shift_too_much: return "Bit-shift was not less than the operand size.";
     case assertion_fail: return "Assertion failed.";
@@ -202,6 +203,16 @@ std::string_view to_prose(bms::Execution_Error_Code e)
     case symbolic_jump: return "Execution of a symbolic jump.";
     case call_out_of_program: return "Call of a function address which is outside the program.";
     case infinite_loop: return "Infinite loop in VM execution.";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+}
+
+std::string_view to_prose(bms::Conversion_Error_Code e)
+{
+    using enum bms::Conversion_Error_Code;
+    switch (e) {
+    case not_convertible: return "Implicit conversion between the given types is impossible.";
+    case int_to_uint_range_error: return "Conversion from Int to Uint must be lossless.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -291,9 +302,12 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
         return result;
     }
 
-    const std::string_view error_prose = error.code == bms::Analysis_Error_Code::type_error
-        ? to_prose(error.type_error)
-        : to_prose(error.code);
+    // clang-format off
+    const std::string_view error_prose =
+          error.code == bms::Analysis_Error_Code::type_error       ? to_prose(error.type_error)
+        : error.code == bms::Analysis_Error_Code::conversion_error ? to_prose(error.conversion_error)
+                                                                   : to_prose(error.code);
+    // clang-format on
 
     result.lines.push_back(
         { Error_Line_Type::error, file, fail_token.pos, std::string(error_prose) });
