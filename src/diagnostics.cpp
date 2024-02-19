@@ -5,8 +5,10 @@
 #include "diagnostics.hpp"
 #include "visit.hpp"
 
+#include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
+#include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
 

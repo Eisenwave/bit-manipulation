@@ -10,10 +10,9 @@
 #include "assert.hpp"
 #include "io.hpp"
 
-#include "bms/analysis_error.hpp"
+#include "bms/fwd.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
-#include "bms/vm.hpp"
 
 namespace bit_manipulation {
 

@@ -19,6 +19,7 @@ set(HEADERS
     src/bms/concrete_type.hpp
     src/bms/concrete_value.hpp
     src/bms/deduction.hpp
+    src/bms/execution_error.hpp
     src/bms/grammar.hpp
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
