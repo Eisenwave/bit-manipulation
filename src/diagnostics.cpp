@@ -428,7 +428,7 @@ std::ostream& print_affected_line(std::ostream& out,
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,
                                    std::string_view source,
-                                   bms::Tokenize_Error e)
+                                   const bms::Tokenize_Error& e)
 {
     print_file_position(out, file, e.pos);
     out << ": " << error_prefix << to_prose(e.code) << '\n';
@@ -440,7 +440,7 @@ std::ostream& print_tokenize_error(std::ostream& out,
 std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
-                                bms::Parse_Error error)
+                                const bms::Parse_Error& error)
 {
     print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
     out << "unexpected token " << token_type_readable_name(error.fail_token.type)
@@ -468,7 +468,7 @@ std::ostream& print_parse_error(std::ostream& out,
 
 std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
-                                   bms::Analysis_Error error)
+                                   const bms::Analysis_Error& error)
 {
     const auto printable = make_error_printable(program, error);
     return print_printable_error(out, printable);
