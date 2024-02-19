@@ -7,6 +7,7 @@
 
 #include "bms/concrete_type.hpp"
 #include "bms/parse.hpp"
+#include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
 

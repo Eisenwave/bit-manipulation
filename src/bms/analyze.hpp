@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "bms/analysis_error.hpp"
-#include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
