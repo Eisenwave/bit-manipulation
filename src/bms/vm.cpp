@@ -167,7 +167,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
     return {};
 }
 
-Result<void, Execution_Error> Virtual_Machine::cycle() noexcept
+Result<void, Execution_Error> Virtual_Machine::cycle()
 {
     const auto counter = m_instruction_counter;
     Instruction next = m_instructions.at(counter);

@@ -32,15 +32,14 @@ struct Execution_Error {
     /// @brief The evaluation error. Only set to a meaningful value when `code` is `evaluation`.
     Evaluation_Error_Code evaluation_error = {};
 
-    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle,
-                                            Execution_Error_Code code) noexcept
+    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle, Execution_Error_Code code)
         : handle(handle)
         , code(code)
     {
     }
 
     [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle,
-                                            Evaluation_Error_Code code) noexcept
+                                            Evaluation_Error_Code code)
         : handle(handle)
         , code(Execution_Error_Code::evaluation)
         , evaluation_error(code)
@@ -65,14 +64,14 @@ public:
     {
     }
 
-    Result<void, Execution_Error> cycle() noexcept;
+    Result<void, Execution_Error> cycle();
 
-    [[nodiscard]] std::pmr::vector<Instruction>& instructions() & noexcept
+    [[nodiscard]] std::pmr::vector<Instruction>& instructions() &
     {
         return m_instructions;
     }
 
-    [[nodiscard]] const std::pmr::vector<Instruction>& instructions() const& noexcept
+    [[nodiscard]] const std::pmr::vector<Instruction>& instructions() const&
     {
         return m_instructions;
     }
@@ -114,24 +113,24 @@ public:
         m_instruction_counter = address;
     }
 
-    [[nodiscard]] Size instruction_count() const noexcept
+    [[nodiscard]] Size instruction_count() const
     {
         return m_instructions.size();
     }
 
-    [[nodiscard]] Size stack_size() const noexcept
+    [[nodiscard]] Size stack_size() const
     {
         return m_stack.size();
     }
 
-    void reset() noexcept
+    void reset()
     {
         m_function_frame_stack.clear();
         m_stack.clear();
         m_instruction_counter = 0;
     }
 
-    void clear() noexcept
+    void clear()
     {
         m_instructions.clear();
         reset();
