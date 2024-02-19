@@ -10,8 +10,7 @@ set(SANITIZER_OPTIONS
 )
 
 set(HEADERS
-    src/ansi.hpp
-    src/assert.hpp
+    src/bmd/tokens.hpp
     src/bms/analysis_error.hpp
     src/bms/analyze.hpp
     src/bms/ast.hpp
@@ -25,17 +24,19 @@ set(HEADERS
     src/bms/operations.hpp
     src/bms/parse_number.hpp
     src/bms/parse.hpp
-    src/bms/source_position.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
+    src/ansi.hpp
+    src/assert.hpp
     src/config.hpp
     src/diagnostics.hpp
     src/io.hpp
     src/result.hpp
+    src/source_position.hpp
     src/visit.hpp)
 
 add_executable(bmscript ${HEADERS}

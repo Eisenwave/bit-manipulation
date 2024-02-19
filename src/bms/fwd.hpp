@@ -5,7 +5,14 @@
 
 #include "config.hpp"
 
-namespace bit_manipulation::bms {
+namespace bit_manipulation {
+
+struct Local_Source_Position;
+struct Local_Source_Span;
+struct Source_Span;
+struct Source_Position;
+
+namespace bms {
 
 namespace astp {
 
@@ -91,11 +98,7 @@ struct Analyzed_Program;
 struct Token;
 struct Instruction;
 
-struct Local_Source_Position;
-struct Local_Source_Span;
-struct Source_Span;
-struct Source_Position;
-
-} // namespace bit_manipulation::bms
+} // namespace bms
+} // namespace bit_manipulation
 
 #endif

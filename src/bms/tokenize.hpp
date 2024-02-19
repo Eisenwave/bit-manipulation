@@ -6,9 +6,9 @@
 
 #include "config.hpp"
 #include "result.hpp"
+#include "source_position.hpp"
 
 #include "bms/fwd.hpp"
-#include "bms/source_position.hpp"
 
 namespace bit_manipulation::bms {
 

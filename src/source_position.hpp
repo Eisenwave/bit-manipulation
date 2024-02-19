@@ -1,11 +1,11 @@
-#ifndef BIT_MANIPULATION_BMS_SOURCE_POSITION_HPP
-#define BIT_MANIPULATION_BMS_SOURCE_POSITION_HPP
+#ifndef BIT_MANIPULATION_SOURCE_POSITION_HPP
+#define BIT_MANIPULATION_SOURCE_POSITION_HPP
 
 #include <string_view>
 
 #include "config.hpp"
 
-namespace bit_manipulation::bms {
+namespace bit_manipulation {
 
 /// Represents a position in a source file.
 struct Local_Source_Position {
@@ -60,6 +60,6 @@ struct Source_Position : Local_Source_Position {
     friend constexpr auto operator<=>(Source_Position, Source_Position) = default;
 };
 
-} // namespace bit_manipulation::bms
+} // namespace bit_manipulation
 
 #endif

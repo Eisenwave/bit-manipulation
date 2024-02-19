@@ -38,13 +38,11 @@ std::string_view find_line(std::string_view source, Size index);
 /// @return `out`
 std::ostream& print_location_of_file(std::ostream& out, std::string_view file);
 
-std::ostream& print_file_position(std::ostream& out,
-                                  std::string_view file,
-                                  const bms::Local_Source_Position& pos);
+std::ostream&
+print_file_position(std::ostream& out, std::string_view file, const Local_Source_Position& pos);
 
-std::ostream& print_affected_line(std::ostream& out,
-                                  std::string_view source,
-                                  const bms::Local_Source_Position& pos);
+std::ostream&
+print_affected_line(std::ostream& out, std::string_view source, const Local_Source_Position& pos);
 
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,

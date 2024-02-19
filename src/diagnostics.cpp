@@ -50,7 +50,7 @@ struct Printable_Comparison {
 
 struct Error_Line {
     Error_Line_Type type;
-    std::optional<bms::Source_Position> pos;
+    std::optional<Source_Position> pos;
     std::string message;
     std::optional<Printable_Comparison> comp {};
 };
@@ -285,7 +285,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     Printable_Error result { program.source };
 
     const auto fail_pos = get_source_position(*error.fail);
-    const auto cause_pos = [&]() -> std::optional<bms::Source_Position> {
+    const auto cause_pos = [&]() -> std::optional<Source_Position> {
         if (error.cause) {
             auto result = get_source_position(*error.cause);
             if (!result) {
@@ -348,19 +348,18 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     return result;
 }
 
-std::ostream& print_source_position(std::ostream& out,
-                                    const std::optional<bms::Source_Position>& pos)
+std::ostream& print_source_position(std::ostream& out, const std::optional<Source_Position>& pos)
 {
     if (!pos) {
         return out << ansi::black << "(internal)" << ansi::reset;
     }
-    return print_file_position(out, pos->file_name, bms::Local_Source_Position { *pos });
+    return print_file_position(out, pos->file_name, Local_Source_Position { *pos });
 }
 
 } // namespace
 
 std::ostream&
-print_file_position(std::ostream& out, std::string_view file, const bms::Local_Source_Position& pos)
+print_file_position(std::ostream& out, std::string_view file, const Local_Source_Position& pos)
 {
     return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
                << ansi::reset;
@@ -412,9 +411,8 @@ std::ostream& print_location_of_file(std::ostream& out, std::string_view file)
     return out << ansi::black << file << ":" << ansi::reset;
 }
 
-std::ostream& print_affected_line(std::ostream& out,
-                                  std::string_view source,
-                                  const bms::Local_Source_Position& pos)
+std::ostream&
+print_affected_line(std::ostream& out, std::string_view source, const Local_Source_Position& pos)
 {
     constexpr std::string_view separator = " | ";
 

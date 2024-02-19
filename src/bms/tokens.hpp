@@ -4,8 +4,7 @@
 #include <string_view>
 
 #include "config.hpp"
-
-#include "bms/source_position.hpp"
+#include "source_position.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -170,7 +169,7 @@ struct Token {
 
     [[nodiscard]] Token() = default;
 
-    [[nodiscard]] Token(Local_Source_Span pos, Token_Type type) noexcept
+    [[nodiscard]] Token(const Local_Source_Span& pos, Token_Type type) noexcept
         : pos { pos }
         , type { type }
     {
