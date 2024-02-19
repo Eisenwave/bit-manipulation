@@ -106,72 +106,106 @@ struct Comparison_Failure {
 };
 
 struct Analysis_Error {
-    Analysis_Error_Code code {};
-    Type_Error_Code type_error {};
-    Evaluation_Error_Code evaluation_error {};
-    Execution_Error_Code execution_error {};
-    Conversion_Error_Code conversion_error {};
+private:
+    Analysis_Error_Code m_code {};
+    union {
+        Type_Error_Code m_type_error;
+        Evaluation_Error_Code m_evaluation_error;
+        Execution_Error_Code m_execution_error;
+        Conversion_Error_Code m_conversion_error;
+    };
+
+public:
     std::optional<Comparison_Failure> comparison_failure;
     const ast::Some_Node* fail = nullptr;
     const ast::Some_Node* cause = nullptr;
 
-    constexpr Analysis_Error(Analysis_Error_Code code,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(code)
+    [[nodiscard]] constexpr Analysis_Error(Analysis_Error_Code code,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(code)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Comparison_Failure comp_fail,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(Analysis_Error_Code::static_assertion_failed)
+    [[nodiscard]] constexpr Analysis_Error(Comparison_Failure comp_fail,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(Analysis_Error_Code::static_assertion_failed)
         , comparison_failure(comp_fail)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Evaluation_Error_Code code,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(Analysis_Error_Code::evaluation_error)
-        , evaluation_error(code)
+    [[nodiscard]] constexpr Analysis_Error(Evaluation_Error_Code code,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(Analysis_Error_Code::evaluation_error)
+        , m_evaluation_error(code)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Type_Error_Code code,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(Analysis_Error_Code::type_error)
-        , type_error(code)
+    [[nodiscard]] constexpr Analysis_Error(Type_Error_Code code,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(Analysis_Error_Code::type_error)
+        , m_type_error(code)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Execution_Error_Code code,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(Analysis_Error_Code::execution_error)
-        , execution_error(code)
+    [[nodiscard]] constexpr Analysis_Error(Execution_Error_Code code,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(Analysis_Error_Code::execution_error)
+        , m_execution_error(code)
         , fail(fail)
         , cause(cause)
     {
     }
 
-    constexpr Analysis_Error(Conversion_Error_Code code,
-                             const ast::Some_Node* fail,
-                             const ast::Some_Node* cause = {})
-        : code(Analysis_Error_Code::conversion_error)
-        , conversion_error(code)
+    [[nodiscard]] constexpr Analysis_Error(Conversion_Error_Code code,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : m_code(Analysis_Error_Code::conversion_error)
+        , m_conversion_error(code)
         , fail(fail)
         , cause(cause)
     {
+    }
+
+    [[nodiscard]] constexpr Analysis_Error_Code code() const
+    {
+        return m_code;
+    }
+
+    [[nodiscard]] constexpr Evaluation_Error_Code evaluation_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::evaluation_error);
+        return m_evaluation_error;
+    }
+
+    [[nodiscard]] constexpr Type_Error_Code type_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::type_error);
+        return m_type_error;
+    }
+
+    [[nodiscard]] constexpr Execution_Error_Code execution_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::execution_error);
+        return m_execution_error;
+    }
+
+    [[nodiscard]] constexpr Conversion_Error_Code conversion_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::conversion_error);
+        return m_conversion_error;
     }
 };
 

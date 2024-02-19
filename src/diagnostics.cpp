@@ -66,9 +66,9 @@ struct Printable_Error {
 // of faulty codegen.
 [[nodiscard]] bool is_internal(const bms::Analysis_Error& error)
 {
-    return error.code == bms::Analysis_Error_Code::execution_error
-        || (error.code == bms::Analysis_Error_Code::evaluation_error
-            && error.evaluation_error == bms::Evaluation_Error_Code::type_error);
+    return error.code() == bms::Analysis_Error_Code::execution_error
+        || (error.code() == bms::Analysis_Error_Code::evaluation_error
+            && error.evaluation_error() == bms::Evaluation_Error_Code::type_error);
 }
 
 const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
@@ -272,8 +272,8 @@ namespace {
 
 bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
-    return error.code == bms::Analysis_Error_Code::type_error
-        && error.type_error == bms::Type_Error_Code::incompatible_types
+    return error.code() == bms::Analysis_Error_Code::type_error
+        && error.type_error() == bms::Type_Error_Code::incompatible_types
         && std::holds_alternative<bms::ast::Return_Statement>(*error.fail);
 }
 
@@ -312,16 +312,16 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 
     // clang-format off
     const std::string_view error_prose =
-          error.code == bms::Analysis_Error_Code::type_error       ? to_prose(error.type_error)
-        : error.code == bms::Analysis_Error_Code::conversion_error ? to_prose(error.conversion_error)
-                                                                   : to_prose(error.code);
+          error.code() == bms::Analysis_Error_Code::type_error       ? to_prose(error.type_error())
+        : error.code() == bms::Analysis_Error_Code::conversion_error ? to_prose(error.conversion_error())
+                                                                   : to_prose(error.code());
     // clang-format on
 
     result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
 
-    if (error.code == bms::Analysis_Error_Code::execution_error) {
+    if (error.code() == bms::Analysis_Error_Code::execution_error) {
         result.lines.push_back(
-            { Error_Line_Type::note, fail_pos, std::string(to_prose(error.execution_error)) });
+            { Error_Line_Type::note, fail_pos, std::string(to_prose(error.execution_error())) });
     }
 
     if (error.comparison_failure) {
@@ -332,13 +332,13 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
                                      token_type_code_name(error.comparison_failure->op) } });
     }
     else if (error.cause != nullptr) {
-        if (error.code == bms::Analysis_Error_Code::evaluation_error) {
-            auto message = "Caused by: " + std::string(to_prose(error.evaluation_error));
+        if (error.code() == bms::Analysis_Error_Code::evaluation_error) {
+            auto message = "Caused by: " + std::string(to_prose(error.evaluation_error()));
             result.lines.push_back({ Error_Line_Type::note, cause_pos, std::move(message) });
         }
         else {
             result.lines.push_back(
-                { Error_Line_Type::note, cause_pos, std::string(cause_to_prose(error.code)) });
+                { Error_Line_Type::note, cause_pos, std::string(cause_to_prose(error.code())) });
         }
     }
 

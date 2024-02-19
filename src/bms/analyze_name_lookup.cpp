@@ -208,7 +208,7 @@ private:
         }
         if (auto r = analyze_symbols_local(g, table); !r) {
             const auto error = r.error();
-            BIT_MANIPULATION_ASSERT(error.code
+            BIT_MANIPULATION_ASSERT(error.code()
                                     == Analysis_Error_Code::reference_to_undefined_variable);
             if (auto* id = std::get_if<ast::Id_Expression>(g)) {
                 table.emplace(id->get_identifier(), g);
