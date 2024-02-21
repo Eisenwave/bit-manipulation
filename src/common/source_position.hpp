@@ -16,14 +16,30 @@ struct Local_Source_Position {
     /// First index in the source file that is part of the syntactical element.
     Size begin;
 
-    friend constexpr auto operator<=>(Local_Source_Position, Local_Source_Position) = default;
+    [[nodiscard]] friend constexpr auto operator<=>(Local_Source_Position, Local_Source_Position)
+        = default;
+
+    [[nodiscard]] constexpr Local_Source_Position to_right(Size offset) const
+    {
+        return { .line = line, .column = column + offset, .begin = begin + offset };
+    }
 };
 
 /// Represents a position in a source file.
 struct Local_Source_Span : Local_Source_Position {
     Size length;
 
-    friend constexpr auto operator<=>(Local_Source_Span, Local_Source_Span) = default;
+    [[nodiscard]] friend constexpr auto operator<=>(Local_Source_Span, Local_Source_Span) = default;
+
+    [[nodiscard]] constexpr Local_Source_Span to_right(Size offset) const
+    {
+        return { { .line = line, .column = column + offset, .begin = begin + offset }, length };
+    }
+
+    [[nodiscard]] constexpr Size end() const
+    {
+        return begin + length;
+    }
 };
 
 /// Represents the location of a file, combined with the position within that file.
@@ -31,13 +47,18 @@ struct Source_Span : Local_Source_Span {
     /// File name.
     std::string_view file_name;
 
-    Source_Span(Local_Source_Span local, std::string_view file)
+    [[nodiscard]] Source_Span(Local_Source_Span local, std::string_view file)
         : Local_Source_Span(local)
         , file_name(file)
     {
     }
 
-    friend constexpr auto operator<=>(Source_Span, Source_Span) = default;
+    [[nodiscard]] friend constexpr auto operator<=>(Source_Span, Source_Span) = default;
+
+    [[nodiscard]] constexpr Size end() const
+    {
+        return begin + length;
+    }
 };
 
 /// Represents the location of a file, combined with the position within that file.
@@ -45,19 +66,19 @@ struct Source_Position : Local_Source_Position {
     /// File name.
     std::string_view file_name;
 
-    Source_Position(const Source_Span& span)
+    [[nodiscard]] Source_Position(const Source_Span& span)
         : Local_Source_Position(span)
         , file_name(span.file_name)
     {
     }
 
-    Source_Position(Local_Source_Position local, std::string_view file)
+    [[nodiscard]] Source_Position(Local_Source_Position local, std::string_view file)
         : Local_Source_Position(local)
         , file_name(file)
     {
     }
 
-    friend constexpr auto operator<=>(Source_Position, Source_Position) = default;
+    [[nodiscard]] friend constexpr auto operator<=>(Source_Position, Source_Position) = default;
 };
 
 } // namespace bit_manipulation

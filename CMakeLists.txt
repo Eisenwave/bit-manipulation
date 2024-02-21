@@ -10,7 +10,8 @@ set(SANITIZER_OPTIONS
 )
 
 set(HEADERS
-    src/bmd/tokens.hpp
+    src/bmd/fwd.hpp
+    src/bmd/parse.hpp
     src/bms/analysis_error.hpp
     src/bms/analyze.hpp
     src/bms/ast.hpp
@@ -22,7 +23,6 @@ set(HEADERS
     src/bms/grammar.hpp
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
-    src/bms/parse_number.hpp
     src/bms/parse.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
@@ -30,27 +30,30 @@ set(HEADERS
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
+    src/common/fwd.hpp
+    src/common/parse.hpp
+    src/common/source_position.hpp
     src/ansi.hpp
     src/assert.hpp
     src/config.hpp
     src/diagnostics.hpp
     src/io.hpp
     src/result.hpp
-    src/source_position.hpp
     src/visit.hpp)
 
 add_executable(bmscript ${HEADERS}
-    src/assert.cpp
+    src/bmd/parse.cpp
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
     src/bms/ast.cpp
     src/bms/operations.cpp
-    src/bms/parse_number.cpp
     src/bms/parse.cpp
     src/bms/tokenize.cpp
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
+    src/common/parse.cpp
+    src/assert.cpp
     src/diagnostics.cpp
     src/io.cpp
     src/main.cpp)
