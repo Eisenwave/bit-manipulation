@@ -34,12 +34,12 @@ set(HEADERS
     src/common/assert.hpp
     src/common/config.hpp
     src/common/fwd.hpp
+    src/common/io.hpp
     src/common/parse.hpp
     src/common/source_position.hpp
     src/common/result.hpp
     src/common/visit.hpp
-    src/diagnostics.hpp
-    src/io.hpp)
+    src/cli/diagnostics.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/bmd/parse.cpp
@@ -53,10 +53,10 @@ add_executable(bmscript ${HEADERS}
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
     src/common/assert.cpp
+    src/common/io.cpp
     src/common/parse.cpp
-    src/diagnostics.cpp
-    src/io.cpp
-    src/main.cpp)
+    src/cli/diagnostics.cpp
+    src/cli/main.cpp)
 
 target_compile_options(bmscript PRIVATE ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
 target_link_options(bmscript PRIVATE ${SANITIZER_OPTIONS})

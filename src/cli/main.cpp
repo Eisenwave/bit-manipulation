@@ -4,6 +4,7 @@
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
+#include "common/io.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
@@ -11,8 +12,7 @@
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
-#include "diagnostics.hpp"
-#include "io.hpp"
+#include "cli/diagnostics.hpp"
 
 namespace bit_manipulation {
 namespace {

@@ -1,6 +1,5 @@
+#include "common/io.hpp"
 #include "common/config.hpp"
-
-#include "io.hpp"
 
 #include <fstream>
 

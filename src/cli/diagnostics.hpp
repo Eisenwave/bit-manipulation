@@ -8,12 +8,11 @@
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
+#include "common/io.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
-
-#include "io.hpp"
 
 namespace bit_manipulation {
 

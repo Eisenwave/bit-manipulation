@@ -12,7 +12,7 @@
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
-#include "diagnostics.hpp"
+#include "cli/diagnostics.hpp"
 
 namespace bit_manipulation {
 
