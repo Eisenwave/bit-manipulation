@@ -1,29 +1,31 @@
 #include <optional>
 
+#include "assert.hpp"
+
+#include "common/parse.hpp"
+
 #include "bms/tokenize.hpp"
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
 
+using enum Token_Type;
+
 namespace {
 
-constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstuvwxyz"
-                                                   "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                   "0123456789_";
-constexpr std::string_view hexadecimal_digits = "0123456789abcdefABCDEF";
-constexpr std::string_view decimal_digits = "0123456789";
-constexpr std::string_view octal_digits = "01234567";
-constexpr std::string_view binary_digits = "01";
-
-constexpr bool is_digit(char c)
+Token_Type token_type_of(Literal_Type literal)
 {
-    return c >= '0' && c <= '9';
+    switch (literal) {
+    case Literal_Type::binary: return binary_literal;
+    case Literal_Type::octal: return octal_literal;
+    case Literal_Type::decimal: return decimal_literal;
+    case Literal_Type::hexadecimal: return hexadecimal_literal;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown literal type.");
 }
 
 std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
 {
-    using enum Token_Type;
-
     static constexpr struct {
         std::string_view name;
         Token_Type type;
@@ -56,7 +58,7 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
     return std::nullopt;
 }
 
-std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) noexcept
+std::optional<Token_Type> match_fixed_length_token(std::string_view s) noexcept
 {
     using enum Token_Type;
 
@@ -158,142 +160,31 @@ std::optional<Token_Type> try_identify_fixed_length_token(std::string_view s) no
 }
 
 struct Tokenize_Result {
-    static constexpr Size failure_length = 0;
-
     Size length;
     Token_Type type;
 
-    [[nodiscard]] explicit operator bool() const
+    Tokenize_Result(Size length, Token_Type type)
+        : length(length)
+        , type(type)
     {
-        return length != failure_length;
+        BIT_MANIPULATION_ASSERT(length != 0);
     }
 };
 
-Tokenize_Result try_tokenize_literal(std::string_view s)
-{
-    if (s.empty() || !is_digit(s[0])) {
-        return {};
-    }
-    if (s.starts_with("0x")) {
-        const Size digits = s.substr(2).find_first_not_of(hexadecimal_digits);
-        const Size result = digits == 0        ? Tokenize_Result::failure_length
-            : digits == std::string_view::npos ? s.length()
-                                               : digits + 2;
-        return { result, Token_Type::hexadecimal_literal };
-    }
-    if (s.starts_with("0b")) {
-        const Size digits = s.substr(2).find_first_not_of(binary_digits);
-        const Size result = digits == 0        ? Tokenize_Result::failure_length
-            : digits == std::string_view::npos ? s.length()
-                                               : digits + 2;
-        return { result, Token_Type::binary_literal };
-    }
-    if (s[0] == '0') {
-        if (s.length() == 1) {
-            return { 1, Token_Type::decimal_literal };
-        }
-        const Size digits = s.find_first_not_of(octal_digits);
-        return { std::min(digits, s.length()), Token_Type::octal_literal };
-    }
-    const Size digits = s.find_first_not_of(decimal_digits);
-    const Size result = digits == 0        ? Tokenize_Result::failure_length
-        : digits == std::string_view::npos ? s.length()
-                                           : digits;
-    return { result, Token_Type::decimal_literal };
-}
-
-Tokenize_Result try_tokenize_identifier(std::string_view str)
-{
-    if (str.empty() || is_digit(str[0])) {
-        return { 0, Token_Type::identifier };
-    }
-    const Size result = str.find_first_not_of(identifier_characters);
-    return { std::min(result, str.length()), Token_Type::identifier };
-}
-
-Tokenize_Result try_tokenize_identifier_or_keyword(std::string_view str)
-{
-    auto identifier_result = try_tokenize_identifier(str);
-    if (!identifier_result) {
-        return identifier_result;
-    }
-    if (std::optional<Token_Type> keyword
-        = keyword_by_name(str.substr(0, identifier_result.length))) {
-        return { identifier_result.length, *keyword };
-    }
-    return identifier_result;
-}
-
+/// @brief A helper class which manages some shared state for tokenization, and performs it.
 struct Tokenizer {
-    const std::string_view source;
+    const std::string_view m_source;
     Local_Source_Span pos = {};
 
-    Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out) noexcept
+    Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out);
+
+    Result<Tokenize_Result, Tokenize_Error> try_match(std::string_view s) const;
+
+    void advance_position_by(Size length)
     {
-        pos = {};
-        while (true) {
-            std::string_view remainder = source.substr(pos.begin);
-            if (remainder.empty()) {
-                break;
-            }
-            if (const Size whitespace_length = remainder.find_first_not_of(" \r\t\n")) {
-                if (whitespace_length == std::string_view::npos) {
-                    break;
-                }
-                advance_position_by_text(remainder.substr(0, whitespace_length));
-                remainder = remainder.substr(whitespace_length);
-            }
-
-            Result<Tokenize_Result, Tokenize_Error> part = try_tokenize(remainder);
-            if (!part) {
-                return part.error();
-            }
-            pos.length = part->length;
-            out.push_back({ pos, part->type });
-            pos.begin += part->length;
-            pos.column += part->length;
-        }
-
-        return {};
-    }
-
-    Result<Tokenize_Result, Tokenize_Error> try_tokenize(std::string_view s)
-    {
-        if (s.starts_with("//")) {
-            const Size length = std::min(s.find('\n', 2), s.length());
-            return Tokenize_Result { length, Token_Type::line_comment };
-        }
-        if (s.starts_with("/*")) {
-            // naive: nesting disallowed, but line comments can be nested in block comments
-            const Size end = s.find("*/", 2);
-            if (end != std::string_view::npos) {
-                return Tokenize_Result { end + 2, Token_Type::block_comment };
-            }
-            return Tokenize_Error { Tokenize_Error_Code::unterminated_comment, pos };
-        }
-        if (const Tokenize_Result r = try_tokenize_identifier_or_keyword(s)) {
-            return Tokenize_Result { r.length, r.type };
-        }
-        if (const Tokenize_Result r = try_tokenize_literal(s)) {
-            if (s.length() > r.length
-                && identifier_characters.find(s[r.length]) != std::string_view::npos) {
-                const Local_Source_Position error_pos = { .line = pos.line,
-                                                          .column = pos.column + r.length,
-                                                          .begin = pos.begin + r.length };
-                return Tokenize_Error { Tokenize_Error_Code::integer_suffix, error_pos };
-            }
-            return Tokenize_Result { r.length, r.type };
-        }
-        if (const std::optional<Token_Type> type = try_identify_fixed_length_token(s)) {
-            return Tokenize_Result { token_type_length(*type), *type };
-        }
-        return Tokenize_Error { Tokenize_Error_Code::illegal_character, pos };
-    }
-
-    void advance_position_by_text(std::string_view text)
-    {
-        for (char c : text) {
-            switch (c) {
+        BIT_MANIPULATION_ASSERT(pos.begin + length < m_source.length());
+        for (Size i = 0; i < length; ++i) {
+            switch (m_source[pos.begin]) {
             case '\t': pos.column += 4; break;
             case '\r': pos.column = 0; break;
             case '\n':
@@ -307,10 +198,90 @@ struct Tokenizer {
     }
 };
 
+Result<void, Tokenize_Error> Tokenizer::tokenize(std::pmr::vector<Token>& out)
+{
+    pos = {};
+    while (pos.begin != m_source.length()) {
+        BIT_MANIPULATION_ASSERT(pos.begin < m_source.length());
+
+        std::string_view remainder = m_source.substr(pos.begin);
+
+        if (const Size whitespace_length = remainder.find_first_not_of(" \r\t\n")) {
+            if (whitespace_length == std::string_view::npos) {
+                break;
+            }
+            advance_position_by(whitespace_length);
+            remainder = remainder.substr(whitespace_length);
+        }
+
+        Result<Tokenize_Result, Tokenize_Error> result = try_match(remainder);
+        if (!result) {
+            return result.error();
+        }
+        pos.length = result->length;
+        out.push_back({ pos, result->type });
+
+        if (result->type != Token_Type::block_comment) {
+            // Special case for all tokens that aren't multi-line.
+            // We could just advance the position as usual, but it is much cheaper if we know
+            // that there are no newline characters anyway.
+            pos = pos.to_right(result->length);
+            continue;
+        }
+        advance_position_by(result->length);
+    }
+
+    return {};
+}
+
+Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s) const
+{
+    BIT_MANIPULATION_ASSERT(!s.empty());
+    BIT_MANIPULATION_ASSERT(!is_space(s[0]));
+
+    if (const std::optional<Comment_Match> m = match_line_comment(s)) {
+        return Tokenize_Result { m->length, line_comment };
+    }
+
+    if (const std::optional<Comment_Match> m = match_block_comment(s)) {
+        if (!m->is_terminated) {
+            return Tokenize_Error { Tokenize_Error_Code::unterminated_comment, pos };
+        }
+        return Tokenize_Result { m->length, block_comment };
+    }
+
+    if (const Size length = match_identifier(s)) {
+        if (const std::optional<Token_Type> keyword = keyword_by_name(s.substr(0, length))) {
+            return Tokenize_Result { length, *keyword };
+        }
+        return Tokenize_Result { length, identifier };
+    }
+
+    if (const std::optional<Token_Type> type = match_fixed_length_token(s)) {
+        return Tokenize_Result { token_type_length(*type), *type };
+    }
+
+    const Literal_Match_Result literal_match = match_integer_literal(s);
+    if (literal_match) {
+        const Size digits = literal_match.length;
+        const bool attempted_integer_suffix = s.length() > digits
+            && identifier_characters.find(s[digits]) != std::string_view::npos;
+        if (attempted_integer_suffix) {
+            return Tokenize_Error { Tokenize_Error_Code::integer_suffix, pos.to_right(digits) };
+        }
+        return Tokenize_Result { digits, token_type_of(literal_match.type) };
+    }
+    if (literal_match.status == Literal_Match_Status::no_digits_following_prefix) {
+        return Tokenize_Error { Tokenize_Error_Code::no_digits_following_integer_prefix,
+                                pos.to_right(2) };
+    }
+
+    return Tokenize_Error { Tokenize_Error_Code::illegal_character, pos };
+}
+
 } // namespace
 
-Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out,
-                                      std::string_view source) noexcept
+Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out, std::string_view source)
 {
     Tokenizer tokenizer { source };
     return tokenizer.tokenize(out);

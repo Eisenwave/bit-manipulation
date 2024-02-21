@@ -4,7 +4,8 @@
 #include <string_view>
 
 #include "config.hpp"
-#include "source_position.hpp"
+
+#include "common/source_position.hpp"
 
 namespace bit_manipulation::bms {
 
