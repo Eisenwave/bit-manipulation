@@ -1,9 +1,10 @@
 #ifndef BIT_MANIPULATION_BMS_BMS_HPP
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
+#include <optional>
+
 #include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
-#include "bms/operations.hpp"
 
 namespace bit_manipulation::bms {
 

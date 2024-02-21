@@ -1,7 +1,7 @@
 #ifndef BIT_MANIPULATION_CONCRETE_VALUE_HPP
 #define BIT_MANIPULATION_CONCRETE_VALUE_HPP
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
 

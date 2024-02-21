@@ -1,8 +1,8 @@
 #ifndef BIT_MANIPULATION_CONCRETE_TYPE_HPP
 #define BIT_MANIPULATION_CONCRETE_TYPE_HPP
 
-#include "assert.hpp"
-#include "config.hpp"
+#include "common/assert.hpp"
+#include "common/config.hpp"
 
 namespace bit_manipulation::bms {
 

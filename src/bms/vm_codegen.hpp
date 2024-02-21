@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/fwd.hpp"

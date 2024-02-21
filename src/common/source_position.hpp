@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-#include "config.hpp"
+#include "common/config.hpp"
 
 namespace bit_manipulation {
 

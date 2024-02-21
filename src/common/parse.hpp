@@ -5,8 +5,8 @@
 #include <optional>
 #include <string_view>
 
-#include "config.hpp"
-#include "result.hpp"
+#include "common/config.hpp"
+#include "common/result.hpp"
 
 namespace bit_manipulation {
 

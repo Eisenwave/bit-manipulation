@@ -2,16 +2,17 @@
 #include <iostream>
 #include <stdexcept>
 
-#include "ansi.hpp"
-#include "assert.hpp"
-#include "diagnostics.hpp"
-#include "io.hpp"
+#include "common/ansi.hpp"
+#include "common/assert.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
+
+#include "diagnostics.hpp"
+#include "io.hpp"
 
 namespace bit_manipulation {
 namespace {

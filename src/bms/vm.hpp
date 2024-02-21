@@ -5,7 +5,7 @@
 #include <span>
 #include <vector>
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 #include "bms/execution_error.hpp"
 #include "bms/linear_map_stack.hpp"

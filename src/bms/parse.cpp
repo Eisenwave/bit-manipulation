@@ -2,8 +2,8 @@
 #include <optional>
 #include <variant>
 
-#include "assert.hpp"
-#include "result.hpp"
+#include "common/assert.hpp"
+#include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
 #include "bms/parse.hpp"

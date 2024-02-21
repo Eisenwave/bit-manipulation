@@ -5,7 +5,7 @@
 #include <string>
 #include <string_view>
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 namespace bit_manipulation {
 

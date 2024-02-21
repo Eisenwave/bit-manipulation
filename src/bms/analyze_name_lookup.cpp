@@ -3,6 +3,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
+#include "bms/operations.hpp"
 #include "bms/parse.hpp"
 
 namespace bit_manipulation::bms {

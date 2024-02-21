@@ -1,8 +1,7 @@
 #include <charconv>
 
-#include "assert.hpp"
-
-#include "parse.hpp"
+#include "common/assert.hpp"
+#include "common/parse.hpp"
 
 namespace bit_manipulation {
 

@@ -5,8 +5,8 @@
 #include <string_view>
 #include <vector>
 
-#include "config.hpp"
-#include "result.hpp"
+#include "common/config.hpp"
+#include "common/result.hpp"
 
 #include "bms/astp.hpp"
 #include "bms/fwd.hpp"

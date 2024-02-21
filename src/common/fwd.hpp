@@ -1,7 +1,7 @@
 #ifndef BIT_MANIPULATION_FWD_HPP
 #define BIT_MANIPULATION_FWD_HPP
 
-#include "config.hpp"
+#include "common/config.hpp"
 
 namespace bit_manipulation {
 

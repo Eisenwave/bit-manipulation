@@ -1,8 +1,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "assert.hpp"
-#include "visit.hpp"
+#include "common/assert.hpp"
+#include "common/visit.hpp"
 
 #include "bms/linear_map_stack.hpp"
 #include "bms/operations.hpp"

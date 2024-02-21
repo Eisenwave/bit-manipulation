@@ -6,13 +6,14 @@
 #include <string>
 #include <string_view>
 
-#include "ansi.hpp"
-#include "assert.hpp"
-#include "io.hpp"
+#include "common/ansi.hpp"
+#include "common/assert.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
+
+#include "io.hpp"
 
 namespace bit_manipulation {
 

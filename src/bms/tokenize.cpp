@@ -1,7 +1,6 @@
 #include <optional>
 
-#include "assert.hpp"
-
+#include "common/assert.hpp"
 #include "common/parse.hpp"
 
 #include "bms/tokenize.hpp"

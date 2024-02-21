@@ -3,7 +3,7 @@
 
 #include <span>
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/value.hpp"

@@ -3,7 +3,7 @@
 
 #include <string_view>
 
-#include "config.hpp"
+#include "common/config.hpp"
 
 #include "common/source_position.hpp"
 

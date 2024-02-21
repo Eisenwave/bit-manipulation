@@ -30,16 +30,16 @@ set(HEADERS
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
+    src/common/ansi.hpp
+    src/common/assert.hpp
+    src/common/config.hpp
     src/common/fwd.hpp
     src/common/parse.hpp
     src/common/source_position.hpp
-    src/ansi.hpp
-    src/assert.hpp
-    src/config.hpp
+    src/common/result.hpp
+    src/common/visit.hpp
     src/diagnostics.hpp
-    src/io.hpp
-    src/result.hpp
-    src/visit.hpp)
+    src/io.hpp)
 
 add_executable(bmscript ${HEADERS}
     src/bmd/parse.cpp
@@ -52,8 +52,8 @@ add_executable(bmscript ${HEADERS}
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
+    src/common/assert.cpp
     src/common/parse.cpp
-    src/assert.cpp
     src/diagnostics.cpp
     src/io.cpp
     src/main.cpp)

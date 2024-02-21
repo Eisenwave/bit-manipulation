@@ -4,8 +4,8 @@
 #include <type_traits>
 #include <variant>
 
-#include "assert.hpp"
-#include "config.hpp"
+#include "common/assert.hpp"
+#include "common/config.hpp"
 
 /*
 This header contains a drop-in replacement for std::visit.

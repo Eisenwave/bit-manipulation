@@ -4,7 +4,7 @@
 #include <optional>
 #include <vector>
 
-#include "result.hpp"
+#include "common/result.hpp"
 
 #include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"

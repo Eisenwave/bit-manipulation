@@ -4,7 +4,7 @@
 #include <optional>
 #include <variant>
 
-#include "assert.hpp"
+#include "common/assert.hpp"
 
 #include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"

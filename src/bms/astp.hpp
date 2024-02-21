@@ -6,7 +6,7 @@
 #include <variant>
 #include <vector>
 
-#include "visit.hpp"
+#include "common/visit.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"

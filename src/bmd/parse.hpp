@@ -7,8 +7,8 @@
 #include <variant>
 #include <vector>
 
-#include "config.hpp"
-#include "result.hpp"
+#include "common/config.hpp"
+#include "common/result.hpp"
 
 #include "common/source_position.hpp"
 

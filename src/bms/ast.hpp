@@ -7,7 +7,7 @@
 #include <variant>
 #include <vector>
 
-#include "visit.hpp"
+#include "common/visit.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/astp.hpp"
