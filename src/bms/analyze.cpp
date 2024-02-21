@@ -1,11 +1,12 @@
 #include <unordered_map>
 
+#include "common/parse.hpp"
+
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/operations.hpp"
 #include "bms/parse.hpp"
-#include "bms/parse_number.hpp"
 #include "bms/vm.hpp"
 #include "bms/vm_codegen.hpp"
 #include "vm_instructions.hpp"
