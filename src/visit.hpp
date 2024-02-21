@@ -39,6 +39,61 @@ template <typename F, typename V>
 constexpr decltype(auto) fast_visit(F&& f, V&& v) = delete;
 
 template <typename F, typename V>
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 1)
+constexpr decltype(auto) fast_visit(F&& f, V&& v)
+{
+    if (v.valueless_by_exception()) {
+        throw std::bad_variant_access();
+    }
+    return static_cast<F&&>(f)(::std::get<0>(static_cast<V&&>(v)));
+}
+
+template <typename F, typename V>
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 2)
+constexpr decltype(auto) fast_visit(F&& f, V&& v)
+{
+    if (v.valueless_by_exception()) {
+        throw std::bad_variant_access();
+    }
+    switch (v.index()) {
+        BIT_MANIPULATION_VISIT_CASE(0);
+        BIT_MANIPULATION_VISIT_CASE(1);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+}
+
+template <typename F, typename V>
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 3)
+constexpr decltype(auto) fast_visit(F&& f, V&& v)
+{
+    if (v.valueless_by_exception()) {
+        throw std::bad_variant_access();
+    }
+    switch (v.index()) {
+        BIT_MANIPULATION_VISIT_CASE(0);
+        BIT_MANIPULATION_VISIT_CASE(1);
+        BIT_MANIPULATION_VISIT_CASE(2);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+}
+
+template <typename F, typename V>
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 4)
+constexpr decltype(auto) fast_visit(F&& f, V&& v)
+{
+    if (v.valueless_by_exception()) {
+        throw std::bad_variant_access();
+    }
+    switch (v.index()) {
+        BIT_MANIPULATION_VISIT_CASE(0);
+        BIT_MANIPULATION_VISIT_CASE(1);
+        BIT_MANIPULATION_VISIT_CASE(2);
+        BIT_MANIPULATION_VISIT_CASE(3);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+}
+
+template <typename F, typename V>
     requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 13)
 constexpr decltype(auto) fast_visit(F&& f, V&& v)
 {
