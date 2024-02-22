@@ -122,13 +122,13 @@ public:
     {
     }
 
-    Result<Parsed_Program, Parse_Error> parse()
+    Result<Parsed_Document, Parse_Error> parse()
     {
         Result<ast::Some_Node*, Rule_Error> result = match_document();
         if (!result) {
             return Parse_Error { result.error().code, result.error().rule, m_pos };
         }
-        return Parsed_Program { m_source, *result };
+        return Parsed_Document { m_source, *result };
     }
 
 private:
@@ -754,8 +754,8 @@ private:
 
 } // namespace
 
-Result<Parsed_Program, Parse_Error> parse(std::string_view source,
-                                          std::pmr::memory_resource* memory)
+Result<Parsed_Document, Parse_Error> parse(std::string_view source,
+                                           std::pmr::memory_resource* memory)
 {
     return Parser { source, memory }.parse();
 }

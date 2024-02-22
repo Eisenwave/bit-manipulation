@@ -70,7 +70,7 @@ print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width);
 
-std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Program& program, Size indent_width);
+std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& program, Size indent_width);
 
 std::ostream& print_internal_error_notice(std::ostream& out);
 

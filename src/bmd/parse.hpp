@@ -284,7 +284,7 @@ struct Parse_Error {
     Local_Source_Position pos;
 };
 
-struct Parsed_Program {
+struct Parsed_Document {
     std::string_view source;
     ast::Some_Node* root_node;
 
@@ -296,8 +296,8 @@ struct Parsed_Program {
     }
 };
 
-Result<Parsed_Program, Parse_Error> parse(std::string_view source,
-                                          std::pmr::memory_resource* memory);
+Result<Parsed_Document, Parse_Error> parse(std::string_view source,
+                                           std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation::bmd
 

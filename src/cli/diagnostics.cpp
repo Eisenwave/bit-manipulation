@@ -626,7 +626,7 @@ std::ostream& print_cut_off(std::ostream& out, std::string_view v)
 
 struct BMD_AST_Printer {
     std::ostream& out;
-    const bmd::Parsed_Program& program;
+    const bmd::Parsed_Document& program;
     const Size indent_width;
 
     void print(bmd::ast::Some_Node* node, Size level = 0)
@@ -675,7 +675,7 @@ std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, S
     return out;
 }
 
-std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Program& program, Size indent_width)
+std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& program, Size indent_width)
 {
     BMD_AST_Printer { out, program, indent_width }.print(program.root_node);
     return out;

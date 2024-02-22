@@ -42,11 +42,11 @@ std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* mem
     return std::move(*result);
 }
 
-bmd::Parsed_Program
+bmd::Parsed_Document
 parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
 {
 
-    Result<bmd::Parsed_Program, bmd::Parse_Error> parsed = bmd::parse(source, memory);
+    Result<bmd::Parsed_Document, bmd::Parse_Error> parsed = bmd::parse(source, memory);
     if (!parsed) {
         print_parse_error(std::cout, file, source, parsed.error());
         std::exit(1);
@@ -93,7 +93,7 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
         return 0;
     }
     if (file.ends_with(".bmd")) {
-        const bmd::Parsed_Program program = parse_bmd_file(source, file, memory);
+        const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
         print_ast(std::cout, program, indent_width);
         return 0;
     }

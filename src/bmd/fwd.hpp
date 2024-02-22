@@ -9,7 +9,7 @@ enum struct Parse_Error_Code : Default_Underlying;
 
 struct Parse_Error;
 
-struct Parsed_Program;
+struct Parsed_Document;
 
 namespace ast {
 
