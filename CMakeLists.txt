@@ -10,6 +10,7 @@ set(SANITIZER_OPTIONS
 )
 
 set(HEADERS
+    src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
     src/bmd/parse.hpp
     src/bmd/html_writer.hpp
