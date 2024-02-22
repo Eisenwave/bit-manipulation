@@ -6,6 +6,8 @@
 #include "common/assert.hpp"
 #include "common/io.hpp"
 
+#include "bmd/parse.hpp"
+
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
@@ -17,65 +19,100 @@
 namespace bit_manipulation {
 namespace {
 
-struct Tokenized_File {
-    std::pmr::vector<bms::Token> tokens;
-    std::pmr::string program;
-};
-
-Tokenized_File tokenize_file(std::string_view file, std::pmr::memory_resource* memory)
+std::pmr::vector<bms::Token>
+tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
 {
-    Result<std::pmr::string, IO_Error_Code> program = file_to_string(file, memory);
-    if (!program) {
-        print_location_of_file(std::cout, file) << ": " << to_prose(program.error()) << '\n';
-        std::exit(1);
-    }
-
     std::pmr::vector<bms::Token> tokens(memory);
-    if (const Result<void, bms::Tokenize_Error> result = tokenize(tokens, *program)) {
-        return { std::move(tokens), std::move(*program) };
+    if (const Result<void, bms::Tokenize_Error> result = tokenize(tokens, source)) {
+        return tokens;
     }
     else {
-        print_tokenize_error(std::cout, file, *program, result.error());
+        print_tokenize_error(std::cout, file, source, result.error());
         std::exit(1);
     }
 }
 
-bms::Parsed_Program parse_tokenized(std::string_view file_name,
-                                    const Tokenized_File& f,
+std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory)
+{
+    Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
+    if (!result) {
+        print_location_of_file(std::cout, file) << ": " << to_prose(result.error()) << '\n';
+        std::exit(1);
+    }
+    return std::move(*result);
+}
+
+bmd::Parsed_Program
+parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
+{
+
+    Result<bmd::Parsed_Program, bmd::Parse_Error> parsed = bmd::parse(source, memory);
+    if (!parsed) {
+        print_parse_error(std::cout, file, source, parsed.error());
+        std::exit(1);
+    }
+
+    return std::move(*parsed);
+}
+
+bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
+                                    std::string_view source,
+                                    std::string_view file_name,
                                     std::pmr::memory_resource* memory)
 {
-    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(f.tokens, f.program, memory)) {
+    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(tokens, source, memory)) {
         return std::move(*parsed);
     }
     else {
-        print_parse_error(std::cout, file_name, f.program, parsed.error());
+        print_parse_error(std::cout, file_name, source, parsed.error());
         std::exit(1);
     }
 }
 
 int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
 {
-    const Tokenized_File f = tokenize_file(file, memory);
-    print_tokens(std::cout, f.tokens, f.program);
+    if (!file.ends_with(".bms")) {
+        std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
+        return 1;
+    }
+    const std::pmr::string source = load_file(file, memory);
+    const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
+    print_tokens(std::cout, tokens, source);
     return 0;
 }
 
 int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
 {
-    constexpr Size indent_width = 2;
+    const std::pmr::string source = load_file(file, memory);
 
-    const Tokenized_File f = tokenize_file(file, memory);
-    const bms::Parsed_Program p = parse_tokenized(file, f, memory);
-    print_ast(std::cout, p, indent_width);
-    return 0;
+    constexpr Size indent_width = 2;
+    if (file.ends_with(".bms")) {
+        const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
+        const bms::Parsed_Program p = parse_tokenized(tokens, source, file, memory);
+        print_ast(std::cout, p, indent_width);
+        return 0;
+    }
+    if (file.ends_with(".bmd")) {
+        const bmd::Parsed_Program program = parse_bmd_file(source, file, memory);
+        print_ast(std::cout, program, indent_width);
+        return 0;
+    }
+
+    std::cout << ansi::red << "Error: unrecognized file suffix for: " << file << '\n';
+    return 1;
 }
 
 int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 {
+    if (!file.ends_with(".bms")) {
+        std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
+        return 1;
+    }
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
+    const std::pmr::string source = load_file(file, &memory_resource);
 
-    const Tokenized_File f = tokenize_file(file, &memory_resource);
-    bms::Parsed_Program p = parse_tokenized(file, f, &memory_resource);
+    const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
+    bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
     bms::Analyzed_Program a(p, file, &memory_resource);
 
     Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);

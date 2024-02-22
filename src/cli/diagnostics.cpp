@@ -4,6 +4,8 @@
 
 #include "common/visit.hpp"
 
+#include "bmd/parse.hpp"
+
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
@@ -468,6 +470,50 @@ std::ostream& print_parse_error(std::ostream& out,
     return print_affected_line(out, source, error.fail_token.pos);
 }
 
+std::ostream& print_parse_error(std::ostream& out,
+                                std::string_view file,
+                                std::string_view source,
+                                const bmd::Parse_Error& error)
+{
+    print_file_position(out, file, error.pos) << ": " << error_prefix;
+
+    switch (error.code) {
+        using enum bmd::Parse_Error_Code;
+    case unexpected_character: {
+        out << "unexpected character '" << source[error.pos.begin] << "' while matching '"
+            << grammar_rule_name(error.rule) << "'\n";
+        // TODO: diagnose expected character perhaps
+        break;
+    }
+    case unexpected_eof: {
+        out << "unexpected end of file\n";
+        break;
+    }
+    case unterminated_comment: {
+        out << "unterminated comment\n";
+        break;
+    }
+    case invalid_integer_literal: {
+        out << "invalid integer literal\n";
+        break;
+    }
+    case integer_suffix: {
+        out << "suffixes after integer literals are not allowed\n";
+        break;
+    }
+    case duplicate_argument: {
+        out << "duplicate argument in directive argument list\n";
+        break;
+    }
+    }
+
+    if (source.empty()) {
+        return out;
+    }
+
+    return print_affected_line(out, source, error.pos);
+}
+
 std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
                                    const bms::Analysis_Error& error)
@@ -502,7 +548,7 @@ print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_
 
 namespace {
 
-struct AST_Printer {
+struct BMS_AST_Printer {
     std::ostream& out;
     const bms::Parsed_Program& program;
     const Size indent_width;
@@ -545,11 +591,93 @@ struct AST_Printer {
     }
 };
 
+std::ostream& print_cut_off(std::ostream& out, std::string_view v)
+{
+    constexpr Size max_length = 30;
+
+    Size visual_length = 0;
+
+    for (Size i = 0; i < v.length(); ++i) {
+        if (visual_length >= max_length) {
+            out << ansi::h_black << " ..." << ansi::reset;
+            break;
+        }
+
+        if (v[i] == '\r') {
+            out << ansi::h_red << "\\r" << ansi::reset;
+            visual_length += 2;
+        }
+        else if (v[i] == '\t') {
+            out << ansi::h_red << "\\t" << ansi::reset;
+            visual_length += 2;
+        }
+        else if (v[i] == '\n') {
+            out << ansi::h_red << "\\n" << ansi::reset;
+            visual_length += 2;
+        }
+        else {
+            out << v[i];
+            visual_length += 1;
+        }
+    }
+
+    return out;
+}
+
+struct BMD_AST_Printer {
+    std::ostream& out;
+    const bmd::Parsed_Program& program;
+    const Size indent_width;
+
+    void print(bmd::ast::Some_Node* node, Size level = 0)
+    {
+        const std::string indent(indent_width * level, ' ');
+        out << indent;
+        if (node == nullptr) {
+            out << "null\n";
+            return;
+        }
+
+        const std::string_view node_name = get_node_name(*node);
+        const std::string_view extracted = program.extract(get_source_span(*node));
+
+        const auto* const directive = std::get_if<bmd::ast::Directive>(node);
+
+        if (directive) {
+            out << ansi::h_green << '\\' << directive->get_identifier();
+        }
+        else {
+            out << ansi::h_magenta << node_name;
+        }
+        out << ansi::h_black << "(" << ansi::reset;
+        print_cut_off(out, extracted);
+        out << ansi::h_black << ")\n" << ansi::reset;
+
+        if (directive) {
+            for (const auto& [key, val] : directive->m_arguments) {
+                out << indent << ansi::h_blue << key << ": " << ansi::reset
+                    << program.extract(get_source_span(val)) << '\n';
+            }
+        }
+
+        const auto children = get_children(*node);
+        for (Size i = 0; i < children.size(); ++i) {
+            print(children[i], level + 1);
+        }
+    }
+};
+
 } // namespace
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width)
 {
-    AST_Printer { out, program, indent_width }.print(program.root_node);
+    BMS_AST_Printer { out, program, indent_width }.print(program.root_node);
+    return out;
+}
+
+std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Program& program, Size indent_width)
+{
+    BMD_AST_Printer { out, program, indent_width }.print(program.root_node);
     return out;
 }
 

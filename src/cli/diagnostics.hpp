@@ -10,6 +10,8 @@
 #include "common/assert.hpp"
 #include "common/io.hpp"
 
+#include "bmd/fwd.hpp"
+
 #include "bms/fwd.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
@@ -54,6 +56,11 @@ std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view source,
                                 const bms::Parse_Error& e);
 
+std::ostream& print_parse_error(std::ostream& out,
+                                std::string_view file,
+                                std::string_view source,
+                                const bmd::Parse_Error& e);
+
 std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
                                    const bms::Analysis_Error& error);
@@ -62,6 +69,8 @@ std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width);
+
+std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Program& program, Size indent_width);
 
 std::ostream& print_internal_error_notice(std::ostream& out);
 
