@@ -12,6 +12,9 @@ set(SANITIZER_OPTIONS
 set(HEADERS
     src/bmd/fwd.hpp
     src/bmd/parse.hpp
+    src/bmd/html_writer.hpp
+    src/bmd/scope_success_writer.hpp
+
     src/bms/analysis_error.hpp
     src/bms/analyze.hpp
     src/bms/ast.hpp
@@ -30,6 +33,7 @@ set(HEADERS
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
+
     src/common/ansi.hpp
     src/common/assert.hpp
     src/common/config.hpp
@@ -39,10 +43,13 @@ set(HEADERS
     src/common/source_position.hpp
     src/common/result.hpp
     src/common/visit.hpp
+
     src/cli/diagnostics.hpp)
 
 add_executable(bmscript ${HEADERS}
+    src/bmd/html_writer.cpp
     src/bmd/parse.cpp
+
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
     src/bms/ast.cpp
@@ -52,9 +59,11 @@ add_executable(bmscript ${HEADERS}
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
+
     src/common/assert.cpp
     src/common/io.cpp
     src/common/parse.cpp
+
     src/cli/diagnostics.cpp
     src/cli/main.cpp)
 
