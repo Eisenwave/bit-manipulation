@@ -9,6 +9,7 @@
 
 #include "common/config.hpp"
 #include "common/result.hpp"
+#include "common/visit.hpp"
 
 #include "common/source_position.hpp"
 
@@ -38,6 +39,31 @@ enum struct Grammar_Rule {
 };
 // clang-format on
 
+[[nodiscard]] inline std::string_view grammar_rule_name(Grammar_Rule rule)
+{
+    using enum Grammar_Rule;
+    switch (rule) {
+    case document: return "document";
+    case content: return "content";
+    case paragraph: return "paragraph";
+    case paragraph_break: return "paragraph_break";
+    case text: return "text";
+    case directive: return "directive";
+    case arguments: return "arguments";
+    case block: return "block";
+    case raw_content: return "raw_content";
+    case argument: return "argument";
+    case value: return "value";
+    case binary_literal: return "binary_literal";
+    case octal_literal: return "octal_literal";
+    case decimal_literal: return "decimal_literal";
+    case hexadecimal_literal: return "hexadecimal_literal";
+    case identifier: return "identifier";
+    case blank: return "blank";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid grammar rule");
+}
+
 namespace ast {
 
 namespace detail {
@@ -54,6 +80,8 @@ struct Base {
 
 /// @brief A class which represents an identifier in the grammar.
 struct Identifier : detail::Base {
+    static inline constexpr std::string_view self_name = "Identifier";
+
     std::string_view m_value;
 
     Identifier(const Local_Source_Span& pos, std::string_view value);
@@ -66,6 +94,8 @@ struct Identifier : detail::Base {
 
 /// @brief A class which represents all numeric literals in the grammar.
 struct Number : detail::Base {
+    static inline constexpr std::string_view self_name = "Number";
+
     Int64 m_value;
     Literal_Type m_type;
 
@@ -89,8 +119,16 @@ struct Value : Value_Variant {
     using Value_Variant::variant;
 };
 
+inline Local_Source_Span get_source_span(const Value& node)
+{
+    return fast_visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
+        .get_source_position();
+}
+
 /// @brief A class which represents raw content.
 struct Raw : detail::Base {
+    static inline constexpr std::string_view self_name = "Raw";
+
     std::string_view m_value;
 
     Raw(const Local_Source_Span& pos, std::string_view value);
@@ -104,6 +142,8 @@ struct Raw : detail::Base {
 /// @brief A class which represents the `content` grammar rule.
 /// `Content` has N `Paragraph` children.
 struct Content : detail::Base {
+    static inline constexpr std::string_view self_name = "Content";
+
     std::pmr::vector<Some_Node*> m_children;
 
     Content(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
@@ -121,6 +161,8 @@ struct Content : detail::Base {
 /// @brief A class which represents the `paragraph` grammar rule.
 /// `Paragraph` has N `Directive` or `Text` children.
 struct Paragraph : detail::Base {
+    static inline constexpr std::string_view self_name = "Paragraph";
+
     std::pmr::vector<Some_Node*> m_children;
 
     Paragraph(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
@@ -139,6 +181,7 @@ struct Paragraph : detail::Base {
 /// `Directive` optionally has a `Content` or `Text` child, depending on whether the rule
 /// stores `raw_content` or regular `content`.
 struct Directive : detail::Base {
+    static inline constexpr std::string_view self_name = "Directive";
     using Arguments = std::pmr::unordered_map<std::string_view, Value>;
     std::string_view m_identifier;
     Arguments m_arguments;
@@ -174,6 +217,8 @@ struct Directive : detail::Base {
 
 /// @brief A class which represents the `text` rule in the grammar.
 struct Text : detail::Base {
+    static inline constexpr std::string_view self_name = "Text";
+
     std::string_view m_text;
 
     Text(const Local_Source_Span& pos, std::string_view text);
@@ -199,6 +244,27 @@ struct Some_Node : AST_Variant {
     using AST_Variant::variant;
 };
 
+inline std::string_view get_node_name(const Some_Node& node)
+{
+    return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
+}
+
+inline std::span<Some_Node*> get_children(Some_Node& node)
+{
+    return fast_visit([]<typename T>(T& v) { return v.get_children(); }, node);
+}
+
+inline std::span<Some_Node* const> get_children(const Some_Node& node)
+{
+    return fast_visit([]<typename T>(const T& v) { return v.get_children(); }, node);
+}
+
+inline Local_Source_Span get_source_span(const Some_Node& node)
+{
+    return fast_visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
+        .get_source_position();
+}
+
 } // namespace ast
 
 enum struct Parse_Error_Code : Default_Underlying {
@@ -221,6 +287,13 @@ struct Parse_Error {
 struct Parsed_Program {
     std::string_view source;
     ast::Some_Node* root_node;
+
+    [[nodiscard]] std::string_view extract(const Local_Source_Span& span) const
+    {
+        BIT_MANIPULATION_ASSERT(span.begin < source.length());
+        BIT_MANIPULATION_ASSERT(span.end() <= source.length());
+        return source.substr(span.begin, span.length);
+    }
 };
 
 Result<Parsed_Program, Parse_Error> parse(std::string_view source,

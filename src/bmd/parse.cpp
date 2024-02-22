@@ -165,13 +165,21 @@ private:
         return m_source.substr(m_pos.begin);
     }
 
-    /// @brief Returns the next character and advanced the parser position.
+    /// @brief Returns the next character and advances the parser position.
     /// @return The popped character.
     /// @throws Throws if `eof()`.
     char pop()
     {
+        return advance_position_based_on(peek());
+    }
+
+    /// @brief Returns the next character.
+    /// @return The next character.
+    /// @throws Throws if `eof()`.
+    char peek()
+    {
         BIT_MANIPULATION_ASSERT(!eof());
-        return advance_position_based_on(m_source[m_pos.begin]);
+        return m_source[m_pos.begin];
     }
 
     /// @return `true` if the parser is at the end of the file, `false` otherwise.
@@ -232,6 +240,7 @@ private:
     {
         if (peek(text)) {
             advance_position_by(text.length());
+            return true;
         }
         return false;
     }
@@ -448,42 +457,47 @@ private:
         if (text.empty()) {
             return nullptr;
         }
+        BIT_MANIPULATION_ASSERT(!is_space(text.front()));
+        BIT_MANIPULATION_ASSERT(!is_space(text.back()));
         return alloc_node<ast::Text>({ initial_pos, text.length() }, text);
     }
 
     std::string_view match_text_impl()
     {
-        const Size initial_pos = m_pos.begin;
-        Size last_non_whitespace = initial_pos;
+        const auto initial_pos = m_pos;
+        auto final_pos = m_pos;
         bool paragraph_break_possible = false;
 
         while (!eof()) {
-            char c = pop();
-            if (c == '\n') {
-                if (paragraph_break_possible) {
+            char c = peek();
+            if (is_space(c)) {
+                if (c == '\n') {
+                    if (paragraph_break_possible) {
+                        break;
+                    }
+                    paragraph_break_possible = true;
+                }
+                pop();
+                continue;
+            }
+
+            c = pop();
+            if (c == '/') {
+                if (peek('/') || peek('*')) {
                     break;
                 }
-                paragraph_break_possible = true;
             }
-            else if (!is_space(c)) {
-                if (c == '/') {
-                    if (peek('/') || peek('*')) {
-                        m_pos.begin = last_non_whitespace;
-                        break;
-                    }
+            if (c == '\\') {
+                if (!expect('\\')) {
+                    break;
                 }
-                if (c == '\\') {
-                    if (!expect('\\')) {
-                        m_pos.begin = last_non_whitespace;
-                        break;
-                    }
-                }
-                last_non_whitespace = m_pos.begin - 1;
-                paragraph_break_possible = false;
             }
+            final_pos = m_pos;
+            paragraph_break_possible = false;
         }
 
-        return m_source.substr(initial_pos, last_non_whitespace - initial_pos);
+        m_pos = final_pos;
+        return m_source.substr(initial_pos.begin, final_pos.begin - initial_pos.begin);
     }
 
     /// @brief Matches the grammar rule `block` of the non-raw form.
@@ -496,7 +510,7 @@ private:
             return raw.error();
         }
         const Size new_end = raw->get_source_position().end();
-        const std::string_view restore_source = m_source
+        const std::string_view restore_source
             = std::exchange(m_source, m_source.substr(0, new_end));
 
         m_pos = inner_pos;
@@ -620,21 +634,23 @@ private:
         if (eof()) {
             goto end;
         }
-        const char c = pop();
-        if (c == '/' && expect('/')) {
-            newline_count = 0;
-            goto in_line_comment;
-        }
-        if (c == '/' && expect('*')) {
-            newline_count = 0;
-            goto in_block_comment;
-        }
-        if (c == '\n') {
-            is_paragraph_break |= ++newline_count > 1;
-            goto normal_state;
+        const char c = peek();
+        if (c == '/') {
+            if (expect("//")) {
+                newline_count = 0;
+                goto in_line_comment;
+            }
+            if (expect("/*")) {
+                newline_count = 0;
+                goto in_block_comment;
+            }
         }
         if (!is_space(c)) {
             goto end;
+        }
+        pop();
+        if (c == '\n') {
+            is_paragraph_break |= ++newline_count > 1;
         }
         goto normal_state;
     }
@@ -731,7 +747,8 @@ private:
             return Rule_Error { Parse_Error_Code::unexpected_character, Grammar_Rule::identifier };
         }
         const auto initial_pos = std::exchange(m_pos, m_pos.to_right(length));
-        return ast::Identifier { { initial_pos, length }, m_source.substr(m_pos.begin, length) };
+        return ast::Identifier { { initial_pos, length },
+                                 m_source.substr(initial_pos.begin, length) };
     }
 };
 
