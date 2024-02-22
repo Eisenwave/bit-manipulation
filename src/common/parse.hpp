@@ -103,6 +103,13 @@ inline constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstu
 /// @return The length of the identifier if it could be matched, zero otherwise.
 Size match_identifier(std::string_view str) noexcept;
 
+inline bool is_identifier(std::string_view str) noexcept
+{
+    return !str.empty() //
+        && !is_decimal_digit(str[0])
+        && str.find_first_not_of(identifier_characters) == std::string_view::npos;
+}
+
 /// @brief Matches a literal at the beginning of the given string.
 /// This includes any prefix such as `0x`, `0b`, or `0` and all the following digits.
 /// @param str the string which may contain a literal at the start
