@@ -68,12 +68,11 @@ auto HTML_Writer::begin_tag(std::string_view tag, Formatting_Style type) -> Self
     m_out.write('<', HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_identifier);
     m_out.write('>', HTML_Token_Type::tag_bracket);
-    m_out.write('\n', HTML_Token_Type::whitespace);
     if (type != Formatting_Style::in_line) {
         break_line();
         m_indent_depth += type == Formatting_Style::block;
     }
-    ++m_depth += 1;
+    ++m_depth;
 
     return *this;
 }
@@ -98,13 +97,15 @@ auto HTML_Writer::end_tag(std::string_view tag, Formatting_Style type) -> Self&
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
     BIT_MANIPULATION_ASSERT(m_depth != 0);
 
+    if (type != Formatting_Style::in_line) {
+        m_indent_depth -= type == Formatting_Style::block;
+    }
     indent();
     m_out.write("</", HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_identifier);
     m_out.write('>', HTML_Token_Type::tag_bracket);
     if (type != Formatting_Style::in_line) {
         break_line();
-        m_indent_depth -= type == Formatting_Style::block;
     }
 
     --m_depth;

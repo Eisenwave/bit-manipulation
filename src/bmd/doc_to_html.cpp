@@ -101,9 +101,11 @@ struct HTML_Converter {
         for (const ast::Some_Node* const n : paragraph.get_children()) {
             if (const auto* const text = std::get_if<ast::Text>(n)) {
                 operator()(*text, Formatting_Style::block);
+                continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
                 operator()(*directive, Formatting_Style::block);
+                continue;
             }
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
                 "Paragraphs should only contain text or directives.");
