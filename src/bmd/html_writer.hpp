@@ -4,6 +4,8 @@
 #include "common/assert.hpp"
 #include "common/parse.hpp"
 
+#include "bmd/fwd.hpp"
+
 namespace bit_manipulation::bmd {
 
 inline bool requires_quotes_in_attribute(std::string_view value)
@@ -11,7 +13,17 @@ inline bool requires_quotes_in_attribute(std::string_view value)
     return value.find_first_of("\"'`=<> ") != std::string_view::npos;
 }
 
-enum struct HTML_Tag_Type { block, in_line };
+enum struct Formatting_Style {
+    /// @brief No separate line and no extra indentation.
+    /// This is typically used for tags such as `<span>`.
+    in_line,
+    /// @brief Separate line but no indentation.
+    /// This is typically used for tags such as `<html>`.
+    flat,
+    /// @brief Separate line and extra indentation.
+    /// This is typically used for tags such as `<p>`.
+    block,
+};
 
 enum struct HTML_Token_Type {
     whitespace,
@@ -25,7 +37,6 @@ enum struct HTML_Token_Type {
     attribute_quote,
     attribute_value,
     inner_text,
-    quote,
 };
 
 /// @brief The polymorphic token consumer.
@@ -41,10 +52,10 @@ struct HTML_Token_Consumer {
 struct Attribute_Writer {
 private:
     HTML_Writer& m_writer;
-    HTML_Tag_Type m_type;
+    Formatting_Style m_type;
 
 public:
-    Attribute_Writer(HTML_Writer& writer, HTML_Tag_Type type)
+    Attribute_Writer(HTML_Writer& writer, Formatting_Style type)
         : m_writer(writer)
         , m_type(type)
     {
@@ -96,7 +107,7 @@ public:
 
 private:
     HTML_Token_Consumer& m_out;
-    enum struct State { initial, normal, attributes } m_state = State::initial;
+    enum struct State { initial, attributes, normal, new_line } m_state = State::initial;
     Size m_depth = 0;
     Size m_indent_depth = 0;
 
@@ -125,19 +136,19 @@ public:
     /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& write_empty_tag(std::string_view tag, HTML_Tag_Type type);
+    Self& write_empty_tag(std::string_view tag, Formatting_Style type);
 
     /// @brief Writes an empty tag such as `<br/>` or `<hr/>`.
     /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& write_comment_tag(std::string_view comment, HTML_Tag_Type type);
+    Self& write_comment_tag(std::string_view comment, Formatting_Style type);
 
     /// @brief Writes an opening tag such as `<div>`.
     /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& begin_tag(std::string_view tag, HTML_Tag_Type type);
+    Self& begin_tag(std::string_view tag, Formatting_Style type);
 
     /// @brief Writes an incomplete opening tag such as `<div`.
     /// Returns an `Attribute_Writer` which must be used to write attributes (if any)
@@ -146,7 +157,7 @@ public:
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
     [[nodiscard]] Attribute_Writer begin_tag_with_attributes(std::string_view tag,
-                                                             HTML_Tag_Type type);
+                                                             Formatting_Style type);
 
     /// @brief Writes a closing tag, such as `</div>`.
     /// The most recent call to `begin_tag` or `begin_tag_with_attributes` shall have been made with
@@ -154,21 +165,25 @@ public:
     /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& end_tag(std::string_view tag, HTML_Tag_Type type);
+    Self& end_tag(std::string_view tag, Formatting_Style type);
 
     /// @brief Writes text between tags.
     /// This text shall not include any `<` or `>` characters.
     /// Use `&lt; and `&gt;` if need be.
     /// @param text the text to write
+    /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& write_inner_text(std::string_view text);
+    Self& write_inner_text(std::string_view text, Formatting_Style type);
 
 private:
     friend struct Attribute_Writer;
 
     Self& write_attribute(std::string_view key, std::string_view value);
-    Self& end_attributes(HTML_Tag_Type type);
-    Self& end_empty_tag_attributes(HTML_Tag_Type type);
+    Self& end_attributes(Formatting_Style type);
+    Self& end_empty_tag_attributes(Formatting_Style type);
+
+    void break_line();
+    void indent();
 };
 
 inline Attribute_Writer& Attribute_Writer::write_attribute(std::string_view key,

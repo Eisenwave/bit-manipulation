@@ -11,6 +11,9 @@ struct Parse_Error;
 
 struct Parsed_Document;
 
+struct HTML_Writer;
+struct HTML_Token_Consumer;
+
 namespace ast {
 
 struct Content;

@@ -102,6 +102,25 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     return 1;
 }
 
+int to_html(std::string_view file, std::pmr::memory_resource* memory)
+{
+    const std::pmr::string source = load_file(file, memory);
+
+    constexpr Size indent_width = 2;
+    if (file.ends_with(".bms")) {
+        std::cout << "Converting BMS files to HTML is not supported yet\n";
+        return 0;
+    }
+    if (file.ends_with(".bmd")) {
+        const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
+        print_html(std::cout, program, indent_width);
+        return 0;
+    }
+
+    std::cout << ansi::red << "Error: unrecognized file suffix for: " << file << '\n';
+    return 1;
+}
+
 int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 {
     if (!file.ends_with(".bms")) {
@@ -116,14 +135,13 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
     bms::Analyzed_Program a(p, file, &memory_resource);
 
     Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);
-    if (result) {
-        std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
-        return 0;
-    }
-    else {
+    if (!result) {
         print_analysis_error(std::cout, p, result.error());
         return 1;
     }
+
+    std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
+    return 0;
 }
 
 int main(int argc, const char** argv)
@@ -132,7 +150,7 @@ try {
 
     if (args.size() < 3) {
         const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
-        std::cout << "Usage: " << program_name << " dump_tokens|dump_ast|verify <FILE>\n";
+        std::cout << "Usage: " << program_name << " dump_tokens|dump_ast|verify|html <FILE>\n";
         return 1;
     }
 
@@ -146,6 +164,9 @@ try {
     }
     else if (args[1] == "verify") {
         return check_semantics(args[2], &memory);
+    }
+    else if (args[1] == "html") {
+        return to_html(args[2], &memory);
     }
     else {
         std::cout << "Unknown command '" << args[1] << "'\n";

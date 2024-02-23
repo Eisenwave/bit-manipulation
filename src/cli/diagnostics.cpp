@@ -4,6 +4,8 @@
 
 #include "common/visit.hpp"
 
+#include "bmd/doc_to_html.hpp"
+#include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
 
 #include "bms/analysis_error.hpp"
@@ -667,6 +669,60 @@ struct BMD_AST_Printer {
     }
 };
 
+struct HTML_To_Stream final : bmd::HTML_Token_Consumer {
+    std::ostream& out;
+    Size indent_width;
+
+    HTML_To_Stream(std::ostream& out, Size indent_width)
+        : out(out)
+        , indent_width(indent_width)
+    {
+    }
+
+    std::ostream& write_color(bmd::HTML_Token_Type type)
+    {
+        using enum bmd::HTML_Token_Type;
+        switch (type) {
+        case whitespace:
+        case inner_text: return out << ansi::reset;
+
+        case preamble:
+        case comment: return out << ansi::h_black;
+
+        case tag_identifier: return out << ansi::h_blue;
+
+        case tag_bracket:
+        case attribute_equal:
+        case attribute_comma: return out << ansi::black;
+
+        case attribute_key: return out << ansi::h_cyan;
+
+        case attribute_quote:
+        case attribute_value: return out << ansi::h_green;
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
+    }
+
+    bool write(char c, bmd::HTML_Token_Type type) final
+    {
+        return write_color(type) && out.put(c);
+    }
+
+    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    {
+        return write_color(type) && out.write(s.data(), s.length());
+    }
+
+    bool write_indent(Size indent_level) final
+    {
+        char restore_fill = out.fill(' ');
+        out.width(indent_level * indent_width);
+        bool result(out << "");
+        out.fill(restore_fill);
+        return result;
+    }
+};
+
 } // namespace
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width)
@@ -675,9 +731,16 @@ std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, S
     return out;
 }
 
-std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& program, Size indent_width)
+std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width)
 {
-    BMD_AST_Printer { out, program, indent_width }.print(program.root_node);
+    BMD_AST_Printer { out, document, indent_width }.print(document.root_node);
+    return out;
+}
+
+std::ostream& print_html(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width)
+{
+    HTML_To_Stream consumer { out, indent_width };
+    bmd::doc_to_html(consumer, document);
     return out;
 }
 

@@ -12,119 +12,146 @@ HTML_Writer::HTML_Writer(HTML_Token_Consumer& out)
 HTML_Writer::~HTML_Writer()
 {
     BIT_MANIPULATION_ASSERT(m_depth == 0);
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
 }
 
-/*
-void HTML_Writer::write_indent(Size level)
+void HTML_Writer::break_line()
 {
-    char restore_fill = m_out.fill(' ');
-    m_out.width(level * m_indent_width);
-    m_out << "";
-    m_out.fill(restore_fill);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
+
+    m_out.write('\n', HTML_Token_Type::whitespace);
+    m_state = State::new_line;
 }
-*/
+
+void HTML_Writer::indent()
+{
+    if (m_state == State::new_line) {
+        m_out.write_indent(m_indent_depth);
+    }
+    m_state = State::normal;
+}
 
 auto HTML_Writer::write_preamble() -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::initial);
-    m_state = State::normal;
+
     m_out.write("<!", HTML_Token_Type::tag_bracket);
     m_out.write("DOCTYPE html", HTML_Token_Type::preamble);
     m_out.write(">", HTML_Token_Type::tag_bracket);
+    break_line();
+
     return *this;
 }
 
-auto HTML_Writer::write_empty_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
+auto HTML_Writer::write_empty_tag(std::string_view tag, Formatting_Style type) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
-        m_out.write_indent(m_indent_depth);
-    }
+    indent();
     m_out.write('<', HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_identifier);
     m_out.write("/>", HTML_Token_Type::tag_bracket);
+    if (type != Formatting_Style::in_line) {
+        break_line();
+    }
 
     return *this;
 }
 
-auto HTML_Writer::begin_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
+auto HTML_Writer::begin_tag(std::string_view tag, Formatting_Style type) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
-        m_out.write_indent(m_indent_depth++);
-    }
-    ++m_depth;
+    indent();
     m_out.write('<', HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_identifier);
     m_out.write('>', HTML_Token_Type::tag_bracket);
+    m_out.write('\n', HTML_Token_Type::whitespace);
+    if (type != Formatting_Style::in_line) {
+        break_line();
+        m_indent_depth += type == Formatting_Style::block;
+    }
+    ++m_depth += 1;
 
     return *this;
 }
 
-Attribute_Writer HTML_Writer::begin_tag_with_attributes(std::string_view tag, HTML_Tag_Type type)
+Attribute_Writer HTML_Writer::begin_tag_with_attributes(std::string_view tag, Formatting_Style type)
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
-        m_out.write_indent(m_indent_depth++);
-    }
-    ++m_depth;
-    m_state = State::attributes;
-
+    indent();
     m_out.write('<', HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_bracket);
+
+    m_state = State::attributes;
 
     return { *this, type };
 }
 
-auto HTML_Writer::end_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
+auto HTML_Writer::end_tag(std::string_view tag, Formatting_Style type) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
     BIT_MANIPULATION_ASSERT(m_depth != 0);
 
-    if (type == HTML_Tag_Type::block) {
-        BIT_MANIPULATION_ASSERT(m_indent_depth != 0);
-        m_out.write('\n', HTML_Token_Type::whitespace);
-        m_out.write_indent(m_indent_depth--);
-    }
-    --m_depth;
-    m_state = State::normal;
+    indent();
     m_out.write("</", HTML_Token_Type::tag_bracket);
     m_out.write(tag, HTML_Token_Type::tag_identifier);
     m_out.write('>', HTML_Token_Type::tag_bracket);
+    if (type != Formatting_Style::in_line) {
+        break_line();
+        m_indent_depth -= type == Formatting_Style::block;
+    }
+
+    --m_depth;
+
     return *this;
 }
 
-auto HTML_Writer::write_comment_tag(std::string_view comment, HTML_Tag_Type type) -> Self&
+auto HTML_Writer::write_comment_tag(std::string_view comment, Formatting_Style type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(comment.find("-->") == std::string_view::npos);
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
-        m_out.write_indent(m_indent_depth);
-    }
+
+    indent();
     m_out.write("<!--", HTML_Token_Type::tag_bracket);
     m_out.write(comment, HTML_Token_Type::comment);
-    m_out.write("-->\n", HTML_Token_Type::tag_bracket);
+    m_out.write("-->", HTML_Token_Type::tag_bracket);
+    if (type != Formatting_Style::in_line) {
+        break_line();
+    }
+
     return *this;
 }
 
-auto HTML_Writer::write_inner_text(std::string_view text) -> Self&
+auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style type) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
     BIT_MANIPULATION_ASSERT(text.find_first_of("<>") == std::string_view::npos);
-    m_state = State::normal;
-    m_out.write(text, HTML_Token_Type::inner_text);
+
+    if (type == Formatting_Style::in_line) {
+        BIT_MANIPULATION_ASSERT(text.find('\n') == std::string_view::npos);
+        indent();
+        m_out.write(text, HTML_Token_Type::inner_text);
+    }
+    else {
+        while (!text.empty()) {
+            const Size nl_pos = text.find('\n');
+            const std::string_view line = text.substr(0, std::min(text.length(), nl_pos));
+            indent();
+            m_out.write(line, HTML_Token_Type::inner_text);
+            break_line();
+            if (nl_pos == std::string_view::npos) {
+                break;
+            }
+            text = text.substr(nl_pos + 1);
+        }
+    }
+
     return *this;
 }
 
@@ -132,12 +159,14 @@ auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) 
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
     BIT_MANIPULATION_ASSERT(is_identifier(key));
+
     m_out.write(' ', HTML_Token_Type::whitespace);
     m_out.write(key, HTML_Token_Type::attribute_key);
+
     if (!value.empty()) {
         m_out.write('=', HTML_Token_Type::attribute_equal);
         if (requires_quotes_in_attribute(value)) {
-            m_out.write('"', HTML_Token_Type::quote);
+            m_out.write('"', HTML_Token_Type::attribute_quote);
             m_out.write(value, HTML_Token_Type::attribute_value);
             m_out.write('"', HTML_Token_Type::attribute_quote);
         }
@@ -145,28 +174,42 @@ auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) 
             m_out.write(value, HTML_Token_Type::attribute_value);
         }
     }
+
     return *this;
 }
 
-auto HTML_Writer::end_attributes(HTML_Tag_Type type) -> Self&
+auto HTML_Writer::end_attributes(Formatting_Style type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
-    m_state = State::normal;
+
     m_out.write('>', HTML_Token_Type::tag_bracket);
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
+
+    if (type == Formatting_Style::in_line) {
+        m_state = State::normal;
     }
+    else {
+        break_line();
+        m_indent_depth += type == Formatting_Style::flat;
+    }
+
+    ++m_depth;
+
     return *this;
 }
 
-auto HTML_Writer::end_empty_tag_attributes(HTML_Tag_Type type) -> Self&
+auto HTML_Writer::end_empty_tag_attributes(Formatting_Style type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
-    m_state = State::normal;
+
     m_out.write("/>", HTML_Token_Type::tag_bracket);
-    if (type == HTML_Tag_Type::block) {
-        m_out.write('\n', HTML_Token_Type::whitespace);
+
+    if (type == Formatting_Style::in_line) {
+        m_state = State::normal;
     }
+    else {
+        break_line();
+    }
+
     return *this;
 }
 
