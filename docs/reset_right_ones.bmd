@@ -1,0 +1,37 @@
+\meta{
+    \title{Reset one-bits on the right end}
+    \bmsfun{reset_right_ones}
+    \cequiv{x & (x + 1)}
+}
+
+This procedure sets consecutive bits on the right to \c{0},
+producing the input if none.
+For example, \c{reset_right_ones(0b1011)} equals \c{0b1000}.
+
+\h2{Implementation}
+
+\codeblock{
+function reset_right_ones(x: Uint(N)) -> Uint(N)
+{
+    return x & (x + 1);
+}
+}
+
+This approach works based on the following idea:
+\ul{
+    \item{
+        If \c{x} has no one-bits on the right end,
+        then \c{x & (x + 1)} equals \c{x}.
+    }
+    \item{
+        Otherwise, the increment will clear bits on the right through carry
+        in the addition.
+        The rightmost zero-bit in \x{x + 1} is set to one, however,
+        the bitwise AND with \c{x} clears it.
+    }
+}
+
+\h2{Uses}
+
+This procedure can be used to determine if an integer is of the form
+\math{2\sup{n}-1}, i.e. one lower than a power of two.

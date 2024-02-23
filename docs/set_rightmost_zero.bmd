@@ -1,0 +1,18 @@
+\meta{
+    \title{Set rightmost zero-bit}
+    \bmsfun{set_rightmost_zero}
+    \cequiv{x | (x + 1)}
+}
+
+This procedure sets the rightmost one-bit to \c{0}, producing \c{0} if none.
+For example, \c{reset_rightmost_one(0b1010)} equals \c{0b1000}.
+
+
+\h2{Implementation}
+
+\codeblock{
+function set_rightmost_zero(x: Uint(N)) -> Uint(N)
+{
+    return x | (x + 1);
+}
+}

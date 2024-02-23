@@ -1,0 +1,26 @@
+\meta{
+    \title{Reset rightmost one-bit}
+    \bmsfun{reset_rightmost_one}
+    \cequiv{x & (x - 1)}
+}
+
+This procedure sets the rightmost one-bit to \c{0}, producing \c{0} if none.
+For example, \c{reset_rightmost_one(0b1010)} equals \c{0b1000}.
+
+A possible use is to test whether a number is a power of two, i.e.
+whether it has a single one-bit.
+If a number is a power of two or zero, \c{reset_rightmost_one} results in \c{0}. 
+
+\h2{Implementation}
+
+\codeblock{
+function reset_rightmost_one(x: Uint(N)) -> Uint(N)
+{
+    return x & (x - 1);
+}
+}
+
+\h2{Hardware support}
+
+The x86_64 architecture has a \instruction[arch=x86,ext=bmi1]{blsr}
+instruction which computes this function directly.

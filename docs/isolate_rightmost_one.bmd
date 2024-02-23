@@ -1,0 +1,28 @@
+\meta{
+    \title{Isolate rightmost one-bit}
+    \bmsfun{isolate_rightmost_one}
+    \cequiv{x & -x}
+}
+
+This procedure isolates the rightmost one-bit, producing \c{0} if none.
+For example, \c{isolate_rightmost_one(0b1010)} equals \c{0b10}.
+
+\h2{Implementation}
+
+\codeblock{
+function isolate_rightmost_one(x: Uint(N)) -> Uint(N)
+{
+    return x & -x;
+}
+}
+
+Note that \c{-x} is equivalent to \c{~x - 1}, i.e. a bitwise complement followed
+by a decrement.
+\c{x} has no bits in common with \c{~x}, however, decrementing borrows from
+the rightmost one-bit in \c{~x}, which sets a one-bit in the position of the
+rightmost bit in \c{x}.
+
+\h2{Hardware support}
+
+The x86_64 architecture has a \instruction[arch=x86,ext=bmi1]{blsi}
+instruction which computes this procedure directly.

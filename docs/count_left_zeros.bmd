@@ -1,0 +1,133 @@
+\meta{
+    \title{Count left zeros}
+    \bmsfun{count_left_zeros}
+}
+
+This procedure counts the number of consecutive zeros,
+starting from the leftmost bit.
+For example, \c{count_left_zeros(0b00001010 as Uint(8))} equals \c{4}.
+
+It is relatively easy to implement in hardware but somewhat challenging in
+software.
+
+\note{
+    This procedure is often called \q{count leading zeros}.
+}
+
+\h2{Implementations}
+
+\h3{Naive implementation}
+
+The following naive implementation requies \math{O(n)} C bitwise operations.
+In practice, you would never write or use such a function; it's just here
+for educational purposes.
+
+\codeblock{
+function count_left_zeros(x: Uint(N)) -> Int
+{
+    const leftmost = (1 as Uint(N)) << (N - 1);
+    let count = 0;
+    while (x & leftmost) == 0 {
+        x = x << 1;
+        count = count + 1;
+    }
+    return count;
+}
+}
+
+\h2{Implementation for \math{2\sup{N}} widths}
+
+Some hardware doesn't have direct support for this procedure, even though
+support is relatively common.
+In that case, a software fallback with logarithmic complexity can be used:
+
+\codeblock{
+function count_left_zeros(x: Uint(N)) -> Int
+    requires (has_single_bit(N))
+{
+    let leftmost_one_index = 0;
+    let search_mask = ~(0 as Uint(N));
+    let i = N >> 1;
+    while i != 0 {
+        if (x & (search_mask)) == 0 {
+            search_mask = search_mask << i;
+            leftmost_one_index = leftmost_one_index + i;
+        }
+        i = i >> 1;
+    }
+    return N - leftmost_one_index - 1;
+}
+}
+
+The major optimization is that we check multiple bits at a time by performing
+a binary search for the leftmost one-bit.
+For example, for 32-bit integers, we would check whether any of the leftmost
+16 bits is set.
+If so, we have to search within those leftmost 16 bits and take note of the
+fact that the leftmost one index has to be at least \c{16}.
+otherwise, we search within the rightmost 16 bits.
+
+This idea is simply repeated with ever shrinking mask sizes.
+
+\h2{Uses}
+
+\h3{Integer logarithm base 2}
+
+Counting left zeros is one of the most important procedures beyond what builtin
+language operators have to offer.
+Most notably, it can be used to compute the base-2 integer logarithm of a number
+by subtracting from the number of total bits in the function.
+It is even possible to compute the integer logarithm in any base from this.
+
+Having an approximation of the base-2 logarithm also allows us to round up
+to the next greater power of two, or round down to the next lower power.
+
+\h3{Fast approximation for iterative algorithms}
+
+The base-2 logarithm is a useful approximation for a number of algorithms.
+For example, \math{sqrt(2\sup{N}) = 2\sup{N/2}}.
+// TODO: add reference
+Iterative approaches such as Newton's method can benefit from having a decent
+initial guess.
+For integer square roots, the square root of the nearest power of two is a
+good starting point,
+and \c{count_left_zeros(x) / 2} can quickly approximate that.
+
+
+
+\h2{Existing work}
+
+\ul{
+    \item{\c[lang=c++]{std::countl_zero} \since{C++20}}
+    \item{\c[lang=c]{stdc_leading_zeros} \since{C23}}
+    \item{\c[lang=c++]{__builtin_clz} (GCC and clang intrinsic)}
+    \item{\c[lang=c++]{__lzcnt} (MSVC intrinsic)}
+}
+
+\h2{Hardware support}
+
+\h3{x86}
+
+x86 has always had a \instruction[arch=x86]{bsr} (Bit Scan Reverse) instruction,
+which computes this procedure except that it yields the index of the bit
+from the right, though it finds the same bit.
+
+Also, \instruction[arch=x86]{bsf} has some annoying properties.
+Namely, the result for zero-inputs is undefined and the zero-flag is set.
+In most applications, this is undesirable and leads to additional branching
+in the surrounding code to handle the case of zero specially.
+
+The ABM extension for x86_64 added the \instruction[arch=x86,ext=abm]{lzcnt}
+instruction.
+This instruction always yields defined results and implements this procedure
+directly.
+
+\h3{ARM}
+
+ARMv5 processors have a \instruction[arch=arm]{clz} instruction which computes
+this procedure directly.
+
+\h3{RISC-V}
+
+RISC-V defines a \instruciton[arch=risc-v,ext=Zbb]{clz} instruction which
+computes this procedure directly.

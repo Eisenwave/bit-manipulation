@@ -1,0 +1,26 @@
+\meta{
+    \title{And not}
+    \bmsfun{and_not}
+    \cequiv{x & ~y}
+}
+
+This procedure performs a bitwise AND between the left operand and the bitwise
+complement of the right operand.
+
+\h2{Implementation}
+
+\codeblock{
+function and_not(x: Uint(N), x: Uint(N)) -> Uint(N)
+{
+    return x & ~x;
+}
+}
+
+The implementation of this function is trivial.
+What makes it interesting is that it's sufficiently common to be implemented
+in hardware, quite commonly.
+
+\h2{Hardware support}
+
+The x86_64 architecture has a \instruction[arch=x86,ext=bmi1]{andn}
+instruction which computes this function directly.
