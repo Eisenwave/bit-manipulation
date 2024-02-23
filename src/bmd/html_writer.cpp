@@ -35,7 +35,7 @@ void HTML_Writer::write_indent(Size level)
     m_out.fill(restore_fill);
 }
 
-auto HTML_Writer::write_preamble(std::string_view tag) -> Self&
+auto HTML_Writer::write_preamble() -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::initial);
     m_state = State::normal;
@@ -47,6 +47,7 @@ auto HTML_Writer::write_empty_tag(std::string_view tag, HTML_Tag_Type type) -> S
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
+
     if (type == HTML_Tag_Type::block) {
         write('\n');
         write_indent(m_indent_depth);
@@ -62,6 +63,7 @@ auto HTML_Writer::begin_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
+
     if (type == HTML_Tag_Type::block) {
         write('\n');
         write_indent(m_indent_depth++);
@@ -78,6 +80,7 @@ Attribute_Writer HTML_Writer::begin_tag_with_attributes(std::string_view tag, HT
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal);
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
+
     if (type == HTML_Tag_Type::block) {
         write('\n');
         write_indent(m_indent_depth++);
@@ -144,14 +147,16 @@ auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) 
     BIT_MANIPULATION_ASSERT(is_identifier(key));
     write(' ');
     write(key);
-    write('=');
-    if (requires_quotes_in_attribute(value)) {
-        write('"');
-        write(value);
-        write('"');
-    }
-    else {
-        write(value);
+    if (!value.empty()) {
+        write('=');
+        if (requires_quotes_in_attribute(value)) {
+            write('"');
+            write(value);
+            write('"');
+        }
+        else {
+            write(value);
+        }
     }
     return *this;
 }
