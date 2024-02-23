@@ -4,11 +4,9 @@
 
 namespace bit_manipulation::bmd {
 
-HTML_Writer::HTML_Writer(std::ostream& out, const Config& config)
+HTML_Writer::HTML_Writer(HTML_Token_Consumer& out)
     : m_out(out)
-    , m_indent_width(config.indent_width)
 {
-    BIT_MANIPULATION_ASSERT(!out.fail());
 }
 
 HTML_Writer::~HTML_Writer()
@@ -17,16 +15,7 @@ HTML_Writer::~HTML_Writer()
     BIT_MANIPULATION_ASSERT(m_state == State::normal);
 }
 
-void HTML_Writer::write(std::string_view raw)
-{
-    m_out.write(raw.data(), static_cast<std::streamsize>(raw.size()));
-}
-
-void HTML_Writer::write(char c)
-{
-    m_out.put(c);
-}
-
+/*
 void HTML_Writer::write_indent(Size level)
 {
     char restore_fill = m_out.fill(' ');
@@ -34,12 +23,15 @@ void HTML_Writer::write_indent(Size level)
     m_out << "";
     m_out.fill(restore_fill);
 }
+*/
 
 auto HTML_Writer::write_preamble() -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::initial);
     m_state = State::normal;
-    write("<!DOCTYPE html>");
+    m_out.write("<!", HTML_Token_Type::tag_bracket);
+    m_out.write("DOCTYPE html", HTML_Token_Type::preamble);
+    m_out.write(">", HTML_Token_Type::tag_bracket);
     return *this;
 }
 
@@ -49,12 +41,12 @@ auto HTML_Writer::write_empty_tag(std::string_view tag, HTML_Tag_Type type) -> S
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
     if (type == HTML_Tag_Type::block) {
-        write('\n');
-        write_indent(m_indent_depth);
+        m_out.write('\n', HTML_Token_Type::whitespace);
+        m_out.write_indent(m_indent_depth);
     }
-    write('<');
-    write(tag);
-    write("/>");
+    m_out.write('<', HTML_Token_Type::tag_bracket);
+    m_out.write(tag, HTML_Token_Type::tag_identifier);
+    m_out.write("/>", HTML_Token_Type::tag_bracket);
 
     return *this;
 }
@@ -65,13 +57,13 @@ auto HTML_Writer::begin_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
     if (type == HTML_Tag_Type::block) {
-        write('\n');
-        write_indent(m_indent_depth++);
+        m_out.write('\n', HTML_Token_Type::whitespace);
+        m_out.write_indent(m_indent_depth++);
     }
     ++m_depth;
-    write('<');
-    write(tag);
-    write('>');
+    m_out.write('<', HTML_Token_Type::tag_bracket);
+    m_out.write(tag, HTML_Token_Type::tag_identifier);
+    m_out.write('>', HTML_Token_Type::tag_bracket);
 
     return *this;
 }
@@ -82,14 +74,14 @@ Attribute_Writer HTML_Writer::begin_tag_with_attributes(std::string_view tag, HT
     BIT_MANIPULATION_ASSERT(is_identifier(tag));
 
     if (type == HTML_Tag_Type::block) {
-        write('\n');
-        write_indent(m_indent_depth++);
+        m_out.write('\n', HTML_Token_Type::whitespace);
+        m_out.write_indent(m_indent_depth++);
     }
     ++m_depth;
     m_state = State::attributes;
 
-    write('<');
-    write(tag);
+    m_out.write('<', HTML_Token_Type::tag_bracket);
+    m_out.write(tag, HTML_Token_Type::tag_bracket);
 
     return { *this, type };
 }
@@ -102,14 +94,14 @@ auto HTML_Writer::end_tag(std::string_view tag, HTML_Tag_Type type) -> Self&
 
     if (type == HTML_Tag_Type::block) {
         BIT_MANIPULATION_ASSERT(m_indent_depth != 0);
-        write('\n');
-        write_indent(m_indent_depth--);
+        m_out.write('\n', HTML_Token_Type::whitespace);
+        m_out.write_indent(m_indent_depth--);
     }
     --m_depth;
     m_state = State::normal;
-    write("</");
-    write(tag);
-    write('>');
+    m_out.write("</", HTML_Token_Type::tag_bracket);
+    m_out.write(tag, HTML_Token_Type::tag_identifier);
+    m_out.write('>', HTML_Token_Type::tag_bracket);
     return *this;
 }
 
@@ -118,12 +110,12 @@ auto HTML_Writer::write_comment_tag(std::string_view comment, HTML_Tag_Type type
     BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(comment.find("-->") == std::string_view::npos);
     if (type == HTML_Tag_Type::block) {
-        write('\n');
-        write_indent(m_indent_depth);
+        m_out.write('\n', HTML_Token_Type::whitespace);
+        m_out.write_indent(m_indent_depth);
     }
-    write("<!--");
-    write(comment);
-    write("-->\n");
+    m_out.write("<!--", HTML_Token_Type::tag_bracket);
+    m_out.write(comment, HTML_Token_Type::comment);
+    m_out.write("-->\n", HTML_Token_Type::tag_bracket);
     return *this;
 }
 
@@ -132,30 +124,25 @@ auto HTML_Writer::write_inner_text(std::string_view text) -> Self&
     BIT_MANIPULATION_ASSERT(m_state == State::normal);
     BIT_MANIPULATION_ASSERT(text.find_first_of("<>") == std::string_view::npos);
     m_state = State::normal;
-    write(text);
+    m_out.write(text, HTML_Token_Type::inner_text);
     return *this;
-}
-
-[[nodiscard]] HTML_Writer::operator bool() const
-{
-    return bool(m_out);
 }
 
 auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
     BIT_MANIPULATION_ASSERT(is_identifier(key));
-    write(' ');
-    write(key);
+    m_out.write(' ', HTML_Token_Type::whitespace);
+    m_out.write(key, HTML_Token_Type::attribute_key);
     if (!value.empty()) {
-        write('=');
+        m_out.write('=', HTML_Token_Type::attribute_equal);
         if (requires_quotes_in_attribute(value)) {
-            write('"');
-            write(value);
-            write('"');
+            m_out.write('"', HTML_Token_Type::quote);
+            m_out.write(value, HTML_Token_Type::attribute_value);
+            m_out.write('"', HTML_Token_Type::attribute_quote);
         }
         else {
-            write(value);
+            m_out.write(value, HTML_Token_Type::attribute_value);
         }
     }
     return *this;
@@ -165,7 +152,10 @@ auto HTML_Writer::end_attributes(HTML_Tag_Type type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
     m_state = State::normal;
-    write(type == HTML_Tag_Type::block ? ">\n" : ">");
+    m_out.write('>', HTML_Token_Type::tag_bracket);
+    if (type == HTML_Tag_Type::block) {
+        m_out.write('\n', HTML_Token_Type::whitespace);
+    }
     return *this;
 }
 
@@ -173,7 +163,10 @@ auto HTML_Writer::end_empty_tag_attributes(HTML_Tag_Type type) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
     m_state = State::normal;
-    write(type == HTML_Tag_Type::block ? "/>\n" : "/>");
+    m_out.write("/>", HTML_Token_Type::tag_bracket);
+    if (type == HTML_Tag_Type::block) {
+        m_out.write('\n', HTML_Token_Type::whitespace);
+    }
     return *this;
 }
 

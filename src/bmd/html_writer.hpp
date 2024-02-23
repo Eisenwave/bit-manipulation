@@ -1,8 +1,6 @@
 #ifndef BIT_MANIPULATION_BMD_HTML_WRITER_HPP
 #define BIT_MANIPULATION_BMD_HTML_WRITER_HPP
 
-#include <iosfwd>
-
 #include "common/assert.hpp"
 #include "common/parse.hpp"
 
@@ -15,6 +13,31 @@ inline bool requires_quotes_in_attribute(std::string_view value)
 
 enum struct HTML_Tag_Type { block, in_line };
 
+enum struct HTML_Token_Type {
+    whitespace,
+    preamble,
+    comment,
+    tag_identifier,
+    tag_bracket,
+    attribute_key,
+    attribute_equal,
+    attribute_comma,
+    attribute_quote,
+    attribute_value,
+    inner_text,
+    quote,
+};
+
+/// @brief The polymorphic token consumer.
+/// This class' member functions are invoked by `HTML_Writer` with the text content and the
+/// token type to write.
+/// The token type can be ignored, but may be used to output with syntax highlighting.
+struct HTML_Token_Consumer {
+    virtual bool write(char c, HTML_Token_Type type) = 0;
+    virtual bool write(std::string_view s, HTML_Token_Type type) = 0;
+    virtual bool write_indent(Size indent_level) = 0;
+};
+
 struct Attribute_Writer {
 private:
     HTML_Writer& m_writer;
@@ -25,7 +48,6 @@ public:
         : m_writer(writer)
         , m_type(type)
     {
-        BIT_MANIPULATION_ASSERT(writer);
     }
 
     Attribute_Writer(const Attribute_Writer&) = delete;
@@ -72,15 +94,8 @@ struct HTML_Writer {
 public:
     using Self = HTML_Writer;
 
-    /// @brief Aggregate which holds arguments to configure the `HTML_Writer`.
-    struct Config {
-        /// @brief The number of space characters per indent level.
-        Size indent_width;
-    };
-
 private:
-    std::ostream& m_out;
-    Size m_indent_width;
+    HTML_Token_Consumer& m_out;
     enum struct State { initial, normal, attributes } m_state = State::initial;
     Size m_depth = 0;
     Size m_indent_depth = 0;
@@ -90,8 +105,7 @@ public:
     /// Writes nothing to the stream.
     /// `out.fail()` shall be true.
     /// @param out the output stream
-    /// @param config configuration arguments for this writer
-    HTML_Writer(std::ostream& out, const Config& config);
+    explicit HTML_Writer(HTML_Token_Consumer& out);
 
     HTML_Writer(const HTML_Writer&) = delete;
     HTML_Writer& operator=(const HTML_Writer&) = delete;
@@ -149,19 +163,12 @@ public:
     /// @return `*this`
     Self& write_inner_text(std::string_view text);
 
-    /// @brief Returns `!stream.fail()`.
-    [[nodiscard]] operator bool() const;
-
 private:
     friend struct Attribute_Writer;
 
     Self& write_attribute(std::string_view key, std::string_view value);
     Self& end_attributes(HTML_Tag_Type type);
     Self& end_empty_tag_attributes(HTML_Tag_Type type);
-
-    void write(std::string_view raw);
-    void write(char c);
-    void write_indent(Size level);
 };
 
 inline Attribute_Writer& Attribute_Writer::write_attribute(std::string_view key,
