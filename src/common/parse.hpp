@@ -103,6 +103,9 @@ inline constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstu
 /// @return The length of the identifier if it could be matched, zero otherwise.
 Size match_identifier(std::string_view str) noexcept;
 
+/// @brief Returns `true` if `str` is an identifier, `false` otherwise.
+/// @param str the string to test
+/// @return `!str.empty() && match_identifier(str) == str.length()`
 inline bool is_identifier(std::string_view str) noexcept
 {
     return !str.empty() //
