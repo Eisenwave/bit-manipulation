@@ -76,7 +76,7 @@ struct HTML_Converter {
     }
 
     [[nodiscard]] Result<void, Document_Error>
-    convert_directive(const ast::Directive& directive, Formatting_Style, Context context)
+    convert_directive(const ast::Directive& directive, Formatting_Style, Context)
     {
         std::optional<Directive_Type> type = directive_type_by_id(directive.get_identifier());
         if (!type) {
