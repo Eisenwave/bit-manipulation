@@ -9,14 +9,6 @@ namespace bit_manipulation::bmd {
 
 namespace {
 
-struct Tag_Base_Info {
-    /// @brief The formatting style for this tag.
-    Formatting_Style style;
-    /// @brief `true` if the tag is an HTML void tag (`<br>`, `<hr>`, etc.) which must always
-    /// be empty.
-    bool is_void;
-};
-
 struct HTML_Converter {
     enum struct Context {
         /// The default context.
