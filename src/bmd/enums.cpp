@@ -12,6 +12,7 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case bold:
     case line_break:
     case deleted:
+    case instruction:
     case italic:
     case item:
     case keyboard:
@@ -32,7 +33,7 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case heading6:
     case ordered_list:
     case note:
-    case unordered_list: Formatting_Style::block;
+    case unordered_list: return Formatting_Style::block;
 
     case horizontal_rule: return Formatting_Style::flat;
 
@@ -41,6 +42,7 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case bms_function:
     case c_equivalent: return {};
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
 std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id) noexcept
@@ -126,6 +128,7 @@ std::string_view directive_type_tag(Directive_Type type)
     case c_equivalent:
     case item: return "";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
 } // namespace bit_manipulation::bmd

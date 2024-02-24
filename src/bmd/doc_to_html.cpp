@@ -89,11 +89,8 @@ struct HTML_Converter {
 
         switch (*type) {
         case Directive_Type::meta: return convert_meta_directive(directive);
+        default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
-
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
-
-        return {};
     }
 
     [[nodiscard]] Result<void, Document_Error>
