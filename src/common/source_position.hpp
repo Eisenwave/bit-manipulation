@@ -3,6 +3,7 @@
 
 #include <string_view>
 
+#include "common/assert.hpp"
 #include "common/config.hpp"
 
 namespace bit_manipulation {
@@ -23,6 +24,13 @@ struct Local_Source_Position {
     {
         return { .line = line, .column = column + offset, .begin = begin + offset };
     }
+
+    [[nodiscard]] constexpr Local_Source_Position to_left(Size offset) const
+    {
+        BIT_MANIPULATION_ASSERT(column >= offset);
+        BIT_MANIPULATION_ASSERT(begin >= offset);
+        return { .line = line, .column = column - offset, .begin = begin - offset };
+    }
 };
 
 /// Represents a position in a source file.
@@ -34,6 +42,13 @@ struct Local_Source_Span : Local_Source_Position {
     [[nodiscard]] constexpr Local_Source_Span to_right(Size offset) const
     {
         return { { .line = line, .column = column + offset, .begin = begin + offset }, length };
+    }
+
+    [[nodiscard]] constexpr Local_Source_Span to_left(Size offset) const
+    {
+        BIT_MANIPULATION_ASSERT(column >= offset);
+        BIT_MANIPULATION_ASSERT(begin >= offset);
+        return { { .line = line, .column = column - offset, .begin = begin - offset }, length };
     }
 
     [[nodiscard]] constexpr Size end() const

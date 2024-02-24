@@ -223,11 +223,27 @@ std::string_view to_prose(bms::Conversion_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
+std::string_view to_prose(bmd::Parse_Error_Code e)
+{
+    using enum bmd::Parse_Error_Code;
+    switch (e) {
+    case unexpected_character: return "Encountered unexpected character while parsing.";
+    case unexpected_eof: return "Unexpected end of file.";
+    case unterminated_comment: return "Unterminated comment.";
+    case invalid_integer_literal: return "Invalid integer literal.";
+    case integer_suffix:
+        return "Suffixes after integer literals are not allowed. Did you forget a space, comma, "
+               "etc.?";
+    case invalid_directive: return "Invalid directive.";
+    case duplicate_argument: return "Duplicate argument in directive argument list.";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
+}
+
 std::string_view to_prose(bmd::Document_Error_Code e)
 {
     using enum bmd::Document_Error_Code;
     switch (e) {
-    case unknown_directive: return "Unknown directive.";
     case writer_misuse: return "The internal HTML writer has been misused by the developer.";
     case no_block_allowed: return "The surrounding directive must be empty.";
     case directive_not_allowed: return "This directive is not allowed here.";
@@ -235,7 +251,7 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     case meta_not_at_start_of_file:
         return "A \\meta directive must be at the beginning of the document.";
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
 
 std::string_view cause_to_prose(bms::Analysis_Error_Code e)
@@ -494,34 +510,13 @@ std::ostream& print_parse_error(std::ostream& out,
 {
     print_file_position(out, file, error.pos) << ": " << error_prefix;
 
-    switch (error.code) {
-        using enum bmd::Parse_Error_Code;
-    case unexpected_character: {
+    if (error.code == bmd::Parse_Error_Code::unexpected_character) {
         out << "unexpected character '" << source[error.pos.begin] << "' while matching '"
             << grammar_rule_name(error.rule) << "'\n";
         // TODO: diagnose expected character perhaps
-        break;
     }
-    case unexpected_eof: {
-        out << "unexpected end of file\n";
-        break;
-    }
-    case unterminated_comment: {
-        out << "unterminated comment\n";
-        break;
-    }
-    case invalid_integer_literal: {
-        out << "invalid integer literal\n";
-        break;
-    }
-    case integer_suffix: {
-        out << "suffixes after integer literals are not allowed\n";
-        break;
-    }
-    case duplicate_argument: {
-        out << "duplicate argument in directive argument list\n";
-        break;
-    }
+    else {
+        out << to_prose(error.code) << '\n';
     }
 
     if (source.empty()) {

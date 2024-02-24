@@ -78,30 +78,25 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_directive(const ast::Directive& directive, Formatting_Style, Context)
     {
-        std::optional<Directive_Type> type = directive_type_by_id(directive.get_identifier());
-        if (!type) {
-            return Document_Error { Document_Error_Code::unknown_directive,
-                                    directive.get_source_position() };
-        }
-        if (directive_type_is_html_passthrough(*type)) {
-            return convert_html_passthrough_directive(directive, *type);
+        if (directive_type_is_html_passthrough(directive.get_type())) {
+            return convert_html_passthrough_directive(directive);
         }
 
-        switch (*type) {
+        switch (directive.get_type()) {
         case Directive_Type::meta: return convert_meta_directive(directive);
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
     }
 
     [[nodiscard]] Result<void, Document_Error>
-    convert_html_passthrough_directive(const ast::Directive& directive, Directive_Type type)
+    convert_html_passthrough_directive(const ast::Directive& directive)
     {
-        BIT_MANIPULATION_ASSERT(directive_type_is_html_passthrough(type));
+        BIT_MANIPULATION_ASSERT(directive_type_is_html_passthrough(directive.get_type()));
 
         m_at_start_of_file = false;
 
-        const std::string_view tag = directive_type_tag(type);
-        const Formatting_Style style = directive_type_formatting_style(type);
+        const std::string_view tag = directive_type_tag(directive.get_type());
+        const Formatting_Style style = directive_type_formatting_style(directive.get_type());
 
         if (!directive.m_arguments.empty()) {
             auto attribute_writer = m_writer.begin_tag_with_attributes(tag, style);
@@ -125,7 +120,7 @@ struct HTML_Converter {
         }
 
         if (directive.get_block() == nullptr) {
-            if (directive_type_must_be_empty(type)) {
+            if (directive_type_must_be_empty(directive.get_type())) {
                 return Document_Error { Document_Error_Code::no_block_allowed,
                                         directive.get_source_position() };
             }

@@ -9,8 +9,6 @@
 namespace bit_manipulation::bmd {
 
 enum struct Document_Error_Code {
-    /// @brief An unknown directive was used, e.g. `\xxx`
-    unknown_directive,
     /// @brief A directive such as `\br` must not have a non-empty block.
     no_block_allowed,
     /// @brief A directive is not allowed in a specific context.

@@ -183,14 +183,23 @@ struct Paragraph : detail::Base {
 struct Directive : detail::Base {
     static inline constexpr std::string_view self_name = "Directive";
     using Arguments = std::pmr::unordered_map<std::string_view, Value>;
+
+    Directive_Type m_type;
     std::string_view m_identifier;
+
     Arguments m_arguments;
     Some_Node* m_block;
 
     Directive(const Local_Source_Span& pos,
+              Directive_Type type,
               std::string_view identifier,
               Arguments&& args,
               ast::Some_Node* block);
+
+    Directive_Type get_type() const
+    {
+        return m_type;
+    }
 
     std::string_view get_identifier() const
     {
@@ -276,6 +285,7 @@ enum struct Parse_Error_Code : Default_Underlying {
     unexpected_eof,
     duplicate_argument,
     integer_suffix,
+    invalid_directive,
 };
 
 struct Parse_Error {

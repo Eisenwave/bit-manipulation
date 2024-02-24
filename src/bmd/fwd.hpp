@@ -5,6 +5,7 @@
 
 namespace bit_manipulation::bmd {
 
+enum struct Directive_Type : Default_Underlying;
 enum struct Formatting_Style : Default_Underlying;
 
 enum struct Parse_Error_Code : Default_Underlying;

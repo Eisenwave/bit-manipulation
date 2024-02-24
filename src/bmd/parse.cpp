@@ -3,6 +3,7 @@
 #include "common/assert.hpp"
 #include "common/parse.hpp"
 
+#include "bmd/directive_type.hpp"
 #include "bmd/parse.hpp"
 
 namespace bit_manipulation::bmd {
@@ -31,10 +32,12 @@ Paragraph::Paragraph(const Local_Source_Span& pos, std::pmr::vector<ast::Some_No
 }
 
 Directive::Directive(const Local_Source_Span& pos,
+                     Directive_Type type,
                      std::string_view identifier,
                      Arguments&& args,
                      ast::Some_Node* block)
     : detail::Base { pos }
+    , m_type(type)
     , m_identifier(identifier)
     , m_arguments(std::move(args))
     , m_block(block)
@@ -369,6 +372,12 @@ private:
         if (!identifier) {
             return identifier.error();
         }
+        std::optional<Directive_Type> type = directive_type_by_id(identifier->get_value());
+        if (!type) {
+            m_pos = m_pos.to_left(identifier->get_value().length());
+            return Rule_Error { Parse_Error_Code::invalid_directive, this_rule };
+        }
+
         ast::Directive::Arguments args(m_memory);
         if (peek('[')) {
             auto r = match_arguments();
@@ -394,7 +403,7 @@ private:
                 block = *r;
             }
         }
-        return alloc_node<ast::Directive>({ initial_pos, m_pos.begin - initial_pos.begin },
+        return alloc_node<ast::Directive>({ initial_pos, m_pos.begin - initial_pos.begin }, *type,
                                           identifier->get_value(), std::move(args), block);
     }
 
