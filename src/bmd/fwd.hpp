@@ -19,8 +19,7 @@ struct HTML_Token_Consumer;
 
 namespace ast {
 
-struct Content;
-struct Paragraph;
+struct List;
 struct Text;
 struct Number;
 struct Directive;

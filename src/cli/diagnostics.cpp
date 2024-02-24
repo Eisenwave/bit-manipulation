@@ -252,7 +252,6 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     switch (e) {
     case writer_misuse: return "The internal HTML writer has been misused by the developer.";
     case directive_not_allowed: return "This directive is not allowed here.";
-    case text_not_allowed: return "Plain text is not allowed here.";
     case meta_not_at_start_of_file:
         return "A \\meta directive must be at the beginning of the document.";
     }

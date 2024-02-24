@@ -139,33 +139,15 @@ struct Raw : detail::Base {
     }
 };
 
-/// @brief A class which represents the `content` grammar rule.
-/// `Content` has N `Paragraph` children.
-struct Content : detail::Base {
-    static inline constexpr std::string_view self_name = "Content";
+/// @brief A class which represents the grammar rules `content`, `paragraph`, and
+/// contents of blocks in general.
+/// The concrete meaning depends on the enclosing directive.
+struct List : detail::Base {
+    static inline constexpr std::string_view self_name = "List";
 
     std::pmr::vector<Some_Node*> m_children;
 
-    Content(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
-
-    std::span<Some_Node*> get_children()
-    {
-        return m_children;
-    }
-    std::span<Some_Node* const> get_children() const
-    {
-        return m_children;
-    }
-};
-
-/// @brief A class which represents the `paragraph` grammar rule.
-/// `Paragraph` has N `Directive` or `Text` children.
-struct Paragraph : detail::Base {
-    static inline constexpr std::string_view self_name = "Paragraph";
-
-    std::pmr::vector<Some_Node*> m_children;
-
-    Paragraph(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
+    List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
 
     std::span<Some_Node*> get_children()
     {
@@ -247,7 +229,7 @@ struct Text : detail::Base {
     }
 };
 
-using AST_Variant = std::variant<Content, Paragraph, Directive, Text>;
+using AST_Variant = std::variant<List, Directive, Text>;
 
 struct Some_Node : AST_Variant {
     using AST_Variant::variant;

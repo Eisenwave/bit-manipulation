@@ -18,27 +18,26 @@ struct HTML_Converter {
     {
     }
 
-    [[nodiscard]] Result<void, Document_Error> convert_content(const ast::Content& content,
-                                                               Formatting_Style inherited_style,
-                                                               Directive_Content_Type context)
+    [[nodiscard]] Result<void, Document_Error> convert_content(const ast::List& content,
+                                                               Formatting_Style inherited_style)
     {
         for (const ast::Some_Node* const p : content.get_children()) {
-            auto r = convert_paragraph(std::get<ast::Paragraph>(*p), inherited_style, context);
+            m_writer.begin_tag("p", Formatting_Style::block);
+            auto r = convert_list(std::get<ast::List>(*p), inherited_style);
             if (!r) {
                 return r;
             }
+            m_writer.end_tag("p", Formatting_Style::block);
         }
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> convert_paragraph(const ast::Paragraph& paragraph,
-                                                                 Formatting_Style inherited_style,
-                                                                 Directive_Content_Type context)
+    [[nodiscard]] Result<void, Document_Error> convert_list(const ast::List& list,
+                                                            Formatting_Style inherited_style)
     {
-        m_writer.begin_tag("p", Formatting_Style::block);
-        for (const ast::Some_Node* const n : paragraph.get_children()) {
+        for (const ast::Some_Node* const n : list.get_children()) {
             if (const auto* const text = std::get_if<ast::Text>(n)) {
-                if (auto r = convert_text(*text, inherited_style, context); !r) {
+                if (auto r = convert_text(*text, inherited_style); !r) {
                     return r;
                 }
                 continue;
@@ -49,19 +48,16 @@ struct HTML_Converter {
                 }
                 continue;
             }
-            BIT_MANIPULATION_ASSERT_UNREACHABLE(
-                "Paragraphs should only contain text or directives.");
+            // Lists containing lists are possible, but handled in `convert_content`, which is
+            // the only place where this can occur.
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Lists should only contain text or directives.");
         }
-        m_writer.end_tag("p", Formatting_Style::block);
         return {};
     }
 
     [[nodiscard]] Result<void, Document_Error> convert_text(const ast::Text& text,
-                                                            Formatting_Style inherited_style,
-                                                            Directive_Content_Type context)
+                                                            Formatting_Style inherited_style)
     {
-        BIT_MANIPULATION_ASSERT(context != Directive_Content_Type::nothing
-                                && context != Directive_Content_Type::directives);
         m_at_start_of_file = false;
         m_writer.write_inner_text(text.get_text(), inherited_style);
         return {};
@@ -143,14 +139,20 @@ struct HTML_Converter {
         if (block == nullptr) {
             return {};
         }
-        if (const auto* const content = std::get_if<ast::Content>(block)) {
-            return convert_content(*content, inherited_style, context);
-        }
-        if (const auto* const paragraph = std::get_if<ast::Paragraph>(block)) {
-            return convert_paragraph(*paragraph, inherited_style, context);
-        }
-        if (const auto* const text = std::get_if<ast::Text>(block)) {
-            return convert_text(*text, inherited_style, context);
+        switch (context) {
+        case Directive_Content_Type::nothing:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Non-empty block is not allowed.");
+
+        case Directive_Content_Type::raw:
+        case Directive_Content_Type::text_span:
+            return convert_text(std::get<ast::Text>(*block), inherited_style);
+
+        case Directive_Content_Type::span:
+        case Directive_Content_Type::directives:
+            return convert_list(std::get<ast::List>(*block), inherited_style);
+
+        case Directive_Content_Type::block:
+            return convert_content(std::get<ast::List>(*block), inherited_style);
         }
 
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid contents for Block.");
@@ -168,9 +170,8 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_
     writer.begin_tag("body", Formatting_Style::flat);
 
     if (document.root_node != nullptr) {
-        const auto& root_content = std::get<ast::Content>(*document.root_node);
-        auto r = HTML_Converter { writer }.convert_content(root_content, Formatting_Style::flat,
-                                                           Directive_Content_Type::block);
+        const auto& root_content = std::get<ast::List>(*document.root_node);
+        auto r = HTML_Converter { writer }.convert_content(root_content, Formatting_Style::flat);
         if (!r) {
             return r;
         }

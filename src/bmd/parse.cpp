@@ -10,24 +10,12 @@ namespace bit_manipulation::bmd {
 
 namespace ast {
 
-Content::Content(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children)
+List::List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children)
     : detail::Base { pos }
     , m_children(std::move(children))
 {
     for (const auto* const child : m_children) {
         BIT_MANIPULATION_ASSERT(child != nullptr);
-        BIT_MANIPULATION_ASSERT(std::holds_alternative<ast::Paragraph>(*child));
-    }
-}
-
-Paragraph::Paragraph(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children)
-    : detail::Base { pos }
-    , m_children(std::move(children))
-{
-    for (const auto* const child : m_children) {
-        BIT_MANIPULATION_ASSERT(child != nullptr);
-        BIT_MANIPULATION_ASSERT(std::holds_alternative<ast::Directive>(*child)
-                                || std::holds_alternative<ast::Text>(*child));
     }
 }
 
@@ -343,8 +331,8 @@ private:
             }
             paragraphs.push_back(*paragraph);
         }
-        return alloc_node<ast::Content>({ initial_pos, m_pos.begin - initial_pos.begin },
-                                        std::move(paragraphs));
+        return alloc_node<ast::List>({ initial_pos, m_pos.begin - initial_pos.begin },
+                                     std::move(paragraphs));
     }
 
     Result<ast::Some_Node*, Rule_Error> match_paragraph()
@@ -376,8 +364,8 @@ private:
                 elements.push_back(*directive);
             }
         }
-        return alloc_node<ast::Paragraph>({ initial_pos, m_pos.begin - initial_pos.begin },
-                                          std::move(elements));
+        return alloc_node<ast::List>({ initial_pos, m_pos.begin - initial_pos.begin },
+                                     std::move(elements));
     }
 
     Result<ast::Some_Node*, Rule_Error> match_directive()
@@ -623,8 +611,8 @@ private:
                 return Rule_Error { Parse_Error_Code::unterminated_comment, this_rule };
             }
         }
-        return alloc_node<ast::Paragraph>({ initial_pos, m_pos.begin - initial_pos.begin },
-                                          std::move(directives));
+        return alloc_node<ast::List>({ initial_pos, m_pos.begin - initial_pos.begin },
+                                     std::move(directives));
     }
 
     /// @brief Matches a raw block and then performs parsing through the given `match`
