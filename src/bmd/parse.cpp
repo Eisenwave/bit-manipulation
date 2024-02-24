@@ -77,6 +77,11 @@ Raw::Raw(const Local_Source_Span& pos, std::string_view value)
 
 namespace {
 
+bool is_escapeable(char c)
+{
+    return c == '\\' || c == '}' || c == '{';
+}
+
 constexpr std::string_view after_number_characters = "[]{}=, \r\t\n";
 
 Grammar_Rule grammar_rule_of(Literal_Type literal)
@@ -204,6 +209,21 @@ private:
     bool peek(char c) const
     {
         return !eof() && m_source[m_pos.begin] == c;
+    }
+
+    /// @brief Checks whether the parser is at the start of a directive.
+    /// Namely, has to be `\\` and not be the start of an escape sequence such as `\\\\` for this
+    /// to be the case.
+    /// This function can have false positives in the sense that if the subsequent directive is
+    /// ill-formed, the guess was optimistic, and there isn't actually a directive there.
+    /// However, it has no false negatives.
+    /// @return `true` if the parser is at the start of a directive, `false` otherwise.
+    bool peek_possible_directive() const
+    {
+        const std::string_view rest = peek_all();
+        return !rest.empty() //
+            && rest[0] == '\\' //
+            && (rest.length() <= 1 || !is_escapeable(rest[1]));
     }
 
     /// @brief Checks whether the next character satisfies a predicate without advancing
@@ -348,7 +368,7 @@ private:
                 elements.push_back(text);
                 continue;
             }
-            if (peek('\\')) {
+            if (peek_possible_directive()) {
                 auto directive = match_directive();
                 if (!directive) {
                     return directive;
@@ -388,20 +408,11 @@ private:
         }
         ast::Some_Node* block = nullptr;
         if (peek('{')) {
-            if (identifier->get_value().starts_with("code")) {
-                auto r = match_raw_block();
-                if (!r) {
-                    return r;
-                }
-                block = *r;
+            auto r = match_directive_content(directive_type_content_type(*type));
+            if (!r) {
+                return r;
             }
-            else {
-                auto r = match_block();
-                if (!r) {
-                    return r;
-                }
-                block = *r;
-            }
+            block = *r;
         }
         return alloc_node<ast::Directive>({ initial_pos, m_pos.begin - initial_pos.begin }, *type,
                                           identifier->get_value(), std::move(args), block);
@@ -497,7 +508,7 @@ private:
                 }
             }
             if (c == '\\') {
-                if (!expect('\\')) {
+                if (!expect(is_escapeable)) {
                     break;
                 }
             }
@@ -509,9 +520,124 @@ private:
         return m_source.substr(initial_pos.begin, final_pos.begin - initial_pos.begin);
     }
 
-    /// @brief Matches the grammar rule `block` of the non-raw form.
-    /// @return `ast::Block`.
-    Result<ast::Some_Node*, Rule_Error> match_block()
+    Result<ast::Some_Node*, Rule_Error> match_directive_content(Directive_Content_Type type)
+    {
+        switch (type) {
+        case Directive_Content_Type::nothing: //
+            return match_empty_block();
+        case Directive_Content_Type::text_span: //
+            return match_inside_block(&Parser::match_text_span_inside_raw_block);
+        case Directive_Content_Type::span: //
+            return match_inside_block(&Parser::match_span_inside_raw_block);
+        case Directive_Content_Type::block: //
+            return match_inside_block(&Parser::match_block_inside_raw_block);
+        case Directive_Content_Type::directives: //
+            return match_inside_block(&Parser::match_directives_inside_raw_block);
+        case Directive_Content_Type::raw: //
+            return match_raw_block();
+        }
+
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive content type.");
+    }
+
+    Result<ast::Some_Node*, Rule_Error> match_empty_block()
+    {
+        if (auto r = match_blank(); !r) {
+            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::block };
+        }
+        if (!expect('}')) {
+            return Rule_Error { Parse_Error_Code::directive_must_be_empty, Grammar_Rule::block };
+        }
+        return nullptr;
+    }
+
+    enum struct Directives_Allowed_Flag : bool { no, yes };
+
+    Result<ast::Some_Node*, Rule_Error> match_text_span_inside_raw_block()
+    {
+        return match_span_inside_raw_block(Directives_Allowed_Flag::no);
+    }
+
+    Result<ast::Some_Node*, Rule_Error> match_span_inside_raw_block()
+    {
+        // Normally, we'd use default arguments, but we need this member function to take a
+        // function pointer with a clean signature.
+        return match_span_inside_raw_block(Directives_Allowed_Flag::yes);
+    }
+
+    Result<ast::Some_Node*, Rule_Error>
+    match_span_inside_raw_block(Directives_Allowed_Flag directives_allowed_flag)
+    {
+        const bool directives_allowed = static_cast<bool>(directives_allowed_flag);
+
+        auto leading_blank = match_blank();
+        if (!leading_blank) {
+            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::block };
+        }
+        if (leading_blank->is_paragraph_break) {
+            return Rule_Error { Parse_Error_Code::paragraph_break_in_span, Grammar_Rule::block };
+        }
+        auto result = directives_allowed ? match_paragraph() : match_text();
+        if (!result) {
+            return result;
+        }
+        if (peek(is_space)) {
+            // Text already consumes trailing space, so it only would have failed to consume
+            // all if the trailing space is a paragraph break.
+            return Rule_Error { Parse_Error_Code::paragraph_break_in_span, Grammar_Rule::block };
+        }
+        if (!directives_allowed && peek_possible_directive()) {
+            return Rule_Error { Parse_Error_Code::directive_in_text_span, Grammar_Rule::block };
+        }
+        return result;
+    }
+
+    Result<ast::Some_Node*, Rule_Error> match_block_inside_raw_block()
+    {
+        if (auto r = match_blank(); !r) {
+            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::block };
+        }
+        return match_content();
+    }
+
+    Result<ast::Some_Node*, Rule_Error> match_directives_inside_raw_block()
+    {
+        constexpr auto this_rule = Grammar_Rule::block;
+
+        const auto initial_pos = m_pos;
+
+        if (auto r = match_blank(); !r) {
+            return Rule_Error { Parse_Error_Code::unterminated_comment, this_rule };
+        }
+
+        std::pmr::vector<ast::Some_Node*> directives(m_memory);
+        while (!eof()) {
+            if (!peek_possible_directive()) {
+                return Rule_Error { Parse_Error_Code::text_in_directive_list, this_rule };
+            }
+            auto directive = match_directive();
+            if (!directive) {
+                return directive;
+            }
+            if (auto r = match_blank(); !r) {
+                return Rule_Error { Parse_Error_Code::unterminated_comment, this_rule };
+            }
+        }
+        return alloc_node<ast::Paragraph>({ initial_pos, m_pos.begin - initial_pos.begin },
+                                          std::move(directives));
+    }
+
+    /// @brief Matches a raw block and then performs parsing through the given `match`
+    /// member function pointer inside that raw block.
+    /// From the perspective of the `match` function, the parser is one character past the opening
+    /// `{`, and the closing `}` is artificially considered to be the end of the file.
+    ///
+    /// The given `match` function is required to consume the block contents entirely.
+    /// From the perspective of `match`, `eof()` shall be a postcondition.
+    /// @param match the given match member function pointer
+    /// @return The result of the `match` function.
+    Result<ast::Some_Node*, Rule_Error>
+    match_inside_block(Result<ast::Some_Node*, Rule_Error> (Parser::*match)())
     {
         const auto inner_pos = m_pos.to_right(1);
         Result<ast::Raw, Rule_Error> raw = match_raw_block_impl();
@@ -523,16 +649,16 @@ private:
             = std::exchange(m_source, m_source.substr(0, new_end));
 
         m_pos = inner_pos;
-        if (auto r = match_blank(); !r) {
-            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::block };
-        }
-        Result<ast::Some_Node*, Rule_Error> result = match_content();
+
+        Result<ast::Some_Node*, Rule_Error> result = (this->*match)();
         if (!result) {
             m_source = restore_source;
         }
         else {
+            // The given match function must consume the contents of the block entirely.
             BIT_MANIPULATION_ASSERT(eof());
             m_source = restore_source;
+            // Sanity check: eof() from the perspective of `match` is `}` from our perspective.
             BIT_MANIPULATION_ASSERT(peek('}'));
             m_pos = m_pos.to_right(1);
         }
@@ -552,8 +678,8 @@ private:
     }
 
     /// @brief Same as `match_raw_block`, but does not allocate any node yet.
-    /// It merely yields the `Source_Span` and `std::string_view` representing the raw block content
-    /// (excluding enclosing braces, which are matched, but not returned in the result).
+    /// It merely yields the `Source_Span` and `std::string_view` representing the raw block
+    /// content (excluding enclosing braces, which are matched, but not returned in the result).
     /// @return The contents of the raw block, or `Rule_Error`.
     Result<ast::Raw, Rule_Error> match_raw_block_impl()
     {

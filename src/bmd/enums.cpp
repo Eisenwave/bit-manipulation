@@ -45,6 +45,48 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
+Directive_Content_Type directive_type_content_type(Directive_Type type)
+{
+    using enum Directive_Type;
+    switch (type) {
+    case line_break:
+    case horizontal_rule: return Directive_Content_Type::nothing;
+
+    case bms_function:
+    case c_equivalent:
+    case title: return Directive_Content_Type::text_span;
+
+    case bold:
+    case code:
+    case deleted:
+    case heading1:
+    case heading2:
+    case heading3:
+    case heading4:
+    case heading5:
+    case heading6:
+    case instruction:
+    case italic:
+    case item:
+    case keyboard:
+    case quoted:
+    case strikethrough:
+    case subscript:
+    case superscript:
+    case teletype:
+    case underlined: return Directive_Content_Type::span;
+
+    case code_block: return Directive_Content_Type::raw;
+
+    case note: return Directive_Content_Type::block;
+
+    case ordered_list:
+    case unordered_list:
+    case meta: return Directive_Content_Type::directives; return {};
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
+}
+
 std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id) noexcept
 {
     using enum Directive_Type;

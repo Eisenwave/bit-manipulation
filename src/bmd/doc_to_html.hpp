@@ -9,14 +9,9 @@
 namespace bit_manipulation::bmd {
 
 enum struct Document_Error_Code {
-    /// @brief A directive such as `\br` must not have a non-empty block.
-    no_block_allowed,
     /// @brief A directive is not allowed in a specific context.
     /// For example, `\i` is not directly allowed inside a `\meta` directive.
     directive_not_allowed,
-    /// @brief Text is not allowed in a specific context.
-    /// For example, text is not directly allowed inside a `\meta` directive.
-    text_not_allowed,
     /// @brief A `\meta` directive was found in a place other than the start of the file.
     /// Only whitespace or comments can precede it.
     meta_not_at_start_of_file,

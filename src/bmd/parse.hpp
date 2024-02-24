@@ -286,6 +286,10 @@ enum struct Parse_Error_Code : Default_Underlying {
     duplicate_argument,
     integer_suffix,
     invalid_directive,
+    directive_must_be_empty,
+    paragraph_break_in_span,
+    directive_in_text_span,
+    text_in_directive_list,
 };
 
 struct Parse_Error {

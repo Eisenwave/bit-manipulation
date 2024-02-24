@@ -236,6 +236,12 @@ std::string_view to_prose(bmd::Parse_Error_Code e)
                "etc.?";
     case invalid_directive: return "Invalid directive.";
     case duplicate_argument: return "Duplicate argument in directive argument list.";
+    case directive_must_be_empty:
+        return "This directive must have an empty block or no block at all.";
+    case paragraph_break_in_span:
+        return "Paragraph breaks (blank lines) are not allowed in this directive.";
+    case directive_in_text_span: return "Only plaintext is allowed here, no directives.";
+    case text_in_directive_list: return "Only directives are allowed here, no plaintext.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
@@ -245,7 +251,6 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     using enum bmd::Document_Error_Code;
     switch (e) {
     case writer_misuse: return "The internal HTML writer has been misused by the developer.";
-    case no_block_allowed: return "The surrounding directive must be empty.";
     case directive_not_allowed: return "This directive is not allowed here.";
     case text_not_allowed: return "Plain text is not allowed here.";
     case meta_not_at_start_of_file:

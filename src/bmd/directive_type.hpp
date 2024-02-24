@@ -43,6 +43,29 @@ enum struct Directive_Type : Default_Underlying {
     c_equivalent,
 };
 
+/// @brief The type of content which is allowed in a given directive.
+/// For example, `\b` (i.e. `bold`) cannot be used to make multiple paragraphs bold.
+/// It is restricted to `span`, i.e. what would be considered a single paragraph.
+enum struct Directive_Content_Type : Default_Underlying {
+    /// @brief Nothing allowed inside.
+    /// Examples includes `\br` and `\hr`.
+    nothing,
+    /// @brief Text only, no directives and no paragraphs.
+    /// For example, `\title` does not support any directives.
+    text_span,
+    /// @brief A single paragraph, possibly containing directives.
+    span,
+    /// @brief Multiple paragraphs, possibly containing directives.
+    block,
+    /// @brief A list of directives, but no text.
+    /// For example, `\ul` can only contain a list of `\item` directives,
+    /// and `\meta` can contain various different directives.
+    directives,
+    /// @brief Raw content whose end is determined through braces, but which is not traditionally
+    /// parsed as BMD.
+    raw,
+};
+
 constexpr std::strong_ordering operator<=>(Directive_Type x, Directive_Type y) noexcept
 {
     return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
@@ -67,6 +90,8 @@ inline bool directive_type_must_be_empty(Directive_Type type)
 /// @param type the directive type
 /// @return The corresponding `Formatting_Style`.
 Formatting_Style directive_type_formatting_style(Directive_Type type);
+
+Directive_Content_Type directive_type_content_type(Directive_Type type);
 
 /// @brief Returns the `Directive_Type` corresponding to the identifier in a document.
 /// For example, `directive_type_by_id("b")` yields `bold`.

@@ -10,13 +10,6 @@ namespace bit_manipulation::bmd {
 namespace {
 
 struct HTML_Converter {
-    enum struct Context {
-        /// The default context.
-        normal,
-        /// Inside a \meta directive.
-        meta,
-    };
-
     HTML_Writer& m_writer;
     bool m_at_start_of_file = true;
 
@@ -25,8 +18,9 @@ struct HTML_Converter {
     {
     }
 
-    [[nodiscard]] Result<void, Document_Error>
-    convert_content(const ast::Content& content, Formatting_Style inherited_style, Context context)
+    [[nodiscard]] Result<void, Document_Error> convert_content(const ast::Content& content,
+                                                               Formatting_Style inherited_style,
+                                                               Directive_Content_Type context)
     {
         for (const ast::Some_Node* const p : content.get_children()) {
             auto r = convert_paragraph(std::get<ast::Paragraph>(*p), inherited_style, context);
@@ -39,7 +33,7 @@ struct HTML_Converter {
 
     [[nodiscard]] Result<void, Document_Error> convert_paragraph(const ast::Paragraph& paragraph,
                                                                  Formatting_Style inherited_style,
-                                                                 Context context)
+                                                                 Directive_Content_Type context)
     {
         m_writer.begin_tag("p", Formatting_Style::block);
         for (const ast::Some_Node* const n : paragraph.get_children()) {
@@ -50,7 +44,7 @@ struct HTML_Converter {
                 continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
-                if (auto r = convert_directive(*directive, inherited_style, context); !r) {
+                if (auto r = convert_directive(*directive); !r) {
                     return r;
                 }
                 continue;
@@ -62,21 +56,18 @@ struct HTML_Converter {
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error>
-    convert_text(const ast::Text& text, Formatting_Style inherited_style, Context context)
+    [[nodiscard]] Result<void, Document_Error> convert_text(const ast::Text& text,
+                                                            Formatting_Style inherited_style,
+                                                            Directive_Content_Type context)
     {
-        if (context == Context::meta) {
-            return Document_Error { Document_Error_Code::text_not_allowed,
-                                    text.get_source_position() };
-        }
-
+        BIT_MANIPULATION_ASSERT(context != Directive_Content_Type::nothing
+                                && context != Directive_Content_Type::directives);
         m_at_start_of_file = false;
         m_writer.write_inner_text(text.get_text(), inherited_style);
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error>
-    convert_directive(const ast::Directive& directive, Formatting_Style, Context)
+    [[nodiscard]] Result<void, Document_Error> convert_directive(const ast::Directive& directive)
     {
         if (directive_type_is_html_passthrough(directive.get_type())) {
             return convert_html_passthrough_directive(directive);
@@ -120,15 +111,13 @@ struct HTML_Converter {
         }
 
         if (directive.get_block() == nullptr) {
-            if (directive_type_must_be_empty(directive.get_type())) {
-                return Document_Error { Document_Error_Code::no_block_allowed,
-                                        directive.get_source_position() };
-            }
             m_writer.write_empty_tag(tag, style);
         }
         else {
+            BIT_MANIPULATION_ASSERT(!directive_type_must_be_empty(directive.get_type()));
             m_writer.begin_tag(tag, style);
-            if (auto r = convert_block(directive.get_block(), style, Context::normal); !r) {
+            const auto content_type = directive_type_content_type(directive.get_type());
+            if (auto r = convert_block(directive.get_block(), style, content_type); !r) {
                 return r;
             }
             m_writer.end_tag(tag, style);
@@ -147,8 +136,9 @@ struct HTML_Converter {
         return {};
     }
 
-    Result<void, Document_Error>
-    convert_block(const ast::Some_Node* block, Formatting_Style inherited_style, Context context)
+    Result<void, Document_Error> convert_block(const ast::Some_Node* block,
+                                               Formatting_Style inherited_style,
+                                               Directive_Content_Type context)
     {
         if (block == nullptr) {
             return {};
@@ -156,12 +146,14 @@ struct HTML_Converter {
         if (const auto* const content = std::get_if<ast::Content>(block)) {
             return convert_content(*content, inherited_style, context);
         }
+        if (const auto* const paragraph = std::get_if<ast::Paragraph>(block)) {
+            return convert_paragraph(*paragraph, inherited_style, context);
+        }
         if (const auto* const text = std::get_if<ast::Text>(block)) {
             return convert_text(*text, inherited_style, context);
         }
 
-        BIT_MANIPULATION_ASSERT_UNREACHABLE(
-            "Blocks can only contain content or raw content (text).");
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid contents for Block.");
     }
 };
 
@@ -178,7 +170,7 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_
     if (document.root_node != nullptr) {
         const auto& root_content = std::get<ast::Content>(*document.root_node);
         auto r = HTML_Converter { writer }.convert_content(root_content, Formatting_Style::flat,
-                                                           HTML_Converter::Context::normal);
+                                                           Directive_Content_Type::block);
         if (!r) {
             return r;
         }
