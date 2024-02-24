@@ -72,8 +72,10 @@ std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, S
 
 std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width);
 
-std::ostream&
-print_html(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width);
+std::ostream& print_html(std::ostream& out,
+                         const bmd::Parsed_Document& document,
+                         std::string_view file,
+                         Size indent_width);
 
 std::ostream& print_internal_error_notice(std::ostream& out);
 

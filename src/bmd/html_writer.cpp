@@ -9,12 +9,6 @@ HTML_Writer::HTML_Writer(HTML_Token_Consumer& out)
 {
 }
 
-HTML_Writer::~HTML_Writer()
-{
-    BIT_MANIPULATION_ASSERT(m_depth == 0);
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
-}
-
 void HTML_Writer::break_line()
 {
     BIT_MANIPULATION_ASSERT(m_state != State::attributes);

@@ -223,6 +223,16 @@ std::string_view to_prose(bms::Conversion_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
+std::string_view to_prose(bmd::Document_Error_Code e)
+{
+    using enum bmd::Document_Error_Code;
+    switch (e) {
+    case unknown_directive: return "Unknown directive.";
+    case writer_misuse: return "The internal HTML writer has been misused by the developer.";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+}
+
 std::string_view cause_to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
@@ -524,6 +534,21 @@ std::ostream& print_analysis_error(std::ostream& out,
     return print_printable_error(out, printable);
 }
 
+std::ostream& print_document_error(std::ostream& out,
+                                   std::string_view file,
+                                   std::string_view source,
+                                   const bmd::Document_Error& error)
+{
+    print_file_position(out, file, error.pos)
+        << ": " << error_prefix << to_prose(error.code) << '\n';
+
+    print_affected_line(out, source, error.pos);
+    if (error.code == bmd::Document_Error_Code::writer_misuse) {
+        print_internal_error_notice(out);
+    }
+    return out;
+}
+
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
 {
@@ -737,10 +762,17 @@ std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& document,
     return out;
 }
 
-std::ostream& print_html(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width)
+std::ostream& print_html(std::ostream& out,
+                         const bmd::Parsed_Document& document,
+                         std::string_view file,
+                         Size indent_width)
 {
     HTML_To_Stream consumer { out, indent_width };
-    bmd::doc_to_html(consumer, document);
+    // TODO: this logic doesn't belong here
+    Result<void, bmd::Document_Error> result = bmd::doc_to_html(consumer, document);
+    if (!result) {
+        print_document_error(out, file, document.source, result.error());
+    }
     return out;
 }
 

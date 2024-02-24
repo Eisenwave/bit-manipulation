@@ -121,11 +121,17 @@ public:
     HTML_Writer(const HTML_Writer&) = delete;
     HTML_Writer& operator=(const HTML_Writer&) = delete;
 
-    /// @brief Destructor.
-    /// There shall have been a matching `end_tag()` call for every `begin_tag` call,
-    /// and a matching `end_tag()` or `Attribute_Writer::end_empty()` call for every
-    /// `begin_tag_with_attributes` call.
-    ~HTML_Writer();
+    /// @brief Validates whether the HTML document is complete.
+    /// Namely, `write_preamble()` must have taken place and any opened tags must have
+    /// been closed.
+    /// This member function has false negatives, however, it has no false positives.
+    /// @return `true` if the writer is in a state where the HTML document could be considered
+    /// complete, `false` otherwise.
+    bool is_done() const
+    {
+        return (m_state != State::normal || m_state == State::new_line) && m_depth == 0
+            && m_indent_depth == 0;
+    }
 
     /// @brief Writes the `<!DOCTYPE ...` preamble for the HTML file.
     /// This function must be called exactly once, prior to any other `write` functions.

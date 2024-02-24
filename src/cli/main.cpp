@@ -113,7 +113,7 @@ int to_html(std::string_view file, std::pmr::memory_resource* memory)
     }
     if (file.ends_with(".bmd")) {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
-        print_html(std::cout, program, indent_width);
+        print_html(std::cout, program, file, indent_width);
         return 0;
     }
 

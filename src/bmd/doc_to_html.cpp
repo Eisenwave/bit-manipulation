@@ -69,53 +69,56 @@ Tag_Info tag_of(const ast::Directive& directive)
         return { *passthrough, id, true };
     }
 
-#if 0
-    struct {
-        std::string_view id;
-        std::string_view tag;
-    } tags_by_id[] = {
-        { "i", "i" }, //
-        { "b", "b" }, //
-        { "u", "u" }, //
-        { "s", "s" }, //
-        { "q", "q" },
-    };
-#endif
-
     return {};
 }
 
 struct HTML_Converter {
     HTML_Writer& writer;
 
-    void operator()(const ast::Content& content, Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Content& content,
+                                                          Formatting_Style inherited_style)
     {
         for (const ast::Some_Node* const p : content.get_children()) {
-            operator()(std::get<ast::Paragraph>(*p), inherited_style);
+            auto r = operator()(std::get<ast::Paragraph>(*p), inherited_style);
+            if (!r) {
+                return r;
+            }
         }
+        return {};
     }
 
-    void operator()(const ast::Paragraph& paragraph, Formatting_Style)
+    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Paragraph& paragraph,
+                                                          Formatting_Style)
     {
         writer.begin_tag("p", Formatting_Style::block);
         for (const ast::Some_Node* const n : paragraph.get_children()) {
             if (const auto* const text = std::get_if<ast::Text>(n)) {
-                operator()(*text, Formatting_Style::block);
+                if (auto r = operator()(*text, Formatting_Style::block); !r) {
+                    return r;
+                }
                 continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
-                operator()(*directive, Formatting_Style::block);
+                if (auto r = operator()(*directive, Formatting_Style::block); !r) {
+                    return r;
+                }
                 continue;
             }
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
                 "Paragraphs should only contain text or directives.");
         }
         writer.end_tag("p", Formatting_Style::block);
+        return {};
     }
 
-    void operator()(const ast::Directive& directive, Formatting_Style)
+    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Directive& directive,
+                                                          Formatting_Style)
     {
         const Tag_Info info = tag_of(directive);
+        if (!info) {
+            return Document_Error { Document_Error_Code::unknown_directive,
+                                    directive.get_source_position() };
+        }
 
         if (!directive.m_arguments.empty()) {
             BIT_MANIPULATION_ASSERT(info.is_passthrough); // otherwise not implemented yet
@@ -141,19 +144,26 @@ struct HTML_Converter {
 
         if (directive.get_block() == nullptr) {
             writer.write_empty_tag(info.tag, info.style);
-            return;
         }
-        writer.begin_tag(info.tag, info.style);
-        operator()(directive.get_block(), info.style);
-        writer.end_tag(info.tag, info.style);
+        else {
+            writer.begin_tag(info.tag, info.style);
+            if (auto r = operator()(directive.get_block(), info.style); !r) {
+                return r;
+            }
+            writer.end_tag(info.tag, info.style);
+        }
+        return {};
     }
 
-    void operator()(const ast::Text& text, Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Text& text,
+                                                          Formatting_Style inherited_style)
     {
         writer.write_inner_text(text.get_text(), inherited_style);
+        return {};
     }
 
-    void operator()(const ast::Some_Node* node, Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Some_Node* node,
+                                                          Formatting_Style inherited_style)
     {
         BIT_MANIPULATION_ASSERT(node != nullptr);
         return fast_visit(
@@ -164,7 +174,7 @@ struct HTML_Converter {
 
 } // namespace
 
-void doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document)
+Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document)
 {
     HTML_Writer writer { out };
     writer.write_preamble();
@@ -173,11 +183,18 @@ void doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document)
     writer.begin_tag("body", Formatting_Style::flat);
 
     if (document.root_node != nullptr) {
-        HTML_Converter { writer }(document.root_node, Formatting_Style::flat);
+        auto r = HTML_Converter { writer }(document.root_node, Formatting_Style::flat);
+        if (!r) {
+            return r;
+        }
     }
 
     writer.end_tag("body", Formatting_Style::flat);
     writer.end_tag("html", Formatting_Style::flat);
+    if (!writer.is_done()) {
+        return Document_Error { Document_Error_Code::writer_misuse, {} };
+    }
+    return {};
 }
 
 } // namespace bit_manipulation::bmd
