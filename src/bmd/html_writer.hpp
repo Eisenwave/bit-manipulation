@@ -13,7 +13,7 @@ inline bool requires_quotes_in_attribute(std::string_view value)
     return value.find_first_of("\"'`=<> ") != std::string_view::npos;
 }
 
-enum struct Formatting_Style {
+enum struct Formatting_Style : Default_Underlying {
     /// @brief No separate line and no extra indentation.
     /// This is typically used for tags such as `<span>`.
     in_line,
@@ -25,7 +25,7 @@ enum struct Formatting_Style {
     block,
 };
 
-enum struct HTML_Token_Type {
+enum struct HTML_Token_Type : Default_Underlying {
     whitespace,
     preamble,
     comment,
