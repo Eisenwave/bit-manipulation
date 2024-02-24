@@ -10,6 +10,7 @@ set(SANITIZER_OPTIONS
 )
 
 set(HEADERS
+    src/bmd/directive_type.hpp
     src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
     src/bmd/parse.hpp
@@ -49,6 +50,7 @@ set(HEADERS
 
 add_executable(bmscript ${HEADERS}
     src/bmd/doc_to_html.cpp
+    src/bmd/enums.cpp
     src/bmd/html_writer.cpp
     src/bmd/parse.cpp
 
