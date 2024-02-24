@@ -554,6 +554,27 @@ std::ostream& print_document_error(std::ostream& out,
     return out;
 }
 
+std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& error)
+{
+
+    out << ansi::h_red << "Assertion failed! " << ansi::reset;
+
+    if (error.type == Assertion_Error_Type::expression) {
+        out << "The following expression evaluated to 'false', but was expected to be 'true':\n\n";
+    }
+    else {
+        out << "Code which must be unreachable has been reached.\n\n";
+    }
+
+    Local_Source_Position pos { .line = error.location.line(),
+                                .column = error.location.column(),
+                                .begin = {} };
+    print_file_position(out, error.location.file_name(), pos)
+        << ": " << ansi::red << error.message << ansi::reset << "\n\n";
+
+    return print_internal_error_notice(out);
+}
+
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
 {
@@ -783,8 +804,7 @@ std::ostream& print_html(std::ostream& out,
 
 std::ostream& print_internal_error_notice(std::ostream& out)
 {
-    return out << ansi::h_black
-               << "This is an internal compiler error. Please report this bug at:\n"
+    return out << ansi::h_yellow << "This is an internal error. Please report this bug at:\n"
                << "https://github.com/Eisenwave/bit-manipulation/issues\n"
                << ansi::reset;
 }

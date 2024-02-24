@@ -2,16 +2,33 @@
 #define BIT_MANIPULATION_ASSERT_HPP
 
 #include <source_location>
+#include <string_view>
 
 namespace bit_manipulation {
 
-[[noreturn]] void assert_fail(const char*, std::source_location = std::source_location::current());
+enum struct Assertion_Error_Type { expression, unreachable };
 
+struct Assertion_Error {
+    Assertion_Error_Type type;
+    std::string_view message;
+    std::source_location location;
+};
+
+// Expects an expression.
+// If this expression (after contextual conversion to `bool`) is `false`,
+// throws an `Assertion_Error` of type `expression`.
 #define BIT_MANIPULATION_ASSERT(...)                                                               \
-    ((__VA_ARGS__) ? void() : ::bit_manipulation::assert_fail(#__VA_ARGS__))
+    ((__VA_ARGS__) ? void()                                                                        \
+                   : throw ::bit_manipulation::Assertion_Error {                                   \
+                       ::bit_manipulation::Assertion_Error_Type::expression, (#__VA_ARGS__),       \
+                       ::std::source_location::current() })
 
+/// Expects a string literal.
+/// Unconditionally throws `Assertion_Error` of type `unreachable`.
 #define BIT_MANIPULATION_ASSERT_UNREACHABLE(...)                                                   \
-    (::bit_manipulation::assert_fail("Unreachable code reached" __VA_OPT__(": ") __VA_ARGS__))
+    (throw ::bit_manipulation::Assertion_Error {                                                   \
+        ::bit_manipulation::Assertion_Error_Type::unreachable, ::std::string_view(__VA_ARGS__),    \
+        ::std::source_location::current() })
 
 #if __has_cpp_attribute(assume)
 #define M3DP_ASSUME(...) [[assume(__VA_ARGS__)]]

@@ -64,7 +64,6 @@ add_executable(bmscript ${HEADERS}
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
 
-    src/common/assert.cpp
     src/common/io.cpp
     src/common/parse.cpp
 

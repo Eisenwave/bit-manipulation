@@ -311,7 +311,7 @@ public:
     /// Namely, if the type is `Uint`, a concrete width must be known, otherwise this function
     /// always succeeds.
     /// @return A concrete type, or `std::nullopt`.
-    std::optional<Concrete_Type> concrete_type() noexcept
+    std::optional<Concrete_Type> concrete_type()
     {
         if (m_type == Type_Type::Uint) {
             if (concrete_width) {

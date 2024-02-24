@@ -87,7 +87,7 @@ public:
 
     /// @brief Destructor.
     /// A call to `end()` or `end_empty()` shall have been made prior to destruction.
-    ~Attribute_Writer();
+    ~Attribute_Writer() noexcept(false);
 };
 
 /// @brief A class which provides member functions for writing HTML content to a stream
@@ -211,7 +211,7 @@ inline Attribute_Writer& Attribute_Writer::end_empty()
     return *this;
 }
 
-inline Attribute_Writer::~Attribute_Writer()
+inline Attribute_Writer::~Attribute_Writer() noexcept(false)
 {
     // This indicates that end() or end_empty() weren't called.
     BIT_MANIPULATION_ASSERT(m_writer.m_state != HTML_Writer::State::attributes);

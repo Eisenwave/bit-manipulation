@@ -172,11 +172,18 @@ try {
         std::cout << "Unknown command '" << args[1] << "'\n";
         return 1;
     }
+} catch (const Assertion_Error& e) {
+    print_assertion_error(std::cout, e);
+    return 1;
 } catch (std::exception& e) {
-    std::cout
-        << ansi::h_red << "Assertion failed! " << ansi::reset
-        << "The following expression evaluated to 'false', but was expected to be 'true':\n\n";
+    std::cout << ansi::h_red << "Unhandled exception! " << ansi::reset
+              << "An exception with the following message has been raised:\n\n";
     std::cout << e.what() << "\n\n";
+    print_internal_error_notice(std::cout);
+    return 1;
+} catch (...) {
+    std::cout << ansi::h_red << "Unhandled exception! " << ansi::reset
+              << "An exception not derived from std::exception has been raised.\n\n";
     print_internal_error_notice(std::cout);
     return 1;
 }

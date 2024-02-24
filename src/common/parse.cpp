@@ -11,7 +11,7 @@ constexpr bool are_hex_digits_ascii
     = 'a' + 1 == 'b' && 'b' + 1 == 'c' && 'c' + 1 == 'd' && 'd' + 1 == 'e' && 'e' + 1 == 'f';
 static_assert(are_hex_digits_ascii);
 
-constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Big_Int base) noexcept
+constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Big_Int base)
 {
     BIT_MANIPULATION_ASSERT(base >= 2);
     BIT_MANIPULATION_ASSERT(base <= 10 || base == 16);
@@ -130,9 +130,6 @@ Literal_Match_Result match_integer_literal(std::string_view s) noexcept
                  digits == 1 ? Literal_Type::decimal : Literal_Type::octal };
     }
     const Size digits = match_digits(s, 10);
-    // The if statement at the beginning of this function should have made sure that at least one
-    // decimal digit exists.
-    BIT_MANIPULATION_ASSERT(digits != 0);
 
     return { Literal_Match_Status::ok, digits, Literal_Type::decimal };
 }
