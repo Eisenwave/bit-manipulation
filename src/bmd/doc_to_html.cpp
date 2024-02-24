@@ -1,6 +1,6 @@
 #include <algorithm>
-#include <unordered_map>
 
+#include "bmd/directive_type.hpp"
 #include "bmd/doc_to_html.hpp"
 #include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
@@ -17,74 +17,27 @@ struct Tag_Base_Info {
     bool is_void;
 };
 
-std::optional<Tag_Base_Info> identify_passthrough_tag(std::string_view directive_id)
-{
-    BIT_MANIPULATION_ASSERT(!directive_id.empty());
-
-    static const std::unordered_map<std::string_view, Tag_Base_Info> lookup {
-        { "b", { Formatting_Style::in_line, false } },
-        { "br", { Formatting_Style::in_line, true } },
-        { "del", { Formatting_Style::in_line, false } },
-        { "h1", { Formatting_Style::block, false } },
-        { "h2", { Formatting_Style::block, false } },
-        { "h3", { Formatting_Style::block, false } },
-        { "h4", { Formatting_Style::block, false } },
-        { "h5", { Formatting_Style::block, false } },
-        { "h6", { Formatting_Style::block, false } },
-        { "hr", { Formatting_Style::flat, true } },
-        { "i", { Formatting_Style::in_line, false } },
-        { "kbd", { Formatting_Style::in_line, false } },
-        { "ol", { Formatting_Style::block, false } },
-        { "q", { Formatting_Style::in_line, false } },
-        { "s", { Formatting_Style::in_line, false } },
-        { "sub", { Formatting_Style::in_line, false } },
-        { "sup", { Formatting_Style::in_line, false } },
-        { "tt", { Formatting_Style::in_line, false } },
-        { "u", { Formatting_Style::in_line, false } },
-        { "ul", { Formatting_Style::block, false } },
+struct HTML_Converter {
+    enum struct Context {
+        /// The default context.
+        normal,
+        /// Inside a \meta directive.
+        meta,
     };
 
-    const auto it = lookup.find(directive_id);
-    if (it == lookup.end()) {
-        return {};
-    }
-    return it->second;
-}
-
-struct Tag_Info : Tag_Base_Info {
-    std::string_view tag;
-    bool is_passthrough;
-
-    [[nodiscard]] explicit operator bool() const
-    {
-        return !tag.empty();
-    }
-};
-
-Tag_Info tag_of(const ast::Directive& directive)
-{
-    const std::string_view id = directive.get_identifier();
-
-    if (std::optional<Tag_Base_Info> passthrough = identify_passthrough_tag(id)) {
-        return { *passthrough, id, true };
-    }
-
-    return {};
-}
-
-struct HTML_Converter {
     HTML_Writer& m_writer;
+    bool m_at_start_of_file = true;
 
     explicit HTML_Converter(HTML_Writer& writer)
         : m_writer { writer }
     {
     }
 
-    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Content& content,
-                                                          Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error>
+    convert_content(const ast::Content& content, Formatting_Style inherited_style, Context context)
     {
         for (const ast::Some_Node* const p : content.get_children()) {
-            auto r = operator()(std::get<ast::Paragraph>(*p), inherited_style);
+            auto r = convert_paragraph(std::get<ast::Paragraph>(*p), inherited_style, context);
             if (!r) {
                 return r;
             }
@@ -92,19 +45,20 @@ struct HTML_Converter {
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Paragraph& paragraph,
-                                                          Formatting_Style)
+    [[nodiscard]] Result<void, Document_Error> convert_paragraph(const ast::Paragraph& paragraph,
+                                                                 Formatting_Style inherited_style,
+                                                                 Context context)
     {
         m_writer.begin_tag("p", Formatting_Style::block);
         for (const ast::Some_Node* const n : paragraph.get_children()) {
             if (const auto* const text = std::get_if<ast::Text>(n)) {
-                if (auto r = operator()(*text, Formatting_Style::block); !r) {
+                if (auto r = convert_text(*text, inherited_style, context); !r) {
                     return r;
                 }
                 continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
-                if (auto r = operator()(*directive, Formatting_Style::block); !r) {
+                if (auto r = convert_directive(*directive, inherited_style, context); !r) {
                     return r;
                 }
                 continue;
@@ -116,18 +70,52 @@ struct HTML_Converter {
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Directive& directive,
-                                                          Formatting_Style)
+    [[nodiscard]] Result<void, Document_Error>
+    convert_text(const ast::Text& text, Formatting_Style inherited_style, Context context)
     {
-        const Tag_Info info = tag_of(directive);
-        if (!info) {
+        if (context == Context::meta) {
+            return Document_Error { Document_Error_Code::text_not_allowed,
+                                    text.get_source_position() };
+        }
+
+        m_at_start_of_file = false;
+        m_writer.write_inner_text(text.get_text(), inherited_style);
+        return {};
+    }
+
+    [[nodiscard]] Result<void, Document_Error>
+    convert_directive(const ast::Directive& directive, Formatting_Style, Context context)
+    {
+        std::optional<Directive_Type> type = directive_type_by_id(directive.get_identifier());
+        if (!type) {
             return Document_Error { Document_Error_Code::unknown_directive,
                                     directive.get_source_position() };
         }
+        if (directive_type_is_html_passthrough(*type)) {
+            return convert_html_passthrough_directive(directive, *type);
+        }
+
+        switch (*type) {
+        case Directive_Type::meta: return convert_meta_directive(directive);
+        }
+
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
+
+        return {};
+    }
+
+    [[nodiscard]] Result<void, Document_Error>
+    convert_html_passthrough_directive(const ast::Directive& directive, Directive_Type type)
+    {
+        BIT_MANIPULATION_ASSERT(directive_type_is_html_passthrough(type));
+
+        m_at_start_of_file = false;
+
+        const std::string_view tag = directive_type_tag(type);
+        const Formatting_Style style = directive_type_formatting_style(type);
 
         if (!directive.m_arguments.empty()) {
-            BIT_MANIPULATION_ASSERT(info.is_passthrough); // otherwise not implemented yet
-            auto attribute_writer = m_writer.begin_tag_with_attributes(info.tag, info.style);
+            auto attribute_writer = m_writer.begin_tag_with_attributes(tag, style);
             for (const auto& [key, value] : directive.m_arguments) {
                 if (const auto* const text = std::get_if<ast::Identifier>(&value)) {
                     attribute_writer.write_attribute(key, text->get_value());
@@ -148,32 +136,48 @@ struct HTML_Converter {
         }
 
         if (directive.get_block() == nullptr) {
-            m_writer.write_empty_tag(info.tag, info.style);
+            if (directive_type_must_be_empty(type)) {
+                return Document_Error { Document_Error_Code::no_block_allowed,
+                                        directive.get_source_position() };
+            }
+            m_writer.write_empty_tag(tag, style);
         }
         else {
-            m_writer.begin_tag(info.tag, info.style);
-            if (auto r = operator()(directive.get_block(), info.style); !r) {
+            m_writer.begin_tag(tag, style);
+            if (auto r = convert_block(directive.get_block(), style, Context::normal); !r) {
                 return r;
             }
-            m_writer.end_tag(info.tag, info.style);
+            m_writer.end_tag(tag, style);
         }
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Text& text,
-                                                          Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error>
+    convert_meta_directive(const ast::Directive& directive)
     {
-        m_writer.write_inner_text(text.get_text(), inherited_style);
+        if (!m_at_start_of_file) {
+            return Document_Error { Document_Error_Code::meta_not_at_start_of_file,
+                                    directive.get_source_position() };
+        }
+        m_at_start_of_file = false;
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> operator()(const ast::Some_Node* node,
-                                                          Formatting_Style inherited_style)
+    Result<void, Document_Error>
+    convert_block(const ast::Some_Node* block, Formatting_Style inherited_style, Context context)
     {
-        BIT_MANIPULATION_ASSERT(node != nullptr);
-        return fast_visit(
-            [this, inherited_style](const auto& n) { return operator()(n, inherited_style); },
-            *node);
+        if (block == nullptr) {
+            return {};
+        }
+        if (const auto* const content = std::get_if<ast::Content>(block)) {
+            return convert_content(*content, inherited_style, context);
+        }
+        if (const auto* const text = std::get_if<ast::Text>(block)) {
+            return convert_text(*text, inherited_style, context);
+        }
+
+        BIT_MANIPULATION_ASSERT_UNREACHABLE(
+            "Blocks can only contain content or raw content (text).");
     }
 };
 
@@ -188,7 +192,9 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_
     writer.begin_tag("body", Formatting_Style::flat);
 
     if (document.root_node != nullptr) {
-        auto r = HTML_Converter { writer }(document.root_node, Formatting_Style::flat);
+        const auto& root_content = std::get<ast::Content>(*document.root_node);
+        auto r = HTML_Converter { writer }.convert_content(root_content, Formatting_Style::flat,
+                                                           HTML_Converter::Context::normal);
         if (!r) {
             return r;
         }
