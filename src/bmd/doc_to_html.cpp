@@ -73,7 +73,12 @@ Tag_Info tag_of(const ast::Directive& directive)
 }
 
 struct HTML_Converter {
-    HTML_Writer& writer;
+    HTML_Writer& m_writer;
+
+    explicit HTML_Converter(HTML_Writer& writer)
+        : m_writer { writer }
+    {
+    }
 
     [[nodiscard]] Result<void, Document_Error> operator()(const ast::Content& content,
                                                           Formatting_Style inherited_style)
@@ -90,7 +95,7 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error> operator()(const ast::Paragraph& paragraph,
                                                           Formatting_Style)
     {
-        writer.begin_tag("p", Formatting_Style::block);
+        m_writer.begin_tag("p", Formatting_Style::block);
         for (const ast::Some_Node* const n : paragraph.get_children()) {
             if (const auto* const text = std::get_if<ast::Text>(n)) {
                 if (auto r = operator()(*text, Formatting_Style::block); !r) {
@@ -107,7 +112,7 @@ struct HTML_Converter {
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
                 "Paragraphs should only contain text or directives.");
         }
-        writer.end_tag("p", Formatting_Style::block);
+        m_writer.end_tag("p", Formatting_Style::block);
         return {};
     }
 
@@ -122,7 +127,7 @@ struct HTML_Converter {
 
         if (!directive.m_arguments.empty()) {
             BIT_MANIPULATION_ASSERT(info.is_passthrough); // otherwise not implemented yet
-            auto attribute_writer = writer.begin_tag_with_attributes(info.tag, info.style);
+            auto attribute_writer = m_writer.begin_tag_with_attributes(info.tag, info.style);
             for (const auto& [key, value] : directive.m_arguments) {
                 if (const auto* const text = std::get_if<ast::Identifier>(&value)) {
                     attribute_writer.write_attribute(key, text->get_value());
@@ -143,14 +148,14 @@ struct HTML_Converter {
         }
 
         if (directive.get_block() == nullptr) {
-            writer.write_empty_tag(info.tag, info.style);
+            m_writer.write_empty_tag(info.tag, info.style);
         }
         else {
-            writer.begin_tag(info.tag, info.style);
+            m_writer.begin_tag(info.tag, info.style);
             if (auto r = operator()(directive.get_block(), info.style); !r) {
                 return r;
             }
-            writer.end_tag(info.tag, info.style);
+            m_writer.end_tag(info.tag, info.style);
         }
         return {};
     }
@@ -158,7 +163,7 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error> operator()(const ast::Text& text,
                                                           Formatting_Style inherited_style)
     {
-        writer.write_inner_text(text.get_text(), inherited_style);
+        m_writer.write_inner_text(text.get_text(), inherited_style);
         return {};
     }
 
