@@ -29,7 +29,12 @@ struct HTML_Converter {
     {
         for (const ast::Some_Node* const p : content.get_children()) {
             if (const auto* const list = std::get_if<ast::List>(p)) {
+                // This would imply an empty paragraph, but it's theoretically impossible to parse
+                // one.
+                // An empty paragraph would be whitespace, and whitespace should be ignored
+                // and dealt with in other places.
                 BIT_MANIPULATION_ASSERT(!list->empty());
+
                 m_writer.begin_tag("p", Formatting_Style::block);
                 if (auto r = convert_list(*list, inherited_style); !r) {
                     return r;
