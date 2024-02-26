@@ -15,7 +15,8 @@ bool directive_content_allows(Directive_Content_Type content, Directive_Environm
     case block:
         return environment == Directive_Environment::paragraph
             || environment == Directive_Environment::content;
-    case directives:
+    case meta: return environment == Directive_Environment::meta;
+    case list: return environment == Directive_Environment::list;
     case raw: return true;
     }
 
@@ -98,8 +99,9 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case note: return Directive_Content_Type::block;
 
     case ordered_list:
-    case unordered_list:
-    case meta: return Directive_Content_Type::directives; return {};
+    case unordered_list: return Directive_Content_Type::list;
+
+    case meta: return Directive_Content_Type::meta;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
@@ -131,11 +133,11 @@ Directive_Environment directive_type_environment(Directive_Type type)
     case heading6:
     case code_block:
     case ordered_list:
+    case meta:
     case note:
     case unordered_list:
     case horizontal_rule: return Directive_Environment::content;
 
-    case meta:
     case title:
     case bms_function:
     case c_equivalent: return Directive_Environment::meta;

@@ -229,7 +229,8 @@ struct HTML_Converter {
             return convert_text(std::get<ast::Text>(*block), inherited_style);
 
         case Directive_Content_Type::span:
-        case Directive_Content_Type::directives:
+        case Directive_Content_Type::meta:
+        case Directive_Content_Type::list:
             return convert_list(std::get<ast::List>(*block), inherited_style);
 
         case Directive_Content_Type::block:

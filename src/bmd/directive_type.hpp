@@ -57,10 +57,10 @@ enum struct Directive_Content_Type : Default_Underlying {
     span,
     /// @brief Multiple paragraphs, possibly containing directives.
     block,
-    /// @brief A list of directives, but no text.
-    /// For example, `\ul` can only contain a list of `\item` directives,
-    /// and `\meta` can contain various different directives.
-    directives,
+    /// @brief Only directives with `Directive_Environment::meta`, and no text.
+    meta,
+    /// @brief Only directives with `Directive_Environment::list`, and no text.
+    list,
     /// @brief Raw content whose end is determined through braces, but which is not traditionally
     /// parsed as BMD.
     raw,
@@ -114,6 +114,11 @@ inline bool directive_content_allows_directives(Directive_Content_Type type)
 {
     return type != Directive_Content_Type::nothing //
         && type != Directive_Content_Type::text_span;
+}
+
+inline bool directive_content_allows_only_directives(Directive_Content_Type type)
+{
+    return type == Directive_Content_Type::meta || type == Directive_Content_Type::list;
 }
 
 /// @brief Checks whether a block inside a given directive is allowed to contain a
