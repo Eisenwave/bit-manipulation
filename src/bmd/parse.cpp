@@ -733,6 +733,9 @@ private:
             goto normal_state;
         }
         const char c = pop();
+        if (c == '\\' && expect(is_escapeable)) {
+            goto normal_state;
+        }
         if (c == '{') {
             ++brace_level;
             goto normal_state;
