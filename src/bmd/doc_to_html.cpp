@@ -28,11 +28,13 @@ struct HTML_Converter {
                                                                Formatting_Style inherited_style)
     {
         for (const ast::Some_Node* const p : content.get_children()) {
-            m_writer.begin_tag("p", Formatting_Style::block);
             if (const auto* const list = std::get_if<ast::List>(p)) {
+                BIT_MANIPULATION_ASSERT(!list->empty());
+                m_writer.begin_tag("p", Formatting_Style::block);
                 if (auto r = convert_list(*list, inherited_style); !r) {
                     return r;
                 }
+                m_writer.end_tag("p", Formatting_Style::block);
             }
             else if (const auto* const directive = std::get_if<ast::Directive>(p)) {
                 // Directives which aren't part of a paragraph but go directly into the content
@@ -52,7 +54,6 @@ struct HTML_Converter {
                 BIT_MANIPULATION_ASSERT_UNREACHABLE(
                     "Content can only contain lists or directives.");
             }
-            m_writer.end_tag("p", Formatting_Style::block);
         }
         return {};
     }
