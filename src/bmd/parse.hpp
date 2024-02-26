@@ -151,13 +151,17 @@ struct List : detail::Base {
 
     List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
 
-    std::span<Some_Node*> get_children()
+    [[nodiscard]] std::span<Some_Node*> get_children()
     {
         return m_children;
     }
-    std::span<Some_Node* const> get_children() const
+    [[nodiscard]] std::span<Some_Node* const> get_children() const
     {
         return m_children;
+    }
+    [[nodiscard]] bool empty() const
+    {
+        return m_children.empty();
     }
 };
 
