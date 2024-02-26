@@ -17,6 +17,8 @@
 
 namespace bit_manipulation::bmd {
 
+// DISCLAIMER: THIS GRAMMAR IS OUT-OF-DATE
+
 // clang-format off
 enum struct Grammar_Rule {
     document, // = [blank | paragraph_break], [content];
@@ -272,6 +274,7 @@ enum struct Parse_Error_Code : Default_Underlying {
     paragraph_break_in_span,
     directive_in_text_span,
     text_in_directive_list,
+    directive_not_allowed,
 };
 
 struct Parse_Error {

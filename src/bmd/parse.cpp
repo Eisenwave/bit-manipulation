@@ -301,38 +301,79 @@ private:
 
     Result<ast::Some_Node*, Rule_Error> match_content()
     {
+        constexpr auto this_rule = Grammar_Rule::content;
+
         const auto initial_pos = m_pos;
-        std::pmr::vector<ast::Some_Node*> paragraphs(m_memory);
-        auto first = match_paragraph();
-        if (!first) {
-            return first;
-        }
-        paragraphs.push_back(std::move(*first));
+
+        std::pmr::vector<ast::Some_Node*> elements(m_memory);
+        std::pmr::vector<ast::Some_Node*> paragraph_elements(m_memory);
+
+        /// If `!paragraph_elements.empty()`, creates a new paragraph containing the elements
+        /// and appends it to `elements`.
+        /// Other state is update to make subsequent calls possible.
+        auto break_paragraph =
+            [this, &elements, &paragraph_elements, pos_before_paragraph = initial_pos]() mutable //
+        {
+            if (paragraph_elements.empty()) {
+                return;
+            }
+            elements.push_back(alloc_node<ast::List>(
+                { pos_before_paragraph, m_pos.begin - pos_before_paragraph.begin },
+                std::vector(paragraph_elements)));
+            paragraph_elements.clear();
+            pos_before_paragraph = m_pos;
+        };
 
         while (!eof()) {
-            // After each parsed paragraph, we are either at the EOF,
-            // or there is a trailing paragraph break.
-            // Any trailing characters or regular blanks would have been absorbed into the
-            // paragraph.
-            auto paragraph_break = match_blank(Grammar_Rule::paragraph_break);
-            if (!paragraph_break) {
-                return paragraph_break.error();
-            }
-            BIT_MANIPULATION_ASSERT(paragraph_break->length != 0);
+            BIT_MANIPULATION_ASSERT(!peek(is_space));
 
-            // The break which we have just matched could be at the end of file.
-            // Trailing paragraph breaks are allowed; we are done then.
-            if (eof()) {
-                break;
+            if (peek_possible_directive()) {
+                auto directive_result = match_directive(Directive_Content_Type::block);
+                if (!directive_result) {
+                    return directive_result;
+                }
+                const auto pos_before_directive = m_pos;
+                const auto& directive = std::get<ast::Directive>(**directive_result);
+
+                switch (directive_type_environment(directive.get_type())) {
+
+                case Directive_Environment::list:
+                case Directive_Environment::meta: {
+                    m_pos = pos_before_directive;
+                    return Rule_Error { Parse_Error_Code::directive_not_allowed, this_rule };
+                }
+                case Directive_Environment::content: {
+                    break_paragraph();
+                    elements.push_back(*directive_result);
+                    break;
+                }
+                case Directive_Environment::paragraph: {
+                    paragraph_elements.push_back(*directive_result);
+                    break;
+                }
+                }
             }
-            auto paragraph = match_paragraph();
-            if (!paragraph) {
-                break;
+            else {
+                ast::Some_Node* const text = match_text();
+                // We aren't at the EOF, there is no leading whitespace, and we are not at a
+                // directive.
+                // Every possible reason for a match failure has been excluded; there must be text.
+                BIT_MANIPULATION_ASSERT(text != nullptr);
+                paragraph_elements.push_back(text);
             }
-            paragraphs.push_back(*paragraph);
+
+            Result<Blank, Parse_Error_Code> blank = match_blank();
+            if (!blank) {
+                return Rule_Error { blank.error(), this_rule };
+            }
+            if (blank->is_paragraph_break) {
+                break_paragraph();
+            }
         }
+
+        break_paragraph();
         return alloc_node<ast::List>({ initial_pos, m_pos.begin - initial_pos.begin },
-                                     std::move(paragraphs));
+                                     std::move(elements));
     }
 
     Result<ast::Some_Node*, Rule_Error> match_paragraph()
@@ -345,8 +386,8 @@ private:
                 if (!blank) {
                     return blank.error();
                 }
-                // If there is a leading space but we couldn't match it as a blank, we must have run
-                // into a paragraph break and should break.
+                // If there is a leading space but we couldn't match it as a blank, we must have
+                // run into a paragraph break and should break.
                 if (blank->length == 0) {
                     break;
                 }
@@ -357,7 +398,7 @@ private:
                 continue;
             }
             if (peek_possible_directive()) {
-                auto directive = match_directive();
+                auto directive = match_directive(Directive_Content_Type::span);
                 if (!directive) {
                     return directive;
                 }
@@ -368,8 +409,13 @@ private:
                                      std::move(elements));
     }
 
-    Result<ast::Some_Node*, Rule_Error> match_directive()
+    Result<ast::Some_Node*, Rule_Error> match_directive(Directive_Content_Type context)
     {
+        // We could meaningfully implement this function for contexts that don't allow
+        // directives, but this would be dead code. If the context doesn't allow directives, we
+        // should call different functions and get more meaningful diagnostics.
+        BIT_MANIPULATION_ASSERT(directive_content_allows_directives(context));
+
         constexpr auto this_rule = Grammar_Rule::directive;
         const auto initial_pos = m_pos;
 
@@ -384,6 +430,9 @@ private:
         if (!type) {
             m_pos = m_pos.to_left(identifier->get_value().length());
             return Rule_Error { Parse_Error_Code::invalid_directive, this_rule };
+        }
+        if (!directive_type_allowed_in(*type, context)) {
+            return Rule_Error { Parse_Error_Code::directive_not_allowed, this_rule };
         }
 
         ast::Directive::Arguments args(m_memory);
@@ -518,7 +567,8 @@ private:
             return match_inside_block(&Parser::match_span_inside_raw_block, type);
         case Directive_Content_Type::block: //
             return match_inside_block(&Parser::match_block_inside_raw_block, type);
-        case Directive_Content_Type::directives: //
+        case Directive_Content_Type::meta: //
+        case Directive_Content_Type::list: //
             return match_inside_block(&Parser::match_directives_inside_raw_block, type);
         case Directive_Content_Type::raw: //
             return match_raw_block();
@@ -577,7 +627,7 @@ private:
     Result<ast::Some_Node*, Rule_Error>
     match_directives_inside_raw_block(Directive_Content_Type type)
     {
-        BIT_MANIPULATION_ASSERT(type == Directive_Content_Type::directives);
+        BIT_MANIPULATION_ASSERT(directive_content_allows_only_directives(type));
 
         constexpr auto this_rule = Grammar_Rule::block;
 
@@ -592,10 +642,11 @@ private:
             if (!peek_possible_directive()) {
                 return Rule_Error { Parse_Error_Code::text_in_directive_list, this_rule };
             }
-            auto directive = match_directive();
+            auto directive = match_directive(type);
             if (!directive) {
                 return directive;
             }
+
             if (auto r = match_blank(); !r) {
                 return Rule_Error { Parse_Error_Code::unterminated_comment, this_rule };
             }
@@ -607,7 +658,8 @@ private:
 
     /// @brief Matches a raw block and then performs parsing through the given `match`
     /// member function pointer inside that raw block.
-    /// From the perspective of the `match` function, the parser is one character past the opening
+    /// From the perspective of the `match` function, the parser is one character past the
+    /// opening
     /// `{`, and the closing `}` is artificially considered to be the end of the file.
     ///
     /// The given `match` function is required to consume the block contents entirely.
