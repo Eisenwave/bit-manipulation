@@ -66,13 +66,27 @@ enum struct Directive_Content_Type : Default_Underlying {
     raw,
 };
 
+/// @brief The environment that a directive is considered to be in, or allowed to be in.
+enum struct Directive_Environment : Default_Underlying {
+    /// @brief The directive is considered to be inside the surrounding paragraph.
+    paragraph,
+    /// @brief The directive is considered to be its own paragraph.
+    /// For example, if a `heading1` is found anywhere within a paragraph,
+    /// the paragraph is broken up so that `heading1` exists in isolation.
+    content,
+    /// @brief The directive can only appear within a `\meta` directive.
+    meta,
+    /// @brief The directive can only appear within lists (`\ul` et al.)
+    list,
+};
+
 constexpr std::strong_ordering operator<=>(Directive_Type x, Directive_Type y) noexcept
 {
     return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
 }
 
-/// @brief Checks whether the directive type corresponds to a directive that cannot have any
-/// block content, such as `\br` or `\hr`.
+/// @brief Checks whether the directive type corresponds to a directive that cannot have
+/// any block content, such as `\br` or `\hr`.
 /// @param type the directive type
 /// @return `true` if the corresponding directive must be empty, `false` otherwise.
 inline bool directive_type_must_be_empty(Directive_Type type)
@@ -86,12 +100,34 @@ inline bool directive_type_must_be_empty(Directive_Type type)
 }
 
 /// @brief Returns the formatting style of the directive type.
-/// For example, `bold` is formatted as `in_line` whereas `note` is formatted as `block`.
+/// For example, `bold` is formatted as `in_line` whereas `note` is formatted as
+/// `block`.
 /// @param type the directive type
 /// @return The corresponding `Formatting_Style`.
 Formatting_Style directive_type_formatting_style(Directive_Type type);
 
 Directive_Content_Type directive_type_content_type(Directive_Type type);
+
+Directive_Environment directive_type_environment(Directive_Type type);
+
+inline bool directive_content_allows_directives(Directive_Content_Type type)
+{
+    return type != Directive_Content_Type::nothing //
+        && type != Directive_Content_Type::text_span;
+}
+
+/// @brief Checks whether a block inside a given directive is allowed to contain a
+/// directive whose environment is the given environment.
+/// @param content the content type of the surrounding directive
+/// @param environment the environment that the inner directive is allowed in
+/// @return `true` if the directive with the given `environment` is allowed in a
+/// directive with the given `content`, `false` otherwise.
+bool directive_content_allows(Directive_Content_Type content, Directive_Environment environment);
+
+inline bool directive_type_allowed_in(Directive_Type type, Directive_Content_Type content)
+{
+    return directive_content_allows(content, directive_type_environment(type));
+}
 
 /// @brief Returns the `Directive_Type` corresponding to the identifier in a document.
 /// For example, `directive_type_by_id("b")` yields `bold`.
@@ -104,9 +140,9 @@ std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id
 /// @return The corresponding HTML tag.
 std::string_view directive_type_tag(Directive_Type type);
 
-/// @brief Checks whether the corresponding directive is an "HTML passthrough directive".
-/// That is, a directive which has no unique rules and simply transforms into an HTML tag.
-/// For example, `\b{...}` directly translates into `<b>...</b>`.
+/// @brief Checks whether the corresponding directive is an "HTML passthrough
+/// directive". That is, a directive which has no unique rules and simply transforms
+/// into an HTML tag. For example, `\b{...}` directly translates into `<b>...</b>`.
 inline bool directive_type_is_html_passthrough(Directive_Type type)
 {
     return type <= Directive_Type::unordered_list;

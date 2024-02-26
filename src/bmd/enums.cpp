@@ -5,6 +5,23 @@
 
 namespace bit_manipulation::bmd {
 
+bool directive_content_allows(Directive_Content_Type content, Directive_Environment environment)
+{
+    using enum Directive_Content_Type;
+    switch (content) {
+    case nothing: return false;
+    case text_span: return false;
+    case span: return environment == Directive_Environment::paragraph;
+    case block:
+        return environment == Directive_Environment::paragraph
+            || environment == Directive_Environment::content;
+    case directives:
+    case raw: return true;
+    }
+
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid content type.");
+}
+
 Formatting_Style directive_type_formatting_style(Directive_Type type)
 {
     using enum Directive_Type;
@@ -83,6 +100,47 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case ordered_list:
     case unordered_list:
     case meta: return Directive_Content_Type::directives; return {};
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
+}
+
+Directive_Environment directive_type_environment(Directive_Type type)
+{
+    using enum Directive_Type;
+    switch (type) {
+
+    case bold:
+    case line_break:
+    case deleted:
+    case instruction:
+    case italic:
+    case keyboard:
+    case quoted:
+    case strikethrough:
+    case subscript:
+    case superscript:
+    case teletype:
+    case underlined:
+    case code: return Directive_Environment::paragraph;
+
+    case heading1:
+    case heading2:
+    case heading3:
+    case heading4:
+    case heading5:
+    case heading6:
+    case code_block:
+    case ordered_list:
+    case note:
+    case unordered_list:
+    case horizontal_rule: return Directive_Environment::content;
+
+    case meta:
+    case title:
+    case bms_function:
+    case c_equivalent: return Directive_Environment::meta;
+
+    case item: return Directive_Environment::list;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }

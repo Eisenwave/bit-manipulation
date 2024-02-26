@@ -513,14 +513,13 @@ private:
         switch (type) {
         case Directive_Content_Type::nothing: //
             return match_empty_block();
-        case Directive_Content_Type::text_span: //
-            return match_inside_block(&Parser::match_text_span_inside_raw_block);
-        case Directive_Content_Type::span: //
-            return match_inside_block(&Parser::match_span_inside_raw_block);
+        case Directive_Content_Type::text_span:
+        case Directive_Content_Type::span:
+            return match_inside_block(&Parser::match_span_inside_raw_block, type);
         case Directive_Content_Type::block: //
-            return match_inside_block(&Parser::match_block_inside_raw_block);
+            return match_inside_block(&Parser::match_block_inside_raw_block, type);
         case Directive_Content_Type::directives: //
-            return match_inside_block(&Parser::match_directives_inside_raw_block);
+            return match_inside_block(&Parser::match_directives_inside_raw_block, type);
         case Directive_Content_Type::raw: //
             return match_raw_block();
         }
@@ -539,24 +538,9 @@ private:
         return nullptr;
     }
 
-    enum struct Directives_Allowed_Flag : bool { no, yes };
-
-    Result<ast::Some_Node*, Rule_Error> match_text_span_inside_raw_block()
+    Result<ast::Some_Node*, Rule_Error> match_span_inside_raw_block(Directive_Content_Type content)
     {
-        return match_span_inside_raw_block(Directives_Allowed_Flag::no);
-    }
-
-    Result<ast::Some_Node*, Rule_Error> match_span_inside_raw_block()
-    {
-        // Normally, we'd use default arguments, but we need this member function to take a
-        // function pointer with a clean signature.
-        return match_span_inside_raw_block(Directives_Allowed_Flag::yes);
-    }
-
-    Result<ast::Some_Node*, Rule_Error>
-    match_span_inside_raw_block(Directives_Allowed_Flag directives_allowed_flag)
-    {
-        const bool directives_allowed = static_cast<bool>(directives_allowed_flag);
+        const bool directives_allowed = directive_content_allows_directives(content);
 
         auto leading_blank = match_blank();
         if (!leading_blank) {
@@ -580,16 +564,21 @@ private:
         return result;
     }
 
-    Result<ast::Some_Node*, Rule_Error> match_block_inside_raw_block()
+    Result<ast::Some_Node*, Rule_Error> match_block_inside_raw_block(Directive_Content_Type type)
     {
+        BIT_MANIPULATION_ASSERT(type == Directive_Content_Type::block);
+
         if (auto r = match_blank(); !r) {
             return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::block };
         }
         return match_content();
     }
 
-    Result<ast::Some_Node*, Rule_Error> match_directives_inside_raw_block()
+    Result<ast::Some_Node*, Rule_Error>
+    match_directives_inside_raw_block(Directive_Content_Type type)
     {
+        BIT_MANIPULATION_ASSERT(type == Directive_Content_Type::directives);
+
         constexpr auto this_rule = Grammar_Rule::block;
 
         const auto initial_pos = m_pos;
@@ -624,9 +613,11 @@ private:
     /// The given `match` function is required to consume the block contents entirely.
     /// From the perspective of `match`, `eof()` shall be a postcondition.
     /// @param match the given match member function pointer
+    /// @param block_content the content type of the block; forwarded to the `match` function
     /// @return The result of the `match` function.
     Result<ast::Some_Node*, Rule_Error>
-    match_inside_block(Result<ast::Some_Node*, Rule_Error> (Parser::*match)())
+    match_inside_block(Result<ast::Some_Node*, Rule_Error> (Parser::*match)(Directive_Content_Type),
+                       Directive_Content_Type block_content)
     {
         const auto inner_pos = m_pos.to_right(1);
         Result<ast::Raw, Rule_Error> raw = match_raw_block_impl();
@@ -639,7 +630,7 @@ private:
 
         m_pos = inner_pos;
 
-        Result<ast::Some_Node*, Rule_Error> result = (this->*match)();
+        Result<ast::Some_Node*, Rule_Error> result = (this->*match)(block_content);
         if (!result) {
             m_source = restore_source;
         }
