@@ -29,9 +29,28 @@ struct HTML_Converter {
     {
         for (const ast::Some_Node* const p : content.get_children()) {
             m_writer.begin_tag("p", Formatting_Style::block);
-            auto r = convert_list(std::get<ast::List>(*p), inherited_style);
-            if (!r) {
-                return r;
+            if (const auto* const list = std::get_if<ast::List>(p)) {
+                if (auto r = convert_list(*list, inherited_style); !r) {
+                    return r;
+                }
+            }
+            else if (const auto* const directive = std::get_if<ast::Directive>(p)) {
+                // Directives which aren't part of a paragraph but go directly into the content
+                // should not appear at a top-level here.
+                // Even if there was say, a paragraph that contains a single `\b{Hi!}`, this
+                // should be wrapped in a paragraph which contains the directive.
+                // Directives which can only appear in directive lists, such as `\item` would
+                // also be out of place here.
+                BIT_MANIPULATION_ASSERT(directive_type_environment(directive->get_type())
+                                        == Directive_Environment::content);
+
+                if (auto r = convert_directive(*directive); !r) {
+                    return r;
+                }
+            }
+            else {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE(
+                    "Content can only contain lists or directives.");
             }
             m_writer.end_tag("p", Formatting_Style::block);
         }
@@ -49,6 +68,13 @@ struct HTML_Converter {
                 continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
+                // Directives in a content environment should only be processed by
+                // `convert_content` directly.
+                // Finding a directive with this environment suggests that either we have misused
+                // `convert_list`, or the AST has structural problems.
+                BIT_MANIPULATION_ASSERT(directive_type_environment(directive->get_type())
+                                        != Directive_Environment::content);
+
                 if (auto r = convert_directive(*directive); !r) {
                     return r;
                 }
