@@ -10,6 +10,12 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     using enum Directive_Type;
     switch (type) {
     case bold:
+    case heading1:
+    case heading2:
+    case heading3:
+    case heading4:
+    case heading5:
+    case heading6:
     case line_break:
     case deleted:
     case instruction:
@@ -25,12 +31,6 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case code: return Formatting_Style::in_line;
 
     case code_block:
-    case heading1:
-    case heading2:
-    case heading3:
-    case heading4:
-    case heading5:
-    case heading6:
     case ordered_list:
     case note:
     case unordered_list: return Formatting_Style::block;

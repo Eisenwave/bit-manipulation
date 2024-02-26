@@ -17,6 +17,8 @@ enum struct Document_Error_Code {
     meta_not_at_start_of_file,
     /// @brief The HTML_Writer was misused. This is an internal error.
     writer_misuse,
+    /// @brief An entry in the `\\meta` directive was defined twice.
+    duplicate_meta_entry,
 };
 
 struct Document_Error {

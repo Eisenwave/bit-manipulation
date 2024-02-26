@@ -189,7 +189,7 @@ private:
     Self& end_empty_tag_attributes(Formatting_Style type);
 
     void break_line();
-    void indent();
+    void indent(Formatting_Style style);
 };
 
 inline Attribute_Writer& Attribute_Writer::write_attribute(std::string_view key,

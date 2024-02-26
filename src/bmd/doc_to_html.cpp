@@ -13,6 +13,12 @@ struct HTML_Converter {
     HTML_Writer& m_writer;
     bool m_at_start_of_file = true;
 
+    struct Metadata {
+        std::string_view title;
+        std::string_view bms_function;
+        std::string_view c_equivalent;
+    } m_meta;
+
     explicit HTML_Converter(HTML_Writer& writer)
         : m_writer { writer }
     {
@@ -85,33 +91,15 @@ struct HTML_Converter {
         const std::string_view tag = directive_type_tag(directive.get_type());
         const Formatting_Style style = directive_type_formatting_style(directive.get_type());
 
-        if (!directive.m_arguments.empty()) {
-            auto attribute_writer = m_writer.begin_tag_with_attributes(tag, style);
-            for (const auto& [key, value] : directive.m_arguments) {
-                if (const auto* const text = std::get_if<ast::Identifier>(&value)) {
-                    attribute_writer.write_attribute(key, text->get_value());
-                    continue;
-                }
-                if (const auto* const text = std::get_if<ast::Number>(&value)) {
-                    attribute_writer.write_attribute(key, std::to_string(text->get_value()));
-                    continue;
-                }
-                BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown attribute value type.");
-            }
-            if (directive.get_block() == nullptr) {
-                attribute_writer.end_empty();
-            }
-            else {
-                attribute_writer.end();
-            }
-        }
+        BIT_MANIPULATION_ASSERT(directive.get_block() != nullptr
+                                || !directive_type_must_be_empty(directive.get_type()));
 
-        if (directive.get_block() == nullptr) {
+        if (directive.get_block() == nullptr && directive.m_arguments.empty()) {
             m_writer.write_empty_tag(tag, style);
         }
         else {
-            BIT_MANIPULATION_ASSERT(!directive_type_must_be_empty(directive.get_type()));
-            m_writer.begin_tag(tag, style);
+            begin_tag_with_passed_through_attributes(directive, tag, style);
+
             const auto content_type = directive_type_content_type(directive.get_type());
             if (auto r = convert_block(directive.get_block(), style, content_type); !r) {
                 return r;
@@ -119,6 +107,41 @@ struct HTML_Converter {
             m_writer.end_tag(tag, style);
         }
         return {};
+    }
+
+    void begin_tag_with_passed_through_attributes(const ast::Directive& directive,
+                                                  std::string_view tag,
+                                                  Formatting_Style style)
+    {
+        if (directive.m_arguments.empty()) {
+            m_writer.begin_tag(tag, style);
+            return;
+        }
+
+        auto attribute_writer = m_writer.begin_tag_with_attributes(tag, style);
+        pass_through_attributes(directive, attribute_writer);
+    }
+
+    void pass_through_attributes(const ast::Directive& directive,
+                                 Attribute_Writer& attribute_writer)
+    {
+        for (const auto& [key, value] : directive.m_arguments) {
+            if (const auto* const text = std::get_if<ast::Identifier>(&value)) {
+                attribute_writer.write_attribute(key, text->get_value());
+                continue;
+            }
+            if (const auto* const text = std::get_if<ast::Number>(&value)) {
+                attribute_writer.write_attribute(key, std::to_string(text->get_value()));
+                continue;
+            }
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown attribute value type.");
+        }
+        if (directive.get_block() == nullptr) {
+            attribute_writer.end_empty();
+        }
+        else {
+            attribute_writer.end();
+        }
     }
 
     [[nodiscard]] Result<void, Document_Error>
@@ -129,7 +152,65 @@ struct HTML_Converter {
                                     directive.get_source_position() };
         }
         m_at_start_of_file = false;
+
+        if (directive.get_block() == nullptr) {
+            return {};
+        }
+
+        const ast::Directive* title_directive = nullptr;
+        for (const ast::Some_Node* const p :
+             std::get<ast::List>(*directive.get_block()).get_children()) {
+            const auto& child = std::get<ast::Directive>(*p);
+            if (auto r = update_metadata_from_directive(child); !r) {
+                return r;
+            }
+            if (child.get_type() == Directive_Type::title) {
+                if (title_directive != nullptr) {
+                    // TODO: check this for other entries as well
+                    return Document_Error { Document_Error_Code::duplicate_meta_entry,
+                                            child.get_source_position() };
+                }
+                title_directive = &child;
+            }
+        }
+
+        if (title_directive != nullptr) {
+            constexpr auto style = Formatting_Style::in_line;
+            begin_tag_with_passed_through_attributes(*title_directive, "h1", style);
+            m_writer.write_inner_text(m_meta.title, style);
+            m_writer.end_tag("h1", style);
+        }
+
         return {};
+    }
+
+    Result<void, Document_Error> update_metadata_from_directive(const ast::Directive& directive)
+    {
+        if (directive.get_block() == nullptr) {
+            return {};
+        }
+
+        switch (directive.get_type()) {
+        case Directive_Type::title: {
+            const auto& text = std::get<ast::Text>(*directive.get_block());
+            m_meta.title = text.get_text();
+            return {};
+        }
+        case Directive_Type::bms_function: {
+            const auto& text = std::get<ast::Text>(*directive.get_block());
+            m_meta.bms_function = text.get_text();
+            return {};
+        }
+        case Directive_Type::c_equivalent: {
+            const auto& text = std::get<ast::Text>(*directive.get_block());
+            m_meta.c_equivalent = text.get_text();
+            return {};
+        }
+
+        default:
+            return Document_Error { Document_Error_Code::directive_not_allowed,
+                                    directive.get_source_position() };
+        }
     }
 
     Result<void, Document_Error> convert_block(const ast::Some_Node* block,

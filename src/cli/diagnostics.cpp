@@ -254,6 +254,8 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     case directive_not_allowed: return "This directive is not allowed here.";
     case meta_not_at_start_of_file:
         return "A \\meta directive must be at the beginning of the document.";
+    case duplicate_meta_entry:
+        return "Each entry within a \\meta directive must be unique, but an entry was duplicated.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }

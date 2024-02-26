@@ -610,6 +610,7 @@ private:
             if (auto r = match_blank(); !r) {
                 return Rule_Error { Parse_Error_Code::unterminated_comment, this_rule };
             }
+            directives.push_back(std::move(*directive));
         }
         return alloc_node<ast::List>({ initial_pos, m_pos.begin - initial_pos.begin },
                                      std::move(directives));
