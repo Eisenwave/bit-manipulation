@@ -242,6 +242,7 @@ std::string_view to_prose(bmd::Parse_Error_Code e)
         return "Paragraph breaks (blank lines) are not allowed in this directive.";
     case directive_in_text_span: return "Only plaintext is allowed here, no directives.";
     case text_in_directive_list: return "Only directives are allowed here, no plaintext.";
+    case directive_not_allowed: return "This directive is not allowed here.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
