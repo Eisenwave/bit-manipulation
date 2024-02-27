@@ -276,9 +276,10 @@ struct HTML_Converter {
 
 } // namespace
 
-Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document)
+Result<void, Document_Error>
+doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document, Size indent_width)
 {
-    HTML_Writer writer { out };
+    HTML_Writer writer { out, indent_width };
     writer.write_preamble();
 
     writer.begin_tag("html", Formatting_Style::flat);

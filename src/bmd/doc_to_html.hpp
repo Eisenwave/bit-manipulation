@@ -29,7 +29,9 @@ struct Document_Error {
 /// @brief Converts the given parsed document to an HTML string.
 /// @param out the string to write to; the contents will be entirely replaced
 /// @param document the document to convert
-Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document);
+/// @param indent_width the indent width
+Result<void, Document_Error>
+doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document, Size indent_width);
 
 } // namespace bit_manipulation::bmd
 

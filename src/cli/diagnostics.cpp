@@ -725,11 +725,9 @@ struct BMD_AST_Printer {
 
 struct HTML_To_Stream final : bmd::HTML_Token_Consumer {
     std::ostream& out;
-    Size indent_width;
 
-    HTML_To_Stream(std::ostream& out, Size indent_width)
+    HTML_To_Stream(std::ostream& out)
         : out(out)
-        , indent_width(indent_width)
     {
     }
 
@@ -762,18 +760,21 @@ struct HTML_To_Stream final : bmd::HTML_Token_Consumer {
         return write_color(type) && out.put(c);
     }
 
-    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    bool write(char c, Size count, bmd::HTML_Token_Type type) final
     {
-        return write_color(type) && out.write(s.data(), s.length());
-    }
-
-    bool write_indent(Size indent_level) final
-    {
-        char restore_fill = out.fill(' ');
-        out.width(indent_level * indent_width);
+        if (!write_color(type)) {
+            return false;
+        }
+        char restore_fill = out.fill(c);
+        out.width(count);
         bool result(out << "");
         out.fill(restore_fill);
         return result;
+    }
+
+    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    {
+        return write_color(type) && out.write(s.data(), s.length());
     }
 };
 
@@ -796,9 +797,9 @@ std::ostream& print_html(std::ostream& out,
                          std::string_view file,
                          Size indent_width)
 {
-    HTML_To_Stream consumer { out, indent_width };
+    HTML_To_Stream consumer { out };
     // TODO: this logic doesn't belong here
-    Result<void, bmd::Document_Error> result = bmd::doc_to_html(consumer, document);
+    Result<void, bmd::Document_Error> result = bmd::doc_to_html(consumer, document, indent_width);
     if (!result) {
         print_document_error(out, file, document.source, result.error());
     }
