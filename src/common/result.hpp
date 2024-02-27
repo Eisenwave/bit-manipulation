@@ -138,7 +138,7 @@ public:
     }
 
     constexpr Result& operator=(Result&& other) noexcept
-        requires(std::is_nothrow_copy_assignable_v<T> && std::is_nothrow_copy_assignable_v<Error>)
+        requires(std::is_nothrow_move_assignable_v<T> && std::is_nothrow_move_assignable_v<Error>)
     {
         if (m_has_value && other.m_has_value) {
             m_value = std::move(other.m_value);
