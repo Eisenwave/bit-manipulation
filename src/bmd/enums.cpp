@@ -70,6 +70,7 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case line_break:
     case horizontal_rule: return Directive_Content_Type::nothing;
 
+    case instruction:
     case bms_function:
     case c_equivalent:
     case title: return Directive_Content_Type::text_span;
@@ -83,7 +84,6 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case heading4:
     case heading5:
     case heading6:
-    case instruction:
     case italic:
     case item:
     case keyboard:
