@@ -22,7 +22,7 @@ void HTML_Writer::indent(Formatting_Style style)
     if (m_state != State::new_line && is_block_like(style)) {
         break_line();
     }
-    if (m_state == State::new_line) {
+    if (m_state == State::new_line && style != Formatting_Style::pre) {
         m_out.write_indent(m_indent_depth);
     }
     m_state = State::normal;
