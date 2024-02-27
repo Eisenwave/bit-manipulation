@@ -799,7 +799,9 @@ std::ostream& print_html(std::ostream& out,
 {
     HTML_To_Stream consumer { out };
     // TODO: this logic doesn't belong here
-    Result<void, bmd::Document_Error> result = bmd::doc_to_html(consumer, document, indent_width);
+    std::pmr::unsynchronized_pool_resource memory;
+    Result<void, bmd::Document_Error> result
+        = bmd::doc_to_html(consumer, document, indent_width, &memory);
     if (!result) {
         print_document_error(out, file, document.source, result.error());
     }
