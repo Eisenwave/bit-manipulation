@@ -29,6 +29,32 @@ void HTML_Writer::indent(Formatting_Style style)
     m_state = State::normal;
 }
 
+void HTML_Writer::write_escaped_text(std::string_view text)
+{
+    BIT_MANIPULATION_ASSERT(m_state == State::new_line || m_state == State::normal);
+
+    while (!text.empty()) {
+        const Size bracket_pos = text.find_first_of("<>");
+        const std::string_view snippet = text.substr(0, std::min(text.length(), bracket_pos));
+        m_out.write(snippet, HTML_Token_Type::inner_text);
+        if (bracket_pos == std::string_view::npos) {
+            break;
+        }
+        else if (text[bracket_pos] == '<') {
+            m_out.write("&lt;", HTML_Token_Type::inner_text);
+        }
+        else if (text[bracket_pos] == '>') {
+            m_out.write("&gt;", HTML_Token_Type::inner_text);
+        }
+        else {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Logical mistake.");
+        }
+
+        text = text.substr(bracket_pos + 1);
+    }
+    m_state = State::normal;
+}
+
 auto HTML_Writer::write_whitespace(char c, Size length) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state != State::attributes && m_state != State::initial);
@@ -144,30 +170,17 @@ auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
 
+    if (style == Formatting_Style::pre) {
+        write_escaped_text(text);
+        return *this;
+    }
+
     while (!text.empty()) {
         const Size nl_pos = text.find('\n');
         std::string_view line = text.substr(0, std::min(text.length(), nl_pos));
         indent(style);
 
-        while (!line.empty()) {
-            const Size bracket_pos = text.find_first_of("<>");
-            const std::string_view snippet = text.substr(0, std::min(text.length(), bracket_pos));
-            m_out.write(snippet, HTML_Token_Type::inner_text);
-            if (bracket_pos == std::string_view::npos) {
-                break;
-            }
-            else if (text[bracket_pos] == '<') {
-                m_out.write("&lt;", HTML_Token_Type::inner_text);
-            }
-            else if (text[bracket_pos] == '>') {
-                m_out.write("&gt;", HTML_Token_Type::inner_text);
-            }
-            else {
-                BIT_MANIPULATION_ASSERT_UNREACHABLE("Logical mistake.");
-            }
-
-            line = line.substr(bracket_pos + 1);
-        }
+        write_escaped_text(line);
 
         if (nl_pos == std::string_view::npos) {
             break;

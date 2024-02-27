@@ -199,6 +199,13 @@ private:
     Self& end_attributes(Formatting_Style type);
     Self& end_empty_tag_attributes(Formatting_Style type);
 
+    /// @brief Passes any text directly through to the writer, however, characters which interfere
+    /// with HTML such as `<` or `>` are written as HTML entities instead.
+    /// If the string contains no such entities, this function is equivalent to writing `text` to
+    /// the writer directly.
+    /// @param text the text to write
+    void write_escaped_text(std::string_view text);
+
     void break_line();
     void indent(Formatting_Style style);
 };
