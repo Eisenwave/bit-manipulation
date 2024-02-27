@@ -109,7 +109,7 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         const auto tag = token_type_tag(tokens[i].type);
         out.begin_tag(tag, Formatting_Style::in_line);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.end());
-        out.write_inner_text(text, Formatting_Style::in_line);
+        out.write_inner_text(text, Formatting_Style::pre);
         out.end_tag(tag, Formatting_Style::in_line);
     }
 }
