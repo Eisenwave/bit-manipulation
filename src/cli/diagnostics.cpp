@@ -258,6 +258,13 @@ std::string_view to_prose(bmd::Document_Error_Code e)
         return "A \\meta directive must be at the beginning of the document.";
     case duplicate_meta_entry:
         return "Each entry within a \\meta directive must be unique, but an entry was duplicated.";
+    case invalid_language:
+        return "This language is not valid or not supported for syntax highlighting.";
+    case number_attribute_not_allowed:
+        return "This attribute cannot have a numeric value; only strings can be provided.";
+    case code_tokenization_failure:
+        return "Syntax highlighting for this code snipped failed. Is it ill-formed? Consider using "
+               "'text' language or '\\tt' (teletype), not '\\c'.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
