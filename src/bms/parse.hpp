@@ -15,14 +15,16 @@
 namespace bit_manipulation::bms {
 
 struct Parsed_Program {
-    std::pmr::vector<astp::Some_Node> nodes;
-    std::string_view source;
-    astp::Handle root_node = astp::Handle::null;
+private:
+    std::pmr::vector<astp::Some_Node> m_nodes;
+    std::string_view m_source;
+    astp::Handle m_root_node = astp::Handle::null;
 
+public:
     [[nodiscard]] explicit Parsed_Program(std::string_view source,
                                           std::pmr::memory_resource* memory)
-        : nodes(memory)
-        , source(source)
+        : m_nodes(memory)
+        , m_source(source)
     {
     }
 
@@ -34,30 +36,54 @@ struct Parsed_Program {
     [[nodiscard]] Parsed_Program(Parsed_Program&&) = default;
     Parsed_Program& operator=(Parsed_Program&&) = default;
 
+    /// @brief Return the program source code.
+    [[nodiscard]] std::string_view get_source() const
+    {
+        return m_source;
+    }
+
+    /// @brief Returns a handle to the root node.
+    [[nodiscard]] astp::Handle get_root_handle() const
+    {
+        return m_root_node;
+    }
+
+    void set_root_handle(astp::Handle root)
+    {
+        BIT_MANIPULATION_ASSERT(root != astp::Handle::null);
+        m_root_node = root;
+    }
+
+    /// @brief Returns the number of parsed AST nodes.
+    [[nodiscard]] Size get_node_count() const
+    {
+        return m_nodes.size();
+    }
+
     astp::Some_Node& get_node(astp::Handle handle) &
     {
         BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
-        BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < nodes.size());
-        return nodes[static_cast<Size>(handle)];
+        BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < m_nodes.size());
+        return m_nodes[static_cast<Size>(handle)];
     }
 
     const astp::Some_Node& get_node(astp::Handle handle) const&
     {
         BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
-        BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < nodes.size());
-        return nodes[static_cast<Size>(handle)];
+        BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < m_nodes.size());
+        return m_nodes[static_cast<Size>(handle)];
     }
 
     astp::Handle push_node(astp::Some_Node&& node) &
     {
-        const auto result = static_cast<astp::Handle>(nodes.size());
-        nodes.push_back(std::move(node));
+        const auto result = static_cast<astp::Handle>(m_nodes.size());
+        m_nodes.push_back(std::move(node));
         return result;
     }
 
     [[nodiscard]] std::string_view extract(const Local_Source_Span& span) const
     {
-        return source.substr(span.begin, span.length);
+        return m_source.substr(span.begin, span.length);
     }
 };
 

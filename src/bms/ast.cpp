@@ -75,13 +75,13 @@ ast::Some_Node* Analyzed_Program::from_parser_node(astp::Handle handle,
 Analyzed_Program::Analyzed_Program(const Parsed_Program& program,
                                    std::string_view file_name,
                                    std::pmr::memory_resource* memory)
-    : m_source(program.source)
+    : m_source(program.get_source())
     , m_file_name(file_name)
     , m_memory_resource(memory)
     , m_nodes(memory)
 {
-    m_nodes.reserve(program.nodes.size());
-    m_root = from_parser_node(program.root_node, program);
+    m_nodes.reserve(program.get_node_count());
+    m_root = from_parser_node(program.get_root_handle(), program);
     BIT_MANIPULATION_ASSERT(m_root != nullptr);
 }
 

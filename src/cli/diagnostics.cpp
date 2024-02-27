@@ -13,6 +13,7 @@
 #include "bms/concrete_value.hpp"
 #include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
+#include "bms/grammar.hpp"
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
@@ -326,7 +327,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 [[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
                                                    const bms::Analysis_Error& error)
 {
-    Printable_Error result { program.source };
+    Printable_Error result { program.get_source() };
 
     const auto fail_pos = get_source_position(*error.fail);
     const auto cause_pos = [&]() -> std::optional<Source_Position> {
@@ -780,7 +781,7 @@ struct HTML_To_Stream final : bmd::HTML_Token_Consumer {
 
 std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width)
 {
-    BMS_AST_Printer { out, program, indent_width }.print(program.root_node);
+    BMS_AST_Printer { out, program, indent_width }.print(program.get_root_handle());
     return out;
 }
 
