@@ -82,11 +82,11 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
 }
 
 void write_source_gap(HTML_Writer& out,
-                      const Local_Source_Position& first,
-                      const Local_Source_Position& second)
+                      const Local_Source_Span& first,
+                      const Local_Source_Span& second)
 {
-    BIT_MANIPULATION_ASSERT(first.line <= second.line);
-    BIT_MANIPULATION_ASSERT(first.column <= second.column);
+    BIT_MANIPULATION_ASSERT(first.line < second.line
+                            || (first.line == second.line && first.column <= second.column));
 
     if (first.line != second.line) {
         out.write_whitespace('\n', second.line - first.line);
@@ -95,7 +95,7 @@ void write_source_gap(HTML_Writer& out,
         }
     }
     else if (first.column != second.column) {
-        out.write_whitespace(' ', second.column - first.column);
+        out.write_whitespace(' ', second.column - first.end_column());
     }
 }
 
@@ -108,7 +108,7 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
 
         const Tag_Properties tag { token_type_tag(tokens[i].type), Formatting_Style::pre };
         out.begin_tag(tag);
-        const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.end());
+        const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);
         out.write_inner_text(text, Formatting_Style::pre);
         out.end_tag(tag);
     }
