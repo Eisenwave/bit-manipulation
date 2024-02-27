@@ -21,6 +21,8 @@ enum struct Document_Error_Code {
     duplicate_meta_entry,
     /// @brief The language of a `\code` (or other) directive is invalid.
     invalid_language,
+    /// @brief The architecture of a `\instruction` (or other) directive is invalid.
+    invalid_architecture,
     /// @brief A string attribute was required, but a number was given.
     number_attribute_not_allowed,
     /// @brief Failed to highlight code.

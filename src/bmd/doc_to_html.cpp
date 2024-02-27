@@ -11,6 +11,7 @@ namespace bit_manipulation::bmd {
 
 namespace {
 
+/// @brief The kind of nested language; to be used in `\code` and other directives.
 enum struct Nested_Language {
     plaintext,
     bms,
@@ -41,24 +42,67 @@ std::optional<Nested_Language> nested_language_by_name(std::string_view name)
             { "rust", Nested_Language::rust }
           };
 
-    if (name == "c++" || name == "cpp" || name == "cxx") {
-        return Nested_Language::cxx;
+    auto it = lookup.find(name);
+    if (it == lookup.end()) {
+        return {};
     }
-    if (name == "plain" || name == "none" || name == "plaintext" || name == "txt"
-        || name == "text") {
-        return Nested_Language::plaintext;
-    }
-    if (name == "rust") {
-        return Nested_Language::rust;
-    }
-    if (name == "bms") {
-        return Nested_Language::bms;
-    }
-    if (name == "bmd") {
-        return Nested_Language::bmd;
-    }
-    return {};
+
+    return it->second;
 }
+
+/// @brief The architecture; to be used in `\instruction[arch=...]`.
+enum struct Architecture { x86, arm, risc_v, power, sparc, mips, ibm_z };
+
+std::optional<Architecture> architecture_by_name(std::string_view name)
+{
+    if (name.empty()) {
+        return {};
+    }
+
+    static const std::unordered_map<std::string_view, Architecture> lookup
+        = { { "x86", Architecture::x86 },        { "x86_64", Architecture::x86 },
+            { "x86-64", Architecture::x86 }, //
+            { "arm", Architecture::arm }, //
+            { "risc_v", Architecture::risc_v },  { "risc-v", Architecture::risc_v }, //
+            { "power", Architecture::power },    { "power-pc", Architecture::power },
+            { "power_pc", Architecture::power }, //
+            { "sparc", Architecture::sparc },    { "mips", Architecture::mips }, //
+            { "ibm_z", Architecture::ibm_z },    { "ibm-z", Architecture::ibm_z } };
+
+    auto it = lookup.find(name);
+    if (it == lookup.end()) {
+        return {};
+    }
+
+    return it->second;
+}
+
+std::string_view architecture_link_prefix(Architecture arch)
+{
+    switch (arch) {
+    case Architecture::x86: return "https://www.felixcloutier.com/x86/";
+    default: return "";
+    }
+}
+
+template <typename E>
+std::optional<E> attribute_enum_by_name(std::string_view name)
+{
+    if constexpr (std::is_same_v<E, Architecture>) {
+        return architecture_by_name(name);
+    }
+    else if constexpr (std::is_same_v<E, Nested_Language>) {
+        return nested_language_by_name(name);
+    }
+    else {
+        static_assert(false, "Invalid enum type");
+    }
+}
+
+template <typename E>
+inline constexpr Document_Error_Code enum_document_error_v
+    = std::is_same_v<E, Nested_Language> ? Document_Error_Code::invalid_language
+                                         : Document_Error_Code::invalid_architecture;
 
 struct HTML_Converter {
     HTML_Writer& m_writer;
@@ -168,8 +212,12 @@ struct HTML_Converter {
 
         switch (directive.get_type()) {
         case Directive_Type::meta: return convert_meta_directive(directive);
-        case Directive_Type::code: return convert_code_directive(directive);
+
+        case Directive_Type::code:
         case Directive_Type::code_block: return convert_code_directive(directive);
+
+        case Directive_Type::instruction: return convert_instruction_directive(directive);
+
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
     }
@@ -286,28 +334,8 @@ struct HTML_Converter {
 
         m_at_start_of_file = false;
 
-        const auto lang = [&]() -> Result<Nested_Language, Document_Error> {
-            const auto lang_pos = directive.m_arguments.find("lang");
-            if (lang_pos == directive.m_arguments.end()) {
-                return Nested_Language::bms;
-            }
-            if (const auto* const lang_number = std::get_if<ast::Number>(&lang_pos->second)) {
-                return Document_Error { Document_Error_Code::number_attribute_not_allowed,
-                                        lang_number->get_source_position() };
-            }
-            if (const auto* const lang_name = std::get_if<ast::Identifier>(&lang_pos->second)) {
-                std::optional<Nested_Language> lang_by_name
-                    = nested_language_by_name(lang_name->get_value());
-                if (!lang_by_name) {
-                    return Document_Error { Document_Error_Code::invalid_language,
-                                            lang_name->get_source_position() };
-                }
-                return *lang_by_name;
-            }
-            // TODO: We could do this more concisely and robustly if we made it possible to
-            // access the source position of both Number and Identifier polymorphically.
-            BIT_MANIPULATION_ASSERT_UNREACHABLE("Unkown kind of value.");
-        }();
+        Result<Nested_Language, Document_Error> lang
+            = enum_by_attribute(directive.m_arguments, "lang", Nested_Language::bms);
         if (!lang) {
             return lang.error();
         }
@@ -355,6 +383,88 @@ struct HTML_Converter {
         }
 
         return {};
+    }
+
+    [[nodiscard]] Result<void, Document_Error>
+    convert_instruction_directive(const ast::Directive& directive)
+    {
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::instruction);
+
+        m_at_start_of_file = false;
+
+        Result<Architecture, Document_Error> arch
+            = enum_by_attribute(directive.m_arguments, "arch", Architecture::x86);
+        if (!arch) {
+            return arch.error();
+        }
+
+        auto extension = [&]() -> Result<std::string_view, Document_Error> {
+            auto it = directive.m_arguments.find("ext");
+            if (it == directive.m_arguments.end()) {
+                return std::string_view {};
+            }
+            const auto* const id = std::get_if<ast::Identifier>(&it->second);
+            if (id == nullptr) {
+                // TODO: more accurate diagnostic
+                return Document_Error { Document_Error_Code::number_attribute_not_allowed,
+                                        directive.get_source_position() };
+            }
+            return id->get_value();
+        }();
+
+        // TODO: deal with potentially empty text (null block)
+        const ast::Text& text = std::get<ast::Text>(*directive.get_block());
+
+        std::string_view link_prefix = architecture_link_prefix(*arch);
+
+        if (!link_prefix.empty()) {
+            std::pmr::string link(link_prefix, m_memory);
+            link += text.get_text();
+
+            auto attributes
+                = m_writer.begin_tag_with_attributes({ "a", Formatting_Style::in_line });
+            attributes.write_attribute("href", link);
+            attributes.end();
+        }
+        m_writer.write_inner_text(text.get_text(), Formatting_Style::in_line);
+
+        if (!link_prefix.empty()) {
+            m_writer.end_tag({ "a", Formatting_Style::in_line });
+        }
+
+        if (!extension->empty()) {
+            constexpr Tag_Properties superscript { "sup", Formatting_Style::in_line };
+            m_writer.begin_tag(superscript);
+            m_writer.write_inner_text(*extension, Formatting_Style::in_line);
+            m_writer.end_tag(superscript);
+        }
+
+        return {};
+    }
+
+    template <typename E>
+    Result<E, Document_Error>
+    enum_by_attribute(const ast::Directive::Arguments& attributes, std::string_view key, E fallback)
+    {
+        const auto lang_pos = attributes.find(key);
+        if (lang_pos == attributes.end()) {
+            return fallback;
+        }
+        if (const auto* const lang_number = std::get_if<ast::Number>(&lang_pos->second)) {
+            return Document_Error { Document_Error_Code::number_attribute_not_allowed,
+                                    lang_number->get_source_position() };
+        }
+        if (const auto* const lang_name = std::get_if<ast::Identifier>(&lang_pos->second)) {
+            std::optional<E> result = attribute_enum_by_name<E>(lang_name->get_value());
+            if (!result) {
+                return Document_Error { enum_document_error_v<E>,
+                                        lang_name->get_source_position() };
+            }
+            return *result;
+        }
+        // TODO: We could do this more concisely and robustly if we made it possible to
+        // access the source position of both Number and Identifier polymorphically.
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unkown kind of value.");
     }
 
     Result<void, Document_Error> update_metadata_from_directive(const ast::Directive& directive)
