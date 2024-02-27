@@ -109,6 +109,7 @@ struct HTML_Converter {
 
         switch (directive.get_type()) {
         case Directive_Type::meta: return convert_meta_directive(directive);
+        // case Directive_Type::code: return convert_code_directive(directive);
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
     }
