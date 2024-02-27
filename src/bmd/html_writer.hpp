@@ -53,8 +53,8 @@ enum struct HTML_Token_Type : Default_Underlying {
 /// The token type can be ignored, but may be used to output with syntax highlighting.
 struct HTML_Token_Consumer {
     virtual bool write(char c, HTML_Token_Type type) = 0;
+    virtual bool write(char c, Size n, HTML_Token_Type type) = 0;
     virtual bool write(std::string_view s, HTML_Token_Type type) = 0;
-    virtual bool write_indent(Size indent_level) = 0;
 };
 
 struct Attribute_Writer {
@@ -115,6 +115,8 @@ public:
 
 private:
     HTML_Token_Consumer& m_out;
+    Size m_indent_width;
+
     enum struct State { initial, attributes, normal, new_line } m_state = State::initial;
     Size m_depth = 0;
     Size m_indent_depth = 0;
@@ -124,7 +126,7 @@ public:
     /// Writes nothing to the stream.
     /// `out.fail()` shall be true.
     /// @param out the output stream
-    explicit HTML_Writer(HTML_Token_Consumer& out);
+    explicit HTML_Writer(HTML_Token_Consumer& out, Size indent_width);
 
     HTML_Writer(const HTML_Writer&) = delete;
     HTML_Writer& operator=(const HTML_Writer&) = delete;

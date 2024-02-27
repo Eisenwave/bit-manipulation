@@ -4,8 +4,9 @@
 
 namespace bit_manipulation::bmd {
 
-HTML_Writer::HTML_Writer(HTML_Token_Consumer& out)
+HTML_Writer::HTML_Writer(HTML_Token_Consumer& out, Size indent_width)
     : m_out(out)
+    , m_indent_width(indent_width)
 {
 }
 
@@ -23,7 +24,7 @@ void HTML_Writer::indent(Formatting_Style style)
         break_line();
     }
     if (m_state == State::new_line && style != Formatting_Style::pre) {
-        m_out.write_indent(m_indent_depth);
+        m_out.write(' ', m_indent_depth * m_indent_width, bmd::HTML_Token_Type::whitespace);
     }
     m_state = State::normal;
 }
