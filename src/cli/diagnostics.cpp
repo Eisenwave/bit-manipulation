@@ -260,6 +260,7 @@ std::string_view to_prose(bmd::Document_Error_Code e)
         return "Each entry within a \\meta directive must be unique, but an entry was duplicated.";
     case invalid_language:
         return "This language is not valid or not supported for syntax highlighting.";
+    case invalid_architecture: return "This architecture is not valid.";
     case number_attribute_not_allowed:
         return "This attribute cannot have a numeric value; only strings can be provided.";
     case code_tokenization_failure:
