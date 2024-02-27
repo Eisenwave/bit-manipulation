@@ -164,6 +164,48 @@ enum struct Token_Type : Default_Underlying {
 
 [[nodiscard]] bool is_binary_operator(Token_Type type);
 
+/// @brief The operator precedence of a binary operator.
+enum struct Binary_Operator_Precedence : Default_Underlying { comparison, arithmetic, none };
+
+// We are kinda abusing `std::strong_ordering` here.
+// BMS doesn't allow operator chaining, so there's no meaningful difference between unordered
+// operators and operators with the same precedence.
+// For example `x + y + z` is just as invalid as `x + y * z` so there's no difference between
+// saying that `*` is unordered with `+`, and saying that they have the same precedence.
+
+/// @brief Returns the ordering of two operator precedences.
+/// `std::strong_ordering::less` represents that `x` has lower precedence than `y`.
+/// For example, `+` has lower precedence than `*`.
+/// @param x the left precedence
+/// @param y the right precedence
+/// @return `std::strong_ordering::equivalent` if the operators are unordered or have the same
+/// precedence (there is no distinction in BMS), a `std::strong_ordering` which compares the
+/// precedences otherwise.
+constexpr std::strong_ordering operator<=>(Binary_Operator_Precedence x,
+                                           Binary_Operator_Precedence y)
+{
+    return x == Binary_Operator_Precedence::none || y == Binary_Operator_Precedence::none
+        ? std::strong_ordering::equivalent
+        : static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
+}
+
+/// @brief Returns the next greater precedence, or `none` if none exists.
+/// @param p the precedence
+/// @return The next greater precedence, or `none` if none exists.
+constexpr Binary_Operator_Precedence operator++(Binary_Operator_Precedence p)
+{
+    return Binary_Operator_Precedence { std::min<Default_Underlying>(
+        static_cast<Default_Underlying>(p),
+        static_cast<Default_Underlying>(Binary_Operator_Precedence::none)) };
+}
+
+[[nodiscard]] inline Binary_Operator_Precedence binary_operator_precedence_of(Token_Type x)
+{
+    return is_comparison_operator(x) ? Binary_Operator_Precedence::comparison
+        : is_arithmetic_operator(x)  ? Binary_Operator_Precedence::arithmetic
+                                     : Binary_Operator_Precedence::none;
+}
+
 struct Token {
     Local_Source_Span pos {};
     Token_Type type {};

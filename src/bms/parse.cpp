@@ -824,9 +824,6 @@ private:
 
     Rule_Result match_binary_expression()
     {
-        if (peek(Token_Type::left_parenthesis)) {
-            return match_parenthesized_expression();
-        }
         if (should_binary_expression_commit_to_comparison_expression()) {
             return match_comparison_expression();
         }
@@ -847,6 +844,62 @@ private:
             op->pos, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
             op->type } };
     }
+
+#if BIT_MANIPULATION_ENABLE_EXPERIMENTAL_PARSING
+    Rule_Result match_binary_expression_impl(astp::Some_Node lhs,
+                                             Binary_Operator_Precedence min_precedence)
+    {
+        constexpr auto this_rule = Grammar_Rule::statement;
+#if 0
+        static constexpr Token_Type expected[]
+            = { Token_Type::equals,        Token_Type::not_equals,       Token_Type::plus,
+                Token_Type::minus,         Token_Type::multiplication,   Token_Type::division,
+                Token_Type::remainder,     Token_Type::less_than,        Token_Type::greater_than,
+                Token_Type::less_or_equal, Token_Type::greater_or_equal, Token_Type::shift_left,
+                Token_Type::shift_right,   Token_Type::bitwise_and,      Token_Type::bitwise_or,
+                Token_Type::logical_and,   Token_Type::logical_or };
+#endif
+        // The following implementation is conceptually based on
+        // https://en.wikipedia.org/wiki/Operator-precedence_parser
+
+        const Token* lookahead = peek(is_binary_operator);
+        while (lookahead) {
+            if (binary_operator_precedence_of(lookahead->type) < min_precedence) {
+                break;
+            }
+            const Token* const op = lookahead;
+            const auto op_precedence = binary_operator_precedence_of(op->type);
+
+            ++m_pos;
+            auto rhs = match_prefix_expression();
+            if (!rhs) {
+                return rhs;
+            }
+
+            lookahead = peek(is_binary_operator);
+            if (lookahead && //
+                binary_operator_precedence_of(lookahead->type) > op_precedence) {
+
+                const auto rhs_precedence = ++binary_operator_precedence_of(op->type);
+                rhs = match_binary_expression_impl(std::move(*rhs), rhs_precedence);
+                if (!rhs) {
+                    return rhs;
+                }
+                lookahead = peek(is_binary_operator);
+            }
+            lhs = astp::Binary_Expression { op->pos, //
+                                            m_program.push_node(std::move(lhs)),
+                                            m_program.push_node(std::move(*rhs)), op->type };
+            // This effectively disables operator chaining.
+            // I.e. (a + b + c) is disallowed; we only match (a + b).
+            // However, (a + b == c) is allowed, so if we increase
+            if (lookahead && binary_operator_precedence_of(lookahead->type) == min_precedence) {
+                break;
+            }
+        }
+        return lhs;
+    }
+#endif
 
     /// @brief An arbitrary look-ahead member function which tells us whether we should commit
     /// to matching a comparison expression when matching a binary expression.

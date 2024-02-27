@@ -61,6 +61,9 @@ struct Program final : detail::Node_Base {
 
     Program(Local_Source_Span pos, std::pmr::vector<Handle>&& declarations);
 
+    Program(Program&&) noexcept = default;
+    Program& operator=(Program&&) noexcept = default;
+
     std::span<Handle> get_children()
     {
         return declarations;
@@ -113,6 +116,9 @@ struct Parameter_List final : detail::Node_Base {
     std::pmr::vector<Handle> parameters;
 
     Parameter_List(Local_Source_Span pos, std::pmr::vector<Handle>&& parameters);
+
+    Parameter_List(Parameter_List&&) noexcept = default;
+    Parameter_List& operator=(Parameter_List&&) noexcept = default;
 
     std::span<Handle> get_children()
     {
@@ -297,6 +303,9 @@ struct Block_Statement final : detail::Node_Base {
 
     Block_Statement(Local_Source_Span pos, std::pmr::vector<Handle>&& statements);
 
+    Block_Statement(Block_Statement&&) noexcept = default;
+    Block_Statement& operator=(Block_Statement&&) noexcept = default;
+
     std::span<Handle> get_children()
     {
         return statements;
@@ -375,6 +384,9 @@ struct Function_Call_Expression final : detail::Node_Base {
                              std::pmr::vector<Handle>&& arguments,
                              bool is_statement = false);
 
+    Function_Call_Expression(Function_Call_Expression&&) noexcept = default;
+    Function_Call_Expression& operator=(Function_Call_Expression&&) noexcept = default;
+
     std::span<Handle> get_children()
     {
         return arguments;
@@ -425,6 +437,9 @@ using Some_Node = std::variant<Program,
                                Function_Call_Expression,
                                Id_Expression,
                                Literal>;
+
+static_assert(std::is_nothrow_move_constructible_v<Some_Node>);
+static_assert(std::is_nothrow_move_assignable_v<Some_Node>);
 
 inline Local_Source_Span get_source_position(const Some_Node& node)
 {
