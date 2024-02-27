@@ -130,25 +130,37 @@ auto HTML_Writer::write_comment_tag(std::string_view comment, Formatting_Style s
 auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
-    BIT_MANIPULATION_ASSERT(text.find_first_of("<>") == std::string_view::npos);
 
-    if (style == Formatting_Style::in_line) {
-        BIT_MANIPULATION_ASSERT(text.find('\n') == std::string_view::npos);
+    while (!text.empty()) {
+        const Size nl_pos = text.find('\n');
+        std::string_view line = text.substr(0, std::min(text.length(), nl_pos));
         indent(style);
-        m_out.write(text, HTML_Token_Type::inner_text);
-    }
-    else {
-        while (!text.empty()) {
-            const Size nl_pos = text.find('\n');
-            const std::string_view line = text.substr(0, std::min(text.length(), nl_pos));
-            indent(style);
-            m_out.write(line, HTML_Token_Type::inner_text);
-            break_line();
-            if (nl_pos == std::string_view::npos) {
+
+        while (!line.empty()) {
+            const Size bracket_pos = text.find_first_of("<>");
+            const std::string_view snippet = text.substr(0, std::min(text.length(), bracket_pos));
+            m_out.write(snippet, HTML_Token_Type::inner_text);
+            if (bracket_pos == std::string_view::npos) {
                 break;
             }
-            text = text.substr(nl_pos + 1);
+            else if (text[bracket_pos] == '<') {
+                m_out.write("&lt;", HTML_Token_Type::inner_text);
+            }
+            else if (text[bracket_pos] == '>') {
+                m_out.write("&gt;", HTML_Token_Type::inner_text);
+            }
+            else {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE("Logical mistake.");
+            }
+
+            line = line.substr(bracket_pos + 1);
         }
+
+        if (nl_pos == std::string_view::npos) {
+            break;
+        }
+        break_line();
+        text = text.substr(nl_pos + 1);
     }
 
     return *this;

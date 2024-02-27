@@ -174,8 +174,7 @@ public:
     Self& end_tag(std::string_view tag, Formatting_Style type);
 
     /// @brief Writes text between tags.
-    /// This text shall not include any `<` or `>` characters.
-    /// Use `&lt; and `&gt;` if need be.
+    /// Text characters such as `<` or `>` which interfere with HTML are converted to entities.
     /// @param text the text to write
     /// @param type if `block`, the tag will be on a new line and indented
     /// @return `*this`
