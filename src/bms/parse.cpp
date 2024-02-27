@@ -912,16 +912,18 @@ private:
     {
         Size parenthesis_level = 0;
         for (Size i = m_pos; i < m_tokens.size(); ++i) {
-            if (m_tokens[i].type == Token_Type::left_parenthesis) {
-                ++parenthesis_level;
-            }
-            else if (m_tokens[i].type == Token_Type::right_parenthesis) {
-                if (parenthesis_level-- == 0) {
-                    return false;
+            switch (m_tokens[i].type) {
+            case Token_Type::left_brace:
+            case Token_Type::right_brace:
+            case Token_Type::semicolon: return false;
+
+            case Token_Type::left_parenthesis: ++parenthesis_level; break;
+            case Token_Type::right_parenthesis: --parenthesis_level; break;
+
+            default:
+                if (parenthesis_level == 0 && is_comparison_operator(m_tokens[i].type)) {
+                    return true;
                 }
-            }
-            else if (is_comparison_operator(m_tokens[i].type)) {
-                return true;
             }
         }
         return false;
