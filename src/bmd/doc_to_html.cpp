@@ -1,5 +1,7 @@
 #include <algorithm>
+#include <unordered_map>
 
+#include "bmd/bms_to_html.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/doc_to_html.hpp"
 #include "bmd/html_writer.hpp"
@@ -9,8 +11,60 @@ namespace bit_manipulation::bmd {
 
 namespace {
 
+enum struct Nested_Language {
+    plaintext,
+    bms,
+    bmd,
+    c,
+    cxx,
+    rust,
+};
+
+std::optional<Nested_Language> nested_language_by_name(std::string_view name)
+{
+    if (name.empty()) {
+        return {};
+    }
+
+    static const std::unordered_map<std::string_view, Nested_Language> lookup
+        = { //
+            { "bmd", Nested_Language::bmd },
+            { "bms", Nested_Language::bms },
+            { "c", Nested_Language::c },
+            { "c++", Nested_Language::cxx },
+            { "cxx", Nested_Language::cxx },
+            { "cpp", Nested_Language::cxx },
+            { "plain", Nested_Language::plaintext },
+            { "plaintext", Nested_Language::plaintext },
+            { "text", Nested_Language::plaintext },
+            { "raw", Nested_Language::plaintext },
+            { "rust", Nested_Language::rust }
+          };
+
+    if (name == "c++" || name == "cpp" || name == "cxx") {
+        return Nested_Language::cxx;
+    }
+    if (name == "plain" || name == "none" || name == "plaintext" || name == "txt"
+        || name == "text") {
+        return Nested_Language::plaintext;
+    }
+    if (name == "rust") {
+        return Nested_Language::rust;
+    }
+    if (name == "bms") {
+        return Nested_Language::bms;
+    }
+    if (name == "bmd") {
+        return Nested_Language::bmd;
+    }
+    return {};
+}
+
 struct HTML_Converter {
     HTML_Writer& m_writer;
+    const Parsed_Document& m_document;
+    std::pmr::memory_resource* m_memory;
+
     bool m_at_start_of_file = true;
 
     struct Metadata {
@@ -19,8 +73,12 @@ struct HTML_Converter {
         std::string_view c_equivalent;
     } m_meta;
 
-    explicit HTML_Converter(HTML_Writer& writer)
-        : m_writer { writer }
+    explicit HTML_Converter(HTML_Writer& writer,
+                            const Parsed_Document& document,
+                            std::pmr::memory_resource* memory)
+        : m_writer(writer)
+        , m_document(document)
+        , m_memory(memory)
     {
     }
 
@@ -29,10 +87,9 @@ struct HTML_Converter {
     {
         for (const ast::Some_Node* const p : content.get_children()) {
             if (const auto* const list = std::get_if<ast::List>(p)) {
-                // This would imply an empty paragraph, but it's theoretically impossible to parse
-                // one.
-                // An empty paragraph would be whitespace, and whitespace should be ignored
-                // and dealt with in other places.
+                // This would imply an empty paragraph, but it's theoretically impossible to
+                // parse one. An empty paragraph would be whitespace, and whitespace should be
+                // ignored and dealt with in other places.
                 BIT_MANIPULATION_ASSERT(!list->empty());
 
                 m_writer.begin_tag("p", Formatting_Style::block);
@@ -76,8 +133,8 @@ struct HTML_Converter {
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
                 // Directives in a content environment should only be processed by
                 // `convert_content` directly.
-                // Finding a directive with this environment suggests that either we have misused
-                // `convert_list`, or the AST has structural problems.
+                // Finding a directive with this environment suggests that either we have
+                // misused `convert_list`, or the AST has structural problems.
                 BIT_MANIPULATION_ASSERT(directive_type_environment(directive->get_type())
                                         != Directive_Environment::content);
 
@@ -109,7 +166,7 @@ struct HTML_Converter {
 
         switch (directive.get_type()) {
         case Directive_Type::meta: return convert_meta_directive(directive);
-        // case Directive_Type::code: return convert_code_directive(directive);
+        case Directive_Type::code: return convert_code_directive(directive);
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
     }
@@ -180,6 +237,8 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_meta_directive(const ast::Directive& directive)
     {
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::meta);
+
         if (!m_at_start_of_file) {
             return Document_Error { Document_Error_Code::meta_not_at_start_of_file,
                                     directive.get_source_position() };
@@ -212,6 +271,76 @@ struct HTML_Converter {
             begin_tag_with_passed_through_attributes(*title_directive, "h1", style);
             m_writer.write_inner_text(m_meta.title, style);
             m_writer.end_tag("h1", style);
+        }
+
+        return {};
+    }
+
+    [[nodiscard]] Result<void, Document_Error>
+    convert_code_directive(const ast::Directive& directive)
+    {
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::code);
+
+        if (!m_at_start_of_file) {
+            return Document_Error { Document_Error_Code::meta_not_at_start_of_file,
+                                    directive.get_source_position() };
+        }
+        m_at_start_of_file = false;
+
+        const auto lang_pos = directive.m_arguments.find("lang");
+        const auto lang = [&]() -> Result<Nested_Language, Document_Error> {
+            if (lang_pos == directive.m_arguments.end()) {
+                return Nested_Language::bms;
+            }
+            if (const auto* const lang_number = std::get_if<ast::Number>(&lang_pos->second)) {
+                return Document_Error { Document_Error_Code::number_attribute_not_allowed,
+                                        lang_number->get_source_position() };
+            }
+            if (const auto* const lang_name = std::get_if<ast::Identifier>(&lang_pos->second)) {
+                std::optional<Nested_Language> lang_by_name
+                    = nested_language_by_name(lang_name->get_value());
+                if (!lang_by_name) {
+                    return Document_Error { Document_Error_Code::invalid_language,
+                                            lang_name->get_source_position() };
+                }
+                return *lang_by_name;
+            }
+            // TODO: We could do this more concisely and robustly if we made it possible to
+            // access the source position of both Number and Identifier polymorphically.
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Unkown kind of value.");
+        }();
+        if (!lang) {
+            return lang.error();
+        }
+
+        const auto* const code_text = directive.get_block() == nullptr
+            ? nullptr
+            : &std::get<ast::Text>(*directive.get_block());
+
+        if (*lang == Nested_Language::plaintext || code_text == nullptr) {
+            m_writer.begin_tag("code", Formatting_Style::in_line);
+            if (code_text != nullptr) {
+                m_writer.write_inner_text(code_text->get_text(), Formatting_Style::pre);
+            }
+            m_writer.end_tag("code", Formatting_Style::in_line);
+            return {};
+        }
+
+        BIT_MANIPULATION_ASSERT(code_text != nullptr);
+
+        switch (*lang) {
+        case Nested_Language::bms: {
+            Result<void, Bms_Error> result
+                = bms_inline_code_to_html(m_writer, code_text->get_text(), m_memory);
+            if (!result && std::holds_alternative<bms::Tokenize_Error>(result.error())) {
+                return Document_Error { Document_Error_Code::code_tokenization_failure,
+                                        code_text->get_source_position() };
+            }
+            break;
+        }
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE(
+                "Only bms and plaintext highlighting is implemented.");
         }
 
         return {};
@@ -276,8 +405,10 @@ struct HTML_Converter {
 
 } // namespace
 
-Result<void, Document_Error>
-doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document, Size indent_width)
+Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
+                                         const Parsed_Document& document,
+                                         Size indent_width,
+                                         std::pmr::memory_resource* memory)
 {
     HTML_Writer writer { out, indent_width };
     writer.write_preamble();
@@ -287,7 +418,8 @@ doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document, Size inde
 
     if (document.root_node != nullptr) {
         const auto& root_content = std::get<ast::List>(*document.root_node);
-        auto r = HTML_Converter { writer }.convert_content(root_content, Formatting_Style::flat);
+        auto r = HTML_Converter { writer, document, memory }.convert_content(
+            root_content, Formatting_Style::flat);
         if (!r) {
             return r;
         }

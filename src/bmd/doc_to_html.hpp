@@ -19,6 +19,12 @@ enum struct Document_Error_Code {
     writer_misuse,
     /// @brief An entry in the `\\meta` directive was defined twice.
     duplicate_meta_entry,
+    /// @brief The language of a `\code` (or other) directive is invalid.
+    invalid_language,
+    /// @brief A string attribute was required, but a number was given.
+    number_attribute_not_allowed,
+    /// @brief Failed to highlight code.
+    code_tokenization_failure,
 };
 
 struct Document_Error {
@@ -30,8 +36,11 @@ struct Document_Error {
 /// @param out the string to write to; the contents will be entirely replaced
 /// @param document the document to convert
 /// @param indent_width the indent width
-Result<void, Document_Error>
-doc_to_html(HTML_Token_Consumer& out, const Parsed_Document& document, Size indent_width);
+/// @param memory a source of temporary memory for subroutines such as BMS tokenization
+Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
+                                         const Parsed_Document& document,
+                                         Size indent_width,
+                                         std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation::bmd
 
