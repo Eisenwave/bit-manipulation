@@ -10,7 +10,7 @@
 
 #include "bms/astp.hpp"
 #include "bms/fwd.hpp"
-#include "bms/grammar.hpp"
+#include "bms/parse_error.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -59,12 +59,6 @@ struct Parsed_Program {
     {
         return source.substr(span.begin, span.length);
     }
-};
-
-struct Parse_Error {
-    Grammar_Rule fail_rule;
-    std::span<const Token_Type> expected_tokens;
-    Token fail_token;
 };
 
 Result<Parsed_Program, Parse_Error>

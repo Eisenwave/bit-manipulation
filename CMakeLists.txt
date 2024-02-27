@@ -10,6 +10,7 @@ set(SANITIZER_OPTIONS
 )
 
 set(HEADERS
+    src/bmd/bms_to_html.hpp
     src/bmd/directive_type.hpp
     src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
@@ -28,6 +29,7 @@ set(HEADERS
     src/bms/grammar.hpp
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
+    src/bms/parse_error.hpp
     src/bms/parse.hpp
     src/bms/tokens.hpp
     src/bms/tokenize.hpp
@@ -49,6 +51,7 @@ set(HEADERS
     src/cli/diagnostics.hpp)
 
 add_executable(bmscript ${HEADERS}
+    src/bmd/bms_to_html.cpp
     src/bmd/doc_to_html.cpp
     src/bmd/enums.cpp
     src/bmd/html_writer.cpp
