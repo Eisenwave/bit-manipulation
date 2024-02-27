@@ -93,9 +93,13 @@ inline Size match_whitespace(std::string_view str) noexcept
 }
 
 /// @brief A string containing all possible identifier characters.
-inline constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstuvwxyz"
-                                                          "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                                          "0123456789_";
+inline constexpr std::string_view html_identifier_characters = "abcdefghijklmnopqrstuvwxyz"
+                                                               "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                                                               "0123456789_-";
+
+/// @brief A string containing all possible identifier characters.
+inline constexpr std::string_view identifier_characters
+    = html_identifier_characters.substr(0, html_identifier_characters.length() - 1);
 
 /// @brief Matches an identifier.
 /// This function matches the regex /[_a-zA-Z][_a-zA-Z0-9]*/
@@ -103,14 +107,29 @@ inline constexpr std::string_view identifier_characters = "abcdefghijklmnopqrstu
 /// @return The length of the identifier if it could be matched, zero otherwise.
 Size match_identifier(std::string_view str) noexcept;
 
-/// @brief Returns `true` if `str` is an identifier, `false` otherwise.
-/// @param str the string to test
-/// @return `!str.empty() && match_identifier(str) == str.length()`
-inline bool is_identifier(std::string_view str) noexcept
+namespace detail {
+
+inline bool is_identifier(std::string_view str, std::string_view characters) noexcept
 {
     return !str.empty() //
-        && !is_decimal_digit(str[0])
-        && str.find_first_not_of(identifier_characters) == std::string_view::npos;
+        && !is_decimal_digit(str[0]) //
+        && str.find_first_not_of(characters) == std::string_view::npos;
+}
+
+} // namespace detail
+
+/// @brief Returns `true` if `str` is an identifier in the BMD and BMS languages, `false` otherwise.
+/// @param str the string to test
+inline bool is_identifier(std::string_view str) noexcept
+{
+    return detail::is_identifier(str, identifier_characters);
+}
+
+/// @brief Returns `true` if `str` is an HTML identifier, `false` otherwise.
+/// @param str the string to test
+inline bool is_html_identifier(std::string_view str) noexcept
+{
+    return detail::is_identifier(str, html_identifier_characters);
 }
 
 /// @brief Matches a literal at the beginning of the given string.
