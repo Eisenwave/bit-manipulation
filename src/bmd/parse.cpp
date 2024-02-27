@@ -722,56 +722,58 @@ private:
         const auto initial_pos = m_pos;
         Size brace_level = 0;
 
-    normal_state: {
-        if (eof()) {
-            return Rule_Error { Parse_Error_Code::unexpected_eof, Grammar_Rule::raw_content };
-        }
-        if (expect('}')) {
-            if (brace_level-- == 0) {
-                goto end;
+        while (true) {
+            if (eof()) {
+                return Rule_Error { Parse_Error_Code::unexpected_eof, Grammar_Rule::raw_content };
             }
-            goto normal_state;
+            if (expect('}')) {
+                if (brace_level-- == 0) {
+                    break;
+                }
+                continue;
+            }
+            const char c = pop();
+            // Braces are escapeable, so \{ doesn't contribute to the brace matching.
+            if (c == '\\' && expect(is_escapeable)) {
+                continue;
+            }
+            // ... but unescaped braces do.
+            if (c == '{') {
+                ++brace_level;
+                continue;
+            }
+            // Parse C99-style line comments.
+            // Braces inside line comments don't contribute to brace matching.
+            if (c == '/' && expect('/')) {
+                while (true) {
+                    if (eof()) {
+                        return Rule_Error { Parse_Error_Code::unterminated_comment,
+                                            Grammar_Rule::raw_content };
+                    }
+                    const char c = pop();
+                    if (c == '\n') {
+                        break;
+                    }
+                }
+                continue;
+            }
+            // Parse C89-style block comments.
+            // Braces inside block comments don't contribute to brace matching.
+            if (c == '/' && expect('*')) {
+                while (true) {
+                    if (eof()) {
+                        return Rule_Error { Parse_Error_Code::unterminated_comment,
+                                            Grammar_Rule::raw_content };
+                    }
+                    char c = pop();
+                    if (c == '*' && expect('/')) {
+                        break;
+                    }
+                }
+                continue;
+            }
         }
-        const char c = pop();
-        if (c == '\\' && expect(is_escapeable)) {
-            goto normal_state;
-        }
-        if (c == '{') {
-            ++brace_level;
-            goto normal_state;
-        }
-        if (c == '/' && expect('/')) {
-            goto in_line_comment;
-        }
-        if (c == '/' && expect('*')) {
-            goto in_block_comment;
-        }
-        goto normal_state;
-    }
 
-    in_line_comment: {
-        if (eof()) {
-            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::raw_content };
-        }
-        const char c = pop();
-        if (c == '\n') {
-            goto normal_state;
-        }
-        goto in_line_comment;
-    }
-
-    in_block_comment: {
-        if (eof()) {
-            return Rule_Error { Parse_Error_Code::unterminated_comment, Grammar_Rule::raw_content };
-        }
-        char c = pop();
-        if (c == '*' && expect('/')) {
-            goto normal_state;
-        }
-        goto in_block_comment;
-    }
-
-    end:
         const Size length = m_pos.begin - initial_pos.begin - 1;
         return ast::Raw { { initial_pos, length }, m_source.substr(initial_pos.begin, length) };
     }
@@ -800,55 +802,49 @@ private:
         Size newline_count = 0;
         bool is_paragraph_break = false;
 
-    normal_state: {
-        if (eof()) {
-            goto end;
-        }
-        const char c = peek();
-        if (c == '/') {
+        while (true) {
+            if (eof()) {
+                break;
+            }
+            // Parse C99-style line comments.
             if (expect("//")) {
                 newline_count = 0;
-                goto in_line_comment;
+                while (true) {
+                    if (eof()) {
+                        return Parse_Error_Code::unterminated_comment;
+                    }
+                    const char c = pop();
+                    if (c == '\n') {
+                        newline_count = 1;
+                        break;
+                    }
+                }
+                continue;
             }
+            // Parse C89-style block comments.
             if (expect("/*")) {
                 newline_count = 0;
-                goto in_block_comment;
+                while (true) {
+                    if (eof()) {
+                        return Parse_Error_Code::unterminated_comment;
+                    }
+                    char c = pop();
+                    if (c == '*' && expect('/')) {
+                        break;
+                    }
+                }
+                continue;
+            }
+            // Any other non-comment, non-space character ends the blank.
+            if (!peek(is_space)) {
+                break;
+            }
+            // Last but not least, we consume whitespace.
+            if (pop() == '\n') {
+                is_paragraph_break |= ++newline_count > 1;
             }
         }
-        if (!is_space(c)) {
-            goto end;
-        }
-        pop();
-        if (c == '\n') {
-            is_paragraph_break |= ++newline_count > 1;
-        }
-        goto normal_state;
-    }
 
-    in_line_comment: {
-        if (eof()) {
-            return Parse_Error_Code::unterminated_comment;
-        }
-        const char c = pop();
-        if (c == '\n') {
-            newline_count = 1;
-            goto normal_state;
-        }
-        goto in_line_comment;
-    }
-
-    in_block_comment: {
-        if (eof()) {
-            return Parse_Error_Code::unterminated_comment;
-        }
-        char c = pop();
-        if (c == '*' && expect('/')) {
-            goto normal_state;
-        }
-        goto in_block_comment;
-    }
-
-    end:
         return Blank { m_pos.begin - initial_pos, is_paragraph_break };
     }
 
