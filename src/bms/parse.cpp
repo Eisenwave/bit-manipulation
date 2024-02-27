@@ -332,25 +332,6 @@ private:
 
     using Rule_Result = Result<astp::Some_Node, Rule_Error>;
 
-    /// @brief Like `match`, but the parser state is not advanced if no match was made.
-    /// @param rule the grammar rule
-    /// @return the matched result, or `rule`
-    Rule_Result expect(Rule_Result (Parser::*match)())
-    {
-        const Size restore_pos = m_pos;
-        const Size restore_nodes = m_program.nodes.size();
-        auto result = (this->*match)();
-        if (!result) {
-            // We couldn't have gone backwards in the program.
-            BIT_MANIPULATION_ASSERT(m_pos >= restore_pos);
-            m_pos = restore_pos;
-            // We couldn't have dropped any nodes.
-            const bool is_downsize = try_downsize(m_program.nodes, restore_nodes);
-            BIT_MANIPULATION_ASSERT(is_downsize);
-        }
-        return result;
-    }
-
     Rule_Result match_program()
     {
         auto first = match_program_declaration();
@@ -843,8 +824,11 @@ private:
 
     Rule_Result match_binary_expression()
     {
-        if (auto comp = expect(&Parser::match_comparison_expression)) {
-            return comp;
+        if (peek(Token_Type::left_parenthesis)) {
+            return match_parenthesized_expression();
+        }
+        if (should_binary_expression_commit_to_comparison_expression()) {
+            return match_comparison_expression();
         }
 
         auto left = match_prefix_expression();
@@ -862,6 +846,31 @@ private:
         return astp::Some_Node { astp::Binary_Expression {
             op->pos, m_program.push_node(std::move(*left)), m_program.push_node(std::move(*right)),
             op->type } };
+    }
+
+    /// @brief An arbitrary look-ahead member function which tells us whether we should commit
+    /// to matching a comparison expression when matching a binary expression.
+    /// This approach is a bit unusual, but makes sense for BMS specifically.
+    /// Thanks to this test, our parser is completely deterministic and we can avoid more complex
+    /// expression parsing approach.
+    /// @return `true` if we should commit, `false` otherwise.
+    bool should_binary_expression_commit_to_comparison_expression() const
+    {
+        Size parenthesis_level = 0;
+        for (Size i = m_pos; i < m_tokens.size(); ++i) {
+            if (m_tokens[i].type == Token_Type::left_parenthesis) {
+                ++parenthesis_level;
+            }
+            else if (m_tokens[i].type == Token_Type::right_parenthesis) {
+                if (parenthesis_level-- == 0) {
+                    return false;
+                }
+            }
+            else if (is_comparison_operator(m_tokens[i].type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     Rule_Result match_comparison_expression()
