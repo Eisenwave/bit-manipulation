@@ -51,6 +51,13 @@ struct Local_Source_Span : Local_Source_Position {
         return { { .line = line, .column = column - offset, .begin = begin - offset }, length };
     }
 
+    /// @brief Returns the one-past-the-end column.
+    [[nodiscard]] constexpr Size end_column() const
+    {
+        return column + length;
+    }
+
+    /// @brief Returns the one-past-the-end position in the source.
     [[nodiscard]] constexpr Size end() const
     {
         return begin + length;
