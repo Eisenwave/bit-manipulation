@@ -14,6 +14,9 @@ inline bool requires_quotes_in_attribute(std::string_view value)
 }
 
 enum struct Formatting_Style : Default_Underlying {
+    /// @brief Pre-formatted.
+    /// No changes to spacing should be performed, no indentation added, etc.
+    pre,
     /// @brief No separate line and no extra indentation.
     /// This is typically used for tags such as `<span>`.
     in_line,
@@ -24,6 +27,11 @@ enum struct Formatting_Style : Default_Underlying {
     /// This is typically used for tags such as `<p>`.
     block,
 };
+
+[[nodiscard]] constexpr bool is_block_like(Formatting_Style style)
+{
+    return style == Formatting_Style::flat || style == Formatting_Style::block;
+}
 
 enum struct HTML_Token_Type : Default_Underlying {
     whitespace,
