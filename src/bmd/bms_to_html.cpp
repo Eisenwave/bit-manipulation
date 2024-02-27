@@ -106,11 +106,11 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
             write_source_gap(out, tokens[i - 1].pos, tokens[i].pos);
         }
 
-        const auto tag = token_type_tag(tokens[i].type);
-        out.begin_tag(tag, Formatting_Style::in_line);
+        const Tag_Properties tag { token_type_tag(tokens[i].type), Formatting_Style::pre };
+        out.begin_tag(tag);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.end());
         out.write_inner_text(text, Formatting_Style::pre);
-        out.end_tag(tag, Formatting_Style::in_line);
+        out.end_tag(tag);
     }
 }
 
@@ -124,10 +124,7 @@ bms_inline_code_to_html(HTML_Writer& out, std::string_view code, std::pmr::memor
     std::pmr::vector<bms::Token> tokens(memory);
     Result<void, bms::Tokenize_Error> t = bms::tokenize(tokens, code);
     if (!t) {
-        out.begin_tag("code", style);
         out.write_inner_text(code, style);
-        out.end_tag("code", style);
-
         return Bms_Error { t.error() };
     }
 

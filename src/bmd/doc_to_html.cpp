@@ -85,6 +85,8 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error> convert_content(const ast::List& content,
                                                                Formatting_Style inherited_style)
     {
+        static constexpr Tag_Properties paragraph { "p", Formatting_Style::block };
+
         for (const ast::Some_Node* const p : content.get_children()) {
             if (const auto* const list = std::get_if<ast::List>(p)) {
                 // This would imply an empty paragraph, but it's theoretically impossible to
@@ -92,11 +94,11 @@ struct HTML_Converter {
                 // ignored and dealt with in other places.
                 BIT_MANIPULATION_ASSERT(!list->empty());
 
-                m_writer.begin_tag("p", Formatting_Style::block);
+                m_writer.begin_tag(paragraph);
                 if (auto r = convert_list(*list, inherited_style); !r) {
                     return r;
                 }
-                m_writer.end_tag("p", Formatting_Style::block);
+                m_writer.end_tag(paragraph);
             }
             else if (const auto* const directive = std::get_if<ast::Directive>(p)) {
                 // Directives which aren't part of a paragraph but go directly into the content
@@ -167,6 +169,7 @@ struct HTML_Converter {
         switch (directive.get_type()) {
         case Directive_Type::meta: return convert_meta_directive(directive);
         case Directive_Type::code: return convert_code_directive(directive);
+        case Directive_Type::code_block: return convert_code_directive(directive);
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
     }
@@ -178,37 +181,36 @@ struct HTML_Converter {
 
         m_at_start_of_file = false;
 
-        const std::string_view tag = directive_type_tag(directive.get_type());
-        const Formatting_Style style = directive_type_formatting_style(directive.get_type());
+        const Tag_Properties tag { directive_type_tag(directive.get_type()),
+                                   directive_type_formatting_style(directive.get_type()) };
 
         BIT_MANIPULATION_ASSERT(directive.get_block() != nullptr
                                 || !directive_type_must_be_empty(directive.get_type()));
 
         if (directive.get_block() == nullptr && directive.m_arguments.empty()) {
-            m_writer.write_empty_tag(tag, style);
+            m_writer.write_empty_tag(tag);
         }
         else {
-            begin_tag_with_passed_through_attributes(directive, tag, style);
+            begin_tag_with_passed_through_attributes(directive, tag);
 
             const auto content_type = directive_type_content_type(directive.get_type());
-            if (auto r = convert_block(directive.get_block(), style, content_type); !r) {
+            if (auto r = convert_block(directive.get_block(), tag.style, content_type); !r) {
                 return r;
             }
-            m_writer.end_tag(tag, style);
+            m_writer.end_tag(tag);
         }
         return {};
     }
 
     void begin_tag_with_passed_through_attributes(const ast::Directive& directive,
-                                                  std::string_view tag,
-                                                  Formatting_Style style)
+                                                  Tag_Properties properties)
     {
         if (directive.m_arguments.empty()) {
-            m_writer.begin_tag(tag, style);
+            m_writer.begin_tag(properties);
             return;
         }
 
-        auto attribute_writer = m_writer.begin_tag_with_attributes(tag, style);
+        auto attribute_writer = m_writer.begin_tag_with_attributes(properties);
         pass_through_attributes(directive, attribute_writer);
     }
 
@@ -267,10 +269,10 @@ struct HTML_Converter {
         }
 
         if (title_directive != nullptr) {
-            constexpr auto style = Formatting_Style::in_line;
-            begin_tag_with_passed_through_attributes(*title_directive, "h1", style);
-            m_writer.write_inner_text(m_meta.title, style);
-            m_writer.end_tag("h1", style);
+            const Tag_Properties heading { "h1", Formatting_Style::in_line };
+            begin_tag_with_passed_through_attributes(*title_directive, heading);
+            m_writer.write_inner_text(m_meta.title, heading.style);
+            m_writer.end_tag(heading);
         }
 
         return {};
@@ -279,16 +281,13 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_code_directive(const ast::Directive& directive)
     {
-        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::code);
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::code
+                                || directive.get_type() == Directive_Type::code_block);
 
-        if (!m_at_start_of_file) {
-            return Document_Error { Document_Error_Code::meta_not_at_start_of_file,
-                                    directive.get_source_position() };
-        }
         m_at_start_of_file = false;
 
-        const auto lang_pos = directive.m_arguments.find("lang");
         const auto lang = [&]() -> Result<Nested_Language, Document_Error> {
+            const auto lang_pos = directive.m_arguments.find("lang");
             if (lang_pos == directive.m_arguments.end()) {
                 return Nested_Language::bms;
             }
@@ -313,26 +312,38 @@ struct HTML_Converter {
             return lang.error();
         }
 
+        const auto surrounding_tag = directive.get_type() == Directive_Type::code
+            ? Tag_Properties { "code", Formatting_Style::in_line }
+            : Tag_Properties { "pre", Formatting_Style::block };
+
+        m_writer.begin_tag(surrounding_tag);
+        if (auto r = convert_nested_code(directive, *lang); !r) {
+            return r;
+        }
+        m_writer.end_tag(surrounding_tag);
+
+        return {};
+    }
+
+    Result<void, Document_Error> convert_nested_code(const ast::Directive& directive,
+                                                     Nested_Language lang)
+    {
         const auto* const code_text = directive.get_block() == nullptr
             ? nullptr
             : &std::get<ast::Text>(*directive.get_block());
 
-        if (*lang == Nested_Language::plaintext || code_text == nullptr) {
-            m_writer.begin_tag("code", Formatting_Style::in_line);
+        if (lang == Nested_Language::plaintext || code_text == nullptr) {
             if (code_text != nullptr) {
                 m_writer.write_inner_text(code_text->get_text(), Formatting_Style::pre);
             }
-            m_writer.end_tag("code", Formatting_Style::in_line);
             return {};
         }
 
-        BIT_MANIPULATION_ASSERT(code_text != nullptr);
-
-        switch (*lang) {
+        switch (lang) {
         case Nested_Language::bms: {
             Result<void, Bms_Error> result
                 = bms_inline_code_to_html(m_writer, code_text->get_text(), m_memory);
-            if (!result && std::holds_alternative<bms::Tokenize_Error>(result.error())) {
+            if (!result && result.error().is_tokenize_error()) {
                 return Document_Error { Document_Error_Code::code_tokenization_failure,
                                         code_text->get_source_position() };
             }
@@ -410,11 +421,14 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
                                          Size indent_width,
                                          std::pmr::memory_resource* memory)
 {
+    constexpr Tag_Properties html { "html", Formatting_Style::flat };
+    constexpr Tag_Properties body { "body", Formatting_Style::flat };
+
     HTML_Writer writer { out, indent_width };
     writer.write_preamble();
 
-    writer.begin_tag("html", Formatting_Style::flat);
-    writer.begin_tag("body", Formatting_Style::flat);
+    writer.begin_tag(html);
+    writer.begin_tag(body);
 
     if (document.root_node != nullptr) {
         const auto& root_content = std::get<ast::List>(*document.root_node);
@@ -425,8 +439,8 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
         }
     }
 
-    writer.end_tag("body", Formatting_Style::flat);
-    writer.end_tag("html", Formatting_Style::flat);
+    writer.end_tag(body);
+    writer.end_tag(html);
     if (!writer.is_done()) {
         return Document_Error { Document_Error_Code::writer_misuse, {} };
     }

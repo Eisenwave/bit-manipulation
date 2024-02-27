@@ -18,6 +18,16 @@ using Bms_Error_Variant = std::variant<bms::Tokenize_Error, bms::Parse_Error>;
 
 struct Bms_Error : Bms_Error_Variant {
     using Bms_Error_Variant::variant;
+
+    bool is_tokenize_error() const
+    {
+        return std::holds_alternative<bms::Tokenize_Error>(*this);
+    }
+
+    bool is_parse_error() const
+    {
+        return !is_tokenize_error();
+    }
 };
 
 /// @brief Converts the given inline code snippet to HTML.

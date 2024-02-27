@@ -98,6 +98,11 @@ public:
     ~Attribute_Writer() noexcept(false);
 };
 
+struct Tag_Properties {
+    std::string_view id;
+    Formatting_Style style;
+};
+
 /// @brief A class which provides member functions for writing HTML content to a stream
 /// correctly.
 /// This writer only performs checks that are possibly without additional memory.
@@ -149,39 +154,34 @@ public:
     Self& write_preamble();
 
     /// @brief Writes an empty tag such as `<br/>` or `<hr/>`.
-    /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
-    /// @param type if `block`, the tag will be on a new line and indented
+    /// @param properties the tag properties
     /// @return `*this`
-    Self& write_empty_tag(std::string_view tag, Formatting_Style type);
+    Self& write_empty_tag(Tag_Properties properties);
 
     /// @brief Writes an empty tag such as `<br/>` or `<hr/>`.
     /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
-    /// @param type if `block`, the tag will be on a new line and indented
+    /// @param style if `block`, the tag will be on a new line and indented
     /// @return `*this`
-    Self& write_comment_tag(std::string_view comment, Formatting_Style type);
+    Self& write_comment_tag(std::string_view comment, Formatting_Style style);
 
     /// @brief Writes an opening tag such as `<div>`.
-    /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
-    /// @param type if `block`, the tag will be on a new line and indented
+    /// @param properties the tag properties
     /// @return `*this`
-    Self& begin_tag(std::string_view tag, Formatting_Style type);
+    Self& begin_tag(Tag_Properties properties);
 
     /// @brief Writes an incomplete opening tag such as `<div`.
     /// Returns an `Attribute_Writer` which must be used to write attributes (if any)
     /// and complete the opening tag.
-    /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
-    /// @param type if `block`, the tag will be on a new line and indented
+    /// @param properties the tag properties
     /// @return `*this`
-    [[nodiscard]] Attribute_Writer begin_tag_with_attributes(std::string_view tag,
-                                                             Formatting_Style type);
+    [[nodiscard]] Attribute_Writer begin_tag_with_attributes(Tag_Properties properties);
 
     /// @brief Writes a closing tag, such as `</div>`.
     /// The most recent call to `begin_tag` or `begin_tag_with_attributes` shall have been made with
     /// the same arguments.
-    /// @param tag the tag identifier; `is_identifier(tag)` shall be `true`
-    /// @param type if `block`, the tag will be on a new line and indented
+    /// @param properties the tag properties
     /// @return `*this`
-    Self& end_tag(std::string_view tag, Formatting_Style type);
+    Self& end_tag(Tag_Properties properties);
 
     /// @brief Writes text between tags.
     /// Text characters such as `<` or `>` which interfere with HTML are converted to entities.
