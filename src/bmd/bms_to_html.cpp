@@ -48,9 +48,9 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
     case bitwise_xor:
     case logical_and:
     case logical_or:
-    case logical_not: return "c-opr";
+    case logical_not:
+    case right_arrow: return "c-opr";
 
-    case right_arrow:
     case double_right_arrow: return "c-err";
 
     case dot:
