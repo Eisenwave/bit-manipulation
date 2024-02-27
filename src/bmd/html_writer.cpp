@@ -80,6 +80,7 @@ auto HTML_Writer::write_preamble() -> Self&
 auto HTML_Writer::write_empty_tag(Tag_Properties properties) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
     m_out.write('<', HTML_Token_Type::tag_bracket);
@@ -95,6 +96,7 @@ auto HTML_Writer::write_empty_tag(Tag_Properties properties) -> Self&
 auto HTML_Writer::begin_tag(Tag_Properties properties) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
     m_out.write('<', HTML_Token_Type::tag_bracket);
@@ -114,6 +116,7 @@ auto HTML_Writer::begin_tag(Tag_Properties properties) -> Self&
 Attribute_Writer HTML_Writer::begin_tag_with_attributes(Tag_Properties properties)
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
     m_out.write('<', HTML_Token_Type::tag_bracket);
@@ -127,6 +130,7 @@ Attribute_Writer HTML_Writer::begin_tag_with_attributes(Tag_Properties propertie
 auto HTML_Writer::end_tag(Tag_Properties properties) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
     BIT_MANIPULATION_ASSERT(m_depth != 0);
 
     if (properties.style == Formatting_Style::block) {
@@ -190,7 +194,7 @@ auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style
 auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) -> Self&
 {
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
-    BIT_MANIPULATION_ASSERT(is_identifier(key));
+    BIT_MANIPULATION_ASSERT(is_html_identifier(key));
 
     m_out.write(' ', HTML_Token_Type::whitespace);
     m_out.write(key, HTML_Token_Type::attribute_key);
