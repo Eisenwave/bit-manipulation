@@ -24,9 +24,19 @@ void HTML_Writer::indent(Formatting_Style style)
         break_line();
     }
     if (m_state == State::new_line && style != Formatting_Style::pre) {
-        m_out.write(' ', m_indent_depth * m_indent_width, bmd::HTML_Token_Type::whitespace);
+        m_out.write(' ', m_indent_depth * m_indent_width, HTML_Token_Type::whitespace);
     }
     m_state = State::normal;
+}
+
+auto HTML_Writer::write_whitespace(char c, Size length) -> Self&
+{
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes && m_state != State::initial);
+    BIT_MANIPULATION_ASSERT(is_space(c));
+
+    m_out.write(c, length, HTML_Token_Type::whitespace);
+    m_state = State::normal;
+    return *this;
 }
 
 auto HTML_Writer::write_preamble() -> Self&

@@ -190,6 +190,8 @@ public:
     /// @return `*this`
     Self& write_inner_text(std::string_view text, Formatting_Style type);
 
+    Self& write_whitespace(char c, Size length);
+
 private:
     friend struct Attribute_Writer;
 
