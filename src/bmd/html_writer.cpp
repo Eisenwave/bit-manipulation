@@ -245,12 +245,10 @@ auto HTML_Writer::end_empty_tag_attributes(Formatting_Style style) -> Self&
     BIT_MANIPULATION_ASSERT(m_state == State::attributes);
 
     m_out.write("/>", HTML_Token_Type::tag_bracket);
+    m_state = State::normal;
 
     if (is_block_like(style)) {
         break_line();
-    }
-    else {
-        m_state = State::normal;
     }
 
     return *this;
