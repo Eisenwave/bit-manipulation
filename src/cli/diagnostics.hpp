@@ -61,6 +61,11 @@ std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view source,
                                 const bmd::Parse_Error& e);
 
+std::ostream& print_document_error(std::ostream& out,
+                                   std::string_view file,
+                                   std::string_view source,
+                                   const bmd::Document_Error& error);
+
 std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
                                    const bms::Analysis_Error& error);

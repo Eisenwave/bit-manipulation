@@ -6,6 +6,8 @@
 #include "common/assert.hpp"
 #include "common/io.hpp"
 
+#include "bmd/doc_to_html.hpp"
+#include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
 
 #include "bms/analysis_error.hpp"
@@ -18,6 +20,103 @@
 
 namespace bit_manipulation {
 namespace {
+
+std::string_view highlight_color_of(bmd::HTML_Token_Type type)
+{
+    using enum bmd::HTML_Token_Type;
+    switch (type) {
+    case whitespace:
+    case inner_text: return ansi::reset;
+
+    case preamble:
+    case comment: return ansi::h_black;
+
+    case tag_identifier: return ansi::h_blue;
+
+    case tag_bracket:
+    case attribute_equal:
+    case attribute_comma: return ansi::black;
+
+    case attribute_key: return ansi::h_cyan;
+
+    case attribute_quote:
+    case attribute_value: return ansi::h_green;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
+}
+
+struct Colored_HTML_Consumer final : bmd::HTML_Token_Consumer {
+    std::ostream& out;
+
+    explicit Colored_HTML_Consumer(std::ostream& out)
+        : out(out)
+    {
+    }
+
+    bool write(char c, bmd::HTML_Token_Type type) final
+    {
+        return (out << highlight_color_of(type)) && out.put(c);
+    }
+
+    bool write(char c, Size count, bmd::HTML_Token_Type type) final
+    {
+        if (!(out << highlight_color_of(type))) {
+            return false;
+        }
+        char restore_fill = out.fill(c);
+        out.width(count);
+        bool result(out << "");
+        out.fill(restore_fill);
+        return result;
+    }
+
+    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    {
+        return (out << highlight_color_of(type)) && out.write(s.data(), s.length());
+    }
+};
+
+struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
+    std::ostream& out;
+
+    explicit Simple_HTML_Consumer(std::ostream& out)
+        : out(out)
+    {
+    }
+
+    bool write(char c, bmd::HTML_Token_Type) final
+    {
+        return bool(out.put(c));
+    }
+
+    bool write(char c, Size count, bmd::HTML_Token_Type type) final
+    {
+        char restore_fill = out.fill(c);
+        out.width(count);
+        bool result(out << "");
+        out.fill(restore_fill);
+        return result;
+    }
+
+    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    {
+        return bool(out.write(s.data(), s.length()));
+    }
+};
+
+void print_html(const bmd::Parsed_Document& document,
+                std::string_view file,
+                std::pmr::memory_resource* memory)
+{
+    constexpr Size indent_width = 2;
+
+    Colored_HTML_Consumer consumer { std::cout };
+    Result<void, bmd::Document_Error> result
+        = bmd::doc_to_html(consumer, document, indent_width, memory);
+    if (!result) {
+        print_document_error(std::cout, file, document.source, result.error());
+    }
+}
 
 std::pmr::vector<bms::Token>
 tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
@@ -106,14 +205,13 @@ int to_html(std::string_view file, std::pmr::memory_resource* memory)
 {
     const std::pmr::string source = load_file(file, memory);
 
-    constexpr Size indent_width = 2;
     if (file.ends_with(".bms")) {
         std::cout << "Converting BMS files to HTML is not supported yet\n";
         return 0;
     }
     if (file.ends_with(".bmd")) {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
-        print_html(std::cout, program, file, indent_width);
+        print_html(program, file, memory);
         return 0;
     }
 
