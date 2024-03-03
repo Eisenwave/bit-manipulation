@@ -91,6 +91,22 @@
         --background: rgb(32, 32, 32);
         --deep-background: rgb(24, 24, 24);
     }
+
+    a:link {
+        color: rgb(134, 181, 255);
+    }
+
+    a:visited {
+        color: rgb(195, 163, 255);
+    }
+
+    a:hover {
+        color: rgb(207, 234, 255);
+    }
+
+    a:active {
+        color: rgb(164, 187, 255);
+    }
 }
 
 body {
@@ -107,8 +123,18 @@ pre {
     padding-left: 1em;
     padding-bottom: 1em;
 
+    font-size: 11pt;
+}
+
+pre,
+code {
     font-family: 'JetBrainsMono';
     font-variant-ligatures: none;
     font-weight: normal;
-    font-size: 14px;
+}
+
+code {
+    background-color: var(--deep-background);
+    border: 0.2em solid var(--deep-background);
+    border-radius: 0.2em;
 }
