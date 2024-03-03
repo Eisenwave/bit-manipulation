@@ -558,16 +558,28 @@ struct HTML_Converter {
 
 Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
                                          const Parsed_Document& document,
-                                         Size indent_width,
+                                         Document_Options options,
                                          std::pmr::memory_resource* memory)
 {
-    constexpr Tag_Properties html { "html", Formatting_Style::flat };
-    constexpr Tag_Properties body { "body", Formatting_Style::flat };
+    static constexpr Tag_Properties html { "html", Formatting_Style::flat };
+    static constexpr Tag_Properties body { "body", Formatting_Style::flat };
+    static constexpr Tag_Properties head { "head", Formatting_Style::block };
+    static constexpr Tag_Properties link { "link", Formatting_Style::block };
 
-    HTML_Writer writer { out, indent_width };
+    HTML_Writer writer { out, options.indent_width };
     writer.write_preamble();
 
     writer.begin_tag(html);
+
+    writer.begin_tag(head);
+    for (const std::string_view sheet : options.stylesheets) {
+        writer.begin_tag_with_attributes(link)
+            .write_attribute("rel", "stylesheet")
+            .write_attribute("href", sheet)
+            .end_empty();
+    }
+    writer.end_tag(head);
+
     writer.begin_tag(body);
 
     if (document.root_node != nullptr) {
