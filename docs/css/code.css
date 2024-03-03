@@ -1,0 +1,49 @@
+@media not (prefers-color-scheme: dark) {
+
+    c-bra,
+    c-pun {
+        color: rgb(100, 100, 100);
+    }
+
+    c-opr {
+        color: rgb(0, 0, 0);
+    }
+
+    c-idn {
+        color: rgb(92, 71, 126);
+    }
+
+    c-key {
+        color: rgb(200, 0, 50);
+    }
+
+    c-typ {
+        color: rgb(0, 80, 200);
+    }
+
+}
+
+@media (prefers-color-scheme: dark) {
+
+    c-bra,
+    c-pun {
+        color: rgb(160, 160, 160);
+    }
+
+    c-opr {
+        color: white;
+    }
+
+    c-idn {
+        color: rgb(255, 220, 156);
+    }
+
+    c-key {
+        color: rgb(255, 90, 130);
+    }
+
+    c-typ {
+        color: rgb(84, 169, 239);
+    }
+
+}

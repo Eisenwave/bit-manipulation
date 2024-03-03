@@ -10,7 +10,7 @@ complement of the right operand.
 \h2{Implementation}
 
 \codeblock{
-function and_not(x: Uint(N), x: Uint(N)) -> Uint(N)
+function and_not(x: Uint(N)) -> Uint(N)
 {
     return x & ~x;
 }
