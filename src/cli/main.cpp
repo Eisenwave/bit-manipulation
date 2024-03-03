@@ -1,7 +1,9 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <span>
 #include <stdexcept>
+#include <string_view>
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
@@ -111,10 +113,13 @@ Result<void, bmd::Document_Error> write_html(std::ostream& out,
                                              std::pmr::memory_resource* memory)
 {
     BIT_MANIPULATION_ASSERT(out);
-    constexpr Size indent_width = 2;
+    static constexpr std::string_view stylesheets[] { "/css/code.css", "/css/main.css" };
+
+    constexpr bmd::Document_Options options { .indent_width = 2, //
+                                              .stylesheets = stylesheets };
 
     Consumer consumer { out };
-    return bmd::doc_to_html(consumer, document, indent_width, memory);
+    return bmd::doc_to_html(consumer, document, options, memory);
 }
 
 std::pmr::vector<bms::Token>
