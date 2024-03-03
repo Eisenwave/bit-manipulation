@@ -72,6 +72,8 @@ std::ostream& print_analysis_error(std::ostream& out,
 
 std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& error);
 
+std::ostream& print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error);
+
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
 

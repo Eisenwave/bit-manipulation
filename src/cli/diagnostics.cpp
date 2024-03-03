@@ -586,6 +586,12 @@ std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& er
     return print_internal_error_notice(out);
 }
 
+std::ostream& print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error)
+{
+    print_location_of_file(std::cout, file) << ": " << to_prose(error) << '\n';
+    return out;
+}
+
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
 {

@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
@@ -89,7 +90,7 @@ struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
         return bool(out.put(c));
     }
 
-    bool write(char c, Size count, bmd::HTML_Token_Type type) final
+    bool write(char c, Size count, bmd::HTML_Token_Type) final
     {
         char restore_fill = out.fill(c);
         out.width(count);
@@ -98,24 +99,22 @@ struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
         return result;
     }
 
-    bool write(std::string_view s, bmd::HTML_Token_Type type) final
+    bool write(std::string_view s, bmd::HTML_Token_Type) final
     {
         return bool(out.write(s.data(), s.length()));
     }
 };
 
-void print_html(const bmd::Parsed_Document& document,
-                std::string_view file,
-                std::pmr::memory_resource* memory)
+template <typename Consumer>
+Result<void, bmd::Document_Error> write_html(std::ostream& out,
+                                             const bmd::Parsed_Document& document,
+                                             std::pmr::memory_resource* memory)
 {
+    BIT_MANIPULATION_ASSERT(out);
     constexpr Size indent_width = 2;
 
-    Colored_HTML_Consumer consumer { std::cout };
-    Result<void, bmd::Document_Error> result
-        = bmd::doc_to_html(consumer, document, indent_width, memory);
-    if (!result) {
-        print_document_error(std::cout, file, document.source, result.error());
-    }
+    Consumer consumer { out };
+    return bmd::doc_to_html(consumer, document, indent_width, memory);
 }
 
 std::pmr::vector<bms::Token>
@@ -135,7 +134,7 @@ std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* mem
 {
     Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
     if (!result) {
-        print_location_of_file(std::cout, file) << ": " << to_prose(result.error()) << '\n';
+        print_io_error(std::cout, file, result.error());
         std::exit(1);
     }
     return std::move(*result);
@@ -201,7 +200,9 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     return 1;
 }
 
-int to_html(std::string_view file, std::pmr::memory_resource* memory)
+int to_html(std::string_view file,
+            std::optional<std::string_view> out_file,
+            std::pmr::memory_resource* memory)
 {
     const std::pmr::string source = load_file(file, memory);
 
@@ -211,7 +212,31 @@ int to_html(std::string_view file, std::pmr::memory_resource* memory)
     }
     if (file.ends_with(".bmd")) {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
-        print_html(program, file, memory);
+
+        Result<void, bmd::Document_Error> result;
+
+        if (!out_file) {
+            if (!std::cout) {
+                print_io_error(std::cerr, "stdout", IO_Error_Code::cannot_open);
+                return 1;
+            }
+            result = write_html<Colored_HTML_Consumer>(std::cout, program, memory);
+        }
+        else {
+            std::ofstream out { std::string(*out_file) };
+            if (!out) {
+                print_io_error(out, *out_file, IO_Error_Code::cannot_open);
+                return 1;
+            }
+
+            result = write_html<Simple_HTML_Consumer>(out, program, memory);
+        }
+
+        if (!result) {
+            print_document_error(std::cout, file, source, result.error());
+            return 1;
+        }
+
         return 0;
     }
 
@@ -248,7 +273,8 @@ try {
 
     if (args.size() < 3) {
         const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
-        std::cout << "Usage: " << program_name << " dump_tokens|dump_ast|verify|html <FILE>\n";
+        std::cout << "Usage: " << program_name
+                  << " dump_tokens|dump_ast|verify|html <FILE> [FILE]\n";
         return 1;
     }
 
@@ -264,7 +290,7 @@ try {
         return check_semantics(args[2], &memory);
     }
     else if (args[1] == "html") {
-        return to_html(args[2], &memory);
+        return to_html(args[2], argc > 3 ? args[3] : std::optional<std::string_view> {}, &memory);
     }
     else {
         std::cout << "Unknown command '" << args[1] << "'\n";
