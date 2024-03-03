@@ -119,9 +119,9 @@ body {
 
 pre {
     background: var(--deep-background);
-    padding-top: 1em;
-    padding-left: 1em;
-    padding-bottom: 1em;
+    padding: 0.25em;
+    border: 0.5em solid var(--deep-background);
+    border-radius: 0.5em;
 
     font-size: 11pt;
 }
