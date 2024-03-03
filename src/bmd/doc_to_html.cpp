@@ -126,8 +126,7 @@ struct HTML_Converter {
     {
     }
 
-    [[nodiscard]] Result<void, Document_Error> convert_content(const ast::List& content,
-                                                               Formatting_Style inherited_style)
+    [[nodiscard]] Result<void, Document_Error> convert_content(const ast::List& content)
     {
         static constexpr Tag_Properties paragraph { "p", Formatting_Style::block };
 
@@ -139,7 +138,7 @@ struct HTML_Converter {
                 BIT_MANIPULATION_ASSERT(!list->empty());
 
                 m_writer.begin_tag(paragraph);
-                if (auto r = convert_list(*list, inherited_style); !r) {
+                if (auto r = convert_list(*list, Formatting_Style::in_line); !r) {
                     return r;
                 }
                 m_writer.end_tag(paragraph);
@@ -169,11 +168,38 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error> convert_list(const ast::List& list,
                                                             Formatting_Style inherited_style)
     {
-        for (const ast::Some_Node* const n : list.get_children()) {
-            if (const auto* const text = std::get_if<ast::Text>(n)) {
-                if (auto r = convert_text(*text, inherited_style); !r) {
-                    return r;
+        const std::span<ast::Some_Node* const> children = list.get_children();
+
+        for (Size i = 0; i < children.size(); ++i) {
+            const auto* const n = children[i];
+            const Local_Source_Span current_pos = get_source_span(*n);
+
+            if (i != 0) {
+                if (const auto* const d = std::get_if<ast::Directive>(children[i - 1])) {
+                    m_writer.write_source_gap(d->get_source_position(), current_pos,
+                                              Formatting_Style::in_line);
                 }
+            }
+
+            if (const auto* const text = std::get_if<ast::Text>(n)) {
+                Result<Size, Document_Error> lines_written = convert_text(*text, inherited_style);
+                if (!lines_written) {
+                    return lines_written.error();
+                }
+                if (i + 1 >= children.size()) {
+                    continue;
+                }
+                // std::get is appropriate here because there cannot be two consecutive Text
+                // elements
+                const auto& d = std::get<ast::Directive>(*children[i + 1]);
+
+                if (current_pos.end() == d.get_source_position().begin) {
+                    continue;
+                }
+                const bool separate_lines
+                    = d.get_source_position().line + 1 > current_pos.line + *lines_written;
+                m_writer.write_whitespace(separate_lines ? '\n' : ' ', 1);
+
                 continue;
             }
             if (const auto* const directive = std::get_if<ast::Directive>(n)) {
@@ -196,12 +222,11 @@ struct HTML_Converter {
         return {};
     }
 
-    [[nodiscard]] Result<void, Document_Error> convert_text(const ast::Text& text,
+    [[nodiscard]] Result<Size, Document_Error> convert_text(const ast::Text& text,
                                                             Formatting_Style inherited_style)
     {
         m_at_start_of_file = false;
-        m_writer.write_inner_text(text.get_text(), inherited_style);
-        return {};
+        return m_writer.write_inner_text(text.get_text(), inherited_style);
     }
 
     [[nodiscard]] Result<void, Document_Error> convert_directive(const ast::Directive& directive)
@@ -509,15 +534,17 @@ struct HTML_Converter {
 
         case Directive_Content_Type::raw:
         case Directive_Content_Type::text_span:
-            return convert_text(std::get<ast::Text>(*block), inherited_style);
+            if (auto r = convert_text(std::get<ast::Text>(*block), inherited_style); !r) {
+                return r.error();
+            }
+            return {};
 
         case Directive_Content_Type::span:
         case Directive_Content_Type::meta:
         case Directive_Content_Type::list:
             return convert_list(std::get<ast::List>(*block), inherited_style);
 
-        case Directive_Content_Type::block:
-            return convert_content(std::get<ast::List>(*block), inherited_style);
+        case Directive_Content_Type::block: return convert_content(std::get<ast::List>(*block));
         }
 
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid contents for Block.");
@@ -542,8 +569,7 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
 
     if (document.root_node != nullptr) {
         const auto& root_content = std::get<ast::List>(*document.root_node);
-        auto r = HTML_Converter { writer, document, memory }.convert_content(
-            root_content, Formatting_Style::flat);
+        auto r = HTML_Converter { writer, document, memory }.convert_content(root_content);
         if (!r) {
             return r;
         }

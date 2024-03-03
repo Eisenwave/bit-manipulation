@@ -187,10 +187,16 @@ public:
     /// Text characters such as `<` or `>` which interfere with HTML are converted to entities.
     /// @param text the text to write
     /// @param type if `block`, the tag will be on a new line and indented
-    /// @return `*this`
-    Self& write_inner_text(std::string_view text, Formatting_Style type);
+    /// @return If `style` is `pre`, `1`;
+    /// otherwise if `text` is empty, `0`.
+    /// otherwise, the amount of distinct lines that the text was split onto.
+    Size write_inner_text(std::string_view text, Formatting_Style type);
 
     Self& write_whitespace(char c, Size length);
+
+    Self& write_source_gap(const Local_Source_Span& first,
+                           const Local_Source_Span& second,
+                           Formatting_Style style);
 
 private:
     friend struct Attribute_Writer;

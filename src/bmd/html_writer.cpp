@@ -1,5 +1,7 @@
 #include <ostream>
 
+#include "common/source_position.hpp"
+
 #include "bmd/html_writer.hpp"
 
 namespace bit_manipulation::bmd {
@@ -165,14 +167,16 @@ auto HTML_Writer::write_comment_tag(std::string_view comment, Formatting_Style s
     return *this;
 }
 
-auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style) -> Self&
+Size HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style)
 {
     BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
 
     if (style == Formatting_Style::pre) {
         write_escaped_text(text);
-        return *this;
+        return 1;
     }
+
+    Size line_count = 0;
 
     while (!text.empty()) {
         const Size nl_pos = text.find('\n');
@@ -180,6 +184,7 @@ auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style
         indent(style);
 
         write_escaped_text(line);
+        ++line_count;
 
         if (nl_pos == std::string_view::npos) {
             break;
@@ -188,7 +193,7 @@ auto HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style
         text = text.substr(nl_pos + 1);
     }
 
-    return *this;
+    return line_count;
 }
 
 auto HTML_Writer::write_attribute(std::string_view key, std::string_view value) -> Self&
@@ -246,6 +251,32 @@ auto HTML_Writer::end_empty_tag_attributes(Formatting_Style style) -> Self&
     }
     else {
         m_state = State::normal;
+    }
+
+    return *this;
+}
+
+auto HTML_Writer::write_source_gap(const Local_Source_Span& first,
+                                   const Local_Source_Span& second,
+                                   Formatting_Style style) -> Self&
+{
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes && m_state != State::initial);
+    BIT_MANIPULATION_ASSERT(first.line < second.line
+                            || (first.line == second.line && first.column <= second.column));
+
+    if (style == Formatting_Style::pre) {
+        if (first.line != second.line) {
+            m_out.write('\n', second.line - first.line, HTML_Token_Type::whitespace);
+            if (second.column != 0) {
+                m_out.write(' ', second.column, HTML_Token_Type::whitespace);
+            }
+        }
+        else if (first.column != second.column) {
+            m_out.write(' ', second.column - first.end_column(), HTML_Token_Type::whitespace);
+        }
+    }
+    else if (first.end() != second.begin) {
+        m_out.write(' ', HTML_Token_Type::whitespace);
     }
 
     return *this;

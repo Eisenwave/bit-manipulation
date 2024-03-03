@@ -81,29 +81,11 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
 
-void write_source_gap(HTML_Writer& out,
-                      const Local_Source_Span& first,
-                      const Local_Source_Span& second)
-{
-    BIT_MANIPULATION_ASSERT(first.line < second.line
-                            || (first.line == second.line && first.column <= second.column));
-
-    if (first.line != second.line) {
-        out.write_whitespace('\n', second.line - first.line);
-        if (second.column != 0) {
-            out.write_whitespace(' ', second.column);
-        }
-    }
-    else if (first.column != second.column) {
-        out.write_whitespace(' ', second.column - first.end_column());
-    }
-}
-
 void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::string_view code)
 {
     for (Size i = 0; i < tokens.size(); ++i) {
         if (i != 0) {
-            write_source_gap(out, tokens[i - 1].pos, tokens[i].pos);
+            out.write_source_gap(tokens[i - 1].pos, tokens[i].pos, Formatting_Style::pre);
         }
 
         const Tag_Properties tag { token_type_tag(tokens[i].type), Formatting_Style::pre };
