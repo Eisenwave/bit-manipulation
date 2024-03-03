@@ -440,6 +440,9 @@ struct HTML_Converter {
             return id->get_value();
         }();
 
+        static constexpr Tag_Properties hyperlink { "a", Formatting_Style::in_line };
+        static constexpr Tag_Properties code { "code", Formatting_Style::in_line };
+
         // TODO: deal with potentially empty text (null block)
         const ast::Text& text = std::get<ast::Text>(*directive.get_block());
 
@@ -449,15 +452,17 @@ struct HTML_Converter {
             std::pmr::string link(link_prefix, m_memory);
             link += text.get_text();
 
-            auto attributes
-                = m_writer.begin_tag_with_attributes({ "a", Formatting_Style::in_line });
-            attributes.write_attribute("href", link);
-            attributes.end();
+            m_writer
+                .begin_tag_with_attributes(hyperlink) //
+                .write_attribute("href", link)
+                .end();
         }
+        m_writer.begin_tag(code);
         m_writer.write_inner_text(text.get_text(), Formatting_Style::in_line);
+        m_writer.end_tag(code);
 
         if (!link_prefix.empty()) {
-            m_writer.end_tag({ "a", Formatting_Style::in_line });
+            m_writer.end_tag(hyperlink);
         }
 
         if (!extension->empty()) {
