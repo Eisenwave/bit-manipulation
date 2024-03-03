@@ -10,7 +10,7 @@ namespace bit_manipulation::bmd {
 
 inline bool requires_quotes_in_attribute(std::string_view value)
 {
-    return value.find_first_of("\"'`=<> ") != std::string_view::npos;
+    return value.find_first_of("\"/'`=<> ") != std::string_view::npos;
 }
 
 enum struct Formatting_Style : Default_Underlying {
