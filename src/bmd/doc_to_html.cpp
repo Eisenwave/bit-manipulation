@@ -199,6 +199,9 @@ struct HTML_Converter {
                 const bool separate_lines
                     = d.get_source_position().line + 1 > current_pos.line + *lines_written;
                 m_writer.write_whitespace(separate_lines ? '\n' : ' ', 1);
+                // TODO: this approach isn't perfect because it doesn't handle line breaks
+                // after directives properly. It would be best if directives stored what type
+                // of whitespace precedes/follows them.
 
                 continue;
             }
