@@ -8,11 +8,18 @@
 
 namespace bit_manipulation::bmd {
 
+/// @brief Returns `true` if the given string requires wrapping in quotes when it
+/// appears as the value in an attribute.
+/// For example, `id=123` is a valid HTML attribute with a value and requires
+/// no wrapping, but `id="<x>"` requires `<x>` to be surrounded by quotes.
 inline bool requires_quotes_in_attribute(std::string_view value)
 {
     return value.find_first_of("\"/'`=<> ") != std::string_view::npos;
 }
 
+/// @brief The formatting style of an HTML tag.
+/// For example, we like to output `<b>bold text</b>` (`Formatting_Style::in_line`) all in one line,
+/// but a `<ul>` (`Formatting_Style::block`) should have its contents put on a separate line.
 enum struct Formatting_Style : Default_Underlying {
     /// @brief Pre-formatted.
     /// No changes to spacing should be performed, no indentation added, etc.
@@ -57,6 +64,8 @@ struct HTML_Token_Consumer {
     virtual bool write(std::string_view s, HTML_Token_Type type) = 0;
 };
 
+/// @brief RAII helper class which lets us write attributes more conveniently.
+/// This class is not intended to be used directly, but with the help of `HTML_Writer`.
 struct Attribute_Writer {
 private:
     HTML_Writer& m_writer;
