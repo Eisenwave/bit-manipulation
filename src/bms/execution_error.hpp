@@ -1,6 +1,9 @@
 #ifndef BIT_MANIPULATION_BMS_EXECUTION_ERROR_HPP
 #define BIT_MANIPULATION_BMS_EXECUTION_ERROR_HPP
 
+#include <optional>
+
+#include "bms/comparison_failure.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
@@ -24,6 +27,9 @@ struct Execution_Error {
     Execution_Error_Code code;
     /// @brief The evaluation error. Only set to a meaningful value when `code` is `evaluation`.
     Evaluation_Error_Code evaluation_error = {};
+    /// @brief An optional comparison failure.
+    /// This would be present when e.g. an `assert(1 == 0)` is executed.
+    std::optional<Comparison_Failure> comparison_failure;
 
     [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle, Execution_Error_Code code)
         : handle(handle)

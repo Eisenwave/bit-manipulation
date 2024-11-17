@@ -400,14 +400,15 @@ private:
         }
 
         if (const auto* const called = std::get_if<ast::Function>(node.lookup_result)) {
-            if (!called->const_value() || called->vm_address == ast::Function::invalid_vm_address) {
+            if (!called->was_analyzed()
+                || called->vm_address == ast::Function::invalid_vm_address) {
                 return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, h,
                                         node.lookup_result };
             }
             out.push_back(ins::Call { { h }, called->vm_address });
         }
         if (const auto* const called = std::get_if<ast::Builtin_Function>(node.lookup_result)) {
-            BIT_MANIPULATION_ASSERT(called->const_value().has_value());
+            BIT_MANIPULATION_ASSERT(called->was_analyzed());
             out.push_back(ins::Builtin_Call { { h }, called->get_function() });
         }
 
@@ -420,7 +421,7 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
                                                const ast::Id_Expression& node)
     {
-        BIT_MANIPULATION_ASSERT(node.const_value());
+        BIT_MANIPULATION_ASSERT(node.was_analyzed());
         auto instruction = node.const_value()->is_known()
             ? Instruction { ins::Push { { h }, node.const_value()->concrete_value() } }
             : Instruction { ins::Load { { h }, node.lookup_result } };
@@ -430,7 +431,7 @@ private:
 
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Literal& node)
     {
-        BIT_MANIPULATION_ASSERT(node.const_value());
+        BIT_MANIPULATION_ASSERT(node.was_analyzed());
         BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
 
         out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });

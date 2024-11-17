@@ -66,6 +66,12 @@ public:
     {
         return m_const_value;
     }
+
+    /// @brief Returns `true` if semantic analysis was completed for this node.
+    bool was_analyzed() const
+    {
+        return m_const_value.has_value();
+    }
 };
 
 template <int N>

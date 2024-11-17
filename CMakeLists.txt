@@ -27,6 +27,7 @@ set(HEADERS
     src/bms/analyze.hpp
     src/bms/ast.hpp
     src/bms/astp.hpp
+    src/bms/comparison_failure.hpp
     src/bms/concrete_type.hpp
     src/bms/concrete_value.hpp
     src/bms/deduction.hpp

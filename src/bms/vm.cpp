@@ -132,6 +132,13 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Binary_Operate& binary
     if (!result) {
         return Execution_Error { binary_operate.debug_info, result.error() };
     }
+    if (m_instruction_counter + 1 < instruction_count()) {
+        const auto* next_builtin_call
+            = std::get_if<ins::Builtin_Call>(&m_instructions[m_instruction_counter + 1]);
+        if (next_builtin_call && next_builtin_call->function == Builtin_Function::assert) {
+            m_comparison_failure_for_assert = Comparison_Failure { lhs, rhs, binary_operate.op };
+        }
+    }
     m_stack.push_back(*result);
     ++m_instruction_counter;
     return {};
@@ -159,7 +166,12 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
     const Result<Concrete_Value, Evaluation_Error_Code> result = evaluate_builtin_function(
         call.function, std::span { m_stack.end() - params, m_stack.end() });
     if (!result) {
-        return Execution_Error { call.debug_info, result.error() };
+        Execution_Error error { call.debug_info, result.error() };
+        if (call.function != bms::Builtin_Function::assert || !m_comparison_failure_for_assert) {
+            return error;
+        }
+        error.comparison_failure = m_comparison_failure_for_assert;
+        return error;
     }
     m_stack.resize(m_stack.size() - params);
     m_stack.push_back(*result);

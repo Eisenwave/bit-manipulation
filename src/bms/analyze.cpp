@@ -962,6 +962,8 @@ private:
             params = &std::get<ast::Parameter_List>(*function->get_parameters());
         }
 
+        // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
+
         if (context == Expression_Context::constant) {
             BIT_MANIPULATION_ASSERT(function->vm_address != ast::Function::invalid_vm_address);
             constant_evaluation_machine.reset();
@@ -989,18 +991,17 @@ private:
         }
 
         // 7. Constant-evaluate the function call.
+
         if (context == Expression_Context::constant) {
             Result<void, Execution_Error> cycle_result;
             while ((cycle_result = constant_evaluation_machine.cycle())) { }
-            // Since there is no frame with a return address, the return statement of the function
-            // we execute will fail to pop.
+            // Normally, the VM will push and pop function return addresses as frames
+            // as part of execution function calls and returns.
+            // However, we artificially jump directly to the start of the function without doing so,
+            // meaning that there is no return address and we run into an execution error.
+            // TODO: this design is questionable; maybe push a magic return address instead
             if (cycle_result.error().code != Execution_Error_Code::pop_call) {
-                if (cycle_result.error().code == Execution_Error_Code::evaluation) {
-                    return Analysis_Error { cycle_result.error().evaluation_error, handle,
-                                            cycle_result.error().handle };
-                }
-                return Analysis_Error { cycle_result.error().code, handle,
-                                        cycle_result.error().handle };
+                return Analysis_Error { cycle_result.error(), handle, cycle_result.error().handle };
             }
             BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
             node.const_value() = constant_evaluation_machine.pop();

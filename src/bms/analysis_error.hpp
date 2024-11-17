@@ -3,7 +3,9 @@
 
 #include <optional>
 
+#include "bms/comparison_failure.hpp"
 #include "bms/concrete_value.hpp"
+#include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
@@ -101,14 +103,6 @@ enum struct Analysis_Error_Code : Default_Underlying {
     empty_return_in_non_void_function,
 };
 
-/// @brief Additional information about comparison failures.
-/// This may be used e.g. to display the value of the left and right hand side for failed
-/// assertions such as `x == 0`, etc.
-struct Comparison_Failure {
-    Concrete_Value left, right;
-    Token_Type op;
-};
-
 /// @brief A high-level error that occurred during program analysis.
 /// No matter the cause (name lookup, type checking, execution errors, failed assertions, etc.),
 /// everything turns into an `Analysis_Error` at some point.
@@ -184,6 +178,29 @@ public:
         , fail(fail)
         , cause(cause)
     {
+    }
+
+    /// @brief Constructs from an `Execution_Error`.
+    /// This correctly treats execution errors that result from evaluation errors as
+    /// evaluation errors in analysis.
+    ///
+    /// For example, if execution runs into `x / 0` (division by zero),
+    /// the analysis error is then an `Evaluation_Error_Code::division_by_zero`,
+    /// not just some generic `Analysis_Error_Code::execution_error`.
+    [[nodiscard]] constexpr Analysis_Error(const Execution_Error& error,
+                                           const ast::Some_Node* fail,
+                                           const ast::Some_Node* cause = {})
+        : fail(fail)
+        , cause(cause)
+        , comparison_failure(error.comparison_failure)
+    {
+        if (error.code == Execution_Error_Code::evaluation) {
+            m_code = Analysis_Error_Code::evaluation_error;
+            m_evaluation_error = error.evaluation_error;
+        }
+        else {
+            m_code = Analysis_Error_Code::execution_error;
+        }
     }
 
     [[nodiscard]] constexpr Analysis_Error_Code code() const

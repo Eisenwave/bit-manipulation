@@ -7,6 +7,7 @@
 
 #include "common/result.hpp"
 
+#include "bms/comparison_failure.hpp"
 #include "bms/execution_error.hpp"
 #include "bms/linear_map_stack.hpp"
 #include "bms/vm_instructions.hpp"
@@ -20,6 +21,7 @@ private:
     Linear_Map_Stack m_function_frame_stack;
     std::pmr::vector<Concrete_Value> m_stack;
     Size m_instruction_counter = 0;
+    std::optional<Comparison_Failure> m_comparison_failure_for_assert;
 
 public:
     explicit Virtual_Machine(std::pmr::memory_resource* memory)

@@ -11,9 +11,9 @@
 
 namespace bit_manipulation::bms {
 
-/// @brief A class representing a possibly value, predominantly used in semantic analysis and
-/// constant folding.
-/// Unlike `Concrete_Value`, its `int_value` is optional, although its type is always known.
+/// @brief A class representing a possibly unknown value, predominantly used in semantic analysis
+/// and constant folding. Unlike `Concrete_Value`, its `int_value` is optional, although its type is
+/// always known.
 struct Value {
 private:
     Concrete_Type m_type;
