@@ -80,8 +80,6 @@ struct Function final : detail::Node_Base, detail::Parent<4> {
     static inline constexpr std::string_view child_names[]
         = { "parameters", "return_type", "requires_clause", "body" };
 
-    static inline constexpr Size invalid_vm_address = Size(-1);
-
     std::string_view name;
 
     Function(Local_Source_Span pos,
