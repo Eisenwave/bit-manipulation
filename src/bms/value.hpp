@@ -1,9 +1,6 @@
 #ifndef BIT_MANIPULATION_BMS_VALUE_HPP
 #define BIT_MANIPULATION_BMS_VALUE_HPP
 
-#include <optional>
-#include <variant>
-
 #include "common/assert.hpp"
 
 #include "bms/concrete_value.hpp"
@@ -17,42 +14,61 @@ namespace bit_manipulation::bms {
 struct Value {
 private:
     Concrete_Type m_type;
-    std::optional<Big_Int> m_int_value;
+    Big_Int m_int_value;
+    bool m_known;
 
 public:
-    static const Value Void, True, False;
+    /// @brief Known value of type `Void`.
+    static const Value Void;
+    /// @brief Known `true` constant.
+    static const Value True;
+    /// @brief Known `false` constant.
+    static const Value False;
+
+    /// @brief Returns `Value(Concrete_Value(Concrete_Type::Int, value))`.
     static constexpr Value Int(Big_Int value) noexcept
     {
         return Value { Concrete_Type::Int, value };
     }
 
+    /// @brief Returns an unknown value of the given type.
     static constexpr Value unknown_of_type(Concrete_Type type) noexcept
     {
         return Value { type };
     }
 
 private:
-    constexpr explicit Value(Concrete_Type type, std::optional<Big_Int> value = {})
+    constexpr explicit Value(Concrete_Type type, Big_Int value)
         : m_type(type)
         , m_int_value(value)
+        , m_known(true)
+    {
+    }
+
+    constexpr explicit Value(Concrete_Type type)
+        : m_type(type)
+        , m_int_value(0)
+        , m_known(false)
     {
     }
 
 public:
+    /// @brief Constructs a known (concrete) `Value` from the given `value`.
     constexpr Value(Concrete_Value value)
         : m_type(value.type)
         , m_int_value(value.int_value)
     {
     }
 
+    /// @brief Equivalent to `is_known()`.
     explicit constexpr operator bool() const
     {
-        return m_int_value.has_value();
+        return m_known;
     }
 
     constexpr bool is_known() const
     {
-        return m_int_value.has_value();
+        return m_known;
     }
 
     constexpr bool is_unknown() const
@@ -65,27 +81,38 @@ public:
         return m_type;
     }
 
+    /// @brief If this value is known, applies the given transformation function `f` to that value
+    /// and constructs a new `Value`.
+    /// @tparam F a unary function `Big_int(Big_Int)`
+    /// @param f the transformation function
+    /// @return a possibly transformed copy of the this value
     template <std::invocable<Big_Int> F>
         requires std::convertible_to<std::invoke_result_t<F, Big_Int>, Big_Int>
     constexpr Value and_then(F f) const
     {
-        if (m_int_value) {
-            return Value { m_type, f(*m_int_value) };
+        if (is_known()) {
+            return Value { m_type, f(m_int_value) };
         }
         return *this;
     }
 
+    /// @brief Like `and_then`, but uses a `Big_Int(Big_Int)` transformation function.
     template <std::invocable<Big_Uint> F>
         requires std::convertible_to<std::invoke_result_t<F, Big_Uint>, Big_Uint>
     constexpr Value and_then_uint(F f) const
     {
-        if (m_int_value) {
+        if (is_known()) {
             const auto mask = Big_Uint(Big_Uint(1) << m_type.width()) - 1;
-            return Value { m_type, Big_Int(Big_Uint(f(Big_Uint(*m_int_value))) & mask) };
+            return Value { m_type, Big_Int(Big_Uint(f(Big_Uint(m_int_value))) & mask) };
         }
         return *this;
     }
 
+    /// @brief Returns this value, converted to the given target type.
+    /// If this value is unknown, returns an unknown value of the target type.
+    /// @param other the type to convert to
+    /// @param conversion the type of conversion
+    /// @return the converted value or error code
     constexpr Result<Value, Conversion_Error_Code> convert_to(Concrete_Type other,
                                                               Conversion_Type conversion) const
     {
@@ -108,7 +135,7 @@ public:
     constexpr Concrete_Value concrete_value() const
     {
         BIT_MANIPULATION_ASSERT(is_known());
-        return Concrete_Value { m_type, *m_int_value };
+        return Concrete_Value { m_type, m_int_value };
     }
 
     /// @brief Returns the concrete boolean value that this value represents.
@@ -117,7 +144,7 @@ public:
     constexpr bool as_bool() const
     {
         BIT_MANIPULATION_ASSERT(is_known() && m_type == Concrete_Type::Bool);
-        return bool(*m_int_value);
+        return bool(m_int_value);
     }
 
     /// @brief Returns the concrete integer value that this value represents.
@@ -126,7 +153,7 @@ public:
     constexpr Big_Int as_int() const
     {
         BIT_MANIPULATION_ASSERT(is_known() && m_type == Concrete_Type::Int);
-        return *m_int_value;
+        return m_int_value;
     }
 
     /// @brief Returns the concrete unsigned integer value that this value represents.
@@ -135,7 +162,7 @@ public:
     constexpr Big_Uint as_uint() const
     {
         BIT_MANIPULATION_ASSERT(is_known() && m_type.is_uint());
-        return static_cast<Big_Uint>(*m_int_value);
+        return static_cast<Big_Uint>(m_int_value);
     }
 };
 

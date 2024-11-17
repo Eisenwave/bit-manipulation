@@ -1,7 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_COMPARISON_FAILURE_HPP
 #define BIT_MANIPULATION_BMS_COMPARISON_FAILURE_HPP
 
-#include "bms/tokens.hpp"
+#include "bms/token_type.hpp"
 #include "bms/value.hpp"
 
 namespace bit_manipulation::bms {

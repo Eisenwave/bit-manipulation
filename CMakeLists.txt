@@ -40,6 +40,7 @@ set(HEADERS
     src/bms/tokens.hpp
     src/bms/tokenize_error.hpp
     src/bms/tokenize.hpp
+    src/bms/token_type.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
