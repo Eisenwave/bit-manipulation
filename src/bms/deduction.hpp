@@ -6,6 +6,11 @@
 
 namespace bit_manipulation::bms {
 
+/// @brief A bit-width to be used for bit-generic types.
+/// A width can either be a single `int`, which is a convenient way of specifying the same width
+/// everywhere, or it can be a concrete set of widths.
+/// The latter is always used in implicit instantiations; the former may be used for testing,
+/// or for auto-instantiating everything with a pre-set width for the purpose of codegen.
 using Widths = std::variant<int, std::span<const int>>;
 
 constexpr int get_width(const Widths& w, Size i)
