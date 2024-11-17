@@ -29,9 +29,7 @@ namespace {
 
 template <typename T>
 concept Lookup_Performing_Node = requires(T& t) {
-    {
-        t.lookup_result
-    } -> std::same_as<ast::Some_Node*&>;
+    { t.lookup_result } -> std::same_as<ast::Some_Node*&>;
 };
 
 static_assert(Lookup_Performing_Node<ast::Id_Expression>);
