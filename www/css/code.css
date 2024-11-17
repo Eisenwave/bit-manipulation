@@ -1,4 +1,4 @@
-@media not (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
 
     c-bra,
     c-pun {
@@ -23,7 +23,7 @@
 
 }
 
-@media (prefers-color-scheme: dark) {
+@media not (prefers-color-scheme: light) {
 
     c-bra,
     c-pun {
