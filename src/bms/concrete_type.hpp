@@ -6,7 +6,7 @@
 
 namespace bit_manipulation::bms {
 
-/// @brief A type in the BMS language.
+/// @brief A type in the BMS language, without specified width.
 enum struct Type_Type : Default_Underlying {
     /// @brief A type with no values.
     Void,
@@ -18,6 +18,7 @@ enum struct Type_Type : Default_Underlying {
     Uint,
 };
 
+/// @brief A type in the BMS language, with specified width in the case of `Uint`.
 struct Concrete_Type {
     static const Concrete_Type Void;
     static const Concrete_Type Bool;
@@ -87,6 +88,8 @@ public:
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown type.");
     }
 
+    // TODO: this is somewhat misleading for Uint types, since they cannot actually represent
+    //       negatives
     [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
     {
         return m_type != Type_Type::Void && (Big_Uint(value) & ~get_mask()) == 0;
