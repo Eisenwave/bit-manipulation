@@ -369,7 +369,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     const std::string_view error_prose =
           error.code() == bms::Analysis_Error_Code::type_error       ? to_prose(error.type_error())
         : error.code() == bms::Analysis_Error_Code::conversion_error ? to_prose(error.conversion_error())
-                                                                   : to_prose(error.code());
+                                                                     : to_prose(error.code());
     // clang-format on
 
     result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
