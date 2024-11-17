@@ -9,6 +9,8 @@ set(SANITIZER_OPTIONS
 #-fsanitize=address,undefined
 )
 
+set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
+
 set(HEADERS
     src/bmd/bms_to_html.hpp
     src/bmd/directive_type.hpp
@@ -49,9 +51,10 @@ set(HEADERS
     src/common/result.hpp
     src/common/visit.hpp
 
-    src/cli/diagnostics.hpp)
+    src/cli/diagnostics.hpp
+)
 
-add_executable(bmscript ${HEADERS}
+add_library(bm STATIC ${HEADERS}
     src/bmd/bms_to_html.cpp
     src/bmd/doc_to_html.cpp
     src/bmd/enums.cpp
@@ -70,13 +73,20 @@ add_executable(bmscript ${HEADERS}
 
     src/common/io.cpp
     src/common/parse.cpp
+)
 
+add_executable(bm-cli ${HEADERS}
     src/cli/diagnostics.cpp
-    src/cli/main.cpp)
+    src/cli/main.cpp
+)
 
-target_compile_options(bmscript PRIVATE ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
-target_link_options(bmscript PRIVATE ${SANITIZER_OPTIONS})
-target_include_directories(bmscript PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
-target_include_directories(bmscript PRIVATE "${CMAKE_CURRENT_LIST_DIR}/src")
+add_executable(bm-test ${HEADERS}
+    src/test/main.cpp
+)
 
-# add_executable(test ${HEADERS} )
+add_compile_options(${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
+add_link_options(${SANITIZER_OPTIONS})
+include_directories(${INCLUDE_DIRS})
+
+target_link_libraries(bm-cli bm)
+target_link_libraries(bm-test bm)
