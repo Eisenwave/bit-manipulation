@@ -101,11 +101,17 @@ enum struct Analysis_Error_Code : Default_Underlying {
     empty_return_in_non_void_function,
 };
 
+/// @brief Additional information about comparison failures.
+/// This may be used e.g. to display the value of the left and right hand side for failed
+/// assertions such as `x == 0`, etc.
 struct Comparison_Failure {
     Concrete_Value left, right;
     Token_Type op;
 };
 
+/// @brief A high-level error that occurred during program analysis.
+/// No matter the cause (name lookup, type checking, execution errors, failed assertions, etc.),
+/// everything turns into an `Analysis_Error` at some point.
 struct Analysis_Error {
 private:
     Analysis_Error_Code m_code {};
