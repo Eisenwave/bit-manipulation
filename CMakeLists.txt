@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.22)
 project(bit-manipulation)
 
+find_package(GTest REQUIRED)
+enable_testing()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -45,6 +48,7 @@ set(HEADERS
     src/common/assert.hpp
     src/common/config.hpp
     src/common/fwd.hpp
+    src/common/glue.hpp
     src/common/io.hpp
     src/common/parse.hpp
     src/common/source_position.hpp
@@ -71,6 +75,7 @@ add_library(bm STATIC ${HEADERS}
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
 
+    src/common/glue.cpp
     src/common/io.cpp
     src/common/parse.cpp
 )
@@ -89,4 +94,5 @@ add_link_options(${SANITIZER_OPTIONS})
 include_directories(${INCLUDE_DIRS})
 
 target_link_libraries(bm-cli bm)
-target_link_libraries(bm-test bm)
+target_link_libraries(bm-test bm GTest::GTest GTest::Main)
+add_test(NAME MyTest COMMAND bm-test)

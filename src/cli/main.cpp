@@ -7,6 +7,7 @@
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
+#include "common/glue.hpp"
 #include "common/io.hpp"
 
 #include "bmd/doc_to_html.hpp"
@@ -23,104 +24,6 @@
 
 namespace bit_manipulation {
 namespace {
-
-std::string_view highlight_color_of(bmd::HTML_Token_Type type)
-{
-    using enum bmd::HTML_Token_Type;
-    switch (type) {
-    case whitespace:
-    case inner_text: return ansi::reset;
-
-    case preamble:
-    case comment: return ansi::h_black;
-
-    case tag_identifier: return ansi::h_blue;
-
-    case tag_bracket:
-    case attribute_equal:
-    case attribute_comma: return ansi::black;
-
-    case attribute_key: return ansi::h_cyan;
-
-    case attribute_quote:
-    case attribute_value: return ansi::h_green;
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
-}
-
-struct Colored_HTML_Consumer final : bmd::HTML_Token_Consumer {
-    std::ostream& out;
-
-    explicit Colored_HTML_Consumer(std::ostream& out)
-        : out(out)
-    {
-    }
-
-    bool write(char c, bmd::HTML_Token_Type type) final
-    {
-        return (out << highlight_color_of(type)) && out.put(c);
-    }
-
-    bool write(char c, Size count, bmd::HTML_Token_Type type) final
-    {
-        if (!(out << highlight_color_of(type))) {
-            return false;
-        }
-        char restore_fill = out.fill(c);
-        out.width(count);
-        bool result(out << "");
-        out.fill(restore_fill);
-        return result;
-    }
-
-    bool write(std::string_view s, bmd::HTML_Token_Type type) final
-    {
-        return (out << highlight_color_of(type)) && out.write(s.data(), s.length());
-    }
-};
-
-struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
-    std::ostream& out;
-
-    explicit Simple_HTML_Consumer(std::ostream& out)
-        : out(out)
-    {
-    }
-
-    bool write(char c, bmd::HTML_Token_Type) final
-    {
-        return bool(out.put(c));
-    }
-
-    bool write(char c, Size count, bmd::HTML_Token_Type) final
-    {
-        char restore_fill = out.fill(c);
-        out.width(count);
-        bool result(out << "");
-        out.fill(restore_fill);
-        return result;
-    }
-
-    bool write(std::string_view s, bmd::HTML_Token_Type) final
-    {
-        return bool(out.write(s.data(), s.length()));
-    }
-};
-
-template <typename Consumer>
-Result<void, bmd::Document_Error> write_html(std::ostream& out,
-                                             const bmd::Parsed_Document& document,
-                                             std::pmr::memory_resource* memory)
-{
-    BIT_MANIPULATION_ASSERT(out);
-    static constexpr std::string_view stylesheets[] { "/css/code.css", "/css/main.css" };
-
-    constexpr bmd::Document_Options options { .indent_width = 2, //
-                                              .stylesheets = stylesheets };
-
-    Consumer consumer { out };
-    return bmd::doc_to_html(consumer, document, options, memory);
-}
 
 std::pmr::vector<bms::Token>
 tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
@@ -163,7 +66,7 @@ bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
                                     std::string_view file_name,
                                     std::pmr::memory_resource* memory)
 {
-    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = parse(tokens, source, memory)) {
+    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = bms::parse(tokens, source, memory)) {
         return std::move(*parsed);
     }
     else {
@@ -225,7 +128,8 @@ int to_html(std::string_view file,
                 print_io_error(std::cerr, "stdout", IO_Error_Code::cannot_open);
                 return 1;
             }
-            result = write_html<Colored_HTML_Consumer>(std::cout, program, memory);
+            Colored_HTML_Consumer consumer { std::cout };
+            result = write_html(consumer, program, memory);
         }
         else {
             std::ofstream out { std::string(*out_file) };
@@ -234,7 +138,8 @@ int to_html(std::string_view file,
                 return 1;
             }
 
-            result = write_html<Simple_HTML_Consumer>(out, program, memory);
+            Simple_HTML_Consumer consumer { out };
+            result = write_html(consumer, program, memory);
         }
 
         if (!result) {
