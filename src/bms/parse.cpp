@@ -927,7 +927,13 @@ private:
             case Token_Type::right_parenthesis: --parenthesis_level; break;
 
             default:
-                if (parenthesis_level == 0 && is_comparison_operator(m_tokens[i].type)) {
+                if (parenthesis_level != 0) {
+                    continue;
+                }
+                if (m_tokens[i].type == Token_Type::keyword_if) {
+                    return false;
+                }
+                if (is_comparison_operator(m_tokens[i].type)) {
                     return true;
                 }
             }
