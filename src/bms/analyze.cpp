@@ -229,9 +229,11 @@ private:
         if (handle == nullptr) {
             return {};
         }
-        return fast_visit([this, handle, level, context](
-                              auto& node) { return analyze_types(handle, node, level, context); },
-                          *handle);
+        return fast_visit(
+            [this, handle, level, context](auto& node) {
+                return analyze_types(handle, node, level, context); //
+            },
+            *handle);
     }
 
     template <typename T>
@@ -746,6 +748,8 @@ private:
             return r;
         }
         const auto& left_value = get_const_value(*node.get_left());
+        BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
+                                || left_value && left_value->is_known());
 
         {
             // For short-circuiting operators like && and ||, if we are in a constant expression,
@@ -763,9 +767,6 @@ private:
                     return Analysis_Error { Type_Error_Code::non_bool_logical, handle,
                                             node.get_left() };
                 }
-                // This was analyzed as a constant expression, so a concrete value must have
-                // emerged.
-                BIT_MANIPULATION_ASSERT(left_value->is_known());
                 const bool circuit_breaker = node.get_op() == Token_Type::logical_or;
                 if (left_value->as_bool() == circuit_breaker) {
                     context = Expression_Context::normal;
@@ -777,6 +778,8 @@ private:
             return r;
         }
         const auto& right_value = get_const_value(*node.get_right());
+        BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
+                                || right_value && right_value->is_known());
 
         const Result<Concrete_Type, Type_Error_Code> type_result
             = check_binary_operator(left_value->get_type(), node.get_op(), right_value->get_type());
