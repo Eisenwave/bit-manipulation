@@ -35,14 +35,25 @@ std::string_view to_prose(IO_Error_Code e);
 std::string_view find_line(std::string_view source, Size index);
 
 /// @brief Prints the location of the file nicely formatted.
-/// @param out the stream to write to.
-/// @param file the file.
+/// @param out the stream to write to
+/// @param file the file
 /// @return `out`
 std::ostream& print_location_of_file(std::ostream& out, std::string_view file);
 
+/// @brief Prints a position within a file, consisting of the file name and line/column.
+/// @param out the stream to write to
+/// @param file the file
+/// @param pos the position within the file
+/// @return `out`
 std::ostream&
 print_file_position(std::ostream& out, std::string_view file, const Local_Source_Position& pos);
 
+/// @brief Prints the contents of the affected line within `source` as well as position indicators
+/// which show the span which is affected by some diagnostic.
+/// @param out the stream to write to
+/// @param source the program source
+/// @param pos the position within the source
+/// @return `out`
 std::ostream&
 print_affected_line(std::ostream& out, std::string_view source, const Local_Source_Position& pos);
 
