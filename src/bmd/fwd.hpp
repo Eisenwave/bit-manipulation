@@ -10,6 +10,7 @@ enum struct Formatting_Style : Default_Underlying;
 
 enum struct Parse_Error_Code : Default_Underlying;
 
+struct Document_Error;
 struct Parse_Error;
 
 struct Parsed_Document;
