@@ -88,14 +88,22 @@ std::ostream& print_io_error(std::ostream& out, std::string_view file, IO_Error_
 std::ostream&
 print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
 
-std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width);
+struct BMS_AST_Formatting_Options {
+    int indent_width;
+    bool colors;
+};
 
-std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width);
+std::ostream&
+print_ast(std::ostream& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options);
 
-std::ostream& print_html(std::ostream& out,
-                         const bmd::Parsed_Document& document,
-                         std::string_view file,
-                         Size indent_width);
+struct BMD_AST_Formatting_Options {
+    int indent_width;
+    int max_node_text_length;
+    bool colors;
+};
+
+std::ostream&
+print_ast(std::ostream& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options);
 
 std::ostream& print_internal_error_notice(std::ostream& out);
 

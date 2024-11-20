@@ -621,16 +621,25 @@ namespace {
 struct BMS_AST_Printer {
     std::ostream& out;
     const bms::Parsed_Program& program;
-    const Size indent_width;
+    const BMS_AST_Formatting_Options options;
 
-    void print(bms::astp::Handle handle, std::string_view child_name = "", Size level = 0)
+    std::string_view color(std::string_view text) const
     {
-        out << std::string(indent_width * level, ' ');
+        return options.colors ? text : "";
+    }
+
+    void print(bms::astp::Handle handle, std::string_view child_name = "", int level = 0)
+    {
+        BIT_MANIPULATION_ASSERT(level >= 0);
+        BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
+
+        out << std::string(Size(options.indent_width * level), ' ');
         if (handle != bms::astp::Handle::null) {
-            out << ansi::h_black << static_cast<Size>(handle) << ansi::reset << ':';
+            out << color(ansi::h_black) << static_cast<Size>(handle) << color(ansi::reset) << ':';
         }
         if (child_name != "") {
-            out << ansi::h_green << child_name << ansi::black << "=" << ansi::reset;
+            out << color(ansi::h_green) << child_name << color(ansi::black) << "="
+                << color(ansi::reset);
         }
         if (handle == bms::astp::Handle::null) {
             out << "null\n";
@@ -640,9 +649,11 @@ struct BMS_AST_Printer {
         const bms::astp::Some_Node& node = program.get_node(handle);
         const std::string_view node_name = get_node_name(node);
 
-        out << ansi::h_magenta << node_name << ansi::h_black << "(" << ansi::reset
-            << program.extract(get_source_position(node)) << ansi::h_black << ")\n"
-            << ansi::reset;
+        out << color(ansi::h_magenta) << node_name //
+            << color(ansi::h_black) << "(" //
+            << color(ansi::reset) << program.extract(get_source_position(node)) //
+            << color(ansi::h_black) << ")\n"
+            << color(ansi::reset);
 
         const auto children = get_children(node);
         for (Size i = 0; i < children.size(); ++i) {
@@ -661,47 +672,22 @@ struct BMS_AST_Printer {
     }
 };
 
-std::ostream& print_cut_off(std::ostream& out, std::string_view v)
-{
-    constexpr Size max_length = 30;
-
-    Size visual_length = 0;
-
-    for (Size i = 0; i < v.length(); ++i) {
-        if (visual_length >= max_length) {
-            out << ansi::h_black << " ..." << ansi::reset;
-            break;
-        }
-
-        if (v[i] == '\r') {
-            out << ansi::h_red << "\\r" << ansi::reset;
-            visual_length += 2;
-        }
-        else if (v[i] == '\t') {
-            out << ansi::h_red << "\\t" << ansi::reset;
-            visual_length += 2;
-        }
-        else if (v[i] == '\n') {
-            out << ansi::h_red << "\\n" << ansi::reset;
-            visual_length += 2;
-        }
-        else {
-            out << v[i];
-            visual_length += 1;
-        }
-    }
-
-    return out;
-}
-
 struct BMD_AST_Printer {
     std::ostream& out;
     const bmd::Parsed_Document& program;
-    const Size indent_width;
+    const BMD_AST_Formatting_Options options;
 
-    void print(bmd::ast::Some_Node* node, Size level = 0)
+    std::string_view color(std::string_view text) const
     {
-        const std::string indent(indent_width * level, ' ');
+        return options.colors ? text : "";
+    }
+
+    void print(bmd::ast::Some_Node* node, int level = 0)
+    {
+        BIT_MANIPULATION_ASSERT(level >= 0);
+        BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
+
+        const std::string indent(Size(options.indent_width * level), ' ');
         out << indent;
         if (node == nullptr) {
             out << "null\n";
@@ -735,19 +721,62 @@ struct BMD_AST_Printer {
             print(children[i], level + 1);
         }
     }
+
+    /// @brief Prints text which is cut off at some point.
+    /// This is useful because the BMD AST often contains nodes with very long text content,
+    /// making it impractical to print everything.
+    /// @param out the output stream
+    /// @param v the text to print
+    /// @param max_length the maximum printed length without cutting off by ellipsis
+    /// @return `out`
+    std::ostream& print_cut_off(std::ostream& out, std::string_view v)
+    {
+        BIT_MANIPULATION_ASSERT(options.max_node_text_length >= 0);
+
+        int visual_length = 0;
+
+        for (Size i = 0; i < v.length(); ++i) {
+            if (visual_length >= options.max_node_text_length) {
+                out << color(ansi::h_black) << " ..." << color(ansi::reset);
+                break;
+            }
+
+            if (v[i] == '\r') {
+                out << color(ansi::h_red) << "\\r" << color(ansi::reset);
+                visual_length += 2;
+            }
+            else if (v[i] == '\t') {
+                out << color(ansi::h_red) << "\\t" << color(ansi::reset);
+                visual_length += 2;
+            }
+            else if (v[i] == '\n') {
+                out << color(ansi::h_red) << "\\n" << color(ansi::reset);
+                visual_length += 2;
+            }
+            else {
+                out << v[i];
+                visual_length += 1;
+            }
+        }
+
+        return out;
+    }
 };
 
 } // namespace
 
-std::ostream& print_ast(std::ostream& out, const bms::Parsed_Program& program, Size indent_width)
+std::ostream&
+print_ast(std::ostream& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options options)
 {
-    BMS_AST_Printer { out, program, indent_width }.print(program.get_root_handle());
+    BMS_AST_Printer { out, program, options }.print(program.get_root_handle());
     return out;
 }
 
-std::ostream& print_ast(std::ostream& out, const bmd::Parsed_Document& document, Size indent_width)
+std::ostream& print_ast(std::ostream& out,
+                        const bmd::Parsed_Document& document,
+                        BMD_AST_Formatting_Options options)
 {
-    BMD_AST_Printer { out, document, indent_width }.print(document.root_node);
+    BMD_AST_Printer { out, document, options }.print(document.root_node);
     return out;
 }
 

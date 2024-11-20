@@ -90,16 +90,16 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
 {
     const std::pmr::string source = load_file(file, memory);
 
-    constexpr Size indent_width = 2;
     if (file.ends_with(".bms")) {
         const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
         const bms::Parsed_Program p = parse_tokenized(tokens, source, file, memory);
-        print_ast(std::cout, p, indent_width);
+        print_ast(std::cout, p, { .indent_width = 2, .colors = true });
         return 0;
     }
     if (file.ends_with(".bmd")) {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
-        print_ast(std::cout, program, indent_width);
+        print_ast(std::cout, program,
+                  { .indent_width = 2, .max_node_text_length = 30, .colors = true });
         return 0;
     }
 
