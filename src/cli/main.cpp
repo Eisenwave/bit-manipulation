@@ -7,6 +7,7 @@
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
+#include "common/diagnostics.hpp"
 #include "common/glue.hpp"
 #include "common/io.hpp"
 
@@ -19,8 +20,6 @@
 #include "bms/ast.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
-
-#include "cli/diagnostics.hpp"
 
 namespace bit_manipulation {
 namespace {

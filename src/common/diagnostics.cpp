@@ -17,7 +17,7 @@
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
-#include "cli/diagnostics.hpp"
+#include "common/diagnostics.hpp"
 
 namespace bit_manipulation {
 

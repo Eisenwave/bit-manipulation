@@ -50,6 +50,7 @@ set(HEADERS
     src/common/ansi.hpp
     src/common/assert.hpp
     src/common/config.hpp
+    src/common/diagnostics.hpp
     src/common/fwd.hpp
     src/common/glue.hpp
     src/common/io.hpp
@@ -57,8 +58,6 @@ set(HEADERS
     src/common/source_position.hpp
     src/common/result.hpp
     src/common/visit.hpp
-
-    src/cli/diagnostics.hpp
 )
 
 add_library(bm STATIC ${HEADERS}
@@ -78,13 +77,13 @@ add_library(bm STATIC ${HEADERS}
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
 
+    src/common/diagnostics.cpp
     src/common/glue.cpp
     src/common/io.cpp
     src/common/parse.cpp
 )
 
 add_executable(bm-cli ${HEADERS}
-    src/cli/diagnostics.cpp
     src/cli/main.cpp
 )
 

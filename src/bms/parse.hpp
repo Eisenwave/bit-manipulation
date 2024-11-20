@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_PARSING_HPP
 #define BIT_MANIPULATION_BMS_PARSING_HPP
 
+#include <optional>
 #include <span>
 #include <string_view>
 #include <vector>
