@@ -57,6 +57,7 @@ public:
     constexpr Value(Concrete_Value value)
         : m_type(value.type)
         , m_int_value(value.int_value)
+        , m_known(true)
     {
     }
 
