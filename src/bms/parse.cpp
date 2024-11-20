@@ -904,6 +904,12 @@ private:
 
     /// @brief An arbitrary look-ahead member function which tells us whether we should commit
     /// to matching a comparison expression when matching a binary expression.
+    ///
+    /// Consider for example that if we are parsing `(0) == 3`, we can already tell that this
+    /// needs to be a comparison expression based on the following `==`.
+    /// However, identifying this situation is not as simple as looking at the next token due to
+    /// arbitrary amounts of parentheses.
+    ///
     /// This approach is a bit unusual, but makes sense for BMS specifically.
     /// Thanks to this test, our parser is completely deterministic and we can avoid more complex
     /// expression parsing approach.
