@@ -6,6 +6,7 @@
 #include <span>
 
 #include "bms/analysis_error.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
@@ -60,6 +61,19 @@ Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
 /// @return the analysis result
 Result<void, Analysis_Error> analyze(Analyzed_Program& program,
                                      std::pmr::memory_resource* memory_resource);
+
+inline bool analyze(Analyzed_Program& program,
+                    std::pmr::memory_resource* memory_resource,
+                    Diagnostic_Consumer& diagnostics)
+{
+    if (auto result = analyze(program, memory_resource)) {
+        return true;
+    }
+    else {
+        diagnostics(std::move(result.error()));
+        return false;
+    }
+}
 
 } // namespace bit_manipulation::bms
 

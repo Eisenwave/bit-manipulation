@@ -9,6 +9,7 @@
 #include "common/result.hpp"
 
 #include "bms/astp.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/fwd.hpp"
 #include "bms/parse_error.hpp"
 
@@ -89,6 +90,20 @@ public:
 
 Result<Parsed_Program, Parse_Error>
 parse(std::span<const Token> tokens, std::string_view source, std::pmr::memory_resource* memory);
+
+inline std::optional<Parsed_Program> parse(std::span<const Token> tokens,
+                                           std::string_view source,
+                                           std::pmr::memory_resource* memory,
+                                           Diagnostic_Consumer& diagnostics)
+{
+    if (auto result = parse(tokens, source, memory)) {
+        return std::move(result.value());
+    }
+    else {
+        diagnostics(std::move(result.error()));
+        return {};
+    }
+}
 
 } // namespace bit_manipulation::bms
 
