@@ -299,7 +299,8 @@ private:
             // determine this here instead of in the expression because expressions lack a
             // checking mechanism for themselves.
             if (!expr_const_value) {
-                if (auto r = analyze_types(node.get_requires_clause(), Analysis_Level::deep,
+                if (auto r = analyze_types(node.get_requires_clause(),
+                                           Analysis_Level::for_constant_evaluation,
                                            Expression_Context::constant);
                     !r) {
                     return r;
@@ -326,7 +327,7 @@ private:
                 return r;
             }
         }
-        if (level >= Analysis_Level::deep) {
+        if (level >= Analysis_Level::for_constant_evaluation) {
             const Size vm_address = constant_evaluation_machine.instruction_count();
             Result<void, Analysis_Error> instructions
                 = generate_code(constant_evaluation_machine.instructions(), node);
@@ -379,8 +380,8 @@ private:
             return {};
         }
 
-        if (auto r
-            = analyze_types(node.get_width(), Analysis_Level::deep, Expression_Context::constant);
+        if (auto r = analyze_types(node.get_width(), Analysis_Level::for_constant_evaluation,
+                                   Expression_Context::constant);
             !r) {
             return r;
         }
@@ -415,8 +416,9 @@ private:
         BIT_MANIPULATION_ASSERT(node.get_initializer() != nullptr);
 
         if (node.get_type() == nullptr) {
-            if (auto r = analyze_types(node.get_initializer(), Analysis_Level::deep,
-                                       Expression_Context::constant);
+            if (auto r
+                = analyze_types(node.get_initializer(), Analysis_Level::for_constant_evaluation,
+                                Expression_Context::constant);
                 !r) {
                 return r;
             }
@@ -432,8 +434,9 @@ private:
             return type_result;
         }
 
-        if (const auto r = analyze_types(node.get_initializer(), Analysis_Level::deep,
-                                         Expression_Context::constant);
+        if (const auto r
+            = analyze_types(node.get_initializer(), Analysis_Level::for_constant_evaluation,
+                            Expression_Context::constant);
             !r) {
             return r;
         }
@@ -511,8 +514,9 @@ private:
             BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
-        auto expression_result = analyze_types(node.get_expression(), Analysis_Level::deep,
-                                               Expression_Context::constant);
+        auto expression_result
+            = analyze_types(node.get_expression(), Analysis_Level::for_constant_evaluation,
+                            Expression_Context::constant);
         if (!expression_result) {
             return expression_result;
         }
@@ -709,6 +713,7 @@ private:
         // If we analyzed it as a constant expression, we would require a value from it, and
         // e.g. `1 if true else 0 / 0` would fail, even though it is valid and meant to select `1`.
         if (context == Expression_Context::constant) {
+            BIT_MANIPULATION_ASSERT(condition_value->is_known());
             const bool evaluate_left = condition_value->as_bool();
             (evaluate_left ? right_context : left_context) = Expression_Context::normal;
         }
@@ -938,9 +943,9 @@ private:
         //    as a constant expression.
         //    Otherwise, we don't need to analyze the function body immediately.
 
-        const auto inner_level
-            = context == Expression_Context::constant || level == Analysis_Level::deep
-            ? Analysis_Level::deep
+        const auto inner_level = context == Expression_Context::constant
+                || level == Analysis_Level::for_constant_evaluation
+            ? Analysis_Level::for_constant_evaluation
             : Analysis_Level::shallow;
 
         {
