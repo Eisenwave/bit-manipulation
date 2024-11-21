@@ -12,9 +12,9 @@
 namespace bit_manipulation {
 
 struct Parse_Error_Expectations {
-    std::optional<bms::Grammar_Rule> rule;
-    std::optional<Size> line;
-    std::optional<bms::Token_Type> token_type;
+    std::optional<bms::Grammar_Rule> rule {};
+    std::optional<Size> line {};
+    std::optional<bms::Token_Type> token_type {};
 };
 
 /// @brief An expectation towards an error code in a `bms::Analysis_Error`.
@@ -67,8 +67,8 @@ public:
 
 struct Analysis_Error_Expectations {
     Analysis_Error_Code_Expectation code;
-    std::optional<int> fail_line;
-    std::optional<int> cause_line;
+    std::optional<int> fail_line {};
+    std::optional<int> cause_line {};
 };
 
 bool test_for_success(std::string_view file,
