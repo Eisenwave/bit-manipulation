@@ -456,31 +456,6 @@ bool test_validity(std::string_view file, Printing_Diagnostic_Policy& policy)
     return test_validity(file, diagnostics, policy);
 }
 
-bool test_for_success(std::string_view file,
-                      Compilation_Stage until_stage = Compilation_Stage::analyze)
-{
-    Expect_Success_Diagnostic_Policy policy { until_stage };
-    return test_validity(file, policy);
-}
-
-bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expected)
-{
-    Expect_Tokenize_Error_Diagnostic_Policy policy { expected };
-    return test_validity(file, policy);
-}
-
-bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& expectations)
-{
-    Expect_Parse_Error_Diagnostic_Policy policy { expectations };
-    return test_validity(file, policy);
-}
-
-bool test_for_diagnostic(std::string_view file, const Analysis_Error_Expectations& expectations)
-{
-    Expect_Analysis_Error_Diagnostic_Policy policy { expectations };
-    return test_validity(file, policy);
-}
-
 } // namespace
 
 bool test_for_success(std::string_view file, Compilation_Stage until_stage)
