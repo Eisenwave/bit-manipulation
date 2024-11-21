@@ -754,7 +754,7 @@ private:
         }
         const auto& left_value = get_const_value(*node.get_left());
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
-                                || left_value && left_value->is_known());
+                                || (left_value && left_value->is_known()));
 
         {
             // For short-circuiting operators like && and ||, if we are in a constant expression,
@@ -784,7 +784,7 @@ private:
         }
         const auto& right_value = get_const_value(*node.get_right());
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
-                                || right_value && right_value->is_known());
+                                || (right_value && right_value->is_known()));
 
         const Result<Concrete_Type, Type_Error_Code> type_result
             = check_binary_operator(left_value->get_type(), node.get_op(), right_value->get_type());
