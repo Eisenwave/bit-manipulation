@@ -1,0 +1,4 @@
+function awoo(x: Int) -> Void
+{
+    let y: Uint(x);
+}

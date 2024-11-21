@@ -1,0 +1,5 @@
+function chan() -> Void { }
+
+function awoo() -> Void {
+    let x = chan;
+}

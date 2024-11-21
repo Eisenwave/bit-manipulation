@@ -1,0 +1,5 @@
+function awoo() -> Void
+{
+    let x = 0;
+    let y: Uint(x);
+}

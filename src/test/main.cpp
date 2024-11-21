@@ -199,5 +199,73 @@ TEST(BMS_Analysis_Error, width_not_integer)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_integer.bms", expectations));
 }
 
+// FIXME: width_not_integer looks to be dead diagnostic because more specific diagnostics like
+//        let_variable_in_constant_expression get triggered instead
+TEST(BMS_Analysis_Error, DISABLED_width_not_const)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_not_const, .fail_line = 4, .cause_line = 3 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_const.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, width_too_large)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_too_large, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_too_large.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, width_zero)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_zero, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_zero.bms", expectations));
+}
+
+// FIXME: expected_constant_expression might be dead diagnostic for same reason as above
+
+TEST(BMS_Analysis_Error, let_variable_in_constant_expression)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::let_variable_in_constant_expression,
+          .fail_line = 4,
+          .cause_line = 3 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/let_variable_in_constant_expression.bms",
+                                    expectations));
+}
+
+TEST(BMS_Analysis_Error, parameter_in_constant_expression)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::parameter_in_constant_expression,
+          .fail_line = 3,
+          .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/parameter_in_constant_expression.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, function_in_expression)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::function_in_expression,
+          .fail_line = 4,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/function_in_expression.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, condition_not_bool)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::condition_not_bool, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/condition_not_bool.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, invalid_integer_literal)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::invalid_integer_literal, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/invalid_integer_literal.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
