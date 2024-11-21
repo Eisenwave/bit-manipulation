@@ -528,14 +528,14 @@ private:
                                     node.get_expression() };
         }
         if (!node.const_value()->as_bool()) {
+            Analysis_Error error { Analysis_Error_Code::static_assertion_failed, handle,
+                                   node.get_expression() };
             if (const auto* const comparison
                 = std::get_if<ast::Binary_Expression>(node.get_expression());
                 comparison && is_comparison_operator(comparison->get_op())) {
-                return Analysis_Error { comparison_failure_of(*comparison), handle,
-                                        node.get_expression() };
+                error.comparison_failure = comparison_failure_of(*comparison);
             }
-            return Analysis_Error { Analysis_Error_Code::static_assertion_failed, handle,
-                                    node.get_expression() };
+            return error;
         }
 
         return {};
