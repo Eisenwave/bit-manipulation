@@ -206,16 +206,6 @@ public:
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::conversion_error);
     }
 
-    [[deprecated]] [[nodiscard]] constexpr Analysis_Error(Comparison_Failure comp_fail,
-                                                          const ast::Some_Node* fail,
-                                                          const ast::Some_Node* cause = {})
-        : m_code(Analysis_Error_Code::static_assertion_failed)
-        , comparison_failure(comp_fail)
-        , fail(fail)
-        , cause(cause)
-    {
-    }
-
     [[nodiscard]] constexpr Analysis_Error(Evaluation_Error_Code code,
                                            const ast::Some_Node* fail,
                                            const ast::Some_Node* cause = {})
