@@ -11,40 +11,69 @@ constexpr bool are_hex_digits_ascii
     = 'a' + 1 == 'b' && 'b' + 1 == 'c' && 'c' + 1 == 'd' && 'd' + 1 == 'e' && 'e' + 1 == 'f';
 static_assert(are_hex_digits_ascii);
 
-constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Big_Int base)
+constexpr bool safe_mul(Big_Uint& x, Big_Uint y)
+{
+    auto old = x;
+    x *= y;
+    return x >= old;
+}
+
+constexpr bool safe_add(Big_Uint& x, Big_Uint y)
+{
+    auto old = x;
+    x += y;
+    return x >= old;
+}
+
+/// @brief Parses a given string under the assumption that `str` is a sequence of digits which are
+/// correct for the given `base`.
+/// @param str the digit sequence, without any prefixes
+/// @param base the base; shall be one of `2`, `8`, `10`, or `16`
+/// @return the parsed integer value, or `std::nullopt` if it is not representable in the result
+constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Big_Uint base)
 {
     BIT_MANIPULATION_ASSERT(base >= 2);
     BIT_MANIPULATION_ASSERT(base <= 10 || base == 16);
 
     if (str.empty()) {
-        return std::nullopt;
+        return {};
     }
 
-    Big_Int result = 0;
-    // We cannot simply use std::from_chars because Big_Int might not be supported.
+    Big_Uint result = 0;
+    // We cannot simply use std::from_chars because Big_Uint might not be supported.
 
     if (base <= 10) {
         for (char c : str) {
             if (c < '0' || c > '9') {
-                return std::nullopt;
+                return {};
             }
-            result *= base;
-            result += c - '0';
+            if (!safe_mul(result, base)) {
+                return {};
+            }
+            if (!safe_add(result, c - '0')) {
+                return {};
+            }
         }
         return result;
     }
 
     BIT_MANIPULATION_ASSERT(base == 16);
     for (char c : str) {
-        result *= 16;
+        if (!safe_mul(result, 16)) {
+            return {};
+        }
         if (c >= '0' && c <= '9') {
-            result += c - '0';
+            if (!safe_add(result, c - '0')) {
+                return {};
+            }
         }
         else if (c >= 'a' && c <= 'f') {
-            result += 10 + c - 'a';
+            if (!safe_add(result, 10 + c - 'a')) {
+                return {};
+            }
         }
         else {
-            return std::nullopt;
+            return {};
         }
     }
 
@@ -54,6 +83,7 @@ constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Bi
 static_assert(*parse_uinteger_digits("10110", 2) == 0b10110);
 static_assert(*parse_uinteger_digits("10157", 8) == 010157);
 static_assert(*parse_uinteger_digits("123", 10) == 123);
+static_assert(*parse_uinteger_digits("0", 16) == 0);
 static_assert(*parse_uinteger_digits("ff", 16) == 255);
 
 } // namespace
