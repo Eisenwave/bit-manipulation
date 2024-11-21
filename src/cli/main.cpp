@@ -176,14 +176,39 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
     return 0;
 }
 
+struct Command_Help {
+    std::string_view name;
+    std::string_view arguments;
+    std::string_view description;
+};
+
+constexpr Command_Help command_helps[] {
+    { "dump_tokens", "FILE", "Prints BMS/BMD tokens." },
+    { "dump_ast", "FILE", "Prints the BMS/BMD abstract syntax tree." },
+    { "verify", "FILE",
+      "Performs semantic analysis on the BMS file, i.e. checks for correctness." },
+    { "html", "FILE [OUTPUT_FILE]", "Converts the BMD file to an HTML file, or prints to stdout." }
+};
+
+void print_help(std::string_view program_name)
+{
+    std::cout << ansi::black << "Usage: " << ansi::reset << program_name //
+              << ansi::yellow << " COMMAND " //
+              << ansi::h_green << "...\n";
+    for (const Command_Help& help : command_helps) {
+        std::cout << "    " << ansi::yellow << help.name << " " //
+                  << ansi::h_green << help.arguments << '\n' //
+                  << "      " << ansi::reset << help.description << '\n';
+    }
+}
+
 int main(int argc, const char** argv)
 try {
     const std::vector<std::string_view> args(argv, argv + argc);
 
     if (args.size() < 3) {
         const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
-        std::cout << "Usage: " << program_name
-                  << " dump_tokens|dump_ast|verify|html <FILE> [FILE]\n";
+        print_help(program_name);
         return 1;
     }
 
