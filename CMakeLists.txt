@@ -9,7 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-extension)
 set(SANITIZER_OPTIONS
-#-fsanitize=address,undefined
+-fsanitize=address,undefined
 )
 
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
@@ -84,6 +84,9 @@ add_library(bm STATIC ${HEADERS}
     src/common/parse.cpp
 )
 
+target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
+target_link_options(bm PUBLIC ${SANITIZER_OPTIONS})
+
 add_executable(bm-cli ${HEADERS}
     src/cli/main.cpp
 )
@@ -95,8 +98,6 @@ add_executable(bm-test ${HEADERS}
     src/test/program_file_testing.cpp
 )
 
-add_compile_options(${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
-add_link_options(${SANITIZER_OPTIONS})
 include_directories(${INCLUDE_DIRS})
 
 target_link_libraries(bm-cli bm)
