@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_TOKENIZE_ERROR_HPP
 #define BIT_MANIPULATION_BMS_TOKENIZE_ERROR_HPP
 
+#include "common/assert.hpp"
 #include "common/source_position.hpp"
 
 #include "bms/fwd.hpp"
@@ -17,6 +18,18 @@ enum struct Tokenize_Error_Code : Default_Underlying {
     /// @brief An opening block comment has no closing asterisk and slash.
     unterminated_comment,
 };
+
+constexpr std::string_view name_of(Tokenize_Error_Code e)
+{
+    using enum Tokenize_Error_Code;
+    switch (e) {
+    case illegal_character: return "illegal_character";
+    case no_digits_following_integer_prefix: return "no_digits_following_integer_prefix";
+    case integer_suffix: return "integer_suffix";
+    case unterminated_comment: return "unterminated_comment";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
 
 struct Tokenize_Error {
     Tokenize_Error_Code code;

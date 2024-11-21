@@ -54,13 +54,18 @@ struct Printing_Diagnostic_Policy : Diagnostic_Policy {
     const bms::Parsed_Program* parsed_program = nullptr;
 };
 
-/// @brief A diagnostic policy which expects all compilation stages for a program to succeed.
+/// @brief This policy has succeeded when all compilation stages pass without errors.
+/// It has failed when any error is raised.
 struct Expect_Success_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
     bool m_failed = false;
+    Compilation_Stage m_max_stage = Compilation_Stage::analyze;
 
 public:
-    Compilation_Stage max_stage = Compilation_Stage::analyze;
+    explicit Expect_Success_Diagnostic_Policy(Compilation_Stage max_stage)
+        : m_max_stage(max_stage)
+    {
+    }
 
     bool is_success() const
     {
@@ -94,9 +99,60 @@ public:
     }
     Policy_Action done(Compilation_Stage stage)
     {
-        return m_failed          ? Policy_Action::FAILURE
-            : stage >= max_stage ? Policy_Action::SUCCESS
-                                 : Policy_Action::CONTINUE;
+        return m_failed            ? Policy_Action::FAILURE
+            : stage >= m_max_stage ? Policy_Action::SUCCESS
+                                   : Policy_Action::CONTINUE;
+    }
+};
+
+/// @brief This policy has succeeded when the expected error is raised during tokenization.
+/// It has failed when another error is raised, or if tokenization succeeds.
+struct Expect_Tokenize_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
+private:
+    Policy_Action m_state = Policy_Action::CONTINUE;
+    bms::Tokenize_Error_Code m_expected;
+
+public:
+    explicit Expect_Tokenize_Error_Diagnostic_Policy(bms::Tokenize_Error_Code expected)
+        : m_expected(expected)
+    {
+    }
+
+    bool is_success() const
+    {
+        return m_state == Policy_Action::SUCCESS;
+    }
+    Policy_Action error(IO_Error_Code e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_io_error(std::cout, file, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Tokenize_Error& e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        if (e.code == m_expected) {
+            return m_state = Policy_Action::SUCCESS;
+        }
+        std::cout << ansi::red << "Expected " << name_of(m_expected) //
+                  << " but got " << name_of(e.code) << ":\n";
+        print_tokenize_error(std::cout, file, source, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Parse_Error&) final
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE();
+    }
+    Policy_Action error(const bms::Analysis_Error&) final
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE();
+    }
+    Policy_Action done(Compilation_Stage stage)
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::tokenize);
+        return stage == Compilation_Stage::tokenize ? m_state = Policy_Action::SUCCESS
+                                                    : Policy_Action::CONTINUE;
     }
 };
 
@@ -165,8 +221,13 @@ bool test_validity(std::string_view file, Printing_Diagnostic_Policy& policy)
 bool test_for_success(std::string_view file,
                       Compilation_Stage until_stage = Compilation_Stage::analyze)
 {
-    Expect_Success_Diagnostic_Policy policy;
-    policy.max_stage = until_stage;
+    Expect_Success_Diagnostic_Policy policy { until_stage };
+    return test_validity(file, policy);
+}
+
+bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expected)
+{
+    Expect_Tokenize_Error_Diagnostic_Policy policy { expected };
     return test_validity(file, policy);
 }
 
@@ -203,6 +264,30 @@ TEST(Valid_BMS, static_assert)
 TEST(Valid_BMS, void)
 {
     EXPECT_TRUE(test_for_success("void.bms"));
+}
+
+TEST(BMS_Tokenize_Error, illegal_character)
+{
+    EXPECT_TRUE(test_for_diagnostic("tokenize_error/illegal_character.bms",
+                                    bms::Tokenize_Error_Code::illegal_character));
+}
+
+TEST(BMS_Tokenize_Error, no_digits_following_integer_prefix)
+{
+    EXPECT_TRUE(test_for_diagnostic("tokenize_error/no_digits_following_integer_prefix.bms",
+                                    bms::Tokenize_Error_Code::no_digits_following_integer_prefix));
+}
+
+TEST(BMS_Tokenize_Error, integer_suffix)
+{
+    EXPECT_TRUE(test_for_diagnostic("tokenize_error/integer_suffix.bms",
+                                    bms::Tokenize_Error_Code::integer_suffix));
+}
+
+TEST(BMS_Tokenize_Error, unterminated_comment)
+{
+    EXPECT_TRUE(test_for_diagnostic("tokenize_error/unterminated_comment.bms",
+                                    bms::Tokenize_Error_Code::unterminated_comment));
 }
 
 } // namespace
