@@ -404,8 +404,13 @@ public:
     Policy_Action done(Compilation_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        return stage == Compilation_Stage::analyze ? m_state = Policy_Action::FAILURE
-                                                   : Policy_Action::CONTINUE;
+        if (stage == Compilation_Stage::analyze) {
+            std::cout << ansi::red << "Expected '" << m_expectations.code //
+                      << "' but program was analyzed with no errors.\n"
+                      << ansi::reset;
+            return m_state = Policy_Action::FAILURE;
+        }
+        return Policy_Action::CONTINUE;
     }
 };
 
