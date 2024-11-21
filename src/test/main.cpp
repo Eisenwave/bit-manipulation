@@ -267,5 +267,51 @@ TEST(BMS_Analysis_Error, invalid_integer_literal)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/invalid_integer_literal.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, assigning_parameter)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::assigning_parameter, .fail_line = 2, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_parameter.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, assigning_function)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::assigning_function, .fail_line = 2, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_function.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, assigning_const)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::assigning_const, .fail_line = 3, .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_const.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, call_non_function)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::call_non_function, .fail_line = 3, .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/call_non_function.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, wrong_number_of_arguments)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::wrong_number_of_arguments,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/wrong_number_of_arguments.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, codegen_call_to_unanalyzed)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::codegen_call_to_unanalyzed,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/codegen_call_to_unanalyzed.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation

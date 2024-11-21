@@ -1,0 +1,3 @@
+function awoo(x: Int) -> Void {
+    x = 0;
+}

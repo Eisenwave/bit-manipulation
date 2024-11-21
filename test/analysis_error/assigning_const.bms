@@ -1,0 +1,4 @@
+function awoo() -> Void {
+    const c = 0;
+    c = 1;
+}

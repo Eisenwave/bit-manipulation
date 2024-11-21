@@ -1,0 +1,4 @@
+function awoo() -> Int {
+    const a = awoo();
+    return 0;
+}
