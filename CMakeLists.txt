@@ -54,6 +54,7 @@ set(HEADERS
     src/common/fwd.hpp
     src/common/glue.hpp
     src/common/io.hpp
+    src/common/io_error.hpp
     src/common/parse.hpp
     src/common/source_position.hpp
     src/common/result.hpp

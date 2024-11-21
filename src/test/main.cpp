@@ -11,10 +11,10 @@
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
+#include "test/diagnostic_policy.hpp"
+
 namespace bit_manipulation {
 namespace {
-
-enum struct Compilation_Stage : Default_Underlying { load_file, tokenize, parse, analyze };
 
 constexpr auto operator<=>(Compilation_Stage a, Compilation_Stage b)
 {
@@ -46,97 +46,163 @@ parse_bms_file(std::string_view source, std::string_view file, std::pmr::memory_
     return std::move(*parsed);
 }
 
+/// @brief A `Diagnostic_Policy` which stores extra `file` and `source` members to enable
+/// printing errors.
+struct Printing_Diagnostic_Policy : Diagnostic_Policy {
+    std::string_view file;
+    std::string_view source;
+    const bms::Parsed_Program* parsed_program = nullptr;
+};
+
+/// @brief A diagnostic policy which expects all compilation stages for a program to succeed.
+struct Expect_Success_Diagnostic_Policy final : Printing_Diagnostic_Policy {
+private:
+    bool m_failed = false;
+
+public:
+    Compilation_Stage max_stage = Compilation_Stage::analyze;
+
+    bool is_success() const
+    {
+        return !m_failed;
+    }
+    Policy_Action error(IO_Error_Code e) final
+    {
+        m_failed = true;
+        print_io_error(std::cout, file, e);
+        return Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Tokenize_Error& e) final
+    {
+        m_failed = true;
+        print_tokenize_error(std::cout, file, source, e);
+        return Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Parse_Error& e) final
+    {
+        m_failed = true;
+        print_parse_error(std::cout, file, source, e);
+        return Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Analysis_Error& e) final
+    {
+        m_failed = true;
+        if (parsed_program != nullptr) {
+            print_analysis_error(std::cout, *parsed_program, e);
+        }
+        return Policy_Action::FAILURE;
+    }
+    Policy_Action done(Compilation_Stage stage)
+    {
+        return m_failed          ? Policy_Action::FAILURE
+            : stage >= max_stage ? Policy_Action::SUCCESS
+                                 : Policy_Action::CONTINUE;
+    }
+};
+
 /// @brief Returns `true` if the given BMS file passes the various compilation stages.
 /// @param file a path to the BMS file, relative to the test assets directory
 /// @param diagnostics the diagnostics consumer
+/// @param policy a policy on diagnostics
 /// @param until_stage the (inclusive) maximum stage until which the validity test runs.
 /// After that stage is complete, the program is automatically considered valid.
 /// For example, `Compilation_Stage::tokenize` would yield `true` if tokenization succeeds.
 /// @return `true` if compilation stages have passed
 bool test_validity(std::string_view file,
                    bms::Basic_Diagnostic_Consumer& diagnostics,
-                   Compilation_Stage until_stage = Compilation_Stage::analyze)
+                   Printing_Diagnostic_Policy& policy)
 {
     const auto full_path = "test/" + std::string(file);
+    policy.file = full_path;
 
     std::pmr::monotonic_buffer_resource memory;
     Result<std::pmr::string, IO_Error_Code> source = file_to_string(full_path, &memory);
     if (!source) {
-        print_io_error(std::cout, full_path, source.error());
-        return false;
+        return policy.error(source.error()) == Policy_Action::SUCCESS;
     }
-    if (until_stage < Compilation_Stage::tokenize) {
-        return true;
+    switch (policy.done(Compilation_Stage::load_file)) {
+    case Policy_Action::SUCCESS: return true;
+    case Policy_Action::FAILURE: return false;
     }
 
     std::pmr::vector<bms::Token> tokens(&memory);
     if (!bms::tokenize(tokens, *source, diagnostics)) {
-        print_tokenize_error(std::cout, full_path, *source, diagnostics.tokenize_errors.back());
-        return false;
+        return policy.error(diagnostics.tokenize_errors.back()) == Policy_Action::SUCCESS;
     }
-    if (until_stage < Compilation_Stage::parse) {
-        return true;
+    switch (policy.done(Compilation_Stage::tokenize)) {
+    case Policy_Action::SUCCESS: return true;
+    case Policy_Action::FAILURE: return false;
     }
 
     std::optional<bms::Parsed_Program> parsed = bms::parse(tokens, *source, &memory, diagnostics);
     if (!parsed) {
-        print_parse_error(std::cout, full_path, *source, diagnostics.parse_errors.back());
-        return false;
+        return policy.error(diagnostics.parse_errors.back()) == Policy_Action::SUCCESS;
     }
-    if (until_stage < Compilation_Stage::analyze) {
-        return true;
+    switch (policy.done(Compilation_Stage::parse)) {
+    case Policy_Action::SUCCESS: return true;
+    case Policy_Action::FAILURE: return false;
     }
 
     bms::Analyzed_Program analyzed(*parsed, full_path, &memory);
     if (!bms::analyze(analyzed, &memory, diagnostics)) {
-        print_analysis_error(std::cout, *parsed, diagnostics.analysis_errors.back());
-        return false;
+        return policy.error(diagnostics.analysis_errors.back()) == Policy_Action::SUCCESS;
+    }
+    switch (policy.done(Compilation_Stage::analyze)) {
+    case Policy_Action::SUCCESS: return true;
+    case Policy_Action::FAILURE: return false;
     }
 
     BIT_MANIPULATION_ASSERT(diagnostics.ok());
-    return true;
+    return policy.is_success();
 }
 
-bool test_validity(std::string_view file,
-                   Compilation_Stage until_stage = Compilation_Stage::analyze)
+bool test_validity(std::string_view file, Printing_Diagnostic_Policy& policy)
 {
     bms::Basic_Diagnostic_Consumer diagnostics;
-    return test_validity(file, diagnostics, until_stage);
+    return test_validity(file, diagnostics, policy);
+}
+
+bool test_for_success(std::string_view file,
+                      Compilation_Stage until_stage = Compilation_Stage::analyze)
+{
+    Expect_Success_Diagnostic_Policy policy;
+    policy.max_stage = until_stage;
+    return test_validity(file, policy);
 }
 
 TEST(Valid_BMS, assert)
 {
-    EXPECT_TRUE(test_validity("assert.bms"));
+    EXPECT_TRUE(test_for_success("assert.bms"));
 }
 
 TEST(Valid_BMS, deduction)
 {
-    EXPECT_TRUE(test_validity("deduction.bms"));
+    EXPECT_TRUE(test_for_success("deduction.bms"));
 }
 
 TEST(Valid_BMS, identity)
 {
-    EXPECT_TRUE(test_validity("identity.bms"));
+    EXPECT_TRUE(test_for_success("identity.bms"));
 }
 
 TEST(Valid_BMS, if_expression)
 {
-    EXPECT_TRUE(test_validity("if_expression.bms"));
+    EXPECT_TRUE(test_for_success("if_expression.bms"));
 }
 
 TEST(Valid_BMS, loop)
 {
-    EXPECT_TRUE(test_validity("loop.bms"));
+    EXPECT_TRUE(test_for_success("loop.bms"));
 }
 
 TEST(Valid_BMS, static_assert)
 {
-    EXPECT_TRUE(test_validity("static_assert.bms"));
+    EXPECT_TRUE(test_for_success("static_assert.bms"));
 }
 
 TEST(Valid_BMS, void)
 {
-    EXPECT_TRUE(test_validity("void.bms"));
+    EXPECT_TRUE(test_for_success("void.bms"));
 }
 
 } // namespace
