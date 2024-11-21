@@ -342,7 +342,7 @@ public:
                 }
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
                 BIT_MANIPULATION_ASSERT(pos);
-                if (pos->line != *m_expectations.fail_line - 1) {
+                if (pos->line != Size(*m_expectations.fail_line - 1)) {
                     std::cout << ansi::red << "Expected analysis error on line "
                               << *m_expectations.fail_line //
                               << " but error was on line " << pos->line + 1 << ":\n";
@@ -358,7 +358,7 @@ public:
                 }
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.cause);
                 BIT_MANIPULATION_ASSERT(pos);
-                if (pos->line != *m_expectations.cause_line - 1) {
+                if (pos->line != Size(*m_expectations.cause_line - 1)) {
                     std::cout << ansi::red << "Expected analysis error cause on line "
                               << *m_expectations.cause_line //
                               << " but cause was on line " << pos->line + 1 << ":\n";
@@ -412,6 +412,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::load_file)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
+    default: break;
     }
 
     std::pmr::vector<bms::Token> tokens(&memory);
@@ -421,6 +422,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::tokenize)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
+    default: break;
     }
 
     std::optional<bms::Parsed_Program> parsed = bms::parse(tokens, *source, &memory, diagnostics);
@@ -431,6 +433,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::parse)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
+    default: break;
     }
 
     bms::Analyzed_Program analyzed(*parsed, full_path, &memory);
@@ -440,6 +443,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::analyze)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
+    default: break;
     }
 
     BIT_MANIPULATION_ASSERT(diagnostics.ok());
