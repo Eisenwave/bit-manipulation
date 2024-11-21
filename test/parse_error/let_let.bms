@@ -1,0 +1,3 @@
+function awoo() -> Int {
+    let let x = 0;
+}

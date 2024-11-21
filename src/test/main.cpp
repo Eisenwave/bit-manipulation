@@ -8,6 +8,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/basic_diagnostic_consumer.hpp"
+#include "bms/grammar.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
@@ -156,6 +157,83 @@ public:
     }
 };
 
+struct Parse_Error_Expectations {
+    std::optional<bms::Grammar_Rule> rule;
+    std::optional<Size> line;
+    std::optional<bms::Token_Type> token_type;
+};
+
+/// @brief This policy has succeeded when the expected error is raised during parsing.
+/// It has failed when another error is raised, or if parsing succeeds.
+struct Expect_Parse_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
+private:
+    Policy_Action m_state = Policy_Action::CONTINUE;
+    Parse_Error_Expectations m_expectations;
+
+public:
+    explicit Expect_Parse_Error_Diagnostic_Policy(const Parse_Error_Expectations& expectations)
+        : m_expectations(expectations)
+    {
+        BIT_MANIPULATION_ASSERT(!expectations.line || *expectations.line > 0);
+    }
+
+    bool is_success() const
+    {
+        return m_state == Policy_Action::SUCCESS;
+    }
+    Policy_Action error(IO_Error_Code e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_io_error(std::cout, file, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Tokenize_Error& e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_tokenize_error(std::cout, file, source, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Parse_Error& e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
+            std::cout << ansi::red << "Expected error while matching "
+                      << grammar_rule_name(*m_expectations.rule) //
+                      << " but got " << grammar_rule_name(e.fail_rule) << ":\n";
+            goto failed;
+        }
+        if (m_expectations.line && e.fail_token.pos.line != *m_expectations.line - 1) {
+            std::cout << ansi::red << "Expected parse error on line " << *m_expectations.line //
+                      << " but error was on line " << e.fail_token.pos.line + 1 << ":\n";
+            goto failed;
+        }
+        if (m_expectations.token_type && e.fail_token.type != *m_expectations.token_type) {
+            std::cout << ansi::red << "Expected parse error at token of type "
+                      << token_type_readable_name(*m_expectations.token_type) //
+                      << " but error was at " << token_type_readable_name(e.fail_token.type)
+                      << ":\n";
+            goto failed;
+        }
+
+        return m_state = Policy_Action::SUCCESS;
+
+    failed:
+        print_parse_error(std::cout, file, source, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Analysis_Error&) final
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE();
+    }
+    Policy_Action done(Compilation_Stage stage)
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::parse);
+        return stage == Compilation_Stage::parse ? m_state = Policy_Action::SUCCESS
+                                                 : Policy_Action::CONTINUE;
+    }
+};
+
 /// @brief Returns `true` if the given BMS file passes the various compilation stages.
 /// @param file a path to the BMS file, relative to the test assets directory
 /// @param diagnostics the diagnostics consumer
@@ -231,6 +309,12 @@ bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expecte
     return test_validity(file, policy);
 }
 
+bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& expectations)
+{
+    Expect_Parse_Error_Diagnostic_Policy policy { expectations };
+    return test_validity(file, policy);
+}
+
 TEST(Valid_BMS, assert)
 {
     EXPECT_TRUE(test_for_success("assert.bms"));
@@ -288,6 +372,38 @@ TEST(BMS_Tokenize_Error, unterminated_comment)
 {
     EXPECT_TRUE(test_for_diagnostic("tokenize_error/unterminated_comment.bms",
                                     bms::Tokenize_Error_Code::unterminated_comment));
+}
+
+TEST(BMS_Parse_Error, global_let)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .line = 1, .token_type = bms::Token_Type::keyword_let };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/global_let.bms", expectations));
+}
+
+TEST(BMS_Parse_Error, let_let)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .rule = bms::Grammar_Rule::let_declaration,
+          .line = 2,
+          .token_type = bms::Token_Type::keyword_let };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/let_let.bms", expectations));
+}
+
+TEST(BMS_Parse_Error, nameless_function)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .rule = bms::Grammar_Rule::function_declaration,
+          .line = 1,
+          .token_type = bms::Token_Type::left_parenthesis };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/nameless_function.bms", expectations));
+}
+
+TEST(BMS_Parse_Error, unbalanced_parentheses)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .line = 1, .token_type = bms::Token_Type::assign };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/unbalanced_parentheses.bms", expectations));
 }
 
 } // namespace
