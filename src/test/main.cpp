@@ -174,7 +174,7 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
         BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::tokenize);
-        return stage == Compilation_Stage::tokenize ? m_state = Policy_Action::SUCCESS
+        return stage == Compilation_Stage::tokenize ? m_state = Policy_Action::FAILURE
                                                     : Policy_Action::CONTINUE;
     }
 };
@@ -256,7 +256,7 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
         BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::parse);
-        return stage == Compilation_Stage::parse ? m_state = Policy_Action::SUCCESS
+        return stage == Compilation_Stage::parse ? m_state = Policy_Action::FAILURE
                                                  : Policy_Action::CONTINUE;
     }
 };
@@ -418,26 +418,28 @@ public:
                 BIT_MANIPULATION_ASSERT(e.fail);
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
                 BIT_MANIPULATION_ASSERT(pos);
-                if (pos->line != *m_expectations.fail_line - 1)
+                if (pos->line != *m_expectations.fail_line - 1) {
                     std::cout << ansi::red << "Expected analysis error on line "
                               << *m_expectations.fail_line //
                               << " but error was on line " << pos->line + 1 << ":\n";
-                return false;
+                    return false;
+                }
             }
             if (m_expectations.cause_line) {
-                BIT_MANIPULATION_ASSERT(e.fail);
-                std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
+                BIT_MANIPULATION_ASSERT(e.cause);
+                std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.cause);
                 BIT_MANIPULATION_ASSERT(pos);
-                if (pos->line != *m_expectations.fail_line - 1)
+                if (pos->line != *m_expectations.cause_line - 1) {
                     std::cout << ansi::red << "Expected analysis error cause on line "
-                              << *m_expectations.fail_line //
+                              << *m_expectations.cause_line //
                               << " but cause was on line " << pos->line + 1 << ":\n";
-                return false;
+                    return false;
+                }
             }
             return true;
         };
 
-        if (test_expectations()) {
+        if (!test_expectations()) {
             BIT_MANIPULATION_ASSERT(parsed_program);
             print_analysis_error(std::cout, *parsed_program, e);
             return m_state = Policy_Action::FAILURE;
@@ -448,7 +450,7 @@ public:
     Policy_Action done(Compilation_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        return stage == Compilation_Stage::analyze ? m_state = Policy_Action::SUCCESS
+        return stage == Compilation_Stage::analyze ? m_state = Policy_Action::FAILURE
                                                    : Policy_Action::CONTINUE;
     }
 };
@@ -491,6 +493,7 @@ bool test_validity(std::string_view file,
     if (!parsed) {
         return policy.error(diagnostics.parse_errors.back()) == Policy_Action::SUCCESS;
     }
+    policy.parsed_program = &*parsed;
     switch (policy.done(Compilation_Stage::parse)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
