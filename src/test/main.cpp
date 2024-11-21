@@ -218,30 +218,35 @@ public:
     Policy_Action error(const bms::Parse_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
-            std::cout << ansi::red << "Expected error while matching '"
-                      << grammar_rule_name(*m_expectations.rule) //
-                      << "' but got '" << grammar_rule_name(e.fail_rule) << "':\n";
-            goto failed;
-        }
-        if (m_expectations.line && e.fail_token.pos.line != *m_expectations.line - 1) {
-            std::cout << ansi::red << "Expected parse error on line " << *m_expectations.line //
-                      << " but error was on line " << e.fail_token.pos.line + 1 << ":\n";
-            goto failed;
-        }
-        if (m_expectations.token_type && e.fail_token.type != *m_expectations.token_type) {
-            std::cout << ansi::red << "Expected parse error at token of type "
-                      << token_type_readable_name(*m_expectations.token_type) //
-                      << " but error was at " << token_type_readable_name(e.fail_token.type)
-                      << ":\n";
-            goto failed;
+
+        const auto test_expectations = [&]() -> bool {
+            if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
+                std::cout << ansi::red << "Expected error while matching '"
+                          << grammar_rule_name(*m_expectations.rule) //
+                          << "' but got '" << grammar_rule_name(e.fail_rule) << "':\n";
+                return false;
+            }
+            if (m_expectations.line && e.fail_token.pos.line != *m_expectations.line - 1) {
+                std::cout << ansi::red << "Expected parse error on line " << *m_expectations.line //
+                          << " but error was on line " << e.fail_token.pos.line + 1 << ":\n";
+                return false;
+            }
+            if (m_expectations.token_type && e.fail_token.type != *m_expectations.token_type) {
+                std::cout << ansi::red << "Expected parse error at token of type "
+                          << token_type_readable_name(*m_expectations.token_type) //
+                          << " but error was at " << token_type_readable_name(e.fail_token.type)
+                          << ":\n";
+                return false;
+            }
+            return true;
+        };
+
+        if (!test_expectations()) {
+            print_parse_error(std::cout, file, source, e);
+            return m_state = Policy_Action::FAILURE;
         }
 
         return m_state = Policy_Action::SUCCESS;
-
-    failed:
-        print_parse_error(std::cout, file, source, e);
-        return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Analysis_Error&) final
     {
