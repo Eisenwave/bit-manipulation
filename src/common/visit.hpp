@@ -94,6 +94,23 @@ constexpr decltype(auto) fast_visit(F&& f, V&& v)
 }
 
 template <typename F, typename V>
+    requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 5)
+constexpr decltype(auto) fast_visit(F&& f, V&& v)
+{
+    if (v.valueless_by_exception()) {
+        throw std::bad_variant_access();
+    }
+    switch (v.index()) {
+        BIT_MANIPULATION_VISIT_CASE(0);
+        BIT_MANIPULATION_VISIT_CASE(1);
+        BIT_MANIPULATION_VISIT_CASE(2);
+        BIT_MANIPULATION_VISIT_CASE(3);
+        BIT_MANIPULATION_VISIT_CASE(4);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+}
+
+template <typename F, typename V>
     requires(detail::variant_like_size_v<std::remove_cvref_t<V>> == 13)
 constexpr decltype(auto) fast_visit(F&& f, V&& v)
 {
