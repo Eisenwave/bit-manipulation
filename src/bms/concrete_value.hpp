@@ -19,6 +19,16 @@ enum struct Conversion_Error_Code : Default_Underlying {
     int_to_uint_range_error,
 };
 
+constexpr std::string_view conversion_error_code_name(Conversion_Error_Code code)
+{
+    switch (code) {
+        using enum Conversion_Error_Code;
+        BIT_MANIPULATION_ENUM_STRING_CASE(not_convertible);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_to_uint_range_error);
+    };
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
+
 struct Concrete_Value {
     Concrete_Type type;
     Big_Int int_value;

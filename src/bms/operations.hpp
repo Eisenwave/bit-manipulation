@@ -23,6 +23,19 @@ enum struct Evaluation_Error_Code : Default_Underlying {
     assertion_fail,
 };
 
+constexpr std::string_view evaluation_error_code_name(Evaluation_Error_Code code)
+{
+    switch (code) {
+        using enum Evaluation_Error_Code;
+        BIT_MANIPULATION_ENUM_STRING_CASE(type_error);
+        BIT_MANIPULATION_ENUM_STRING_CASE(conversion_error);
+        BIT_MANIPULATION_ENUM_STRING_CASE(division_by_zero);
+        BIT_MANIPULATION_ENUM_STRING_CASE(shift_too_much);
+        BIT_MANIPULATION_ENUM_STRING_CASE(assertion_fail);
+    };
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
+
 enum struct Type_Error_Code : Default_Underlying {
     /// @brief Use of an invalid operator.
     invalid_operator,
@@ -66,6 +79,28 @@ enum struct Builtin_Function : Default_Underlying {
     case assert: return 1;
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
     }
+}
+
+constexpr std::string_view type_error_code_name(Type_Error_Code code)
+{
+    switch (code) {
+        using enum Type_Error_Code;
+        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_operator);
+        BIT_MANIPULATION_ENUM_STRING_CASE(void_operation);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_arithmetic);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_relational_comparison);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(uint_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(non_bool_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
+        BIT_MANIPULATION_ENUM_STRING_CASE(condition_not_bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_number_of_arguments);
+        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
+    };
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
 
 // Type-only evaluations.

@@ -20,6 +20,23 @@ enum struct Execution_Error_Code : Default_Underlying {
     infinite_loop,
 };
 
+constexpr std::string_view execution_error_code_name(Execution_Error_Code code)
+{
+    switch (code) {
+        using enum Execution_Error_Code;
+        BIT_MANIPULATION_ENUM_STRING_CASE(load_uninitialized);
+        BIT_MANIPULATION_ENUM_STRING_CASE(pop);
+        BIT_MANIPULATION_ENUM_STRING_CASE(pop_call);
+        BIT_MANIPULATION_ENUM_STRING_CASE(evaluation);
+        BIT_MANIPULATION_ENUM_STRING_CASE(jump_out_of_program);
+        BIT_MANIPULATION_ENUM_STRING_CASE(jump_if_not_bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(symbolic_jump);
+        BIT_MANIPULATION_ENUM_STRING_CASE(call_out_of_program);
+        BIT_MANIPULATION_ENUM_STRING_CASE(infinite_loop);
+    };
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
+
 struct Execution_Error {
     /// @brief The pointer to the AST node which has emitted the failed instruction.
     const ast::Some_Node* handle;
