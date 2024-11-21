@@ -405,6 +405,13 @@ TEST(BMS_Parse_Error, let_let)
     EXPECT_TRUE(test_for_diagnostic("parse_error/let_let.bms", expectations));
 }
 
+TEST(BMS_Parse_Error, let_no_type_no_init)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .line = 2, .token_type = bms::Token_Type::semicolon };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/let_no_type_no_init.bms", expectations));
+}
+
 TEST(BMS_Parse_Error, nameless_function)
 {
     constexpr Parse_Error_Expectations expectations //
