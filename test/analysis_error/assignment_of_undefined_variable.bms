@@ -1,0 +1,4 @@
+function awoo() -> Void
+{
+    x = 0;
+}

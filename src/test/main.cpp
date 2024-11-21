@@ -142,5 +142,62 @@ TEST(BMS_Analysis_Error, failed_to_define_global_const)
         test_for_diagnostic("analysis_error/failed_to_define_global_const.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, failed_to_define_function)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::failed_to_define_function,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_function.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, failed_to_define_parameter)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::failed_to_define_parameter,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_parameter.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, failed_to_define_variable)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::failed_to_define_variable,
+          .fail_line = 4,
+          .cause_line = 3 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_variable.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, reference_to_undefined_variable)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::reference_to_undefined_variable, .fail_line = 3 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/reference_to_undefined_variable.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, assignment_of_undefined_variable)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::assignment_of_undefined_variable, .fail_line = 3 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/assignment_of_undefined_variable.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, call_to_undefined_function)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::call_to_undefined_function, .fail_line = 3 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/call_to_undefined_function.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, width_not_integer)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_not_integer, .fail_line = 1, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_integer.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
