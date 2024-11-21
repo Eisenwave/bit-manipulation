@@ -199,14 +199,35 @@ enum struct Expression_Context : Default_Underlying {
 
 struct Type_Analyzer {
 private:
-    struct Return_Info {
-        Concrete_Type type;
-        ast::Some_Node* handle;
+    struct Function_Info {
+        ast::Function* function;
+        Concrete_Type return_type;
+        ast::Some_Node* return_type_node;
     };
     Analyzed_Program& m_program;
     std::pmr::unsynchronized_pool_resource m_memory_resource;
     Virtual_Machine constant_evaluation_machine;
-    std::optional<Return_Info> return_info;
+    std::vector<Function_Info> m_function_stack;
+
+    struct Function_Stack_Scope {
+        std::vector<Function_Info>& m_function_stack;
+        ~Function_Stack_Scope()
+        {
+            m_function_stack.pop_back();
+        }
+    };
+
+    [[nodiscard]] Function_Stack_Scope push_function(const Function_Info& info)
+    {
+        m_function_stack.push_back(info);
+        return { m_function_stack };
+    }
+
+    const Function_Info& top_function() const
+    {
+        BIT_MANIPULATION_ASSERT(!m_function_stack.empty());
+        return m_function_stack.back();
+    }
 
 public:
     Type_Analyzer(Analyzed_Program& program, std::pmr::memory_resource* memory)
@@ -290,8 +311,9 @@ private:
             return r;
         }
         auto& return_type = std::get<ast::Type>(*node.get_return_type());
-        return_info = Return_Info { .type = return_type.const_value()->get_type(),
-                                    .handle = node.get_return_type() };
+        auto scope = push_function({ .function = &node,
+                                     .return_type = return_type.const_value()->get_type(),
+                                     .return_type_node = node.get_return_type() });
 
         if (node.get_requires_clause() != nullptr) {
             auto& expr_const_value = get_const_value(*node.get_requires_clause());
@@ -614,11 +636,12 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        const Function_Info& function_info = top_function();
+
         if (!node.get_expression()) {
-            BIT_MANIPULATION_ASSERT(return_info);
-            if (return_info->type != Concrete_Type::Void) {
+            if (function_info.return_type != Concrete_Type::Void) {
                 return Analysis_Error { Analysis_Error_Code::empty_return_in_non_void_function,
-                                        handle, return_info->handle };
+                                        handle, function_info.return_type_node };
             }
             node.const_value() = Concrete_Value::Void;
             return {};
@@ -629,13 +652,14 @@ private:
         }
         auto expr_value = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
-        if (!expr_value->get_type().is_convertible_to(return_info->type)) {
+        if (!expr_value->get_type().is_convertible_to(function_info.return_type)) {
             return Analysis_Error { Type_Error_Code::incompatible_types, handle,
-                                    return_info->handle };
+                                    function_info.return_type_node };
         }
         const Result<Value, Conversion_Error_Code> eval_result
-            = evaluate_conversion(*expr_value, return_info->type);
-        node.const_value() = eval_result ? *eval_result : Value::unknown_of_type(return_info->type);
+            = evaluate_conversion(*expr_value, function_info.return_type);
+        node.const_value()
+            = eval_result ? *eval_result : Value::unknown_of_type(function_info.return_type);
         return {};
     }
 
@@ -948,15 +972,24 @@ private:
             ? Analysis_Level::for_constant_evaluation
             : Analysis_Level::shallow;
 
-        {
-            // What we do here is akin to using a caller-saved register.
-            // We would need a whole stack of return infos otherwise.
-            auto preserved_return_info = return_info;
-            auto r = analyze_types(node.lookup_result, *function, inner_level, context);
-            if (!r) {
-                return r;
+        // 5.1. It is possible that while analyzing a constant-evaluated function call,
+        //      the surrounding function (directly or indirectly) would have to be analyzed.
+        //      This is impossible, and we need to detect this case.
+
+        if (inner_level == Analysis_Level::for_constant_evaluation) {
+            for (const Function_Info& info : m_function_stack) {
+                if (function == info.function) {
+                    // TODO: this should probably use a different diagnostic or the diagnostic
+                    //       should be renamed
+                    return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, handle,
+                                            node.lookup_result };
+                }
             }
-            return_info = preserved_return_info;
+        }
+
+        auto r = analyze_types(node.lookup_result, *function, inner_level, context);
+        if (!r) {
+            return r;
         }
 
         BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
