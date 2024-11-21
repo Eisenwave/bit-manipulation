@@ -92,6 +92,7 @@ add_executable(bm-test ${HEADERS}
     src/test/compilation_stage.hpp
     src/test/diagnostic_policy.hpp
     src/test/main.cpp
+    src/test/program_file_testing.cpp
 )
 
 add_compile_options(${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
