@@ -976,6 +976,8 @@ private:
         //      the surrounding function (directly or indirectly) would have to be analyzed.
         //      This is impossible, and we need to detect this case.
 
+        // TODO: instead of a stack, we could also use a bool for functions and constants
+        //       or simply all nodes, and track whether they are under analysis
         if (inner_level == Analysis_Level::for_constant_evaluation) {
             for (const Function_Info& info : m_function_stack) {
                 if (function == info.function) {
