@@ -17,11 +17,6 @@
 namespace bit_manipulation {
 namespace {
 
-constexpr auto operator<=>(Compilation_Stage a, Compilation_Stage b)
-{
-    return static_cast<Default_Underlying>(a) <=> static_cast<Default_Underlying>(b);
-}
-
 std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory)
 {
     Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);

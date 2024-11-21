@@ -89,6 +89,8 @@ add_executable(bm-cli ${HEADERS}
 )
 
 add_executable(bm-test ${HEADERS}
+    src/test/compilation_stage.hpp
+    src/test/diagnostic_policy.hpp
     src/test/main.cpp
 )
 

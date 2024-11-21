@@ -9,6 +9,8 @@
 #include "bms/parse_error.hpp"
 #include "bms/tokenize_error.hpp"
 
+#include "test/compilation_stage.hpp"
+
 namespace bit_manipulation {
 
 enum struct Policy_Action {
@@ -24,8 +26,6 @@ constexpr bool is_exit(Policy_Action action)
 {
     return action != Policy_Action::CONTINUE;
 }
-
-enum struct Compilation_Stage : Default_Underlying { load_file, tokenize, parse, analyze };
 
 /// @brief A polymorphic class for deciding which `Policy_Action` to take when various diagnostics
 /// are raised throughout testing.
