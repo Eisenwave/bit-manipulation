@@ -266,9 +266,10 @@ public:
     [[nodiscard]] constexpr Analysis_Error(const Execution_Error& error,
                                            const ast::Some_Node* fail,
                                            const ast::Some_Node* cause = {})
-        : fail(fail)
+        : comparison_failure(error.comparison_failure)
+        , fail(fail)
         , cause(cause)
-        , comparison_failure(error.comparison_failure)
+
     {
         if (error.code == Execution_Error_Code::evaluation) {
             m_code = Analysis_Error_Code::evaluation_error;
