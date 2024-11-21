@@ -69,7 +69,7 @@ std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_E
 
 } // namespace
 
-std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectations& e)
+std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectation& e)
 {
     out << analysis_error_code_name(e.m_code);
 
@@ -104,7 +104,7 @@ std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectatio
         e.m_detail);
 }
 
-bool Analysis_Error_Code_Expectations::met_by(const bms::Analysis_Error& e) const
+bool Analysis_Error_Code_Expectation::met_by(const bms::Analysis_Error& e) const
 {
     if (m_code != e.code()) {
         return false;

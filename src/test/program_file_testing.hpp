@@ -17,7 +17,10 @@ struct Parse_Error_Expectations {
     std::optional<bms::Token_Type> token_type;
 };
 
-struct Analysis_Error_Code_Expectations {
+/// @brief An expectation towards an error code in a `bms::Analysis_Error`.
+/// Besides just checking if the `.code()` matches, this expectation can also
+/// verify if the detailed code (e.g. `.type_error()`) matches.
+struct Analysis_Error_Code_Expectation {
 private:
     bms::Analysis_Error_Code m_code;
     std::variant<std::monostate,
@@ -28,47 +31,42 @@ private:
         m_detail;
 
 public:
-    constexpr Analysis_Error_Code_Expectations(bms::Analysis_Error_Code code)
+    constexpr Analysis_Error_Code_Expectation(bms::Analysis_Error_Code code)
         : m_code(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectations(bms::Type_Error_Code code)
+    constexpr Analysis_Error_Code_Expectation(bms::Type_Error_Code code)
         : m_code(bms::Analysis_Error_Code::type_error)
         , m_detail(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectations(bms::Evaluation_Error_Code code)
+    constexpr Analysis_Error_Code_Expectation(bms::Evaluation_Error_Code code)
         : m_code(bms::Analysis_Error_Code::evaluation_error)
         , m_detail(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectations(bms::Execution_Error_Code code)
+    constexpr Analysis_Error_Code_Expectation(bms::Execution_Error_Code code)
         : m_code(bms::Analysis_Error_Code::execution_error)
         , m_detail(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectations(bms::Conversion_Error_Code code)
+    constexpr Analysis_Error_Code_Expectation(bms::Conversion_Error_Code code)
         : m_code(bms::Analysis_Error_Code::conversion_error)
         , m_detail(code)
     {
     }
 
-    constexpr bms::Analysis_Error_Code code() const
-    {
-        return m_code;
-    }
-
     bool met_by(const bms::Analysis_Error& e) const;
 
-    friend std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectations& e);
+    friend std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectation& e);
 };
 
 struct Analysis_Error_Expectations {
-    Analysis_Error_Code_Expectations code;
+    Analysis_Error_Code_Expectation code;
     std::optional<int> fail_line;
     std::optional<int> cause_line;
 };
