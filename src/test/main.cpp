@@ -534,6 +534,12 @@ bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& 
     return test_validity(file, policy);
 }
 
+bool test_for_diagnostic(std::string_view file, const Analysis_Error_Expectations& expectations)
+{
+    Expect_Analysis_Error_Diagnostic_Policy policy { expectations };
+    return test_validity(file, policy);
+}
+
 TEST(BMS_Syntax, empty_function_void)
 {
     EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms"));
@@ -645,6 +651,16 @@ TEST(BMS_Parse_Error, unbalanced_parentheses)
     constexpr Parse_Error_Expectations expectations //
         { .line = 1, .token_type = bms::Token_Type::assign };
     EXPECT_TRUE(test_for_diagnostic("parse_error/unbalanced_parentheses.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, failed_to_define_global_const)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::failed_to_define_global_const,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/failed_to_define_global_const.bms", expectations));
 }
 
 } // namespace
