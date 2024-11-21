@@ -7,8 +7,10 @@
 #include "common/result.hpp"
 
 #include "bms/analyze.hpp"
+#include "bms/ast.hpp"
 #include "bms/basic_diagnostic_consumer.hpp"
 #include "bms/grammar.hpp"
+#include "bms/operations.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
@@ -40,6 +42,31 @@ parse_bms_file(std::string_view source, std::string_view file, std::pmr::memory_
     Result<bms::Parsed_Program, bms::Parse_Error> parsed = bms::parse(tokens, source, memory);
     BIT_MANIPULATION_ASSERT(parsed);
     return std::move(*parsed);
+}
+
+std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_Error& e)
+{
+    out << analysis_error_code_name(e.code());
+
+    const auto print_parenthesized
+        = [&](std::string_view s) -> std::ostream& { return out << '(' << s << ')'; };
+
+    switch (e.code()) {
+        using enum bms::Analysis_Error_Code;
+    case type_error: {
+        return print_parenthesized(type_error_code_name(e.type_error()));
+    }
+    case execution_error: {
+        return print_parenthesized(execution_error_code_name(e.execution_error()));
+    }
+    case evaluation_error: {
+        return print_parenthesized(evaluation_error_code_name(e.evaluation_error()));
+    }
+    case conversion_error: {
+        return print_parenthesized(conversion_error_code_name(e.conversion_error()));
+    }
+    default: return out;
+    }
 }
 
 /// @brief A `Diagnostic_Policy` which stores extra `file` and `source` members to enable
@@ -226,6 +253,198 @@ public:
         BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::parse);
         return stage == Compilation_Stage::parse ? m_state = Policy_Action::SUCCESS
                                                  : Policy_Action::CONTINUE;
+    }
+};
+
+struct Analysis_Error_Code_Expectations {
+private:
+    bms::Analysis_Error_Code m_code;
+    std::variant<std::monostate,
+                 bms::Type_Error_Code,
+                 bms::Evaluation_Error_Code,
+                 bms::Execution_Error_Code,
+                 bms::Conversion_Error_Code>
+        m_detail;
+
+public:
+    constexpr Analysis_Error_Code_Expectations(bms::Analysis_Error_Code code)
+        : m_code(code)
+    {
+    }
+
+    constexpr Analysis_Error_Code_Expectations(bms::Type_Error_Code code)
+        : m_code(bms::Analysis_Error_Code::type_error)
+        , m_detail(code)
+    {
+    }
+
+    constexpr Analysis_Error_Code_Expectations(bms::Evaluation_Error_Code code)
+        : m_code(bms::Analysis_Error_Code::evaluation_error)
+        , m_detail(code)
+    {
+    }
+
+    constexpr Analysis_Error_Code_Expectations(bms::Execution_Error_Code code)
+        : m_code(bms::Analysis_Error_Code::execution_error)
+        , m_detail(code)
+    {
+    }
+
+    constexpr Analysis_Error_Code_Expectations(bms::Conversion_Error_Code code)
+        : m_code(bms::Analysis_Error_Code::conversion_error)
+        , m_detail(code)
+    {
+    }
+
+    constexpr bms::Analysis_Error_Code code() const
+    {
+        return m_code;
+    }
+
+    constexpr bool met_by(const bms::Analysis_Error& e) const
+    {
+        if (m_code != e.code()) {
+            return false;
+        }
+        switch (m_code) {
+        case bms::Analysis_Error_Code::type_error:
+            return e.type_error() == std::get<bms::Type_Error_Code>(m_detail);
+        case bms::Analysis_Error_Code::evaluation_error:
+            return e.evaluation_error() == std::get<bms::Evaluation_Error_Code>(m_detail);
+        case bms::Analysis_Error_Code::execution_error:
+            return e.execution_error() == std::get<bms::Execution_Error_Code>(m_detail);
+        case bms::Analysis_Error_Code::conversion_error:
+            return e.conversion_error() == std::get<bms::Conversion_Error_Code>(m_detail);
+        default: return true;
+        }
+    }
+
+    friend std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectations& e)
+    {
+        out << analysis_error_code_name(e.m_code);
+
+        const auto print_parenthesized
+            = [&](std::string_view s) -> std::ostream& { return out << '(' << s << ')'; };
+
+        return fast_visit(
+            [&](auto code) -> std::ostream& {
+                using T = decltype(code);
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    return out;
+                }
+                else if constexpr (std::is_same_v<T, bms::Type_Error_Code>) {
+                    return print_parenthesized(type_error_code_name(code));
+                }
+                else if constexpr (std::is_same_v<T, bms::Execution_Error_Code>) {
+                    return print_parenthesized(execution_error_code_name(code));
+                }
+                else if constexpr (std::is_same_v<T, bms::Evaluation_Error_Code>) {
+                    return print_parenthesized(evaluation_error_code_name(code));
+                }
+                else if constexpr (std::is_same_v<T, bms::Type_Error_Code>) {
+                    return print_parenthesized(type_error_code_name(code));
+                }
+                else {
+                    // TODO: this should be static_assert(false), but we need more recent
+                    //       IntelliSense to not think that it's bad
+                    //       The point is that we want this if-chain to be exhaustive.
+                    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+                }
+            },
+            e.m_detail);
+    }
+};
+
+struct Analysis_Error_Expectations {
+    Analysis_Error_Code_Expectations code;
+    std::optional<int> fail_line;
+    std::optional<int> cause_line;
+};
+
+/// @brief This policy has succeeded when the expected error is raised during parsing.
+/// It has failed when another error is raised, or if parsing succeeds.
+struct Expect_Analysis_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
+private:
+    Policy_Action m_state = Policy_Action::CONTINUE;
+    Analysis_Error_Expectations m_expectations;
+
+public:
+    explicit Expect_Analysis_Error_Diagnostic_Policy(
+        const Analysis_Error_Expectations& expectations)
+        : m_expectations(expectations)
+    {
+        BIT_MANIPULATION_ASSERT(!expectations.fail_line || *expectations.fail_line > 0);
+        BIT_MANIPULATION_ASSERT(!expectations.cause_line || *expectations.cause_line > 0);
+    }
+
+    bool is_success() const
+    {
+        return m_state == Policy_Action::SUCCESS;
+    }
+    Policy_Action error(IO_Error_Code e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_io_error(std::cout, file, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Tokenize_Error& e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_tokenize_error(std::cout, file, source, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+    Policy_Action error(const bms::Parse_Error& e) final
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        print_parse_error(std::cout, file, source, e);
+        return m_state = Policy_Action::FAILURE;
+    }
+
+    Policy_Action error(const bms::Analysis_Error& e) final
+    {
+        const auto test_expectations = [&]() -> bool {
+            if (!m_expectations.code.met_by(e)) {
+                std::cout << ansi::red << "Expected '" << m_expectations.code //
+                          << "' but got '";
+                print_analysis_error_name(std::cout, e) << "':\n";
+                return false;
+            }
+            if (m_expectations.fail_line) {
+                BIT_MANIPULATION_ASSERT(e.fail);
+                std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
+                BIT_MANIPULATION_ASSERT(pos);
+                if (pos->line != *m_expectations.fail_line - 1)
+                    std::cout << ansi::red << "Expected analysis error on line "
+                              << *m_expectations.fail_line //
+                              << " but error was on line " << pos->line + 1 << ":\n";
+                return false;
+            }
+            if (m_expectations.cause_line) {
+                BIT_MANIPULATION_ASSERT(e.fail);
+                std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
+                BIT_MANIPULATION_ASSERT(pos);
+                if (pos->line != *m_expectations.fail_line - 1)
+                    std::cout << ansi::red << "Expected analysis error cause on line "
+                              << *m_expectations.fail_line //
+                              << " but cause was on line " << pos->line + 1 << ":\n";
+                return false;
+            }
+            return true;
+        };
+
+        if (test_expectations()) {
+            BIT_MANIPULATION_ASSERT(parsed_program);
+            print_analysis_error(std::cout, *parsed_program, e);
+            return m_state = Policy_Action::FAILURE;
+        }
+        return m_state = Policy_Action::SUCCESS;
+    }
+
+    Policy_Action done(Compilation_Stage stage)
+    {
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        return stage == Compilation_Stage::analyze ? m_state = Policy_Action::SUCCESS
+                                                   : Policy_Action::CONTINUE;
     }
 };
 
