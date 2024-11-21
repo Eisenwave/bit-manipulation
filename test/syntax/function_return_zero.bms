@@ -1,0 +1,4 @@
+function empty() -> Int
+{
+    return 0;
+}

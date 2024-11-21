@@ -315,6 +315,21 @@ bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& 
     return test_validity(file, policy);
 }
 
+TEST(BMS_Syntax, empty_function_void)
+{
+    EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms"));
+}
+
+TEST(BMS_Syntax, function_return_zero)
+{
+    EXPECT_TRUE(test_for_success("syntax/function_return_zero.bms"));
+}
+
+TEST(BMS_Syntax, global_const)
+{
+    EXPECT_TRUE(test_for_success("syntax/global_const.bms"));
+}
+
 TEST(Valid_BMS, assert)
 {
     EXPECT_TRUE(test_for_success("assert.bms"));
