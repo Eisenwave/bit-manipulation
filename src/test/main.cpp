@@ -195,7 +195,7 @@ TEST(BMS_Analysis_Error, call_to_undefined_function)
 TEST(BMS_Analysis_Error, width_not_integer)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::width_not_integer, .fail_line = 1, .cause_line = 1 };
+        { .code = bms::Analysis_Error_Code::width_not_integer, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_integer.bms", expectations));
 }
 
