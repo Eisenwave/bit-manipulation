@@ -359,7 +359,12 @@ public:
                 return false;
             }
             if (m_expectations.fail_line) {
-                BIT_MANIPULATION_ASSERT(e.fail);
+                if (!e.fail) {
+                    std::cout << ansi::red << "Expected analysis have failed on line "
+                              << *m_expectations.fail_line //
+                              << " but it has not failed on any specific AST node:\n";
+                    return false;
+                }
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
                 BIT_MANIPULATION_ASSERT(pos);
                 if (pos->line != *m_expectations.fail_line - 1) {
@@ -370,7 +375,12 @@ public:
                 }
             }
             if (m_expectations.cause_line) {
-                BIT_MANIPULATION_ASSERT(e.cause);
+                if (!e.cause) {
+                    std::cout << ansi::red << "Expected analysis error to have cause on line "
+                              << *m_expectations.cause_line //
+                              << " but error has no cause:\n";
+                    return false;
+                }
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.cause);
                 BIT_MANIPULATION_ASSERT(pos);
                 if (pos->line != *m_expectations.cause_line - 1) {
