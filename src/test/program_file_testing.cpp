@@ -17,31 +17,6 @@
 namespace bit_manipulation {
 namespace {
 
-std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory)
-{
-    Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
-    BIT_MANIPULATION_ASSERT(result);
-    return std::move(*result);
-}
-
-std::pmr::vector<bms::Token>
-tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
-{
-    std::pmr::vector<bms::Token> tokens(memory);
-    const Result<void, bms::Tokenize_Error> result = tokenize(tokens, source);
-    BIT_MANIPULATION_ASSERT(result);
-    return tokens;
-}
-
-bms::Parsed_Program
-parse_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
-{
-    std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
-    Result<bms::Parsed_Program, bms::Parse_Error> parsed = bms::parse(tokens, source, memory);
-    BIT_MANIPULATION_ASSERT(parsed);
-    return std::move(*parsed);
-}
-
 std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_Error& e)
 {
     out << analysis_error_code_name(e.code());
