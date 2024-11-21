@@ -135,8 +135,8 @@ public:
         if (e.code == m_expected) {
             return m_state = Policy_Action::SUCCESS;
         }
-        std::cout << ansi::red << "Expected " << name_of(m_expected) //
-                  << " but got " << name_of(e.code) << ":\n";
+        std::cout << ansi::red << "Expected '" << name_of(m_expected) //
+                  << "' but got '" << name_of(e.code) << "':\n";
         print_tokenize_error(std::cout, file, source, e);
         return m_state = Policy_Action::FAILURE;
     }
@@ -197,9 +197,9 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
         if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
-            std::cout << ansi::red << "Expected error while matching "
+            std::cout << ansi::red << "Expected error while matching '"
                       << grammar_rule_name(*m_expectations.rule) //
-                      << " but got " << grammar_rule_name(e.fail_rule) << ":\n";
+                      << "' but got '" << grammar_rule_name(e.fail_rule) << "':\n";
             goto failed;
         }
         if (m_expectations.line && e.fail_token.pos.line != *m_expectations.line - 1) {
