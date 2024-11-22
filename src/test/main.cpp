@@ -396,5 +396,40 @@ TEST(BMS_Type_Error, void_operation)
     EXPECT_TRUE(test_for_diagnostic("type_error/void_operation.bms", expectations));
 }
 
+TEST(BMS_Type_Error, bool_arithmetic)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::bool_arithmetic, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/bool_arithmetic.bms", expectations));
+}
+
+TEST(BMS_Type_Error, bool_bitwise)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::bool_bitwise, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/bool_bitwise.bms", expectations));
+}
+
+TEST(BMS_Type_Error, bool_relational_comparison)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::bool_relational_comparison, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/bool_relational_comparison.bms", expectations));
+}
+
+TEST(BMS_Type_Error, int_bitwise)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::int_bitwise, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/int_bitwise.bms", expectations));
+}
+
+TEST(BMS_Type_Error, non_bool_logical)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::non_bool_logical, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/non_bool_logical.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
