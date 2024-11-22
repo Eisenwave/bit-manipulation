@@ -144,7 +144,7 @@ private:
             return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
                                     *old };
         }
-        return {};
+        return analyze_all_symbols_local(n.get_children(), m_symbols);
     }
 
     Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle, ast::Function& n)
