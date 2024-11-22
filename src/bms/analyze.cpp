@@ -54,6 +54,9 @@ public:
     {
     }
 
+    /// @brief Instantiates every bit-generic function in the program using the same `Widths`.
+    /// This is mostly useful for testing purposes and cannot be triggered "naturally" through
+    /// implicit instantiations.
     Result<void, Analysis_Error> instantiate_all(const Widths& w)
     {
         for (ast::Some_Node* decl : get_children(*m_program.get_root())) {
@@ -67,6 +70,18 @@ public:
         return {};
     }
 
+    /// @brief Instantiates an individual function.
+    /// Contrary to `instantiate_all`, this may be necessitated by implicit instantiations,
+    /// for example when a function taking `Uint(N)` is called.
+    ///
+    /// At a high level, the process of instantiation works as follows:
+    ///   1. Make a `deep_copy` of the node to be instantiated
+    ///   2. `substitute_widths` to replace occurrences of bit-generic parameters with constants
+    ///   3. Append the resulting `ast::Function::Instance` to the existing node
+    /// @param h the pointer to the function node
+    /// @param node the function node
+    /// @param w the widths for instantiation
+    /// @return the instantiated instance, or `Analysis_Error`
     Result<const ast::Function::Instance*, Analysis_Error>
     instantiate_function(ast::Some_Node* h, ast::Function& node, const Widths& w)
     {
@@ -78,7 +93,8 @@ public:
 
         ast::Some_Node* instance = deep_copy(h);
         auto& instance_node = std::get<ast::Function>(*instance);
-        auto effective_widths = substitute_widths(instance_node, w);
+        Result<std::pmr::vector<int>, Analysis_Error> effective_widths
+            = substitute_widths(instance_node, w);
         if (!effective_widths) {
             return effective_widths.error();
         }
