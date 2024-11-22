@@ -313,5 +313,15 @@ TEST(BMS_Analysis_Error, codegen_call_to_unanalyzed)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/codegen_call_to_unanalyzed.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, width_deduction_from_non_uint)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_deduction_from_non_uint,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/width_deduction_from_non_uint.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
