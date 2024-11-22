@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BMS_BMS_HPP
 
 #include <optional>
+#include <string_view>
 
 #include "bms/comparison_failure.hpp"
 #include "bms/concrete_value.hpp"
@@ -116,7 +117,7 @@ enum struct Analysis_Error_Code : Default_Underlying {
     empty_return_in_non_void_function,
 };
 
-constexpr const char* analysis_error_code_name(Analysis_Error_Code code)
+constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
 {
     switch (code) {
         using enum Analysis_Error_Code;
