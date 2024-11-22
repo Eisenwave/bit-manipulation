@@ -1095,10 +1095,7 @@ private:
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         handle, node.lookup_result };
             }
-            if (!looked_up_var->const_value()) {
-                return Analysis_Error { Analysis_Error_Code::use_of_undefined_variable, handle,
-                                        node.lookup_result };
-            }
+            BIT_MANIPULATION_ASSERT(looked_up_var->was_analyzed());
             node.const_value() = looked_up_var->const_value();
             return {};
         }
