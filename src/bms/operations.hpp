@@ -50,12 +50,15 @@ enum struct Type_Error_Code : Default_Underlying {
     bool_bitwise,
     /// @brief a relational comparison with bool was attempted.
     bool_relational_comparison,
-    /// @brief Arithmetic with bool was attempted, such as +true.
+    /// @brief Bitwise operators were applied to Int.
     int_bitwise,
+
+    // FIXME: int_logical and uint_logical may be dead because of non_bool_logical
     /// @brief Logical operators were applied to Int.
     int_logical,
     /// @brief Logical operators were applied to Uint.
     uint_logical,
+
     /// @brief Logical operators were applied to something other than bool.
     non_bool_logical,
     /// @brief A binary or n-ary operation with incompatible types was attempted.
