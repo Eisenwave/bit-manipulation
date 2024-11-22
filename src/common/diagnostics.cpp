@@ -151,7 +151,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "The expression of a static assertion must be of type 'Bool'.";
     case static_assertion_failed: return "Static assertion failed.";
     case requires_clause_not_bool:
-        return "The expression in a requires-clause must be of type 'Bool.";
+        return "The expression in a requires-clause must be of type 'Bool'.";
     case requires_clause_not_satisfied: return "Requires-clause was not satisfied.";
     case use_of_undefined_variable: return "Use of undefined variable.";
     case use_of_undefined_constant: return "Use of undefined constant.";
