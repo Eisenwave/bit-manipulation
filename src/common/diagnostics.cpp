@@ -88,12 +88,14 @@ const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::str
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
     switch (e) {
-    case bms::Tokenize_Error_Code::illegal_character: return "Illegal character encountered.";
-    case bms::Tokenize_Error_Code::integer_suffix:
+    case bms::Tokenize_Error_Code::illegal_character: //
+        return "Illegal character encountered.";
+    case bms::Tokenize_Error_Code::integer_suffix: //
         return "Suffix after integer literal is not allowed";
-    case bms::Tokenize_Error_Code::unterminated_comment:
+    case bms::Tokenize_Error_Code::unterminated_comment: //
         return "Unterminated block comment found. '/*' must have a matching '*/'";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    default: //
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
     }
 }
 
@@ -101,61 +103,78 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
     switch (e) {
-    case failed_to_define_global_const:
+    case failed_to_define_global_const: //
         return "A name was already in use when attempting to define a global constant.";
-    case failed_to_define_function:
+    case failed_to_define_function: //
         return "A name was already in use when attempting to define a function.";
-    case failed_to_define_parameter:
+    case failed_to_define_parameter: //
         return "A name was already in use when attempting to define a function parameter.";
-    case failed_to_define_variable:
+    case failed_to_define_variable: //
         return "A name was already in use when attempting to define a variable.";
-    case reference_to_undefined_variable:
+    case reference_to_undefined_variable: //
         return "An expression attempted to look up a variable or parameter, but it was not "
                "defined.";
-    case assignment_of_undefined_variable:
+    case assignment_of_undefined_variable: //
         return "An assignment attempted to assign a variable which is not defined.";
-    case call_to_undefined_function:
+    case call_to_undefined_function: //
         return "A function call to an undefined function was attempted.";
-    case width_not_integer: return "The width of Uint must be an integer.";
-    case width_not_const: return "The width of Uint must be a constant expression.";
-    case width_too_large: return "The width of Uint exceeds the maximum.";
-    case width_zero: return "The width of Uint must not be zero.";
-    case expected_constant_expression:
+    case width_not_integer: //
+        return "The width of Uint must be an integer.";
+    case width_not_const: //
+        return "The width of Uint must be a constant expression.";
+    case width_too_large: //
+        return "The width of Uint exceeds the maximum.";
+    case width_zero: //
+        return "The width of Uint must not be zero.";
+    case expected_constant_expression: //
         return "Expected a constant expression, but was unable to perform constant folding.";
-    case let_variable_in_constant_expression:
+    case let_variable_in_constant_expression: //
         return "Cannot use variables in a constant expression. Did you mean 'const'?";
-    case parameter_in_constant_expression:
+    case parameter_in_constant_expression: //
         return "Cannot use function parameters in a constant expression.";
-    case function_in_expression:
+    case function_in_expression: //
         return "Attempted to use a function in an expression as if it was a variable.";
-    case type_error: return "Type error.";
-    case conversion_error: return "Implicit conversion is invalid.";
-    case execution_error:
+    case type_error: //
+        return "Type error.";
+    case conversion_error: //
+        return "Implicit conversion is invalid.";
+    case execution_error: //
         return "Error in the execution of the generated code for constant-evaluated functions.";
-    case evaluation_error: return "Evaluation error in constant expressions or constant folding.";
-    case condition_not_bool:
+    case evaluation_error: //
+        return "Evaluation error in constant expressions or constant folding.";
+    case condition_not_bool: //
         return "Condition of an if statement or while loop must be of type 'Bool'.";
-    case invalid_integer_literal:
+    case invalid_integer_literal: //
         return "The given literal is invalid, possibly because it is too large for the compiler's "
                "internal integer representation.";
-    case assigning_parameter: return "Cannot assign a function parameter.";
-    case assigning_function: return "Cannot assign a function.";
-    case assigning_const: return "Cannot assign a constant. Did you mean to use 'let'?";
-    case call_non_function: return "Cannot call something that is not a function.";
-    case wrong_number_of_arguments: return "Wrong number of arguments provided to function.";
-    case codegen_call_to_unanalyzed:
+    case assigning_parameter: //
+        return "Cannot assign a function parameter.";
+    case assigning_function: //
+        return "Cannot assign a function.";
+    case assigning_const: //
+        return "Cannot assign a constant. Did you mean to use 'let'?";
+    case call_non_function: //
+        return "Cannot call something that is not a function.";
+    case wrong_number_of_arguments: //
+        return "Wrong number of arguments provided to function.";
+    case codegen_call_to_unanalyzed: //
         return "Constant evaluation depends on a function whose definition is not yet complete.";
-    case width_deduction_from_non_uint:
+    case width_deduction_from_non_uint: //
         return "Cannot deduce the width of Uint from a type that is not Uint.";
-    case static_assert_expression_not_bool:
+    case static_assert_expression_not_bool: //
         return "The expression of a static assertion must be of type 'Bool'.";
-    case static_assertion_failed: return "Static assertion failed.";
-    case requires_clause_not_bool:
+    case static_assertion_failed: //
+        return "Static assertion failed.";
+    case requires_clause_not_bool: //
         return "The expression in a requires-clause must be of type 'Bool'.";
-    case requires_clause_not_satisfied: return "Requires-clause was not satisfied.";
-    case use_of_undefined_variable: return "Use of undefined variable.";
-    case use_of_undefined_constant: return "Use of undefined constant.";
-    case empty_return_in_non_void_function: return "Cannot return nothing in a non-void function.";
+    case requires_clause_not_satisfied: //
+        return "Requires-clause was not satisfied.";
+    case use_of_undefined_variable: //
+        return "Use of undefined variable.";
+    case use_of_undefined_constant: //
+        return "Use of undefined constant.";
+    case empty_return_in_non_void_function: //
+        return "Cannot return nothing in a non-void function.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -164,22 +183,35 @@ std::string_view to_prose(bms::Type_Error_Code e)
 {
     using enum bms::Type_Error_Code;
     switch (e) {
-    case invalid_operator: return "Invalid operator is used.";
-    case void_operation: return "Cannot perform operations for operands of type 'Void'.";
-    case bool_arithmetic: return "Cannot use arithmetic operators for operands of type 'Bool'.";
-    case bool_bitwise: return "Cannot use bitwise operators for operands of type 'Bool'.";
-    case bool_relational_comparison:
-        return "Cannot use relational comparisons between operands of type 'Bool'. Only logical "
-               "comparisons are allowed.";
-    case int_bitwise: return "Cannot use bitwise operators for operands of type 'Int'.";
-    case int_logical: return "Cannot use logical operators for operands of type 'Int'.";
-    case uint_logical: return "Cannot us logical operators for operands of type 'Uint'.";
-    case non_bool_logical: return "Logical operators can only be applied to 'Bool'.";
-    case incompatible_types: return "Incompatible types for operation or conversion.";
-    case incompatible_widths: return "Incompatible Uint widths for operation or conversion.";
-    case condition_not_bool: return "The condition of an if-expression must be of type 'Bool'";
-    case wrong_number_of_arguments: return "Wrong number of arguments for function call.";
-    case wrong_argument_type: return "Wrong argument types for function call.";
+    case invalid_operator: //
+        return "Invalid operator is used.";
+    case void_operation: //
+        return "Cannot perform operations for operands of type 'Void'.";
+    case bool_arithmetic: //
+        return "Cannot use arithmetic operators for operands of type 'Bool'.";
+    case bool_bitwise: //
+        return "Cannot use bitwise operators for operands of type 'Bool'.";
+    case bool_relational_comparison: //
+        return "Cannot use relational comparisons between operands of type 'Bool'."
+               " Only logical comparisons are allowed.";
+    case int_bitwise: //
+        return "Cannot use bitwise operators for operands of type 'Int'.";
+    case int_logical: //
+        return "Cannot use logical operators for operands of type 'Int'.";
+    case uint_logical: //
+        return "Cannot us logical operators for operands of type 'Uint'.";
+    case non_bool_logical: //
+        return "Logical operators can only be applied to 'Bool'.";
+    case incompatible_types: //
+        return "Incompatible types for operation or conversion.";
+    case incompatible_widths: //
+        return "Incompatible Uint widths for operation or conversion.";
+    case condition_not_bool: //
+        return "The condition of an if-expression must be of type 'Bool'";
+    case wrong_number_of_arguments: //
+        return "Wrong number of arguments for function call.";
+    case wrong_argument_type: //
+        return "Wrong argument types for function call.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -188,11 +220,16 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
 {
     using enum bms::Evaluation_Error_Code;
     switch (e) {
-    case type_error: return "The evaluation violates the type system.";
-    case conversion_error: return "The evaluation involves an invalid implicit conversion.";
-    case division_by_zero: return "Division by zero.";
-    case shift_too_much: return "Bit-shift was not less than the operand size.";
-    case assertion_fail: return "Assertion failed.";
+    case type_error: //
+        return "The evaluation violates the type system.";
+    case conversion_error: //
+        return "The evaluation involves an invalid implicit conversion.";
+    case division_by_zero: //
+        return "Division by zero.";
+    case shift_too_much: //
+        return "Bit-shift was not less than the operand size.";
+    case assertion_fail: //
+        return "Assertion failed.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -201,15 +238,24 @@ std::string_view to_prose(bms::Execution_Error_Code e)
 {
     using enum bms::Execution_Error_Code;
     switch (e) {
-    case load_uninitialized: return "Load from uninitialized variable.";
-    case pop: return "Pop from empty stack.";
-    case pop_call: return "Return from outside a function.";
-    case evaluation: return "Error in evaluation of operator.";
-    case jump_out_of_program: return "Jump to address which is outside the program.";
-    case jump_if_not_bool: return "Condition of Jump_If instruction is not of type 'Bool'.";
-    case symbolic_jump: return "Execution of a symbolic jump.";
-    case call_out_of_program: return "Call of a function address which is outside the program.";
-    case infinite_loop: return "Infinite loop in VM execution.";
+    case load_uninitialized: //
+        return "Load from uninitialized variable.";
+    case pop: //
+        return "Pop from empty stack.";
+    case pop_call: //
+        return "Return from outside a function.";
+    case evaluation: //
+        return "Error in evaluation of operator.";
+    case jump_out_of_program: //
+        return "Jump to address which is outside the program.";
+    case jump_if_not_bool: //
+        return "Condition of Jump_If instruction is not of type 'Bool'.";
+    case symbolic_jump: //
+        return "Execution of a symbolic jump.";
+    case call_out_of_program: //
+        return "Call of a function address which is outside the program.";
+    case infinite_loop: //
+        return "Infinite loop in VM execution.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -218,8 +264,10 @@ std::string_view to_prose(bms::Conversion_Error_Code e)
 {
     using enum bms::Conversion_Error_Code;
     switch (e) {
-    case not_convertible: return "Implicit conversion between the given types is impossible.";
-    case int_to_uint_range_error: return "Conversion from Int to Uint must be lossless.";
+    case not_convertible: //
+        return "Implicit conversion between the given types is impossible.";
+    case int_to_uint_range_error: //
+        return "Conversion from Int to Uint must be lossless.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -228,22 +276,31 @@ std::string_view to_prose(bmd::Parse_Error_Code e)
 {
     using enum bmd::Parse_Error_Code;
     switch (e) {
-    case unexpected_character: return "Encountered unexpected character while parsing.";
-    case unexpected_eof: return "Unexpected end of file.";
-    case unterminated_comment: return "Unterminated comment.";
-    case invalid_integer_literal: return "Invalid integer literal.";
-    case integer_suffix:
+    case unexpected_character: //
+        return "Encountered unexpected character while parsing.";
+    case unexpected_eof: //
+        return "Unexpected end of file.";
+    case unterminated_comment: //
+        return "Unterminated comment.";
+    case invalid_integer_literal: //
+        return "Invalid integer literal.";
+    case integer_suffix: //
         return "Suffixes after integer literals are not allowed. Did you forget a space, comma, "
                "etc.?";
-    case invalid_directive: return "Invalid directive.";
-    case duplicate_argument: return "Duplicate argument in directive argument list.";
-    case directive_must_be_empty:
+    case invalid_directive: //
+        return "Invalid directive.";
+    case duplicate_argument: //
+        return "Duplicate argument in directive argument list.";
+    case directive_must_be_empty: //
         return "This directive must have an empty block or no block at all.";
-    case paragraph_break_in_span:
+    case paragraph_break_in_span: //
         return "Paragraph breaks (blank lines) are not allowed in this directive.";
-    case directive_in_text_span: return "Only plaintext is allowed here, no directives.";
-    case text_in_directive_list: return "Only directives are allowed here, no plaintext.";
-    case directive_not_allowed: return "This directive is not allowed here.";
+    case directive_in_text_span: //
+        return "Only plaintext is allowed here, no directives.";
+    case text_in_directive_list: //
+        return "Only directives are allowed here, no plaintext.";
+    case directive_not_allowed: //
+        return "This directive is not allowed here.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
@@ -252,18 +309,21 @@ std::string_view to_prose(bmd::Document_Error_Code e)
 {
     using enum bmd::Document_Error_Code;
     switch (e) {
-    case writer_misuse: return "The internal HTML writer has been misused by the developer.";
-    case directive_not_allowed: return "This directive is not allowed here.";
-    case meta_not_at_start_of_file:
+    case writer_misuse: //
+        return "The internal HTML writer has been misused by the developer.";
+    case directive_not_allowed: //
+        return "This directive is not allowed here.";
+    case meta_not_at_start_of_file: //
         return "A \\meta directive must be at the beginning of the document.";
-    case duplicate_meta_entry:
+    case duplicate_meta_entry: //
         return "Each entry within a \\meta directive must be unique, but an entry was duplicated.";
-    case invalid_language:
+    case invalid_language: //
         return "This language is not valid or not supported for syntax highlighting.";
-    case invalid_architecture: return "This architecture is not valid.";
-    case number_attribute_not_allowed:
+    case invalid_architecture: //
+        return "This architecture is not valid.";
+    case number_attribute_not_allowed: //
         return "This attribute cannot have a numeric value; only strings can be provided.";
-    case code_tokenization_failure:
+    case code_tokenization_failure: //
         return "Syntax highlighting for this code snipped failed. Is it ill-formed? Consider using "
                "'text' language or '\\tt' (teletype), not '\\c'.";
     }
@@ -277,49 +337,69 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
     case failed_to_define_global_const:
     case failed_to_define_function:
     case failed_to_define_parameter:
-    case failed_to_define_variable: return "An entity with the same name is already defined here:";
-    case width_not_integer: return "The following expression must be of type 'Int':";
-    case width_not_const: return "The following expression is not a constant expression:";
-    case width_too_large: return "The following expression exceeded the maximum:";
-    case width_zero: return "The following expression evaluated to zero:";
-    case let_variable_in_constant_expression:
+    case failed_to_define_variable: //
+        return "An entity with the same name is already defined here:";
+    case width_not_integer: //
+        return "The following expression must be of type 'Int':";
+    case width_not_const: //
+        return "The following expression is not a constant expression:";
+    case width_too_large: //
+        return "The following expression exceeded the maximum:";
+    case width_zero: //
+        return "The following expression evaluated to zero:";
+    case let_variable_in_constant_expression: //
         return "The referenced variable is declared 'let', here:";
-    case parameter_in_constant_expression:
+    case parameter_in_constant_expression: //
         return "The referenced entity is defined as a function parameter here:";
-    case function_in_expression: return "The referenced entity is defined as a function here:";
-    case conversion_error: return "The following expression cannot be converted:";
-    case condition_not_bool: return "The following expression must be of type 'Bool':";
-    case assigning_parameter: return "The assigned parameter is defined here:";
-    case assigning_function: return "The assigned function is defined here:";
-    case assigning_const: return "The assigned object is declared 'const' here:";
-    case call_non_function: return "The called entity is declared here:";
-    case wrong_number_of_arguments: return "The arguments must match the following parameter list:";
-    case codegen_call_to_unanalyzed: return "The following function was called:";
-    case width_deduction_from_non_uint: return "The following expression is not of type 'Uint':";
-    case static_assert_expression_not_bool:
+    case function_in_expression: //
+        return "The referenced entity is defined as a function here:";
+    case conversion_error: //
+        return "The following expression cannot be converted:";
+    case condition_not_bool: //
         return "The following expression must be of type 'Bool':";
-    case static_assertion_failed:
+    case assigning_parameter: //
+        return "The assigned parameter is defined here:";
+    case assigning_function: //
+        return "The assigned function is defined here:";
+    case assigning_const: //
+        return "The assigned object is declared 'const' here:";
+    case call_non_function: //
+        return "The called entity is declared here:";
+    case wrong_number_of_arguments: //
+        return "The arguments must match the following parameter list:";
+    case codegen_call_to_unanalyzed: //
+        return "The following function was called:";
+    case width_deduction_from_non_uint: //
+        return "The following expression is not of type 'Uint':";
+    case static_assert_expression_not_bool: //
+        return "The following expression must be of type 'Bool':";
+    case static_assertion_failed: //
         return "The following expression must evaluate to 'true', but evaluated to 'false':";
     case requires_clause_not_bool:
     case requires_clause_not_satisfied: //
         return "Requires-clause is attached to this function:";
-    case use_of_undefined_variable:
+    case use_of_undefined_variable: //
         return "The following variable is undefined before its first use:";
-    case use_of_undefined_constant:
+    case use_of_undefined_constant: //
         return "The following constant is undefined before its first use:";
-    case empty_return_in_non_void_function:
+    case empty_return_in_non_void_function: //
         return "The function's return type is not declared Void:";
-    default: return "Caused by:";
+    default: //
+        return "Caused by:";
     }
 }
 
 std::string_view to_prose(IO_Error_Code e)
 {
     switch (e) {
-    case IO_Error_Code::cannot_open: return "Failed to open file.";
-    case IO_Error_Code::read_error: return "I/O error occurred when reading from file.";
-    case IO_Error_Code::write_error: return "I/O error occurred when writing to file.";
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    case IO_Error_Code::cannot_open: //
+        return "Failed to open file.";
+    case IO_Error_Code::read_error: //
+        return "I/O error occurred when reading from file.";
+    case IO_Error_Code::write_error: //
+        return "I/O error occurred when writing to file.";
+    default: //
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
     }
 }
 
