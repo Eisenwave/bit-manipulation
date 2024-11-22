@@ -385,5 +385,16 @@ TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
         test_for_diagnostic("analysis_error/empty_return_in_non_void_function.bms", expectations));
 }
 
+// TODO: test for continue outside loop
+
+// TODO: test for break outside loop
+
+TEST(BMS_Type_Error, void_operation)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Type_Error_Code::void_operation, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("type_error/void_operation.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
