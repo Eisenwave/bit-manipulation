@@ -38,7 +38,8 @@ private:
 
     // FIXME: full expressions need to generate code which discards unused results
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Function& function)
+    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                               const ast::Function& function)
     {
         const auto restore_size = out.size();
 
@@ -56,6 +57,31 @@ private:
             out.resize(restore_size);
             return body_result;
         }
+
+        const auto& return_type = std::get<ast::Type>(*function.get_return_type());
+        BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
+
+        if (return_type.get_type() != Type_Type::Void) {
+            return {};
+        }
+
+        const bool returns_unconditionally = [&]() -> bool {
+            if (body.get_children().empty()) {
+                return false;
+            }
+            for (const ast::Some_Node* n : std::views::reverse(body.get_children())) {
+                if (std::holds_alternative<ast::Return_Statement>(*n)) {
+                    return true;
+                }
+            }
+            return false;
+        }();
+
+        if (!returns_unconditionally) {
+            out.push_back(ins::Push { { h }, Concrete_Value::Void });
+            out.push_back(ins::Return { { h } });
+        }
+
         return {};
     }
 
