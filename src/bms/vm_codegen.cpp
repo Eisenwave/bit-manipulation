@@ -49,7 +49,8 @@ private:
             }
         }
 
-        auto body_result = generate_code(function.get_body());
+        const auto& body = std::get<ast::Block_Statement>(*function.get_body());
+        auto body_result = generate_code(function.get_body(), body);
         if (!body_result) {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
             out.resize(restore_size);
