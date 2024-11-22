@@ -323,5 +323,67 @@ TEST(BMS_Analysis_Error, width_deduction_from_non_uint)
         test_for_diagnostic("analysis_error/width_deduction_from_non_uint.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, static_assert_expression_not_bool)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::static_assert_expression_not_bool, .fail_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/static_assert_expression_not_bool.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, static_assertion_failed)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::static_assertion_failed, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/static_assertion_failed.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, requires_clause_not_bool)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::requires_clause_not_bool,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/requires_clause_not_bool.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, requires_clause_not_satisfied)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::requires_clause_not_satisfied,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/requires_clause_not_satisfied.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, use_of_undefined_variable)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::use_of_undefined_variable,
+          .fail_line = 3,
+          .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/use_of_undefined_variable.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, use_of_undefined_constant)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::use_of_undefined_constant,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/use_of_undefined_constant.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::empty_return_in_non_void_function,
+          .fail_line = 2,
+          .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/empty_return_in_non_void_function.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
