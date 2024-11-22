@@ -27,6 +27,7 @@ public:
 private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h)
     {
+        BIT_MANIPULATION_ASSERT(h);
         return fast_visit([this, h](const auto& node) { return generate_code(h, node); }, *h);
     }
 
@@ -99,6 +100,9 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Let& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
+        if (!node.get_initializer()) {
+            return {};
+        }
         auto init = generate_code(node.get_initializer());
         if (!init) {
             return init;
