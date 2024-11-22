@@ -300,9 +300,9 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The following expression must be of type 'Bool':";
     case static_assertion_failed:
         return "The following expression must evaluate to 'true', but evaluated to 'false':";
-    case requires_clause_not_bool: return "The following expression was not of type 'Bool':";
-    case requires_clause_not_satisfied:
-        return "The following expression must evaluate to 'true', but evaluated to 'false':";
+    case requires_clause_not_bool:
+    case requires_clause_not_satisfied: //
+        return "Requires-clause is attached to this function:";
     case use_of_undefined_variable:
         return "The following variable is undefined before its first use:";
     case use_of_undefined_constant:

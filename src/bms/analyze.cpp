@@ -347,12 +347,12 @@ private:
                 BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
                 if (node.const_value()->get_type() != Concrete_Type::Bool) {
-                    return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool, handle,
-                                            node.get_requires_clause() };
+                    return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool,
+                                            node.get_requires_clause(), handle };
                 }
                 if (!node.const_value()->as_bool()) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_satisfied,
-                                            handle, node.get_requires_clause() };
+                                            node.get_requires_clause(), handle };
                 }
             }
         }
