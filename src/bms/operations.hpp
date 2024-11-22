@@ -37,8 +37,11 @@ constexpr std::string_view evaluation_error_code_name(Evaluation_Error_Code code
 }
 
 enum struct Type_Error_Code : Default_Underlying {
+
+    // FIXME: this diagnostic might be dead and should be an assertion instead
     /// @brief Use of an invalid operator.
     invalid_operator,
+
     /// @brief An operation involving Void was attempted.
     void_operation,
     /// @brief Arithmetic with bool was attempted, such as +true.
