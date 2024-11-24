@@ -10,6 +10,7 @@ namespace {
 struct Virtual_Code_Generator {
 private:
     std::pmr::vector<Instruction>& out;
+    std::optional<Concrete_Type> m_return_type;
 
 public:
     Virtual_Code_Generator(std::pmr::vector<Instruction>& out)
@@ -20,7 +21,7 @@ public:
 public:
     Result<void, Analysis_Error> operator()(const ast::Function& function)
     {
-        // Functions don't need their own handle for any generation.
+        // FIXME: pass function handle here
         return generate_code(nullptr, function);
     }
 
@@ -50,6 +51,12 @@ private:
             }
         }
 
+        const auto& return_type = std::get<ast::Type>(*function.get_return_type());
+        BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
+
+        m_return_type = return_type.concrete_type();
+        // TODO: add Scope_Exit to clean this up upon return (just for robustness, not critical)
+
         const auto& body = std::get<ast::Block_Statement>(*function.get_body());
         auto body_result = generate_code(function.get_body(), body);
         if (!body_result) {
@@ -57,9 +64,6 @@ private:
             out.resize(restore_size);
             return body_result;
         }
-
-        const auto& return_type = std::get<ast::Type>(*function.get_return_type());
-        BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
 
         if (return_type.get_type() != Type_Type::Void) {
             return {};
@@ -258,6 +262,14 @@ private:
         if (!r) {
             return r;
         }
+
+        const Concrete_Type expression_type
+            = get_const_value(*node.get_expression()).value().get_type();
+        BIT_MANIPULATION_ASSERT(m_return_type);
+        if (expression_type != m_return_type) {
+            out.push_back(ins::Convert { { h }, *m_return_type });
+        }
+
         out.push_back(ins::Return { { h } });
         return {};
     }
