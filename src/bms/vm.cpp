@@ -107,11 +107,10 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Convert& convert)
     }
     const Concrete_Value operand = m_stack.back();
     m_stack.pop_back();
-    const Result<Concrete_Value, Conversion_Error_Code> result
+    const Result<Concrete_Value, Evaluation_Error_Code> result
         = evaluate_conversion(operand, convert.type);
     if (!result) {
-        // TODO: merge evaluation error and conversion error and don't discard the result.error()
-        return Execution_Error { convert.debug_info, Evaluation_Error_Code::conversion_error };
+        return Execution_Error { convert.debug_info, result.error() };
     }
     m_stack.push_back(*result);
     ++m_instruction_counter;

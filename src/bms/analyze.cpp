@@ -485,7 +485,7 @@ private:
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
-        const Result<Value, Conversion_Error_Code> r
+        const Result<Value, Evaluation_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value()->get_type());
         if (!r) {
             return Analysis_Error { r.error(), handle, node.get_initializer() };
@@ -672,7 +672,7 @@ private:
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     function_info.return_type_node };
         }
-        const Result<Value, Conversion_Error_Code> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, function_info.return_type);
         node.const_value()
             = eval_result ? *eval_result : Value::unknown_of_type(function_info.return_type);
@@ -715,7 +715,7 @@ private:
                                     node.get_expression() };
         }
 
-        const Result<Value, Conversion_Error_Code> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expr_value, dest_type);
         if (!eval_result) {
             node.const_value() = Value::unknown_of_type(dest_type);
@@ -753,11 +753,11 @@ private:
         BIT_MANIPULATION_ASSERT(type);
 
         if (!expression_value->get_type().is_convertible_to(*type)) {
-            return Analysis_Error { Conversion_Error_Code::not_convertible, handle,
+            return Analysis_Error { Analysis_Error_Code::invalid_conversion, handle,
                                     node.get_target_type() };
         }
 
-        const Result<Value, Conversion_Error_Code> eval_result
+        const Result<Value, Evaluation_Error_Code> eval_result
             = evaluate_conversion(*expression_value, *type);
 
         node.const_value() = eval_result ? *eval_result : Value::unknown_of_type(*type);
@@ -1069,7 +1069,7 @@ private:
                                         params->get_children()[i] };
             }
 
-            Result<Value, Conversion_Error_Code> conv_result
+            Result<Value, Evaluation_Error_Code> conv_result
                 = evaluate_conversion(arg_values[i], param_type);
             if (context == Expression_Context::constant) {
                 if (!conv_result) {

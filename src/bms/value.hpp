@@ -114,11 +114,11 @@ public:
     /// @param other the type to convert to
     /// @param conversion the type of conversion
     /// @return the converted value or error code
-    constexpr Result<Value, Conversion_Error_Code> convert_to(Concrete_Type other,
+    constexpr Result<Value, Evaluation_Error_Code> convert_to(Concrete_Type other,
                                                               Conversion_Type conversion) const
     {
         if (!m_type.is_convertible_to(other)) {
-            return Conversion_Error_Code::not_convertible;
+            return Evaluation_Error_Code::type_error;
         }
         if (is_unknown()) {
             return Value::unknown_of_type(other);

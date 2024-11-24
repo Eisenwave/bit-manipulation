@@ -4,6 +4,7 @@
 #include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
+#include "bms/evaluation_error.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -13,21 +14,6 @@ enum struct Conversion_Type : Default_Underlying {
     /// @brief A numeric conversion where any non-representable information is discarded.
     truncating_numeric,
 };
-
-enum struct Conversion_Error_Code : Default_Underlying {
-    not_convertible,
-    int_to_uint_range_error,
-};
-
-constexpr std::string_view conversion_error_code_name(Conversion_Error_Code code)
-{
-    switch (code) {
-        using enum Conversion_Error_Code;
-        BIT_MANIPULATION_ENUM_STRING_CASE(not_convertible);
-        BIT_MANIPULATION_ENUM_STRING_CASE(int_to_uint_range_error);
-    };
-    BIT_MANIPULATION_ASSERT_UNREACHABLE();
-}
 
 struct Concrete_Value {
     Concrete_Type type;
@@ -51,20 +37,20 @@ public:
     {
     }
 
-    constexpr Result<Concrete_Value, Conversion_Error_Code>
+    constexpr Result<Concrete_Value, Evaluation_Error_Code>
     convert_to(Concrete_Type other, Conversion_Type conversion) const
     {
         if (type == other) {
             return *this;
         }
         if (!type.is_convertible_to(other)) {
-            return Conversion_Error_Code::not_convertible;
+            return Evaluation_Error_Code::type_error;
         }
         if (other.is_uint()) {
             const auto truncated = Big_Uint(int_value) & other.get_mask();
             if (conversion == Conversion_Type::lossless_numeric
                 && truncated != Big_Uint(int_value)) {
-                return Conversion_Error_Code::int_to_uint_range_error;
+                return Evaluation_Error_Code::int_to_uint_range_error;
             }
             return Concrete_Value { other, Big_Int(truncated) };
         }

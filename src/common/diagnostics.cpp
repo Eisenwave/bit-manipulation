@@ -11,6 +11,7 @@
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
+#include "bms/evaluation_error.hpp"
 #include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
 #include "bms/grammar.hpp"
@@ -134,7 +135,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Cannot use function parameters in a constant expression.";
     case function_in_expression: //
         return "Attempted to use a function in an expression as if it was a variable.";
-    case conversion_error: //
+    case invalid_conversion: //
         return "Implicit conversion is invalid.";
     case execution_error: //
         return "Error in the execution of the generated code for constant-evaluated functions.";
@@ -208,14 +209,14 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
     switch (e) {
     case type_error: //
         return "The evaluation violates the type system.";
-    case conversion_error: //
-        return "The evaluation involves an invalid implicit conversion.";
     case division_by_zero: //
         return "Division by zero.";
     case shift_too_much: //
         return "Bit-shift was not less than the operand size.";
     case assertion_fail: //
         return "Assertion failed.";
+    case int_to_uint_range_error: //
+        return "Conversion from Int to Uint would lose information.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -242,18 +243,6 @@ std::string_view to_prose(bms::Execution_Error_Code e)
         return "Call of a function address which is outside the program.";
     case infinite_loop: //
         return "Infinite loop in VM execution.";
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
-}
-
-std::string_view to_prose(bms::Conversion_Error_Code e)
-{
-    using enum bms::Conversion_Error_Code;
-    switch (e) {
-    case not_convertible: //
-        return "Implicit conversion between the given types is impossible.";
-    case int_to_uint_range_error: //
-        return "Conversion from Int to Uint must be lossless.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -339,7 +328,7 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The referenced entity is defined as a function parameter here:";
     case function_in_expression: //
         return "The referenced entity is defined as a function here:";
-    case conversion_error: //
+    case invalid_conversion: //
         return "The following expression cannot be converted:";
     case condition_not_bool: //
         return "The following expression must be of type 'Bool':";
@@ -430,9 +419,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
         return result;
     }
 
-    const std::string_view error_prose = error.code() == bms::Analysis_Error_Code::conversion_error
-        ? to_prose(error.conversion_error())
-        : to_prose(error.code());
+    const std::string_view error_prose = to_prose(error.code());
 
     result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
 

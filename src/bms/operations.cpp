@@ -38,12 +38,12 @@ Concrete_Type get_type(const Value& v)
 }
 
 template <typename T>
-[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
     const Result<Concrete_Type, Analysis_Error_Code> common
         = get_common_type(get_type(lhs), get_type(rhs));
     if (!common) {
-        return Conversion_Error_Code::not_convertible;
+        return Evaluation_Error_Code::type_error;
     }
 
     if (auto lhs_result = lhs.convert_to(*common, Conversion_Type::lossless_numeric)) {
@@ -62,13 +62,13 @@ template <typename T>
     return {};
 }
 
-[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type(Concrete_Value& lhs,
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Concrete_Value& lhs,
                                                                         Concrete_Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
 
-[[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type(Value& lhs, Value& rhs)
+[[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type(Value& lhs, Value& rhs)
 {
     return convert_to_equal_type_impl(lhs, rhs);
 }
@@ -290,7 +290,7 @@ check_builtin_function(Builtin_Function f, std::span<const Value> args)
 
 // CONCRETE VALUE ==================================================================================
 
-[[nodiscard]] Result<Concrete_Value, Conversion_Error_Code>
+[[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_conversion(Concrete_Value value, Concrete_Type to)
 {
     return value.convert_to(to, Conversion_Type::lossless_numeric);
@@ -348,8 +348,8 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
         return Evaluation_Error_Code::type_error;
     }
 
-    if (Result<void, Conversion_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
-        return Evaluation_Error_Code::conversion_error;
+    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
+        return r.error();
     }
 
     BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
@@ -466,12 +466,8 @@ evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Va
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    const auto result = (condition.int_value ? lhs : rhs)
-                            .convert_to(*type_result, Conversion_Type::lossless_numeric);
-    if (!result) {
-        return Evaluation_Error_Code::conversion_error;
-    }
-    return *result;
+    return (condition.int_value ? lhs : rhs)
+        .convert_to(*type_result, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
@@ -486,7 +482,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 
 // VALUE ===========================================================================================
 
-[[nodiscard]] Result<Value, Conversion_Error_Code> evaluate_conversion(Value value,
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
                                                                        Concrete_Type to)
 {
     return value.convert_to(to, Conversion_Type::lossless_numeric);
@@ -513,8 +509,8 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    if (Result<void, Conversion_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
-        return Evaluation_Error_Code::conversion_error;
+    if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
+        return r.error();
     }
     if (lhs && rhs) {
         return result_from_concrete(
@@ -546,12 +542,8 @@ evaluate_if_expression(Value lhs, Value condition, Value rhs)
     if (condition.is_unknown()) {
         return Value::unknown_of_type(*type_result);
     }
-    const auto result = (condition.as_bool() ? lhs : rhs)
-                            .convert_to(*type_result, Conversion_Type::lossless_numeric);
-    if (!result) {
-        return Evaluation_Error_Code::conversion_error;
-    }
-    return *result;
+    return (condition.as_bool() ? lhs : rhs)
+        .convert_to(*type_result, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>

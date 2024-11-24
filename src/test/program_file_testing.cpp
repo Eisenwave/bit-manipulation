@@ -32,9 +32,6 @@ std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_E
     case evaluation_error: {
         return print_parenthesized(evaluation_error_code_name(e.evaluation_error()));
     }
-    case conversion_error: {
-        return print_parenthesized(conversion_error_code_name(e.conversion_error()));
-    }
     default: return out;
     }
 }
@@ -60,9 +57,6 @@ std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectatio
             else if constexpr (std::is_same_v<T, bms::Evaluation_Error_Code>) {
                 return print_parenthesized(evaluation_error_code_name(code));
             }
-            else if constexpr (std::is_same_v<T, bms::Conversion_Error_Code>) {
-                return print_parenthesized(conversion_error_code_name(code));
-            }
             else {
                 // TODO: this should be static_assert(false), but we need more recent
                 //       IntelliSense to not think that it's bad
@@ -83,8 +77,6 @@ bool Analysis_Error_Code_Expectation::met_by(const bms::Analysis_Error& e) const
         return e.evaluation_error() == std::get<bms::Evaluation_Error_Code>(m_detail);
     case bms::Analysis_Error_Code::execution_error:
         return e.execution_error() == std::get<bms::Execution_Error_Code>(m_detail);
-    case bms::Analysis_Error_Code::conversion_error:
-        return e.conversion_error() == std::get<bms::Conversion_Error_Code>(m_detail);
     default: return true;
     }
 }

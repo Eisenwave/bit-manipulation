@@ -73,12 +73,12 @@ enum struct Analysis_Error_Code : Default_Underlying {
     parameter_in_constant_expression,
     /// @brief Attempted to use a function in an expression as if it was a variable.
     function_in_expression,
+    /// @brief Implicit or explicit conversion is invalid.
+    invalid_conversion,
     /// @brief Error in the execution of the generated code for constexpr functions.
     execution_error,
     /// @brief Evaluation error in constant expressions or constant folding.
     evaluation_error,
-    /// @brief Error in attempted implicit or explicit conversion.
-    conversion_error,
     /// @brief Condition of an if statement or while loop is not a `Bool`.
     condition_not_bool,
     /// @brief A given literal is invalid, possibly because it is too large for the compiler's
@@ -164,9 +164,9 @@ constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(let_variable_in_constant_expression);
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter_in_constant_expression);
         BIT_MANIPULATION_ENUM_STRING_CASE(function_in_expression);
+        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_conversion);
         BIT_MANIPULATION_ENUM_STRING_CASE(execution_error);
         BIT_MANIPULATION_ENUM_STRING_CASE(evaluation_error);
-        BIT_MANIPULATION_ENUM_STRING_CASE(conversion_error);
         BIT_MANIPULATION_ENUM_STRING_CASE(condition_not_bool);
         BIT_MANIPULATION_ENUM_STRING_CASE(invalid_integer_literal);
         BIT_MANIPULATION_ENUM_STRING_CASE(assigning_parameter);
@@ -208,7 +208,6 @@ private:
     union {
         Evaluation_Error_Code m_evaluation_error;
         Execution_Error_Code m_execution_error;
-        Conversion_Error_Code m_conversion_error;
     };
 
 public:
@@ -241,7 +240,6 @@ public:
     {
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::evaluation_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::execution_error);
-        BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::conversion_error);
     }
 
     [[nodiscard]] constexpr Analysis_Error(Evaluation_Error_Code code,
@@ -259,16 +257,6 @@ public:
                                            const ast::Some_Node* cause = {})
         : m_code(Analysis_Error_Code::execution_error)
         , m_execution_error(code)
-        , fail(fail)
-        , cause(cause)
-    {
-    }
-
-    [[nodiscard]] constexpr Analysis_Error(Conversion_Error_Code code,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : m_code(Analysis_Error_Code::conversion_error)
-        , m_conversion_error(code)
         , fail(fail)
         , cause(cause)
     {
@@ -313,12 +301,6 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::execution_error);
         return m_execution_error;
-    }
-
-    [[nodiscard]] constexpr Conversion_Error_Code conversion_error() const
-    {
-        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::conversion_error);
-        return m_conversion_error;
     }
 };
 
