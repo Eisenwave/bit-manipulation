@@ -39,6 +39,7 @@ set(HEADERS
     src/bms/operations.hpp
     src/bms/parse_error.hpp
     src/bms/parse.hpp
+    src/bms/symbol_table.hpp
     src/bms/tokens.hpp
     src/bms/tokenize_error.hpp
     src/bms/tokenize.hpp
