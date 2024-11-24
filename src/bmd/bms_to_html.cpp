@@ -58,6 +58,7 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
     case semicolon:
     case right_arrow: return "c-pun";
 
+    case keyword_as:
     case keyword_let:
     case keyword_const:
     case keyword_function:
