@@ -314,6 +314,23 @@ struct Block_Statement final : detail::Node_Base {
     }
 };
 
+struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
+    using AST_Node = ast::Conversion_Expression;
+    static inline constexpr std::string_view self_name = "Conversion_Expression";
+    static inline constexpr std::string_view child_names[] = { "expression", "target_type" };
+
+    Conversion_Expression(Local_Source_Span pos, Handle expression, Handle target_type);
+
+    Handle get_expression() const
+    {
+        return children[0];
+    }
+    Handle get_target_type() const
+    {
+        return children[1];
+    }
+};
+
 struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::If_Expression;
     static inline constexpr std::string_view self_name = "If_Expression";
@@ -429,6 +446,7 @@ using Some_Node = std::variant<Program,
                                Return_Statement,
                                Assignment,
                                Block_Statement,
+                               Conversion_Expression,
                                If_Expression,
                                Binary_Expression,
                                Prefix_Expression,

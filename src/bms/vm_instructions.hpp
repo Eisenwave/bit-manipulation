@@ -60,6 +60,11 @@ struct Continue : detail::Base { };
 /// @brief Pops the return address off the stack and jumps the given address.
 struct Return : detail::Base { };
 
+/// @brief Pops a value off the stack, converts it to the target type, and pushes the result.
+struct Convert : detail::Base {
+    Concrete_Type type;
+};
+
 /// @brief Pops a value off the stack, applies a unary operation, and pushes the result.
 struct Unary_Operate : detail::Base {
     Token_Type op;
@@ -90,6 +95,7 @@ using Variant = std::variant<ins::Load,
                              ins::Break,
                              ins::Continue,
                              ins::Return,
+                             ins::Convert,
                              ins::Unary_Operate,
                              ins::Binary_Operate,
                              ins::Call,

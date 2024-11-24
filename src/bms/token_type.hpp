@@ -85,6 +85,8 @@ enum struct Token_Type : Default_Underlying {
     comma,
     // ;
     semicolon,
+    // as
+    keyword_as,
     // let
     keyword_let,
     // const

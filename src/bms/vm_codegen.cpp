@@ -289,6 +289,25 @@ private:
     }
 
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                               const ast::Conversion_Expression& node)
+    {
+        BIT_MANIPULATION_ASSERT(node.const_value());
+        if (node.const_value()->is_known()) {
+            out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
+            return {};
+        }
+
+        auto init = generate_code(node.get_expression());
+        if (!init) {
+            return init;
+        }
+
+        const auto& target_type = std::get<ast::Type>(*node.get_target_type());
+        out.push_back(ins::Convert { { h }, target_type.concrete_type().value() });
+        return {};
+    }
+
+    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
                                                const ast::If_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());

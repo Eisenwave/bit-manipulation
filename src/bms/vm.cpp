@@ -100,6 +100,25 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Return& ret)
 }
 
 template <>
+Result<void, Execution_Error> Virtual_Machine::cycle(ins::Convert& convert)
+{
+    if (m_stack.empty()) {
+        return Execution_Error { convert.debug_info, Execution_Error_Code::pop };
+    }
+    const Concrete_Value operand = m_stack.back();
+    m_stack.pop_back();
+    const Result<Concrete_Value, Conversion_Error_Code> result
+        = evaluate_conversion(operand, convert.type);
+    if (!result) {
+        // TODO: merge evaluation error and conversion error and don't discard the result.error()
+        return Execution_Error { convert.debug_info, Evaluation_Error_Code::conversion_error };
+    }
+    m_stack.push_back(*result);
+    ++m_instruction_counter;
+    return {};
+}
+
+template <>
 Result<void, Execution_Error> Virtual_Machine::cycle(ins::Unary_Operate& unary_operate)
 {
     if (m_stack.empty()) {

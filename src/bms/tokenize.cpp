@@ -29,6 +29,7 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
         std::string_view name;
         Token_Type type;
     } types_by_name[] = {
+        { "as", keyword_as },
         { "if", keyword_if },
         { "else", keyword_else },
         { "let", keyword_let },

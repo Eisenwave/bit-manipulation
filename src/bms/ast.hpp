@@ -317,7 +317,7 @@ public:
     /// Namely, if the type is `Uint`, a concrete width must be known, otherwise this function
     /// always succeeds.
     /// @return A concrete type, or `std::nullopt`.
-    std::optional<Concrete_Type> concrete_type()
+    std::optional<Concrete_Type> concrete_type() const
     {
         if (m_type == Type_Type::Uint) {
             if (concrete_width) {
@@ -509,6 +509,25 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
         : detail::Node_Base(parsed, file)
         , detail::Dynamic_Parent(memory)
     {
+    }
+};
+
+struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
+    static inline constexpr std::string_view self_name = "Conversion_Expression";
+    static inline constexpr std::string_view child_names[] = { "expression", "target_type" };
+
+    Conversion_Expression(const astp::Conversion_Expression& parsed, std::string_view file)
+        : detail::Node_Base(parsed, file)
+    {
+    }
+
+    Some_Node* get_expression() const
+    {
+        return m_children[0];
+    }
+    Some_Node* get_target_type() const
+    {
+        return m_children[1];
     }
 };
 
@@ -705,6 +724,7 @@ using Variant = std::variant<Program,
                              Return_Statement,
                              Assignment,
                              Block_Statement,
+                             Conversion_Expression,
                              If_Expression,
                              Binary_Expression,
                              Prefix_Expression,

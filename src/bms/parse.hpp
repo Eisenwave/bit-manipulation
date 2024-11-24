@@ -62,6 +62,12 @@ public:
         return m_nodes.size();
     }
 
+    void downsize_nodes(Size n) &
+    {
+        BIT_MANIPULATION_ASSERT(n <= m_nodes.size());
+        m_nodes.erase(m_nodes.begin() + std::ptrdiff_t(n), m_nodes.end());
+    }
+
     astp::Some_Node& get_node(astp::Handle handle) &
     {
         BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);

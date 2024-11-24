@@ -734,6 +734,37 @@ private:
     }
 
     Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
+                                               ast::Conversion_Expression& node,
+                                               Analysis_Level level,
+                                               Expression_Context context)
+    {
+        if (auto r = analyze_types(node.get_expression(), level, context); !r) {
+            return r;
+        }
+        auto& target_type = std::get<ast::Type>(*node.get_target_type());
+        if (auto r = analyze_types(node.get_expression(), target_type, level, context); !r) {
+            return r;
+        }
+
+        const auto& expression_value = get_const_value(*node.get_expression());
+        BIT_MANIPULATION_ASSERT(expression_value);
+
+        std::optional<Concrete_Type> type = target_type.concrete_type();
+        BIT_MANIPULATION_ASSERT(type);
+
+        if (!expression_value->get_type().is_convertible_to(*type)) {
+            return Analysis_Error { Conversion_Error_Code::not_convertible, handle,
+                                    node.get_target_type() };
+        }
+
+        const Result<Value, Conversion_Error_Code> eval_result
+            = evaluate_conversion(*expression_value, *type);
+
+        node.const_value() = eval_result ? *eval_result : Value::unknown_of_type(*type);
+        return {};
+    }
+
+    Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
                                                ast::If_Expression& node,
                                                Analysis_Level level,
                                                Expression_Context context)

@@ -1,3 +1,4 @@
+#include <functional>
 #include <memory_resource>
 #include <optional>
 #include <variant>
@@ -147,6 +148,16 @@ Block_Statement::Block_Statement(Local_Source_Span pos, std::pmr::vector<astp::H
     : Node_Base { pos }
     , statements(std::move(statements))
 {
+}
+
+Conversion_Expression::Conversion_Expression(Local_Source_Span pos,
+                                             Handle expression,
+                                             Handle target_type)
+    : Node_Base { pos }
+    , Parent<2> { expression, target_type }
+{
+    BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
+    BIT_MANIPULATION_ASSERT(target_type != astp::Handle::null);
 }
 
 If_Expression::If_Expression(Local_Source_Span pos, Handle left, Handle condition, Handle right)
@@ -332,6 +343,33 @@ private:
     }
 
     using Rule_Result = Result<astp::Some_Node, Rule_Error>;
+
+    /// @brief Performs an arbitrary action `f` which may be advancing the parser position and
+    /// allocate nodes, and unconditionally reverts the state after performing this action.
+    /// For example, this can be used to match multiple rules just to "look ahead" for access.
+    /// @tparam F the type of action
+    /// @param f the action to perform; will be invoked with no arguments
+    /// @return the result of the action
+    template <typename F>
+    std::invoke_result_t<F&&> roll_back_after(F&& f)
+    {
+        auto restore = [&, pos = m_pos, node_count = m_program.get_node_count()] {
+            BIT_MANIPULATION_ASSERT(m_pos >= pos);
+            BIT_MANIPULATION_ASSERT(m_program.get_node_count() >= node_count);
+            m_pos = pos;
+            m_program.downsize_nodes(node_count);
+        };
+        // TODO: consider making a utility if we run into this pattern more often
+        struct On_Scope_Exit {
+            decltype(restore) r;
+            ~On_Scope_Exit()
+            {
+                r();
+            }
+        } guard { restore };
+
+        return std::invoke(std::forward<F>(f));
+    }
 
     Rule_Result match_program()
     {
@@ -797,7 +835,31 @@ private:
 
     Rule_Result match_expression()
     {
-        return match_if_expression();
+        bool is_conversion_expression = roll_back_after([&]() -> bool { //
+            return match_prefix_expression() && peek(Token_Type::keyword_as);
+        });
+
+        return is_conversion_expression ? match_conversion_expression() //
+                                        : match_if_expression();
+    }
+
+    Rule_Result match_conversion_expression()
+    {
+        constexpr auto this_rule = Grammar_Rule::conversion_expression;
+        auto expression = match_prefix_expression();
+        if (!expression) {
+            return expression;
+        }
+        if (!expect(Token_Type::keyword_as)) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::keyword_as> };
+        }
+        auto type = match_type();
+        if (!type) {
+            return type;
+        }
+        return astp::Some_Node { astp::Conversion_Expression {
+            get_source_position(*expression), m_program.push_node(std::move(*expression)),
+            m_program.push_node(std::move(*type)) } };
     }
 
     Rule_Result match_if_expression()
@@ -825,6 +887,7 @@ private:
 
     Rule_Result match_binary_expression()
     {
+        // FIXME: use a similar roll_back_after approach to match_conversion_expression
         if (should_binary_expression_commit_to_comparison_expression()) {
             return match_comparison_expression();
         }

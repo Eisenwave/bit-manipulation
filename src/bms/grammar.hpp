@@ -44,7 +44,8 @@ enum struct Grammar_Rule : Default_Underlying {
     while_statement, // "while", expression, block_statement;
     init_clause, // let_declaration | assignment
     block_statement, // "{" { statement } "}"
-    expression, // if_expression
+    expression, // conversion_expression | if_expression
+    conversion_expression, // prefix_expression, "as", type
     if_expression, // binary_expression, ["if", binary_expression, "else", if_expression]
     binary_expression, // comparison_expression
                        // | prefix_expression, [binary_operator, prefix_expression]
