@@ -688,9 +688,6 @@ public:
 };
 
 struct Builtin_Function final : detail::Node_Base, detail::Parent<0> {
-private:
-    struct Copy_for_Instantiation_Tag { };
-
 public:
     static inline constexpr std::string_view self_name = "Builtin_Function";
 
