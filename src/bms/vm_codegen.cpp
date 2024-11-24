@@ -1,11 +1,43 @@
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
+#include "bms/builtin_function.hpp"
 #include "bms/parse.hpp"
 #include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {
 
 namespace {
+
+Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
+{
+    struct Get_Parameter_Type {
+        std::size_t i;
+
+        Concrete_Type operator()(const ast::Function& function)
+        {
+            const auto& parameter_list = std::get<ast::Parameter_List>(*function.get_parameters());
+            BIT_MANIPULATION_ASSERT(i < parameter_list.get_children().size());
+            const auto& value = get_const_value(*parameter_list.get_children()[i]);
+            BIT_MANIPULATION_ASSERT(value);
+            return value->get_type();
+        }
+
+        Concrete_Type operator()(const ast::Builtin_Function& function)
+        {
+            const std::span<const Concrete_Type> parameters
+                = builtin_parameter_types(function.get_function());
+            BIT_MANIPULATION_ASSERT(i < parameters.size());
+            return parameters[i];
+        }
+
+        Concrete_Type operator()(Ignore)
+        {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("");
+        }
+    } visitor { i };
+
+    return fast_visit(visitor, some_function);
+}
 
 struct Virtual_Code_Generator {
 private:
@@ -454,16 +486,26 @@ private:
         }
 
         const Size restore_size = out.size();
-        for (ast::Some_Node* arg : node.get_children()) {
-            auto arg_code = generate_code(arg);
+        const std::span<const ast::Some_Node* const> arguments = node.get_children();
+
+        const ast::Some_Node* const function_node = node.lookup_result;
+
+        for (Size i = 0; i < arguments.size(); ++i) {
+            auto arg_code = generate_code(arguments[i]);
             if (!arg_code) {
                 BIT_MANIPULATION_ASSERT(restore_size <= out.size());
                 out.resize(restore_size);
                 return arg_code;
             }
+            const Concrete_Type argument_type = get_const_value(*arguments[i]).value().get_type();
+            const Concrete_Type parameter_type = get_parameter_type(*function_node, i);
+            if (argument_type != parameter_type) {
+                out.push_back(ins::Convert { { h }, parameter_type });
+            }
         }
 
         if (const auto* const called = std::get_if<ast::Function>(node.lookup_result)) {
+
             if (!called->was_analyzed()
                 || called->vm_address == ast::Function::invalid_vm_address) {
                 return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, h,

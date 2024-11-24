@@ -22,6 +22,19 @@ This is necessary for two reasons:
 
 namespace bit_manipulation {
 
+/// @brief A helper type which assists in building overload sets for variant visitors.
+/// `Ignore` can be constructed from any other type and ignores the value if anything it is
+/// constructed from.
+struct Ignore {
+    Ignore(auto&&) { }
+
+    Ignore(const Ignore&) = delete;
+    Ignore(Ignore&&) = delete;
+
+    Ignore& operator=(const Ignore&) = delete;
+    Ignore& operator=(Ignore&&) = delete;
+};
+
 namespace detail {
 
 template <typename T>
