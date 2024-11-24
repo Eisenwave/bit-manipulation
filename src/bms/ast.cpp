@@ -60,6 +60,32 @@ struct Analyzed_Program::Implementation {
     }
 
     [[nodiscard]] ast::Some_Node* from_parser_node_recursively(astp::Handle, const Parsed_Program&);
+
+    template <typename F>
+    [[nodiscard]] const ast::Some_Node* find_entity(F filter) const
+    {
+        BIT_MANIPULATION_ASSERT(m_root);
+        const auto& program = std::get<ast::Program>(*m_root);
+        for (const ast::Some_Node* child : program.get_children()) {
+            if (fast_visit(filter, *child)) {
+                return child;
+            }
+        }
+        return nullptr;
+    }
+
+    [[nodiscard]] const ast::Some_Node* find_entity_by_name(std::string_view name) const
+    {
+        return find_entity([&]<typename N>(const N& node) -> bool {
+            if constexpr (std::is_same_v<N, ast::Function> || std::is_same_v<N, ast::Const>) {
+                return node.get_name() == name;
+            }
+            else {
+                // global static_assert etc.
+                return false;
+            }
+        });
+    }
 };
 
 ast::Some_Node*
@@ -133,6 +159,62 @@ ast::Some_Node* Analyzed_Program::insert(const ast::Some_Node& node)
 ast::Some_Node* Analyzed_Program::insert(ast::Some_Node&& node)
 {
     return m_impl->emplace<ast::Some_Node>(node);
+}
+
+[[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+Analyzed_Program::find_entity(std::string_view name) const
+{
+    const ast::Some_Node* entity = m_impl->find_entity_by_name(name);
+    if (!entity) {
+        return Introspection_Error_Code::nothing_found;
+    }
+    return entity;
+}
+
+[[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+Analyzed_Program::find_global_function_node(std::string_view name) const
+{
+    const ast::Some_Node* entity = m_impl->find_entity_by_name(name);
+    if (!entity) {
+        return Introspection_Error_Code::nothing_found;
+    }
+    if (!std::holds_alternative<ast::Function>(*entity)) {
+        return Introspection_Error_Code::wrong_entity;
+    }
+    return entity;
+}
+
+[[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+Analyzed_Program::find_global_constant_node(std::string_view name) const
+{
+    const ast::Some_Node* entity = m_impl->find_entity_by_name(name);
+    if (!entity) {
+        return Introspection_Error_Code::nothing_found;
+    }
+    if (!std::holds_alternative<ast::Const>(*entity)) {
+        return Introspection_Error_Code::wrong_entity;
+    }
+    return entity;
+}
+
+[[nodiscard]] Result<const ast::Function*, Introspection_Error_Code>
+Analyzed_Program::find_global_function(std::string_view name) const
+{
+    auto node = find_global_function_node(name);
+    if (!node) {
+        return node.error();
+    }
+    return &std::get<ast::Function>(**node);
+}
+
+[[nodiscard]] Result<const ast::Const*, Introspection_Error_Code>
+Analyzed_Program::find_global_constant(std::string_view name) const
+{
+    auto node = find_global_constant_node(name);
+    if (!node) {
+        return node.error();
+    }
+    return &std::get<ast::Const>(**node);
 }
 
 } // namespace bit_manipulation::bms

@@ -11,6 +11,13 @@
 
 namespace bit_manipulation::bms {
 
+enum struct Introspection_Error_Code {
+    /// @brief No entity was found during lookup.
+    nothing_found,
+    /// @brief The wrong kind of entity was found (e.g. a function when looking for a constant).
+    wrong_entity
+};
+
 /// @brief A class which represents an analyzed program this is under analysis
 /// or which has already been analyzed.
 ///
@@ -48,6 +55,21 @@ public:
     [[nodiscard]] ast::Some_Node* insert(const ast::Some_Node& node);
 
     [[nodiscard]] ast::Some_Node* insert(ast::Some_Node&&);
+
+    [[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+    find_entity(std::string_view name) const;
+
+    [[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+    find_global_function_node(std::string_view name) const;
+
+    [[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>
+    find_global_constant_node(std::string_view name) const;
+
+    [[nodiscard]] Result<const ast::Function*, Introspection_Error_Code>
+    find_global_function(std::string_view name) const;
+
+    [[nodiscard]] Result<const ast::Const*, Introspection_Error_Code>
+    find_global_constant(std::string_view name) const;
 };
 
 Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program,
