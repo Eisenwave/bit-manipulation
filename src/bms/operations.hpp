@@ -10,20 +10,6 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Builtin_Function : Default_Underlying {
-    // `fn assert(cond: Bool) -> Void`
-    assert
-};
-
-[[nodiscard]] constexpr Size builtin_parameter_count(Builtin_Function f)
-{
-    using enum Builtin_Function;
-    switch (f) {
-    case assert: return 1;
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
-    }
-}
-
 // Type-only evaluations.
 
 /// @brief Returns the common type between two types, or `std::nullopt` if there is none.

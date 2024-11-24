@@ -3,6 +3,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
+#include "bms/builtin_function.hpp"
 #include "bms/operations.hpp"
 #include "bms/parse.hpp"
 #include "bms/symbol_table.hpp"

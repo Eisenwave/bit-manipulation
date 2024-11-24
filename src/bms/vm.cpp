@@ -4,6 +4,7 @@
 #include "common/assert.hpp"
 #include "common/visit.hpp"
 
+#include "bms/builtin_function.hpp"
 #include "bms/linear_map_stack.hpp"
 #include "bms/operations.hpp"
 #include "bms/vm.hpp"

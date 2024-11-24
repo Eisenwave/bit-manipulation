@@ -2,6 +2,7 @@
 #include <ranges>
 
 #include "bms/analysis_error.hpp"
+#include "bms/builtin_function.hpp"
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 

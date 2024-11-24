@@ -27,6 +27,8 @@ set(HEADERS
     src/bms/analyze.hpp
     src/bms/ast.hpp
     src/bms/astp.hpp
+    src/bms/basic_diagnostic_consumer.hpp
+    src/bms/builtin_function.hpp
     src/bms/comparison_failure.hpp
     src/bms/concrete_type.hpp
     src/bms/concrete_value.hpp
