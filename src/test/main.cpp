@@ -440,5 +440,19 @@ TEST(BMS_Analysis_Error, non_bool_logical)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/non_bool_logical.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, incompatible_types)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, incompatible_widths)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_widths, .fail_line = 3 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_widths.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
