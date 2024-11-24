@@ -1,0 +1,11 @@
+function zero() -> Uint(32) {
+    return 0;
+}
+
+const x = zero();
+
+function identity(y: Int) -> Uint(32) {
+    return y;
+}
+
+const z = identity(0);

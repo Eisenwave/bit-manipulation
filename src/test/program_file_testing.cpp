@@ -1,3 +1,4 @@
+#include <functional>
 #include <iostream>
 
 #include "common/diagnostics.hpp"
@@ -96,10 +97,10 @@ struct Printing_Diagnostic_Policy : Diagnostic_Policy {
 struct Expect_Success_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
     bool m_failed = false;
-    Compilation_Stage m_max_stage = Compilation_Stage::analyze;
+    Testing_Stage m_max_stage = Testing_Stage::analyze;
 
 public:
-    explicit Expect_Success_Diagnostic_Policy(Compilation_Stage max_stage)
+    explicit Expect_Success_Diagnostic_Policy(Testing_Stage max_stage)
         : m_max_stage(max_stage)
     {
     }
@@ -134,7 +135,7 @@ public:
         }
         return Policy_Action::FAILURE;
     }
-    Policy_Action done(Compilation_Stage stage)
+    Policy_Action done(Testing_Stage stage)
     {
         return m_failed            ? Policy_Action::FAILURE
             : stage >= m_max_stage ? Policy_Action::SUCCESS
@@ -184,12 +185,12 @@ public:
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
     }
-    Policy_Action done(Compilation_Stage stage)
+    Policy_Action done(Testing_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::tokenize);
-        return stage == Compilation_Stage::tokenize ? m_state = Policy_Action::FAILURE
-                                                    : Policy_Action::CONTINUE;
+        BIT_MANIPULATION_ASSERT(stage <= Testing_Stage::tokenize);
+        return stage == Testing_Stage::tokenize ? m_state = Policy_Action::FAILURE
+                                                : Policy_Action::CONTINUE;
     }
 };
 
@@ -260,12 +261,12 @@ public:
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
     }
-    Policy_Action done(Compilation_Stage stage)
+    Policy_Action done(Testing_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        BIT_MANIPULATION_ASSERT(stage <= Compilation_Stage::parse);
-        return stage == Compilation_Stage::parse ? m_state = Policy_Action::FAILURE
-                                                 : Policy_Action::CONTINUE;
+        BIT_MANIPULATION_ASSERT(stage <= Testing_Stage::parse);
+        return stage == Testing_Stage::parse ? m_state = Policy_Action::FAILURE
+                                             : Policy_Action::CONTINUE;
     }
 };
 
@@ -360,10 +361,10 @@ public:
         return m_state = Policy_Action::SUCCESS;
     }
 
-    Policy_Action done(Compilation_Stage stage)
+    Policy_Action done(Testing_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        if (stage == Compilation_Stage::analyze) {
+        if (stage == Testing_Stage::analyze) {
             std::cout << ansi::red << "Expected '" << m_expectations.code //
                       << "' but program was analyzed with no errors.\n"
                       << ansi::reset;
@@ -379,11 +380,12 @@ public:
 /// @param policy a policy on diagnostics
 /// @param until_stage the (inclusive) maximum stage until which the validity test runs.
 /// After that stage is complete, the program is automatically considered valid.
-/// For example, `Compilation_Stage::tokenize` would yield `true` if tokenization succeeds.
+/// For example, `Testing_Stage::tokenize` would yield `true` if tokenization succeeds.
 /// @return `true` if compilation stages have passed
 bool test_validity(std::string_view file,
                    bms::Basic_Diagnostic_Consumer& diagnostics,
-                   Printing_Diagnostic_Policy& policy)
+                   Printing_Diagnostic_Policy& policy,
+                   std::function<bool(const bms::Analyzed_Program&)> introspect)
 {
     const auto full_path = "test/" + std::string(file);
     policy.file = full_path;
@@ -393,7 +395,7 @@ bool test_validity(std::string_view file,
     if (!source) {
         return policy.error(source.error()) == Policy_Action::SUCCESS;
     }
-    switch (policy.done(Compilation_Stage::load_file)) {
+    switch (policy.done(Testing_Stage::load_file)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
@@ -403,7 +405,7 @@ bool test_validity(std::string_view file,
     if (!bms::tokenize(tokens, *source, diagnostics)) {
         return policy.error(diagnostics.tokenize_errors.back()) == Policy_Action::SUCCESS;
     }
-    switch (policy.done(Compilation_Stage::tokenize)) {
+    switch (policy.done(Testing_Stage::tokenize)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
@@ -414,7 +416,7 @@ bool test_validity(std::string_view file,
         return policy.error(diagnostics.parse_errors.back()) == Policy_Action::SUCCESS;
     }
     policy.parsed_program = &*parsed;
-    switch (policy.done(Compilation_Stage::parse)) {
+    switch (policy.done(Testing_Stage::parse)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
@@ -424,28 +426,45 @@ bool test_validity(std::string_view file,
     if (!bms::analyze(analyzed, &memory, diagnostics)) {
         return policy.error(diagnostics.analysis_errors.back()) == Policy_Action::SUCCESS;
     }
-    switch (policy.done(Compilation_Stage::analyze)) {
+    switch (policy.done(Testing_Stage::analyze)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
     }
 
     BIT_MANIPULATION_ASSERT(diagnostics.ok());
-    return policy.is_success();
+    if (!policy.is_success()) {
+        return false;
+    }
+    if (introspect && !introspect(analyzed)) {
+        return false;
+    }
+    return true;
 }
 
-bool test_validity(std::string_view file, Printing_Diagnostic_Policy& policy)
+bool test_validity(std::string_view file,
+                   Printing_Diagnostic_Policy& policy,
+                   std::function<bool(const bms::Analyzed_Program&)> introspection = {})
 {
     bms::Basic_Diagnostic_Consumer diagnostics;
-    return test_validity(file, diagnostics, policy);
+    return test_validity(file, diagnostics, policy, std::move(introspection));
 }
 
 } // namespace
 
-bool test_for_success(std::string_view file, Compilation_Stage until_stage)
+bool test_for_success(std::string_view file, Testing_Stage until_stage)
 {
     Expect_Success_Diagnostic_Policy policy { until_stage };
     return test_validity(file, policy);
+}
+
+bool test_for_success_then_introspect(
+    std::string_view file,
+    std::function<bool(const bms::Analyzed_Program&)> introspection)
+{
+    bms::Basic_Diagnostic_Consumer diagnostics;
+    Expect_Success_Diagnostic_Policy policy { Testing_Stage::introspect };
+    return test_validity(file, diagnostics, policy, std::move(introspection));
 }
 
 bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expected)

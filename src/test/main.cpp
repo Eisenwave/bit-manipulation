@@ -39,6 +39,37 @@ TEST(Valid_BMS, assert)
     EXPECT_TRUE(test_for_success("assert.bms"));
 }
 
+TEST(Valid_BMS, consteval_return_conversion)
+{
+    constexpr auto introspect = [](const bms::Analyzed_Program& program) {
+        {
+            Result<const bms::ast::Const*, bms::Introspection_Error_Code> x
+                = program.find_global_constant("x");
+            BIT_MANIPULATION_ASSERT(x);
+
+            auto type = (*x)->const_value().value().get_type();
+            if (type != bms::Concrete_Type::Uint(32)) {
+                std::cout << ansi::red << "x is not of type Uint(32)\n";
+                return false;
+            }
+        }
+        {
+            Result<const bms::ast::Const*, bms::Introspection_Error_Code> z
+                = program.find_global_constant("z");
+            BIT_MANIPULATION_ASSERT(z);
+
+            auto type = (*z)->const_value().value().get_type();
+            if (type != bms::Concrete_Type::Uint(32)) {
+                std::cout << ansi::red << "z is not of type Uint(32)\n";
+                return false;
+            }
+        }
+
+        return true;
+    };
+    EXPECT_TRUE(test_for_success_then_introspect("consteval_return_conversion.bms", introspect));
+}
+
 TEST(Valid_BMS, deduction)
 {
     EXPECT_TRUE(test_for_success("deduction.bms"));

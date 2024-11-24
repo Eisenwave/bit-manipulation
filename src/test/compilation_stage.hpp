@@ -5,9 +5,9 @@
 
 namespace bit_manipulation {
 
-enum struct Compilation_Stage : Default_Underlying { load_file, tokenize, parse, analyze };
+enum struct Testing_Stage : Default_Underlying { load_file, tokenize, parse, analyze, introspect };
 
-constexpr auto operator<=>(Compilation_Stage a, Compilation_Stage b)
+constexpr auto operator<=>(Testing_Stage a, Testing_Stage b)
 {
     return static_cast<Default_Underlying>(a) <=> static_cast<Default_Underlying>(b);
 }
