@@ -7,18 +7,22 @@
 
 namespace bit_manipulation::bms {
 
-[[nodiscard]] std::optional<Concrete_Type> get_common_type(Concrete_Type lhs, Concrete_Type rhs)
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> get_common_type(Concrete_Type lhs,
+                                                                         Concrete_Type rhs)
 {
     if (lhs == rhs) {
         return lhs;
     }
+    if (lhs.type() == Type_Type::Uint && rhs.type() == Type_Type::Uint) {
+        return Analysis_Error_Code::incompatible_widths;
+    }
     if (lhs.type() == Type_Type::Int && rhs.type() == Type_Type::Uint) {
         return rhs;
     }
-    else if (lhs.type() == Type_Type::Uint && rhs.type() == Type_Type::Int) {
+    if (lhs.type() == Type_Type::Uint && rhs.type() == Type_Type::Int) {
         return lhs;
     }
-    return std::nullopt;
+    return Analysis_Error_Code::incompatible_types;
 }
 
 namespace {
@@ -36,7 +40,8 @@ Concrete_Type get_type(const Value& v)
 template <typename T>
 [[nodiscard]] Result<void, Conversion_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
-    const std::optional<Concrete_Type> common = get_common_type(get_type(lhs), get_type(rhs));
+    const Result<Concrete_Type, Analysis_Error_Code> common
+        = get_common_type(get_type(lhs), get_type(rhs));
     if (!common) {
         return Conversion_Error_Code::not_convertible;
     }
@@ -201,9 +206,9 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
     if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
         return Analysis_Error_Code::void_operation;
     }
-    std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
+    Result<Concrete_Type, Analysis_Error_Code> common = get_common_type(lhs, rhs);
     if (!common) {
-        return Analysis_Error_Code::incompatible_types;
+        return common.error();
     }
     lhs = rhs = *common;
 
@@ -256,9 +261,9 @@ check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rh
     if (condition != Concrete_Type::Bool) {
         return Analysis_Error_Code::condition_not_bool;
     }
-    const std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
+    Result<Concrete_Type, Analysis_Error_Code> common = get_common_type(lhs, rhs);
     if (!common) {
-        return Analysis_Error_Code::incompatible_types;
+        return common.error();
     }
     return *common;
 }
