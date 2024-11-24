@@ -404,7 +404,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::load_file)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
-    default: break;
+    case Policy_Action::CONTINUE: break;
     }
 
     std::pmr::vector<bms::Token> tokens(&memory);
@@ -414,7 +414,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::tokenize)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
-    default: break;
+    case Policy_Action::CONTINUE: break;
     }
 
     std::optional<bms::Parsed_Program> parsed = bms::parse(tokens, *source, &memory, diagnostics);
@@ -425,7 +425,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::parse)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
-    default: break;
+    case Policy_Action::CONTINUE: break;
     }
 
     bms::Analyzed_Program analyzed(*parsed, full_path, &memory);
@@ -435,7 +435,7 @@ bool test_validity(std::string_view file,
     switch (policy.done(Compilation_Stage::analyze)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
-    default: break;
+    case Policy_Action::CONTINUE: break;
     }
 
     BIT_MANIPULATION_ASSERT(diagnostics.ok());
