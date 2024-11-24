@@ -1,0 +1,9 @@
+// Verify that static_assert is not checked prior to instantiation
+// of a bit-generic functions.
+function awoo(x: Uint(N)) -> Uint(N) {
+    static_assert(N == 32);
+    return x;
+}
+
+const y: Uint(32) = 0;
+const z = awoo(y);

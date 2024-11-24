@@ -44,6 +44,11 @@ TEST(Valid_BMS, deduction)
     EXPECT_TRUE(test_for_success("deduction.bms"));
 }
 
+TEST(Valid_BMS, dependent_static_assert)
+{
+    EXPECT_TRUE(test_for_success("dependent_static_assert.bms"));
+}
+
 TEST(Valid_BMS, identity)
 {
     EXPECT_TRUE(test_for_success("identity.bms"));
