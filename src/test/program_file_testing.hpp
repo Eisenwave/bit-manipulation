@@ -24,7 +24,6 @@ struct Analysis_Error_Code_Expectation {
 private:
     bms::Analysis_Error_Code m_code;
     std::variant<std::monostate,
-                 bms::Type_Error_Code,
                  bms::Evaluation_Error_Code,
                  bms::Execution_Error_Code,
                  bms::Conversion_Error_Code>
@@ -33,12 +32,6 @@ private:
 public:
     constexpr Analysis_Error_Code_Expectation(bms::Analysis_Error_Code code)
         : m_code(code)
-    {
-    }
-
-    constexpr Analysis_Error_Code_Expectation(bms::Type_Error_Code code)
-        : m_code(bms::Analysis_Error_Code::type_error)
-        , m_detail(code)
     {
     }
 

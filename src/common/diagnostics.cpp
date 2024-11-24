@@ -134,8 +134,6 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Cannot use function parameters in a constant expression.";
     case function_in_expression: //
         return "Attempted to use a function in an expression as if it was a variable.";
-    case type_error: //
-        return "Type error.";
     case conversion_error: //
         return "Implicit conversion is invalid.";
     case execution_error: //
@@ -175,14 +173,6 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Use of undefined constant.";
     case empty_return_in_non_void_function: //
         return "Cannot return nothing in a non-void function.";
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
-}
-
-std::string_view to_prose(bms::Type_Error_Code e)
-{
-    using enum bms::Type_Error_Code;
-    switch (e) {
     case invalid_operator: //
         return "Invalid operator is used.";
     case void_operation: //
@@ -206,10 +196,6 @@ std::string_view to_prose(bms::Type_Error_Code e)
         return "Incompatible types for operation or conversion.";
     case incompatible_widths: //
         return "Incompatible Uint widths for operation or conversion.";
-    case condition_not_bool: //
-        return "The condition of an if-expression must be of type 'Bool'";
-    case wrong_number_of_arguments: //
-        return "Wrong number of arguments for function call.";
     case wrong_argument_type: //
         return "Wrong argument types for function call.";
     }
@@ -407,8 +393,7 @@ namespace {
 
 bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
-    return error.code() == bms::Analysis_Error_Code::type_error
-        && error.type_error() == bms::Type_Error_Code::incompatible_types
+    return error.code() == bms::Analysis_Error_Code::incompatible_types
         && std::holds_alternative<bms::ast::Return_Statement>(*error.fail);
 }
 
@@ -445,12 +430,9 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
         return result;
     }
 
-    // clang-format off
-    const std::string_view error_prose =
-          error.code() == bms::Analysis_Error_Code::type_error       ? to_prose(error.type_error())
-        : error.code() == bms::Analysis_Error_Code::conversion_error ? to_prose(error.conversion_error())
-                                                                     : to_prose(error.code());
-    // clang-format on
+    const std::string_view error_prose = error.code() == bms::Analysis_Error_Code::conversion_error
+        ? to_prose(error.conversion_error())
+        : to_prose(error.code());
 
     result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
 

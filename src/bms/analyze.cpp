@@ -482,7 +482,7 @@ private:
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
         if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
-            return Analysis_Error { Type_Error_Code::incompatible_types, handle,
+            return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
         const Result<Value, Conversion_Error_Code> r
@@ -535,7 +535,7 @@ private:
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
         if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
-            return Analysis_Error { Type_Error_Code::incompatible_types, handle,
+            return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     node.get_initializer() };
         }
         node.const_value() = Value::unknown_of_type(type_node.concrete_type().value());
@@ -669,7 +669,7 @@ private:
         auto expr_value = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
         if (!expr_value->get_type().is_convertible_to(function_info.return_type)) {
-            return Analysis_Error { Type_Error_Code::incompatible_types, handle,
+            return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     function_info.return_type_node };
         }
         const Result<Value, Conversion_Error_Code> eval_result
@@ -711,7 +711,7 @@ private:
 
         const Concrete_Type dest_type = looked_up_var.const_value().value().get_type();
         if (!expr_value->get_type().is_convertible_to(dest_type)) {
-            return Analysis_Error { Type_Error_Code::incompatible_types, handle,
+            return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     node.get_expression() };
         }
 
@@ -768,7 +768,7 @@ private:
         }
         auto right_value = get_const_value(*node.get_right());
 
-        Result<Concrete_Type, Type_Error_Code> type_result = check_if_expression(
+        Result<Concrete_Type, Analysis_Error_Code> type_result = check_if_expression(
             left_value->get_type(), condition_value->get_type(), right_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
@@ -809,7 +809,7 @@ private:
                 || node.get_op() == Token_Type::logical_or;
             if (context == Expression_Context::constant && is_short_circuiting) {
                 if (left_value->get_type() != Concrete_Type::Bool) {
-                    return Analysis_Error { Type_Error_Code::non_bool_logical, handle,
+                    return Analysis_Error { Analysis_Error_Code::non_bool_logical, handle,
                                             node.get_left() };
                 }
                 const bool circuit_breaker = node.get_op() == Token_Type::logical_or;
@@ -826,7 +826,7 @@ private:
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
                                 || (right_value && right_value->is_known()));
 
-        const Result<Concrete_Type, Type_Error_Code> type_result
+        const Result<Concrete_Type, Analysis_Error_Code> type_result
             = check_binary_operator(left_value->get_type(), node.get_op(), right_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
@@ -853,7 +853,7 @@ private:
         const auto expr_value = get_const_value(*node.get_expression());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
-        const Result<Concrete_Type, Type_Error_Code> type_result
+        const Result<Concrete_Type, Analysis_Error_Code> type_result
             = check_unary_operator(node.get_op(), expr_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
@@ -1034,7 +1034,7 @@ private:
             auto& param = std::get<ast::Parameter>(*params->get_children()[i]);
             const Concrete_Type param_type = param.const_value().value().get_type();
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
-                return Analysis_Error { Type_Error_Code::incompatible_types, handle,
+                return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                         params->get_children()[i] };
             }
 

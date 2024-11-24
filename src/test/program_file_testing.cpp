@@ -26,9 +26,6 @@ std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_E
 
     switch (e.code()) {
         using enum bms::Analysis_Error_Code;
-    case type_error: {
-        return print_parenthesized(type_error_code_name(e.type_error()));
-    }
     case execution_error: {
         return print_parenthesized(execution_error_code_name(e.execution_error()));
     }
@@ -57,17 +54,14 @@ std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectatio
             if constexpr (std::is_same_v<T, std::monostate>) {
                 return out;
             }
-            else if constexpr (std::is_same_v<T, bms::Type_Error_Code>) {
-                return print_parenthesized(type_error_code_name(code));
-            }
             else if constexpr (std::is_same_v<T, bms::Execution_Error_Code>) {
                 return print_parenthesized(execution_error_code_name(code));
             }
             else if constexpr (std::is_same_v<T, bms::Evaluation_Error_Code>) {
                 return print_parenthesized(evaluation_error_code_name(code));
             }
-            else if constexpr (std::is_same_v<T, bms::Type_Error_Code>) {
-                return print_parenthesized(type_error_code_name(code));
+            else if constexpr (std::is_same_v<T, bms::Conversion_Error_Code>) {
+                return print_parenthesized(conversion_error_code_name(code));
             }
             else {
                 // TODO: this should be static_assert(false), but we need more recent
@@ -85,8 +79,6 @@ bool Analysis_Error_Code_Expectation::met_by(const bms::Analysis_Error& e) const
         return false;
     }
     switch (m_code) {
-    case bms::Analysis_Error_Code::type_error:
-        return e.type_error() == std::get<bms::Type_Error_Code>(m_detail);
     case bms::Analysis_Error_Code::evaluation_error:
         return e.evaluation_error() == std::get<bms::Evaluation_Error_Code>(m_detail);
     case bms::Analysis_Error_Code::execution_error:

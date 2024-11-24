@@ -73,8 +73,6 @@ enum struct Analysis_Error_Code : Default_Underlying {
     parameter_in_constant_expression,
     /// @brief Attempted to use a function in an expression as if it was a variable.
     function_in_expression,
-    /// @brief Type error in expressions, implicit conversions, etc.
-    type_error,
     /// @brief Error in the execution of the generated code for constexpr functions.
     execution_error,
     /// @brief Evaluation error in constant expressions or constant folding.
@@ -115,6 +113,36 @@ enum struct Analysis_Error_Code : Default_Underlying {
     use_of_undefined_constant,
     /// @brief Empty return statement in non-void function.
     empty_return_in_non_void_function,
+
+    // FIXME: this diagnostic might be dead and should be an assertion instead
+    /// @brief Use of an invalid operator.
+    invalid_operator,
+
+    /// @brief An operation involving Void was attempted.
+    void_operation,
+    /// @brief Arithmetic with bool was attempted, such as +true.
+    bool_arithmetic,
+    /// @brief A bitwise operation with bool was attempted, such as ~false.
+    bool_bitwise,
+    /// @brief a relational comparison with bool was attempted.
+    bool_relational_comparison,
+    /// @brief Bitwise operators were applied to Int.
+    int_bitwise,
+
+    // FIXME: int_logical and uint_logical may be dead because of non_bool_logical
+    /// @brief Logical operators were applied to Int.
+    int_logical,
+    /// @brief Logical operators were applied to Uint.
+    uint_logical,
+
+    /// @brief Logical operators were applied to something other than bool.
+    non_bool_logical,
+    /// @brief A binary or n-ary operation with incompatible types was attempted.
+    incompatible_types,
+    /// @brief A binary or n-ary operation with UInts of different widths was attempted.
+    incompatible_widths,
+    /// @brief Wrong argument type for builtin function call.
+    wrong_argument_type,
 };
 
 constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
@@ -136,7 +164,6 @@ constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(let_variable_in_constant_expression);
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter_in_constant_expression);
         BIT_MANIPULATION_ENUM_STRING_CASE(function_in_expression);
-        BIT_MANIPULATION_ENUM_STRING_CASE(type_error);
         BIT_MANIPULATION_ENUM_STRING_CASE(execution_error);
         BIT_MANIPULATION_ENUM_STRING_CASE(evaluation_error);
         BIT_MANIPULATION_ENUM_STRING_CASE(conversion_error);
@@ -156,6 +183,18 @@ constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_variable);
         BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_constant);
         BIT_MANIPULATION_ENUM_STRING_CASE(empty_return_in_non_void_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_operator);
+        BIT_MANIPULATION_ENUM_STRING_CASE(void_operation);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_arithmetic);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_relational_comparison);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(uint_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(non_bool_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
+        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
     };
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
@@ -167,7 +206,6 @@ struct Analysis_Error {
 private:
     Analysis_Error_Code m_code {};
     union {
-        Type_Error_Code m_type_error;
         Evaluation_Error_Code m_evaluation_error;
         Execution_Error_Code m_execution_error;
         Conversion_Error_Code m_conversion_error;
@@ -201,7 +239,6 @@ public:
         , fail(fail)
         , cause(cause)
     {
-        BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::type_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::evaluation_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::execution_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::conversion_error);
@@ -212,16 +249,6 @@ public:
                                            const ast::Some_Node* cause = {})
         : m_code(Analysis_Error_Code::evaluation_error)
         , m_evaluation_error(code)
-        , fail(fail)
-        , cause(cause)
-    {
-    }
-
-    [[nodiscard]] constexpr Analysis_Error(Type_Error_Code code,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : m_code(Analysis_Error_Code::type_error)
-        , m_type_error(code)
         , fail(fail)
         , cause(cause)
     {
@@ -280,12 +307,6 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::evaluation_error);
         return m_evaluation_error;
-    }
-
-    [[nodiscard]] constexpr Type_Error_Code type_error() const
-    {
-        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::type_error);
-        return m_type_error;
     }
 
     [[nodiscard]] constexpr Execution_Error_Code execution_error() const

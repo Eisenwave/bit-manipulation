@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <ranges>
 
+#include "bms/analysis_error.hpp"
 #include "bms/operations.hpp"
 #include "bms/tokens.hpp"
 
@@ -79,18 +80,18 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error_Code> result)
 }
 
 template <typename Iter>
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 {
     static_assert(std::random_access_iterator<Iter>);
     static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Type>);
     if (builtin_parameter_count(f) != Size(end - begin)) {
-        return Type_Error_Code::wrong_number_of_arguments;
+        return Analysis_Error_Code::wrong_number_of_arguments;
     }
     switch (f) {
     case Builtin_Function::assert: {
         if (begin[0] != Concrete_Type::Bool) {
-            return Type_Error_Code::wrong_argument_type;
+            return Analysis_Error_Code::wrong_argument_type;
         }
         return Concrete_Type::Void;
     }
@@ -100,8 +101,8 @@ check_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 }
 
 template <typename R>
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_builtin_function_impl(Builtin_Function f,
-                                                                                 const R& args)
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
+check_builtin_function_impl(Builtin_Function f, const R& args)
 {
     static_assert(std::ranges::random_access_range<R>);
     return check_builtin_function_impl(f, std::ranges::begin(args), std::ranges::end(args));
@@ -117,7 +118,7 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
     const auto types
         = std::ranges::subrange(begin, end) | std::views::transform(&Concrete_Value::type);
 
-    Result<Concrete_Type, Type_Error_Code> type_result = check_builtin_function_impl(f, types);
+    Result<Concrete_Type, Analysis_Error_Code> type_result = check_builtin_function_impl(f, types);
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
@@ -147,42 +148,42 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 
 // TYPE ============================================================================================
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_unary_operator(Token_Type op,
-                                                                          Concrete_Type value)
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Token_Type op,
+                                                                              Concrete_Type value)
 {
     if (!is_unary_operator(op)) {
-        return Type_Error_Code::invalid_operator;
+        return Analysis_Error_Code::invalid_operator;
     }
 
     switch (value.type()) {
 
     case Type_Type::Void: {
-        return Type_Error_Code::void_operation;
+        return Analysis_Error_Code::void_operation;
     }
 
     case Type_Type::Bool: {
         if (is_arithmetic_operator(op)) {
-            return Type_Error_Code::bool_arithmetic;
+            return Analysis_Error_Code::bool_arithmetic;
         }
         if (is_bitwise_operator(op)) {
-            return Type_Error_Code::bool_bitwise;
+            return Analysis_Error_Code::bool_bitwise;
         }
         return value;
     }
 
     case Type_Type::Int: {
         if (is_bitwise_operator(op)) {
-            return Type_Error_Code::int_bitwise;
+            return Analysis_Error_Code::int_bitwise;
         }
         if (is_logical_operator(op)) {
-            return Type_Error_Code::int_logical;
+            return Analysis_Error_Code::int_logical;
         }
         return value;
     }
 
     case Type_Type::Uint: {
         if (is_logical_operator(op)) {
-            return Type_Error_Code::uint_logical;
+            return Analysis_Error_Code::uint_logical;
         }
         return value;
     }
@@ -191,56 +192,56 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
     }
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
 {
     if (!is_binary_operator(op)) {
-        return Type_Error_Code::invalid_operator;
+        return Analysis_Error_Code::invalid_operator;
     }
     if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
-        return Type_Error_Code::void_operation;
+        return Analysis_Error_Code::void_operation;
     }
     std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
     if (!common) {
-        return Type_Error_Code::incompatible_types;
+        return Analysis_Error_Code::incompatible_types;
     }
     lhs = rhs = *common;
 
     switch (lhs.type()) {
 
     case Type_Type::Void: {
-        return Type_Error_Code::void_operation;
+        return Analysis_Error_Code::void_operation;
     }
 
     case Type_Type::Bool: {
         if (is_arithmetic_operator(op)) {
-            return Type_Error_Code::bool_arithmetic;
+            return Analysis_Error_Code::bool_arithmetic;
         }
         if (is_bitwise_operator(op)) {
-            return Type_Error_Code::bool_bitwise;
+            return Analysis_Error_Code::bool_bitwise;
         }
         if (is_relational_comparison_operator(op)) {
-            return Type_Error_Code::bool_relational_comparison;
+            return Analysis_Error_Code::bool_relational_comparison;
         }
         return Concrete_Type::Bool;
     }
 
     case Type_Type::Int: {
         if (is_bitwise_operator(op)) {
-            return Type_Error_Code::int_bitwise;
+            return Analysis_Error_Code::int_bitwise;
         }
         if (is_logical_operator(op)) {
-            return Type_Error_Code::int_logical;
+            return Analysis_Error_Code::int_logical;
         }
         return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
     }
 
     case Type_Type::Uint: {
         if (lhs.width() != rhs.width()) {
-            return Type_Error_Code::incompatible_widths;
+            return Analysis_Error_Code::incompatible_widths;
         }
         if (is_logical_operator(op)) {
-            return Type_Error_Code::uint_logical;
+            return Analysis_Error_Code::uint_logical;
         }
         return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
     }
@@ -249,33 +250,33 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
     }
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs)
 {
     if (condition != Concrete_Type::Bool) {
-        return Type_Error_Code::condition_not_bool;
+        return Analysis_Error_Code::condition_not_bool;
     }
     const std::optional<Concrete_Type> common = get_common_type(lhs, rhs);
     if (!common) {
-        return Type_Error_Code::incompatible_types;
+        return Analysis_Error_Code::incompatible_types;
     }
     return *common;
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Concrete_Type> args)
 {
     return check_builtin_function_impl(f, args);
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args)
 {
     return check_builtin_function_impl(
         f, args | std::views::transform([](const Concrete_Value& v) { return v.type; }));
 }
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Value> args)
 {
     return check_builtin_function_impl(
@@ -293,7 +294,7 @@ evaluate_conversion(Concrete_Value value, Concrete_Type to)
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_unary_operator(Token_Type op, Concrete_Value value)
 {
-    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.type); !r) {
+    if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error_Code::type_error;
     }
 
@@ -336,7 +337,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value)
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
 {
-    Result<Concrete_Type, Type_Error_Code> target_type
+    Result<Concrete_Type, Analysis_Error_Code> target_type
         = check_binary_operator(lhs.type, op, rhs.type);
     if (!target_type) {
         return Evaluation_Error_Code::type_error;
@@ -455,7 +456,7 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs)
 {
-    Result<Concrete_Type, Type_Error_Code> type_result
+    Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
@@ -489,7 +490,8 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
                                                                            Value value)
 {
-    if (Result<Concrete_Type, Type_Error_Code> r = check_unary_operator(op, value.get_type()); !r) {
+    if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.get_type());
+        !r) {
         return Evaluation_Error_Code::type_error;
     }
     if (value.is_unknown()) {
@@ -501,7 +503,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
 {
-    const Result<Concrete_Type, Type_Error_Code> type_result
+    const Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_binary_operator(lhs.get_type(), op, rhs.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
@@ -531,7 +533,7 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_if_expression(Value lhs, Value condition, Value rhs)
 {
-    Result<Concrete_Type, Type_Error_Code> type_result
+    Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_if_expression(lhs.get_type(), condition.get_type(), rhs.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;

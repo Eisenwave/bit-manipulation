@@ -253,11 +253,20 @@ TEST(BMS_Analysis_Error, function_in_expression)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/function_in_expression.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, condition_not_bool)
+TEST(BMS_Analysis_Error, condition_not_bool_in_if_expression)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::condition_not_bool, .fail_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/condition_not_bool/if_expression.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, condition_not_bool_in_if_statement)
 {
     constexpr Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::condition_not_bool, .fail_line = 2 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/condition_not_bool.bms", expectations));
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/condition_not_bool/if_statement.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, invalid_integer_literal)
@@ -389,46 +398,46 @@ TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
 
 // TODO: test for break outside loop
 
-TEST(BMS_Type_Error, void_operation)
+TEST(BMS_Analysis_Error, void_operation)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::void_operation, .fail_line = 2 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/void_operation.bms", expectations));
+        { .code = bms::Analysis_Error_Code::void_operation, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/void_operation.bms", expectations));
 }
 
-TEST(BMS_Type_Error, bool_arithmetic)
+TEST(BMS_Analysis_Error, bool_arithmetic)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::bool_arithmetic, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/bool_arithmetic.bms", expectations));
+        { .code = bms::Analysis_Error_Code::bool_arithmetic, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_arithmetic.bms", expectations));
 }
 
-TEST(BMS_Type_Error, bool_bitwise)
+TEST(BMS_Analysis_Error, bool_bitwise)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::bool_bitwise, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/bool_bitwise.bms", expectations));
+        { .code = bms::Analysis_Error_Code::bool_bitwise, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_bitwise.bms", expectations));
 }
 
-TEST(BMS_Type_Error, bool_relational_comparison)
+TEST(BMS_Analysis_Error, bool_relational_comparison)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::bool_relational_comparison, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/bool_relational_comparison.bms", expectations));
+        { .code = bms::Analysis_Error_Code::bool_relational_comparison, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_relational_comparison.bms", expectations));
 }
 
-TEST(BMS_Type_Error, int_bitwise)
+TEST(BMS_Analysis_Error, int_bitwise)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::int_bitwise, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/int_bitwise.bms", expectations));
+        { .code = bms::Analysis_Error_Code::int_bitwise, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/int_bitwise.bms", expectations));
 }
 
-TEST(BMS_Type_Error, non_bool_logical)
+TEST(BMS_Analysis_Error, non_bool_logical)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Type_Error_Code::non_bool_logical, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("type_error/non_bool_logical.bms", expectations));
+        { .code = bms::Analysis_Error_Code::non_bool_logical, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/non_bool_logical.bms", expectations));
 }
 
 } // namespace

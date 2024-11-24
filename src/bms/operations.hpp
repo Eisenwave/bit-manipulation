@@ -36,43 +36,6 @@ constexpr std::string_view evaluation_error_code_name(Evaluation_Error_Code code
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
 
-enum struct Type_Error_Code : Default_Underlying {
-
-    // FIXME: this diagnostic might be dead and should be an assertion instead
-    /// @brief Use of an invalid operator.
-    invalid_operator,
-
-    /// @brief An operation involving Void was attempted.
-    void_operation,
-    /// @brief Arithmetic with bool was attempted, such as +true.
-    bool_arithmetic,
-    /// @brief A bitwise operation with bool was attempted, such as ~false.
-    bool_bitwise,
-    /// @brief a relational comparison with bool was attempted.
-    bool_relational_comparison,
-    /// @brief Bitwise operators were applied to Int.
-    int_bitwise,
-
-    // FIXME: int_logical and uint_logical may be dead because of non_bool_logical
-    /// @brief Logical operators were applied to Int.
-    int_logical,
-    /// @brief Logical operators were applied to Uint.
-    uint_logical,
-
-    /// @brief Logical operators were applied to something other than bool.
-    non_bool_logical,
-    /// @brief A binary or n-ary operation with incompatible types was attempted.
-    incompatible_types,
-    /// @brief A binary or n-ary operation with UInts of different widths was attempted.
-    incompatible_widths,
-    /// @brief The condition of an if expression is not a `Bool`.
-    condition_not_bool,
-    /// @brief Wrong number of arguments.
-    wrong_number_of_arguments,
-    /// @brief Wrong argument type for builtin function call.
-    wrong_argument_type,
-};
-
 enum struct Builtin_Function : Default_Underlying {
     // `fn assert(cond: Bool) -> Void`
     assert
@@ -87,28 +50,6 @@ enum struct Builtin_Function : Default_Underlying {
     }
 }
 
-constexpr std::string_view type_error_code_name(Type_Error_Code code)
-{
-    switch (code) {
-        using enum Type_Error_Code;
-        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_operator);
-        BIT_MANIPULATION_ENUM_STRING_CASE(void_operation);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_arithmetic);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_bitwise);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_relational_comparison);
-        BIT_MANIPULATION_ENUM_STRING_CASE(int_bitwise);
-        BIT_MANIPULATION_ENUM_STRING_CASE(int_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(uint_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(non_bool_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
-        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
-        BIT_MANIPULATION_ENUM_STRING_CASE(condition_not_bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_number_of_arguments);
-        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
-    };
-    BIT_MANIPULATION_ASSERT_UNREACHABLE();
-}
-
 // Type-only evaluations.
 
 /// @brief Returns the common type between two types, or `std::nullopt` if there is none.
@@ -117,22 +58,22 @@ constexpr std::string_view type_error_code_name(Type_Error_Code code)
 /// @return The common type or `std::nullopt`.
 [[nodiscard]] std::optional<Concrete_Type> get_common_type(Concrete_Type lhs, Concrete_Type rhs);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code> check_unary_operator(Token_Type op,
-                                                                          Concrete_Type value);
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Token_Type op,
+                                                                              Concrete_Type value);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Concrete_Type> args);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args);
 
-[[nodiscard]] Result<Concrete_Type, Type_Error_Code>
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function(Builtin_Function f, std::span<const Value> args);
 
 // Concrete evaluations.
