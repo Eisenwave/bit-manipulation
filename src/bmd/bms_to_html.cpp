@@ -1,4 +1,5 @@
 #include "bmd/bms_to_html.hpp"
+#include "bmd/code_span_type.hpp"
 #include "bmd/html_writer.hpp"
 
 #include "bms/parse.hpp"
@@ -9,24 +10,24 @@ namespace bit_manipulation::bmd {
 
 namespace {
 
-constexpr std::string_view token_type_tag(bms::Token_Type type)
+constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
 {
     using enum bms::Token_Type;
     switch (type) {
-    case identifier: return "c-idn";
+    case identifier: return Code_Span_Type::identifier;
 
     case left_parenthesis:
     case right_parenthesis:
     case left_brace:
-    case right_brace: return "c-bra";
+    case right_brace: return Code_Span_Type::bracket;
 
     case binary_literal:
     case octal_literal:
     case decimal_literal:
-    case hexadecimal_literal: return "c-int";
+    case hexadecimal_literal: return Code_Span_Type::number;
 
     case block_comment:
-    case line_comment: return "c-com";
+    case line_comment: return Code_Span_Type::comment;
 
     case assign:
     case equals:
@@ -48,15 +49,15 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
     case bitwise_xor:
     case logical_and:
     case logical_or:
-    case logical_not: return "c-opr";
+    case logical_not: return Code_Span_Type::operation;
 
-    case double_right_arrow: return "c-err";
+    case double_right_arrow: return Code_Span_Type::error;
 
     case dot:
     case colon:
     case comma:
     case semicolon:
-    case right_arrow: return "c-pun";
+    case right_arrow: return Code_Span_Type::punctuation;
 
     case keyword_as:
     case keyword_let:
@@ -69,15 +70,15 @@ constexpr std::string_view token_type_tag(bms::Token_Type type)
     case keyword_return:
     case keyword_break:
     case keyword_continue:
-    case keyword_static_assert: return "c-key";
+    case keyword_static_assert: return Code_Span_Type::keyword;
 
     case keyword_true:
-    case keyword_false: return "c-bol";
+    case keyword_false: return Code_Span_Type::boolean_literal;
 
     case keyword_uint:
     case keyword_int:
     case keyword_bool:
-    case keyword_void: return "c-typ";
+    case keyword_void: return Code_Span_Type::type_name;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
@@ -89,7 +90,8 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
             out.write_source_gap(tokens[i - 1].pos, tokens[i].pos, Formatting_Style::pre);
         }
 
-        const Tag_Properties tag { token_type_tag(tokens[i].type), Formatting_Style::pre };
+        const Code_Span_Type category = categorize_token_type(tokens[i].type);
+        const Tag_Properties tag { code_span_type_tag(category), Formatting_Style::pre };
         out.begin_tag(tag);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);
         out.write_inner_text(text, Formatting_Style::pre);
