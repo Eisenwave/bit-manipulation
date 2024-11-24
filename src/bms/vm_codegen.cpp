@@ -248,7 +248,10 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
                                                const ast::Return_Statement& node)
     {
+        BIT_MANIPULATION_ASSERT(m_return_type);
         BIT_MANIPULATION_ASSERT(node.const_value());
+        BIT_MANIPULATION_ASSERT(node.const_value()->get_type() == *m_return_type);
+
         if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
             out.push_back(ins::Return { { h } });
@@ -265,7 +268,6 @@ private:
 
         const Concrete_Type expression_type
             = get_const_value(*node.get_expression()).value().get_type();
-        BIT_MANIPULATION_ASSERT(m_return_type);
         if (expression_type != m_return_type) {
             out.push_back(ins::Convert { { h }, *m_return_type });
         }
