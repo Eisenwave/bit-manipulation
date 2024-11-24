@@ -213,18 +213,25 @@ TEST(BMS_Analysis_Error, DISABLED_width_not_const)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_const.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, width_too_large)
+TEST(BMS_Analysis_Error, width_invalid_because_negative)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::width_too_large, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_too_large.bms", expectations));
+        { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/negative.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, width_zero)
+TEST(BMS_Analysis_Error, width_invalid_because_too_large)
 {
     constexpr Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::width_zero, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_zero.bms", expectations));
+        { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/too_large.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, width_invalid_because_zero)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/zero.bms", expectations));
 }
 
 // FIXME: expected_constant_expression might be dead diagnostic for same reason as above

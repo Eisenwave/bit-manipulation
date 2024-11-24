@@ -429,11 +429,8 @@ private:
             return Analysis_Error { Analysis_Error_Code::width_not_integer, node.get_width() };
         }
         const Big_Int folded_width = width->as_int();
-        if (folded_width == 0) {
-            return Analysis_Error { Analysis_Error_Code::width_zero, node.get_width() };
-        }
-        if (folded_width > uint_max_width) {
-            return Analysis_Error { Analysis_Error_Code::width_too_large, node.get_width() };
+        if (folded_width <= 0 || folded_width > uint_max_width) {
+            return Analysis_Error { Analysis_Error_Code::width_invalid, node.get_width() };
         }
         node.concrete_width = static_cast<int>(folded_width);
         node.const_value() = Value::unknown_of_type(node.concrete_type().value());

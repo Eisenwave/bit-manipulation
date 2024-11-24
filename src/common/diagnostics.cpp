@@ -123,10 +123,9 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "The width of Uint must be an integer.";
     case width_not_const: //
         return "The width of Uint must be a constant expression.";
-    case width_too_large: //
-        return "The width of Uint exceeds the maximum.";
-    case width_zero: //
-        return "The width of Uint must not be zero.";
+    case width_invalid: //
+        static_assert(uint_max_width == 128);
+        return "The width of Uint must be in range [0, 128).";
     case expected_constant_expression: //
         return "Expected a constant expression, but was unable to perform constant folding.";
     case let_variable_in_constant_expression: //
@@ -316,10 +315,8 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The following expression must be of type 'Int':";
     case width_not_const: //
         return "The following expression is not a constant expression:";
-    case width_too_large: //
-        return "The following expression exceeded the maximum:";
-    case width_zero: //
-        return "The following expression evaluated to zero:";
+    case width_invalid: //
+        return "The following expression results in invalid width:";
     case let_variable_in_constant_expression: //
         return "The referenced variable is declared 'let', here:";
     case parameter_in_constant_expression: //
@@ -387,14 +384,13 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     Printable_Error result { program.get_source() };
 
+    BIT_MANIPULATION_ASSERT(error.fail);
     const auto fail_pos = get_source_position(*error.fail);
     const auto cause_pos = [&]() -> std::optional<Source_Position> {
         if (error.cause) {
-            auto result = get_source_position(*error.cause);
-            if (!result) {
-                return {};
+            if (auto result = get_source_position(*error.cause)) {
+                return *result;
             }
-            return *result;
         }
         return {};
     }();
@@ -409,9 +405,33 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
               is_void ? "Cannot have non-empty return statement in a function returning Void."
                       : "Invalid conversion between return statement and return type." });
         result.lines.push_back(
-            { Error_Line_Type::note, fail_pos,
+            { Error_Line_Type::note, cause_pos,
               is_void ? "Did you mean to 'return;' or declare the return type 'Void'?"
                       : "Return type is declared here:" });
+        return result;
+    }
+    if (error.code() == bms::Analysis_Error_Code::width_invalid) {
+        const std::optional<bms::Value>& width_value = get_const_value(*error.fail);
+        // if width_invalid got raised during analysis, it means we have to know the width
+        BIT_MANIPULATION_ASSERT(width_value);
+        const Big_Int width = width_value->as_int();
+        std::string prefix = "The width evaluated to " + to_string(width);
+        if (width < 0) {
+            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+                                     std::move(prefix) + ", but widths must be positive." });
+        }
+        else if (width == 0) {
+            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+                                     std::move(prefix) + ", but widths shall not be zero." });
+        }
+        else if (width > uint_max_width) {
+            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+                                     std::move(prefix) + ", but the maximum allowed is "
+                                         + std::to_string(uint_max_width) + '.' });
+        }
+        else {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("width_invalid raised for seemingly no reason");
+        }
         return result;
     }
 
