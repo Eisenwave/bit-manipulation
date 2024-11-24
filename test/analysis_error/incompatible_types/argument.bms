@@ -1,0 +1,5 @@
+function awoo(x: Int) -> Int {
+    return x;
+}
+
+const x = awoo(true);

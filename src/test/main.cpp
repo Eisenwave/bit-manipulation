@@ -445,11 +445,34 @@ TEST(BMS_Analysis_Error, non_bool_logical)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/non_bool_logical.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, incompatible_types)
+TEST(BMS_Analysis_Error, incompatible_types_in_argument)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 5, .cause_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/incompatible_types/argument.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, incompatible_types_in_as)
 {
     constexpr Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/as.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, incompatible_types_in_binary_expression)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/binary_expression.bms",
+                                    expectations));
+}
+
+TEST(BMS_Analysis_Error, incompatible_types_in_return)
+{
+    constexpr Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 2, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/return.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, incompatible_widths)
