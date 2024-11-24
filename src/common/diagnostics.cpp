@@ -135,8 +135,6 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Cannot use function parameters in a constant expression.";
     case function_in_expression: //
         return "Attempted to use a function in an expression as if it was a variable.";
-    case invalid_conversion: //
-        return "Implicit conversion is invalid.";
     case execution_error: //
         return "Error in the execution of the generated code for constant-evaluated functions.";
     case evaluation_error: //
@@ -328,8 +326,6 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The referenced entity is defined as a function parameter here:";
     case function_in_expression: //
         return "The referenced entity is defined as a function here:";
-    case invalid_conversion: //
-        return "The following expression cannot be converted:";
     case condition_not_bool: //
         return "The following expression must be of type 'Bool':";
     case assigning_parameter: //

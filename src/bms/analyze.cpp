@@ -753,7 +753,7 @@ private:
         BIT_MANIPULATION_ASSERT(type);
 
         if (!expression_value->get_type().is_convertible_to(*type)) {
-            return Analysis_Error { Analysis_Error_Code::invalid_conversion, handle,
+            return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
                                     node.get_target_type() };
         }
 
