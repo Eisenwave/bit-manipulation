@@ -3,6 +3,7 @@
 
 #include <concepts>
 #include <type_traits>
+#include <utility>
 
 #include "common/assert.hpp"
 #include "common/fwd.hpp"
@@ -31,6 +32,7 @@ constexpr auto&& forward_like(U&& x) noexcept
 template <typename T, typename U>
 using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
 
+#undef BIT_MANIPULATION_VISIT_CASE // FIXME: remove once migrated away from fast_visit
 #define BIT_MANIPULATION_VISIT_CASE(...)                                                           \
     case __VA_ARGS__: return static_cast<F&&>(f)(get<__VA_ARGS__>(static_cast<V&&>(v)))
 
@@ -484,6 +486,25 @@ struct Variant_Alternative<Variant<Ts...>, I> {
 };
 
 struct Variant_Get_Impl {
+
+    template <Size I, typename... Ts>
+    [[nodiscard]] static pack_at_index_t<I, Ts...>* get_if(Variant<Ts...>* variant)
+    {
+        BIT_MANIPULATION_ASSERT(variant);
+        return variant->m_index == I
+            ? std::launder(reinterpret_cast<pack_at_index_t<I, Ts...>*>(variant->m_storage))
+            : nullptr;
+    }
+
+    template <Size I, typename... Ts>
+    [[nodiscard]] static const pack_at_index_t<I, Ts...>* get_if(const Variant<Ts...>* variant)
+    {
+        BIT_MANIPULATION_ASSERT(variant);
+        return variant->m_index == I
+            ? std::launder(reinterpret_cast<const pack_at_index_t<I, Ts...>*>(variant->m_storage))
+            : nullptr;
+    }
+
     template <Size I, typename V>
     [[nodiscard]] static decltype(auto) get(V&& variant)
     {
@@ -497,6 +518,15 @@ struct Variant_Get_Impl {
         return forward_like<V>(*result);
     }
 };
+
+constexpr Size max_size(std::same_as<Size> auto... sizes)
+{
+    Size result = 0;
+    ((sizes > result ? void(result = sizes) : void()), ...);
+    return result;
+}
+
+static_assert(max_size(Size(1), Size(2), Size(3)) == Size(3));
 
 } // namespace detail
 
@@ -521,7 +551,7 @@ private:
     struct Default_Construct_Tag { };
 
     unsigned char m_index;
-    alignas(Ts...) std::byte m_storage[std::max({ sizeof(Ts)... })];
+    alignas(Ts...) std::byte m_storage[detail::max_size(sizeof(Ts)...)];
 
 public:
     Variant() noexcept(std::is_nothrow_default_constructible_v<pack_head_t<Ts...>>)
@@ -652,7 +682,7 @@ public:
 
 private:
     unsigned char m_index;
-    alignas(Ts...) std::byte m_storage[std::max({ sizeof(Ts)... })];
+    alignas(Ts...) std::byte m_storage[detail::max_size(sizeof(Ts)...)];
 
 public:
     Variant() noexcept(std::is_nothrow_default_constructible_v<pack_head_t<Ts...>>)
@@ -686,6 +716,22 @@ template <typename T, typename V>
 }
 
 template <Size I, typename V>
+    requires(I < std::remove_cv_t<V>::alternatives)
+[[nodiscard]] auto* get_if(V* variant)
+{
+    return detail::Variant_Get_Impl::get_if<I>(variant);
+}
+
+template <typename T, typename V>
+[[nodiscard]] auto get_if(V* variant) noexcept
+    -> decltype(detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(
+        variant))
+{
+    return detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(
+        variant);
+}
+
+template <Size I, typename V>
     requires(I < std::remove_cvref_t<V>::alternatives)
 [[nodiscard]] decltype(auto) get(V&& variant)
 {
@@ -694,9 +740,11 @@ template <Size I, typename V>
 
 template <typename T, typename V>
 [[nodiscard]] auto get(V&& variant) noexcept
-    -> decltype(detail::Variant_Get_Impl::get<alternative_index_v<V, T>>(std::forward<V>(variant)))
+    -> decltype(detail::Variant_Get_Impl::get<alternative_index_v<std::remove_cvref_t<V>, T>>(
+        std::forward<V>(variant)))
 {
-    return detail::Variant_Get_Impl::get<alternative_index_v<V, T>>(std::forward<V>(variant));
+    return detail::Variant_Get_Impl::get<alternative_index_v<std::remove_cvref_t<V>, T>>(
+        std::forward<V>(variant));
 }
 
 } // namespace bit_manipulation
