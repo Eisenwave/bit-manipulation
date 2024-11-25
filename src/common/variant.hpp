@@ -35,63 +35,426 @@ using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
     case __VA_ARGS__: return static_cast<F&&>(f)(get<__VA_ARGS__>(static_cast<V&&>(v)))
 
 template <typename F, typename V>
-constexpr decltype(auto) visit(F&& f, V&& v) = delete;
-
-template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives == 1)
+    requires(std::remove_reference_t<V>::alternatives <= 24)
 constexpr decltype(auto) visit(F&& f, V&& v)
 {
-    return static_cast<F&&>(f)(::std::get<0>(static_cast<V&&>(v)));
-}
-
-template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives == 2)
-constexpr decltype(auto) visit(F&& f, V&& v)
-{
-    switch (v.index()) {
-        BIT_MANIPULATION_VISIT_CASE(0);
-        BIT_MANIPULATION_VISIT_CASE(1);
+    using VV = std::remove_reference_t<V>;
+    if constexpr (VV::alternatives == 0) {
+        return static_cast<F&&>(f)(::std::get<0>(static_cast<V&&>(v)));
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
-}
-
-template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives == 3)
-constexpr decltype(auto) visit(F&& f, V&& v)
-{
-    switch (v.index()) {
-        BIT_MANIPULATION_VISIT_CASE(0);
-        BIT_MANIPULATION_VISIT_CASE(1);
-        BIT_MANIPULATION_VISIT_CASE(2);
+    else if constexpr (std::remove_reference_t<V>::alternatives == 2) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
-}
-
-template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives == 4)
-constexpr decltype(auto) visit(F&& f, V&& v)
-{
-    switch (v.index()) {
-        BIT_MANIPULATION_VISIT_CASE(0);
-        BIT_MANIPULATION_VISIT_CASE(1);
-        BIT_MANIPULATION_VISIT_CASE(2);
-        BIT_MANIPULATION_VISIT_CASE(3);
+    else if constexpr (std::remove_reference_t<V>::alternatives == 3) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
-}
-
-template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives == 5)
-constexpr decltype(auto) visit(F&& f, V&& v)
-{
-    switch (v.index()) {
-        BIT_MANIPULATION_VISIT_CASE(0);
-        BIT_MANIPULATION_VISIT_CASE(1);
-        BIT_MANIPULATION_VISIT_CASE(2);
-        BIT_MANIPULATION_VISIT_CASE(3);
-        BIT_MANIPULATION_VISIT_CASE(4);
+    else if constexpr (std::remove_reference_t<V>::alternatives == 4) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    else if constexpr (std::remove_reference_t<V>::alternatives == 5) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 6) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 7) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 8) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 9) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 10) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 11) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 12) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 13) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 14) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 15) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 16) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 17) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 18) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(17);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 19) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 20) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 21) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+            BIT_MANIPULATION_VISIT_CASE(20);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 22) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+            BIT_MANIPULATION_VISIT_CASE(20);
+            BIT_MANIPULATION_VISIT_CASE(21);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 23) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+            BIT_MANIPULATION_VISIT_CASE(20);
+            BIT_MANIPULATION_VISIT_CASE(21);
+            BIT_MANIPULATION_VISIT_CASE(22);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 24) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+            BIT_MANIPULATION_VISIT_CASE(20);
+            BIT_MANIPULATION_VISIT_CASE(21);
+            BIT_MANIPULATION_VISIT_CASE(22);
+            BIT_MANIPULATION_VISIT_CASE(23);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
 }
 
 #undef BIT_MANIPULATION_VISIT_CASE
