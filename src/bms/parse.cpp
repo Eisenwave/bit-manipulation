@@ -556,7 +556,7 @@ private:
             if (!p) {
                 return p;
             }
-            first_pos = std::get<astp::Parameter>(*p).pos;
+            first_pos = get<astp::Parameter>(*p).pos;
             parameters.push_back(m_program.push_node(std::move(*p)));
             if (!expect(Token_Type::comma)) {
                 break;
@@ -648,7 +648,7 @@ private:
                 if (!r) {
                     return r;
                 }
-                std::get<astp::Function_Call_Expression>(*r).is_statement = true;
+                get<astp::Function_Call_Expression>(*r).is_statement = true;
                 return r;
             }
             default: break;

@@ -722,7 +722,7 @@ struct BMS_AST_Printer {
 
         const auto children = get_children(node);
         for (Size i = 0; i < children.size(); ++i) {
-            auto name = fast_visit(
+            auto name = visit(
                 [i](const auto& n) -> std::string_view {
                     if constexpr (requires { n.child_names; }) {
                         return n.child_names[i];

@@ -3,10 +3,10 @@
 
 #include <span>
 #include <string_view>
-#include <variant>
+#include <type_traits>
 #include <vector>
 
-#include "common/visit.hpp"
+#include "common/variant.hpp"
 
 #include "bms/fwd.hpp"
 #include "bms/tokens.hpp"
@@ -431,50 +431,27 @@ struct Literal final : detail::Node_Base, detail::Parent<0> {
     Literal(Local_Source_Span pos, std::string_view literal, Token_Type type);
 };
 
-using Some_Node = std::variant<Program,
-                               Function,
-                               Parameter_List,
-                               Parameter,
-                               Type,
-                               Const,
-                               Let,
-                               Static_Assert,
-                               If_Statement,
-                               While_Statement,
-                               Break,
-                               Continue,
-                               Return_Statement,
-                               Assignment,
-                               Block_Statement,
-                               Conversion_Expression,
-                               If_Expression,
-                               Binary_Expression,
-                               Prefix_Expression,
-                               Function_Call_Expression,
-                               Id_Expression,
-                               Literal>;
-
 static_assert(std::is_nothrow_move_constructible_v<Some_Node>);
 static_assert(std::is_nothrow_move_assignable_v<Some_Node>);
 
 inline Local_Source_Span get_source_position(const Some_Node& node)
 {
-    return fast_visit([](const detail::Node_Base& n) -> const auto& { return n; }, node).pos;
+    return visit([](const detail::Node_Base& n) -> const auto& { return n; }, node).pos;
 }
 
 inline std::string_view get_node_name(const Some_Node& node)
 {
-    return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
+    return visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
 inline std::span<Handle> get_children(Some_Node& node)
 {
-    return fast_visit([](auto& n) { return n.get_children(); }, node);
+    return visit([](auto& n) { return n.get_children(); }, node);
 }
 
 inline std::span<const Handle> get_children(const Some_Node& node)
 {
-    return fast_visit([](auto& n) { return n.get_children(); }, node);
+    return visit([](auto& n) { return n.get_children(); }, node);
 }
 
 } // namespace bit_manipulation::bms::astp

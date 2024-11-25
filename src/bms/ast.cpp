@@ -1,5 +1,7 @@
 #include <ranges>
 
+#include "common/variant.hpp"
+
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/parse.hpp"
@@ -108,7 +110,7 @@ Analyzed_Program::Implementation::from_parser_node_recursively(astp::Handle hand
         }
     };
 
-    return fast_visit(
+    return visit(
         [this, transform_child, child_from_parsed]<typename T>(const T& n) {
             using Result = typename T::AST_Node;
             ast::Some_Node* result = child_from_parsed(n);
