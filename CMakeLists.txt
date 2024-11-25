@@ -59,9 +59,11 @@ set(HEADERS
     src/common/glue.hpp
     src/common/io.hpp
     src/common/io_error.hpp
+    src/common/packs.hpp
     src/common/parse.hpp
     src/common/source_position.hpp
     src/common/result.hpp
+    src/common/variant.hpp
     src/common/visit.hpp
 )
 
@@ -100,6 +102,7 @@ add_executable(bm-test ${HEADERS}
     src/test/diagnostic_policy.hpp
     src/test/main.cpp
     src/test/program_file_testing.cpp
+    src/test/variant.cpp
 )
 
 include_directories(${INCLUDE_DIRS})
