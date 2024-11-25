@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "common/result.hpp"
+#include "common/variant.hpp"
 
 #include "bms/comparison_failure.hpp"
 #include "bms/execution_error.hpp"

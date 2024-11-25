@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "common/assert.hpp"
-#include "common/visit.hpp"
+#include "common/variant.hpp"
 
 #include "bms/builtin_function.hpp"
 #include "bms/linear_map_stack.hpp"
@@ -11,6 +11,8 @@
 #include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {
+
+static_assert(std::is_trivially_copyable_v<Instruction>);
 
 // TODO: const-correctness
 template <>
@@ -153,7 +155,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Binary_Operate& binary
     }
     if (m_instruction_counter + 1 < instruction_count()) {
         const auto* next_builtin_call
-            = std::get_if<ins::Builtin_Call>(&m_instructions[m_instruction_counter + 1]);
+            = get_if<ins::Builtin_Call>(&m_instructions[m_instruction_counter + 1]);
         if (next_builtin_call && next_builtin_call->function == Builtin_Function::assert) {
             m_comparison_failure_for_assert = Comparison_Failure { lhs, rhs, binary_operate.op };
         }
@@ -202,7 +204,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle()
 {
     const auto counter = m_instruction_counter;
     Instruction next = m_instructions.at(counter);
-    return fast_visit(
+    return visit(
         [this, counter]<typename T>(T& i) -> Result<void, Execution_Error> {
             if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                 return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };

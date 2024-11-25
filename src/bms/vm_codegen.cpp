@@ -1,3 +1,5 @@
+#include "common/variant.hpp"
+
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/builtin_function.hpp"
@@ -203,7 +205,7 @@ private:
             return if_result;
         }
 
-        std::get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset
+        get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset
             = Signed_Size(out.size() - size_before_if + (node.get_else_block() != nullptr));
 
         if (node.get_else_block() == nullptr) {
@@ -218,7 +220,7 @@ private:
             restore();
             return else_result;
         }
-        std::get<ins::Relative_Jump>(out[blank_jump_past_else_index]).offset
+        get<ins::Relative_Jump>(out[blank_jump_past_else_index]).offset
             = Signed_Size(out.size() - size_before_else);
         return {};
     }
@@ -246,15 +248,15 @@ private:
             restore();
             return block;
         }
-        std::get<ins::Relative_Jump_If>(out[blank_jump_past_loop_index]).offset
+        get<ins::Relative_Jump_If>(out[blank_jump_past_loop_index]).offset
             = Signed_Size(out.size() - size_before_block + 1);
 
         for (Size i = size_before_block; i < out.size(); ++i) {
-            if (std::holds_alternative<ins::Break>(out[i])) {
+            if (holds_alternative<ins::Break>(out[i])) {
                 const auto past_the_loop = Signed_Size(out.size() - i);
                 out[i] = ins::Relative_Jump { { h }, past_the_loop };
             }
-            if (std::holds_alternative<ins::Continue>(out[i])) {
+            if (holds_alternative<ins::Continue>(out[i])) {
                 const auto to_condition = -Signed_Size(i - initial_size) - 1;
                 out[i] = ins::Relative_Jump { { h }, to_condition };
             }
@@ -379,7 +381,7 @@ private:
             restore();
             return left;
         }
-        std::get<ins::Relative_Jump_If>(out[blank_jump_to_right_index]).offset
+        get<ins::Relative_Jump_If>(out[blank_jump_to_right_index]).offset
             = Signed_Size(out.size() - size_before_left + 1);
 
         const Size blank_jump_past_right_index = out.size();
@@ -390,7 +392,7 @@ private:
             restore();
             return right;
         }
-        std::get<ins::Relative_Jump>(out[blank_jump_past_right_index]).offset
+        get<ins::Relative_Jump>(out[blank_jump_past_right_index]).offset
             = Signed_Size(out.size() - size_before_right);
 
         return {};
@@ -438,7 +440,7 @@ private:
                 restore();
                 return right;
             }
-            std::get<ins::Relative_Jump_If>(out[blank_jump_to_circuit_break_index]).offset
+            get<ins::Relative_Jump_If>(out[blank_jump_to_circuit_break_index]).offset
                 = Signed_Size(out.size() - size_before_right + 1);
 
             out.push_back(ins::Relative_Jump { { h }, 1 });

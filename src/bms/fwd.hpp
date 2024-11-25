@@ -74,6 +74,40 @@ struct Some_Node;
 
 } // namespace ast
 
+namespace ins {
+
+struct Load;
+struct Store;
+struct Push;
+struct Pop;
+struct Relative_Jump;
+struct Relative_Jump_If;
+struct Break;
+struct Continue;
+struct Return;
+struct Convert;
+struct Unary_Operate;
+struct Binary_Operate;
+struct Call;
+struct Builtin_Call;
+
+} // namespace ins
+
+using Instruction = Variant<ins::Load,
+                            ins::Store,
+                            ins::Push,
+                            ins::Pop,
+                            ins::Relative_Jump,
+                            ins::Relative_Jump_If,
+                            ins::Break,
+                            ins::Continue,
+                            ins::Return,
+                            ins::Convert,
+                            ins::Unary_Operate,
+                            ins::Binary_Operate,
+                            ins::Call,
+                            ins::Builtin_Call>;
+
 enum struct Token_Type : Default_Underlying;
 enum struct Grammar_Rule : Default_Underlying;
 
@@ -93,7 +127,6 @@ struct Parsed_Program;
 struct Analyzed_Program;
 
 struct Token;
-struct Instruction;
 
 } // namespace bit_manipulation::bms
 

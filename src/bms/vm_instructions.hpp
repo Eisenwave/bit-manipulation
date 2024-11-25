@@ -86,30 +86,7 @@ struct Builtin_Call : detail::Base {
     Builtin_Function function;
 };
 
-using Variant = std::variant<ins::Load,
-                             ins::Store,
-                             ins::Push,
-                             ins::Pop,
-                             ins::Relative_Jump,
-                             ins::Relative_Jump_If,
-                             ins::Break,
-                             ins::Continue,
-                             ins::Return,
-                             ins::Convert,
-                             ins::Unary_Operate,
-                             ins::Binary_Operate,
-                             ins::Call,
-                             ins::Builtin_Call>;
-
 } // namespace ins
-
-struct Instruction : ins::Variant {
-    using ins::Variant::variant;
-};
-
-// A plain union is possible and relatively safe here because all instructions are trivially
-// copyable and implicit-lifetime types.
-static_assert(std::is_trivially_copyable_v<Instruction>);
 
 } // namespace bit_manipulation::bms
 
