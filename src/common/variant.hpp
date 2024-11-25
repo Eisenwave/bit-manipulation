@@ -39,7 +39,7 @@ template <typename F, typename V>
 constexpr decltype(auto) visit(F&& f, V&& v)
 {
     using VV = std::remove_reference_t<V>;
-    if constexpr (VV::alternatives == 0) {
+    if constexpr (VV::alternatives == 1) {
         return static_cast<F&&>(f)(::std::get<0>(static_cast<V&&>(v)));
     }
     else if constexpr (std::remove_reference_t<V>::alternatives == 2) {
