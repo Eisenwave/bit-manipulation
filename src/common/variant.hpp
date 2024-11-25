@@ -723,9 +723,8 @@ template <Size I, typename V>
 }
 
 template <typename T, typename V>
-[[nodiscard]] auto get_if(V* variant) noexcept
-    -> decltype(detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(
-        variant))
+    requires has_alternative_v<V, T>
+[[nodiscard]] const_like_t<T, V>* get_if(V* variant) noexcept
 {
     return detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(
         variant);
