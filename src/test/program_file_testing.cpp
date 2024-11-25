@@ -49,7 +49,7 @@ std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectatio
     return visit(
         [&](auto code) -> std::ostream& {
             using T = decltype(code);
-            if constexpr (std::is_same_v<T, std::monostate>) {
+            if constexpr (std::is_same_v<T, Monostate>) {
                 return out;
             }
             else if constexpr (std::is_same_v<T, bms::Execution_Error_Code>) {
@@ -75,9 +75,9 @@ bool Analysis_Error_Code_Expectation::met_by(const bms::Analysis_Error& e) const
     }
     switch (m_code) {
     case bms::Analysis_Error_Code::evaluation_error:
-        return e.evaluation_error() == std::get<bms::Evaluation_Error_Code>(m_detail);
+        return e.evaluation_error() == get<bms::Evaluation_Error_Code>(m_detail);
     case bms::Analysis_Error_Code::execution_error:
-        return e.execution_error() == std::get<bms::Execution_Error_Code>(m_detail);
+        return e.execution_error() == get<bms::Execution_Error_Code>(m_detail);
     default: return true;
     }
 }

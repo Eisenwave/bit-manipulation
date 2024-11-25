@@ -4,7 +4,6 @@
 #include <functional>
 #include <optional>
 #include <string_view>
-#include <variant>
 
 #include "bms/fwd.hpp"
 
@@ -24,21 +23,21 @@ struct Parse_Error_Expectations {
 struct Analysis_Error_Code_Expectation {
 private:
     bms::Analysis_Error_Code m_code;
-    std::variant<std::monostate, bms::Evaluation_Error_Code, bms::Execution_Error_Code> m_detail;
+    Variant<Monostate, bms::Evaluation_Error_Code, bms::Execution_Error_Code> m_detail;
 
 public:
-    constexpr Analysis_Error_Code_Expectation(bms::Analysis_Error_Code code)
+    Analysis_Error_Code_Expectation(bms::Analysis_Error_Code code)
         : m_code(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectation(bms::Evaluation_Error_Code code)
+    Analysis_Error_Code_Expectation(bms::Evaluation_Error_Code code)
         : m_code(bms::Analysis_Error_Code::evaluation_error)
         , m_detail(code)
     {
     }
 
-    constexpr Analysis_Error_Code_Expectation(bms::Execution_Error_Code code)
+    Analysis_Error_Code_Expectation(bms::Execution_Error_Code code)
         : m_code(bms::Analysis_Error_Code::execution_error)
         , m_detail(code)
     {

@@ -3,9 +3,9 @@
 
 #include <memory_resource>
 #include <string_view>
-#include <variant>
 
 #include "common/result.hpp"
+#include "common/variant.hpp"
 
 #include "bms/parse_error.hpp"
 #include "bms/tokenize_error.hpp"
@@ -14,14 +14,15 @@
 
 namespace bit_manipulation::bmd {
 
-using Bms_Error_Variant = std::variant<bms::Tokenize_Error, bms::Parse_Error>;
+using Bms_Error_Variant = Variant<bms::Tokenize_Error, bms::Parse_Error>;
 
 struct Bms_Error : Bms_Error_Variant {
-    using Bms_Error_Variant::variant;
+    using Bms_Error_Variant::Variant;
 
     bool is_tokenize_error() const
     {
-        return std::holds_alternative<bms::Tokenize_Error>(*this);
+        // TODO: this cast shouldn't be necessary, but Variant is lacking in features
+        return holds_alternative<bms::Tokenize_Error>(static_cast<const Bms_Error_Variant&>(*this));
     }
 
     bool is_parse_error() const

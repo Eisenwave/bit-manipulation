@@ -1,7 +1,6 @@
 #ifndef BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 #define BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 
-#include <variant>
 #include <vector>
 
 #include "bms/concrete_value.hpp"

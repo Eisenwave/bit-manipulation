@@ -1,8 +1,9 @@
 #ifndef BIT_MANIPULATION_BMS_DEDUCTION_HPP
 #define BIT_MANIPULATION_BMS_DEDUCTION_HPP
 
+#include "common/variant.hpp"
+
 #include <span>
-#include <variant>
 
 namespace bit_manipulation::bms {
 
@@ -11,15 +12,15 @@ namespace bit_manipulation::bms {
 /// everywhere, or it can be a concrete set of widths.
 /// The latter is always used in implicit instantiations; the former may be used for testing,
 /// or for auto-instantiating everything with a pre-set width for the purpose of codegen.
-using Widths = std::variant<int, std::span<const int>>;
+using Widths = Variant<int, std::span<const int>>;
 
-constexpr int get_width(const Widths& w, Size i)
+inline int get_width(const Widths& w, Size i)
 {
-    if (const auto* single_width = std::get_if<int>(&w)) {
+    if (const auto* single_width = get_if<int>(&w)) {
         return *single_width;
     }
     else {
-        auto& span = std::get<std::span<const int>>(w);
+        auto& span = get<std::span<const int>>(w);
         BIT_MANIPULATION_ASSERT(i < span.size());
         return span[i];
     }

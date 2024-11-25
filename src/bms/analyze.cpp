@@ -986,7 +986,7 @@ private:
 
             Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
                 = Instantiator { m_program, &m_memory_resource }.instantiate_function(
-                    node.lookup_result, *function, deduced_widths);
+                    node.lookup_result, *function, std::span<const int>(deduced_widths));
             if (!instantiation_result) {
                 return instantiation_result.error();
             }

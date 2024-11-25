@@ -74,7 +74,7 @@ private:
     {
         BIT_MANIPULATION_ASSERT(handle != nullptr);
         auto it_or_handle = m_symbols.emplace(n.get_name(), handle);
-        if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
                                     *old };
         }
@@ -86,7 +86,7 @@ private:
         BIT_MANIPULATION_ASSERT(handle != nullptr);
 
         auto it_or_handle = m_symbols.emplace(n.get_name(), handle);
-        if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_function, handle, *old };
         }
 
@@ -133,7 +133,7 @@ private:
     analyze_symbols_local(ast::Some_Node* handle, Symbol_Table& table, ast::Parameter& node)
     {
         auto it_or_handle = table.emplace(node.get_name(), handle);
-        if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
         auto& type_node = get<ast::Type>(*node.get_type());
@@ -169,7 +169,7 @@ private:
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Const& node)
     {
         auto it_or_handle = table.emplace(node.get_name(), h);
-        if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
         return analyze_all_symbols_local(node.get_children(), table);
@@ -179,7 +179,7 @@ private:
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Let& node)
     {
         auto it_or_handle = table.emplace(node.get_name(), h);
-        if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
         return analyze_all_symbols_local(node.get_children(), table);

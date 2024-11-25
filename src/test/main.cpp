@@ -170,7 +170,7 @@ TEST(BMS_Parse_Error, unbalanced_parentheses)
 
 TEST(BMS_Analysis_Error, failed_to_define_global_const)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::failed_to_define_global_const,
           .fail_line = 2,
           .cause_line = 1 };
@@ -180,7 +180,7 @@ TEST(BMS_Analysis_Error, failed_to_define_global_const)
 
 TEST(BMS_Analysis_Error, failed_to_define_function)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::failed_to_define_function,
           .fail_line = 2,
           .cause_line = 1 };
@@ -189,7 +189,7 @@ TEST(BMS_Analysis_Error, failed_to_define_function)
 
 TEST(BMS_Analysis_Error, failed_to_define_parameter)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::failed_to_define_parameter,
           .fail_line = 2,
           .cause_line = 1 };
@@ -198,7 +198,7 @@ TEST(BMS_Analysis_Error, failed_to_define_parameter)
 
 TEST(BMS_Analysis_Error, failed_to_define_variable)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::failed_to_define_variable,
           .fail_line = 4,
           .cause_line = 3 };
@@ -207,7 +207,7 @@ TEST(BMS_Analysis_Error, failed_to_define_variable)
 
 TEST(BMS_Analysis_Error, reference_to_undefined_variable)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::reference_to_undefined_variable, .fail_line = 3 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/reference_to_undefined_variable.bms", expectations));
@@ -215,7 +215,7 @@ TEST(BMS_Analysis_Error, reference_to_undefined_variable)
 
 TEST(BMS_Analysis_Error, assignment_of_undefined_variable)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assignment_of_undefined_variable, .fail_line = 3 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/assignment_of_undefined_variable.bms", expectations));
@@ -223,14 +223,14 @@ TEST(BMS_Analysis_Error, assignment_of_undefined_variable)
 
 TEST(BMS_Analysis_Error, call_to_undefined_function)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::call_to_undefined_function, .fail_line = 3 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/call_to_undefined_function.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, width_not_integer)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_not_integer, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_integer.bms", expectations));
 }
@@ -239,28 +239,28 @@ TEST(BMS_Analysis_Error, width_not_integer)
 //        let_variable_in_constant_expression get triggered instead
 TEST(BMS_Analysis_Error, DISABLED_width_not_const)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_not_const, .fail_line = 4, .cause_line = 3 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_const.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, width_invalid_because_negative)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/negative.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, width_invalid_because_too_large)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/too_large.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, width_invalid_because_zero)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_invalid, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_invalid/zero.bms", expectations));
 }
@@ -269,7 +269,7 @@ TEST(BMS_Analysis_Error, width_invalid_because_zero)
 
 TEST(BMS_Analysis_Error, let_variable_in_constant_expression)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::let_variable_in_constant_expression,
           .fail_line = 4,
           .cause_line = 3 };
@@ -279,7 +279,7 @@ TEST(BMS_Analysis_Error, let_variable_in_constant_expression)
 
 TEST(BMS_Analysis_Error, parameter_in_constant_expression)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::parameter_in_constant_expression,
           .fail_line = 3,
           .cause_line = 1 };
@@ -289,7 +289,7 @@ TEST(BMS_Analysis_Error, parameter_in_constant_expression)
 
 TEST(BMS_Analysis_Error, function_in_expression)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::function_in_expression,
           .fail_line = 4,
           .cause_line = 1 };
@@ -298,7 +298,7 @@ TEST(BMS_Analysis_Error, function_in_expression)
 
 TEST(BMS_Analysis_Error, condition_not_bool_in_if_expression)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::condition_not_bool, .fail_line = 1 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/condition_not_bool/if_expression.bms", expectations));
@@ -306,7 +306,7 @@ TEST(BMS_Analysis_Error, condition_not_bool_in_if_expression)
 
 TEST(BMS_Analysis_Error, condition_not_bool_in_if_statement)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::condition_not_bool, .fail_line = 2 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/condition_not_bool/if_statement.bms", expectations));
@@ -314,42 +314,42 @@ TEST(BMS_Analysis_Error, condition_not_bool_in_if_statement)
 
 TEST(BMS_Analysis_Error, invalid_integer_literal)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::invalid_integer_literal, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/invalid_integer_literal.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, assigning_parameter)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_parameter, .fail_line = 2, .cause_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_parameter.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, assigning_function)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_function, .fail_line = 2, .cause_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_function.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, assigning_const)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_const, .fail_line = 3, .cause_line = 2 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_const.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, call_non_function)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::call_non_function, .fail_line = 3, .cause_line = 2 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/call_non_function.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, wrong_number_of_arguments)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::wrong_number_of_arguments,
           .fail_line = 2,
           .cause_line = 1 };
@@ -358,7 +358,7 @@ TEST(BMS_Analysis_Error, wrong_number_of_arguments)
 
 TEST(BMS_Analysis_Error, codegen_call_to_unanalyzed)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::codegen_call_to_unanalyzed,
           .fail_line = 2,
           .cause_line = 1 };
@@ -367,7 +367,7 @@ TEST(BMS_Analysis_Error, codegen_call_to_unanalyzed)
 
 TEST(BMS_Analysis_Error, width_deduction_from_non_uint)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::width_deduction_from_non_uint,
           .fail_line = 2,
           .cause_line = 1 };
@@ -377,7 +377,7 @@ TEST(BMS_Analysis_Error, width_deduction_from_non_uint)
 
 TEST(BMS_Analysis_Error, static_assert_expression_not_bool)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::static_assert_expression_not_bool, .fail_line = 1 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/static_assert_expression_not_bool.bms", expectations));
@@ -385,14 +385,14 @@ TEST(BMS_Analysis_Error, static_assert_expression_not_bool)
 
 TEST(BMS_Analysis_Error, static_assertion_failed)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::static_assertion_failed, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/static_assertion_failed.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, requires_clause_not_bool)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::requires_clause_not_bool,
           .fail_line = 2,
           .cause_line = 1 };
@@ -401,7 +401,7 @@ TEST(BMS_Analysis_Error, requires_clause_not_bool)
 
 TEST(BMS_Analysis_Error, requires_clause_not_satisfied)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::requires_clause_not_satisfied,
           .fail_line = 2,
           .cause_line = 1 };
@@ -411,7 +411,7 @@ TEST(BMS_Analysis_Error, requires_clause_not_satisfied)
 
 TEST(BMS_Analysis_Error, use_of_undefined_variable)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::use_of_undefined_variable,
           .fail_line = 3,
           .cause_line = 2 };
@@ -420,7 +420,7 @@ TEST(BMS_Analysis_Error, use_of_undefined_variable)
 
 TEST(BMS_Analysis_Error, use_of_undefined_constant)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::use_of_undefined_constant,
           .fail_line = 2,
           .cause_line = 1 };
@@ -429,7 +429,7 @@ TEST(BMS_Analysis_Error, use_of_undefined_constant)
 
 TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::empty_return_in_non_void_function,
           .fail_line = 2,
           .cause_line = 1 };
@@ -443,49 +443,49 @@ TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
 
 TEST(BMS_Analysis_Error, void_operation)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::void_operation, .fail_line = 2 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/void_operation.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, bool_arithmetic)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::bool_arithmetic, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_arithmetic.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, bool_bitwise)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::bool_bitwise, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_bitwise.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, bool_relational_comparison)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::bool_relational_comparison, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/bool_relational_comparison.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, int_bitwise)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::int_bitwise, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/int_bitwise.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, non_bool_logical)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::non_bool_logical, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/non_bool_logical.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, incompatible_types_in_argument)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 5, .cause_line = 1 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/incompatible_types/argument.bms", expectations));
@@ -493,14 +493,14 @@ TEST(BMS_Analysis_Error, incompatible_types_in_argument)
 
 TEST(BMS_Analysis_Error, incompatible_types_in_as)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/as.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, incompatible_types_in_binary_expression)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/binary_expression.bms",
                                     expectations));
@@ -508,14 +508,14 @@ TEST(BMS_Analysis_Error, incompatible_types_in_binary_expression)
 
 TEST(BMS_Analysis_Error, incompatible_types_in_return)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 2, .cause_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/return.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, incompatible_widths)
 {
-    constexpr Analysis_Error_Expectations expectations //
+    static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_widths, .fail_line = 3 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_widths.bms", expectations));
 }

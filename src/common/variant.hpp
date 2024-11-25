@@ -11,6 +11,8 @@
 
 namespace bit_manipulation {
 
+struct Monostate { };
+
 /// @brief A helper type which assists in building overload sets for variant visitors.
 /// `Ignore` can be constructed from any other type and ignores the value if anything it is
 /// constructed from.
@@ -738,7 +740,7 @@ template <Size I, typename V>
 }
 
 template <typename T, typename V>
-    requires has_alternative_v<V, T>
+    requires has_alternative_v<std::remove_cv_t<V>, T>
 [[nodiscard]] const_like_t<T, V>* get_if(V* variant) noexcept
 {
     return detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(

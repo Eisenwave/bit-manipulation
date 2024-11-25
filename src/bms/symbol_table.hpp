@@ -4,7 +4,8 @@
 #include <memory_resource>
 #include <string_view>
 #include <unordered_map>
-#include <variant>
+
+#include "common/variant.hpp"
 
 #include "bms/ast.hpp"
 
@@ -53,8 +54,8 @@ public:
     Symbol_Table& operator=(const Symbol_Table&) = delete;
     Symbol_Table& operator=(Symbol_Table&&) = default;
 
-    std::variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
-                                                              ast::Some_Node* node)
+    Variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
+                                                         ast::Some_Node* node)
     {
         BIT_MANIPULATION_ASSERT(node != nullptr);
         if (m_parent != nullptr) {

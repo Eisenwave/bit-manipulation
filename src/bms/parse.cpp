@@ -1,7 +1,6 @@
 #include <functional>
 #include <memory_resource>
 #include <optional>
-#include <variant>
 
 #include "common/assert.hpp"
 #include "common/result.hpp"
