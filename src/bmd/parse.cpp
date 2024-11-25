@@ -333,7 +333,7 @@ private:
                     return directive_result;
                 }
                 const auto pos_before_directive = m_pos;
-                const auto& directive = std::get<ast::Directive>(**directive_result);
+                const auto& directive = get<ast::Directive>(**directive_result);
 
                 switch (directive_type_environment(directive.get_type())) {
 

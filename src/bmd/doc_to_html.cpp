@@ -131,7 +131,7 @@ struct HTML_Converter {
         static constexpr Tag_Properties paragraph { "p", Formatting_Style::block };
 
         for (const ast::Some_Node* const p : content.get_children()) {
-            if (const auto* const list = std::get_if<ast::List>(p)) {
+            if (const auto* const list = get_if<ast::List>(p)) {
                 // This would imply an empty paragraph, but it's theoretically impossible to
                 // parse one. An empty paragraph would be whitespace, and whitespace should be
                 // ignored and dealt with in other places.
@@ -143,7 +143,7 @@ struct HTML_Converter {
                 }
                 m_writer.end_tag(paragraph);
             }
-            else if (const auto* const directive = std::get_if<ast::Directive>(p)) {
+            else if (const auto* const directive = get_if<ast::Directive>(p)) {
                 // Directives which aren't part of a paragraph but go directly into the content
                 // should not appear at a top-level here.
                 // Even if there was say, a paragraph that contains a single `\b{Hi!}`, this
@@ -175,13 +175,13 @@ struct HTML_Converter {
             const Local_Source_Span current_pos = get_source_span(*n);
 
             if (i != 0) {
-                if (const auto* const d = std::get_if<ast::Directive>(children[i - 1])) {
+                if (const auto* const d = get_if<ast::Directive>(children[i - 1])) {
                     m_writer.write_source_gap(d->get_source_position(), current_pos,
                                               Formatting_Style::in_line);
                 }
             }
 
-            if (const auto* const text = std::get_if<ast::Text>(n)) {
+            if (const auto* const text = get_if<ast::Text>(n)) {
                 Result<Size, Document_Error> lines_written = convert_text(*text, inherited_style);
                 if (!lines_written) {
                     return lines_written.error();
@@ -189,9 +189,9 @@ struct HTML_Converter {
                 if (i + 1 >= children.size()) {
                     continue;
                 }
-                // std::get is appropriate here because there cannot be two consecutive Text
+                // get is appropriate here because there cannot be two consecutive Text
                 // elements
-                const auto& d = std::get<ast::Directive>(*children[i + 1]);
+                const auto& d = get<ast::Directive>(*children[i + 1]);
 
                 if (current_pos.end() == d.get_source_position().begin) {
                     continue;
@@ -205,7 +205,7 @@ struct HTML_Converter {
 
                 continue;
             }
-            if (const auto* const directive = std::get_if<ast::Directive>(n)) {
+            if (const auto* const directive = get_if<ast::Directive>(n)) {
                 // Directives in a content environment should only be processed by
                 // `convert_content` directly.
                 // Finding a directive with this environment suggests that either we have
@@ -294,11 +294,11 @@ struct HTML_Converter {
                                  Attribute_Writer& attribute_writer)
     {
         for (const auto& [key, value] : directive.m_arguments) {
-            if (const auto* const text = std::get_if<ast::Identifier>(&value)) {
+            if (const auto* const text = get_if<ast::Identifier>(&value)) {
                 attribute_writer.write_attribute(key, text->get_value());
                 continue;
             }
-            if (const auto* const text = std::get_if<ast::Number>(&value)) {
+            if (const auto* const text = get_if<ast::Number>(&value)) {
                 attribute_writer.write_attribute(key, std::to_string(text->get_value()));
                 continue;
             }
@@ -329,8 +329,8 @@ struct HTML_Converter {
 
         const ast::Directive* title_directive = nullptr;
         for (const ast::Some_Node* const p :
-             std::get<ast::List>(*directive.get_block()).get_children()) {
-            const auto& child = std::get<ast::Directive>(*p);
+             get<ast::List>(*directive.get_block()).get_children()) {
+            const auto& child = get<ast::Directive>(*p);
             if (auto r = update_metadata_from_directive(child); !r) {
                 return r;
             }
@@ -384,9 +384,8 @@ struct HTML_Converter {
     Result<void, Document_Error> convert_nested_code(const ast::Directive& directive,
                                                      Nested_Language lang)
     {
-        const auto* const code_text = directive.get_block() == nullptr
-            ? nullptr
-            : &std::get<ast::Text>(*directive.get_block());
+        const auto* const code_text
+            = directive.get_block() == nullptr ? nullptr : &get<ast::Text>(*directive.get_block());
 
         if (lang == Nested_Language::plaintext || code_text == nullptr) {
             if (code_text != nullptr) {
@@ -431,7 +430,7 @@ struct HTML_Converter {
             if (it == directive.m_arguments.end()) {
                 return std::string_view {};
             }
-            const auto* const id = std::get_if<ast::Identifier>(&it->second);
+            const auto* const id = get_if<ast::Identifier>(&it->second);
             if (id == nullptr) {
                 // TODO: more accurate diagnostic
                 return Document_Error { Document_Error_Code::number_attribute_not_allowed,
@@ -444,7 +443,7 @@ struct HTML_Converter {
         static constexpr Tag_Properties code { "code", Formatting_Style::in_line };
 
         // TODO: deal with potentially empty text (null block)
-        const ast::Text& text = std::get<ast::Text>(*directive.get_block());
+        const ast::Text& text = get<ast::Text>(*directive.get_block());
 
         std::string_view link_prefix = architecture_link_prefix(*arch);
 
@@ -483,11 +482,11 @@ struct HTML_Converter {
         if (lang_pos == attributes.end()) {
             return fallback;
         }
-        if (const auto* const lang_number = std::get_if<ast::Number>(&lang_pos->second)) {
+        if (const auto* const lang_number = get_if<ast::Number>(&lang_pos->second)) {
             return Document_Error { Document_Error_Code::number_attribute_not_allowed,
                                     lang_number->get_source_position() };
         }
-        if (const auto* const lang_name = std::get_if<ast::Identifier>(&lang_pos->second)) {
+        if (const auto* const lang_name = get_if<ast::Identifier>(&lang_pos->second)) {
             std::optional<E> result = attribute_enum_by_name<E>(lang_name->get_value());
             if (!result) {
                 return Document_Error { enum_document_error_v<E>,
@@ -508,17 +507,17 @@ struct HTML_Converter {
 
         switch (directive.get_type()) {
         case Directive_Type::title: {
-            const auto& text = std::get<ast::Text>(*directive.get_block());
+            const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.title = text.get_text();
             return {};
         }
         case Directive_Type::bms_function: {
-            const auto& text = std::get<ast::Text>(*directive.get_block());
+            const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.bms_function = text.get_text();
             return {};
         }
         case Directive_Type::c_equivalent: {
-            const auto& text = std::get<ast::Text>(*directive.get_block());
+            const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.c_equivalent = text.get_text();
             return {};
         }
@@ -542,7 +541,7 @@ struct HTML_Converter {
 
         case Directive_Content_Type::raw:
         case Directive_Content_Type::text_span:
-            if (auto r = convert_text(std::get<ast::Text>(*block), inherited_style); !r) {
+            if (auto r = convert_text(get<ast::Text>(*block), inherited_style); !r) {
                 return r.error();
             }
             return {};
@@ -550,9 +549,9 @@ struct HTML_Converter {
         case Directive_Content_Type::span:
         case Directive_Content_Type::meta:
         case Directive_Content_Type::list:
-            return convert_list(std::get<ast::List>(*block), inherited_style);
+            return convert_list(get<ast::List>(*block), inherited_style);
 
-        case Directive_Content_Type::block: return convert_content(std::get<ast::List>(*block));
+        case Directive_Content_Type::block: return convert_content(get<ast::List>(*block));
         }
 
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid contents for Block.");
@@ -588,7 +587,7 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
     writer.begin_tag(body);
 
     if (document.root_node != nullptr) {
-        const auto& root_content = std::get<ast::List>(*document.root_node);
+        const auto& root_content = get<ast::List>(*document.root_node);
         auto r = HTML_Converter { writer, document, memory }.convert_content(root_content);
         if (!r) {
             return r;

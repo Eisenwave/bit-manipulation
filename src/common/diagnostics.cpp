@@ -2,8 +2,6 @@
 #include <iostream>
 #include <span>
 
-#include "common/visit.hpp"
-
 #include "bmd/doc_to_html.hpp"
 #include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
@@ -761,7 +759,7 @@ struct BMD_AST_Printer {
         const std::string_view node_name = get_node_name(*node);
         const std::string_view extracted = program.extract(get_source_span(*node));
 
-        const auto* const directive = std::get_if<bmd::ast::Directive>(node);
+        const auto* const directive = get_if<bmd::ast::Directive>(node);
 
         if (directive) {
             out << ansi::h_green << '\\' << directive->get_identifier();

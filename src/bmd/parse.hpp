@@ -8,7 +8,7 @@
 
 #include "common/config.hpp"
 #include "common/result.hpp"
-#include "common/visit.hpp"
+#include "common/variant.hpp"
 
 #include "common/source_position.hpp"
 
@@ -113,16 +113,11 @@ struct Number : detail::Base {
     }
 };
 
-using Value_Variant = std::variant<Identifier, Number>;
-
-/// @brief `Identifier` or `Number`.
-struct Value : Value_Variant {
-    using Value_Variant::variant;
-};
+using Value = Variant<Identifier, Number>;
 
 inline Local_Source_Span get_source_span(const Value& node)
 {
-    return fast_visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
+    return visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
         .get_source_position();
 }
 
@@ -150,14 +145,9 @@ struct List : detail::Base {
 
     List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
 
-    [[nodiscard]] std::span<Some_Node*> get_children()
-    {
-        return m_children;
-    }
-    [[nodiscard]] std::span<Some_Node* const> get_children() const
-    {
-        return m_children;
-    }
+    [[nodiscard]] std::span<Some_Node*> get_children();
+    [[nodiscard]] std::span<Some_Node* const> get_children() const;
+
     [[nodiscard]] bool empty() const
     {
         return m_children.empty();
@@ -234,30 +224,34 @@ struct Text : detail::Base {
     }
 };
 
-using AST_Variant = std::variant<List, Directive, Text>;
+[[nodiscard]] inline std::span<Some_Node*> List::get_children()
+{
+    return m_children;
+}
 
-struct Some_Node : AST_Variant {
-    using AST_Variant::variant;
-};
+[[nodiscard]] inline std::span<Some_Node* const> List::get_children() const
+{
+    return m_children;
+}
 
 inline std::string_view get_node_name(const Some_Node& node)
 {
-    return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
+    return visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
 inline std::span<Some_Node*> get_children(Some_Node& node)
 {
-    return fast_visit([]<typename T>(T& v) { return v.get_children(); }, node);
+    return visit([]<typename T>(T& v) { return v.get_children(); }, node);
 }
 
 inline std::span<Some_Node* const> get_children(const Some_Node& node)
 {
-    return fast_visit([]<typename T>(const T& v) { return v.get_children(); }, node);
+    return visit([]<typename T>(const T& v) { return v.get_children(); }, node);
 }
 
 inline Local_Source_Span get_source_span(const Some_Node& node)
 {
-    return fast_visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
+    return visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
         .get_source_position();
 }
 
