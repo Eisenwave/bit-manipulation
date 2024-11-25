@@ -249,6 +249,11 @@ public:
     }
 };
 
+// It is weird to have a dedicated type just for a `Parameter_List`, but there are a few design
+// choices that have led to this.
+// Most importantly, any node is able to expose its list of children as a `std::span`.
+// Since a `Function` already has other nodes such as a return type, it would be tricky to make
+// a function hold a parameter list followed by the other types, but not impossible.
 struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Parameter_List";
 
