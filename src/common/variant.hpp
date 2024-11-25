@@ -11,6 +11,19 @@
 
 namespace bit_manipulation {
 
+/// @brief A helper type which assists in building overload sets for variant visitors.
+/// `Ignore` can be constructed from any other type and ignores the value if anything it is
+/// constructed from.
+struct Ignore {
+    Ignore(auto&&) { }
+
+    Ignore(const Ignore&) = delete;
+    Ignore(Ignore&&) = delete;
+
+    Ignore& operator=(const Ignore&) = delete;
+    Ignore& operator=(Ignore&&) = delete;
+};
+
 template <class T, class U>
 constexpr auto&& forward_like(U&& x) noexcept
 {
@@ -586,9 +599,10 @@ public:
     template <typename T>
     Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         requires has_alternative_v<Variant, std::remove_cvref_t<T>>
-        : m_index(pack_first_index_of_v<T, Ts...>)
+        : m_index(pack_first_index_of_v<std::remove_cvref_t<T>, Ts...>)
     {
-        std::construct_at(reinterpret_cast<T*>(m_storage), std::forward<T>(other));
+        std::construct_at(reinterpret_cast<std::remove_reference_t<T>*>(m_storage),
+                          std::forward<T>(other));
     }
 
     ~Variant()
@@ -695,9 +709,10 @@ public:
     template <typename T>
     Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         requires has_alternative_v<Variant, std::remove_cvref_t<T>>
-        : m_index(pack_first_index_of_v<T, Ts...>)
+        : m_index(pack_first_index_of_v<std::remove_cvref_t<T>, Ts...>)
     {
-        std::construct_at(reinterpret_cast<T*>(m_storage), std::forward<T>(other));
+        std::construct_at(reinterpret_cast<std::remove_reference_t<T>*>(m_storage),
+                          std::forward<T>(other));
     }
 
     [[nodiscard]] Size index() const noexcept
