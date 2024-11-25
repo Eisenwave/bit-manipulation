@@ -1,6 +1,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/variant.hpp"
+
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/builtin_function.hpp"
@@ -42,7 +44,7 @@ public:
     Result<void, Analysis_Error> operator()()
     {
         return analyze_symbols_global(m_program.get_root(),
-                                      std::get<ast::Program>(*m_program.get_root()));
+                                      get<ast::Program>(*m_program.get_root()));
     }
 
 private:
@@ -56,7 +58,7 @@ private:
     {
         BIT_MANIPULATION_ASSERT(handle != nullptr);
         for (ast::Some_Node* decl : n.get_children()) {
-            auto r = fast_visit(
+            auto r = visit(
                 [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
                     return analyze_symbols_global(decl, node);
                 },
@@ -104,9 +106,9 @@ private:
         if (handle == nullptr) {
             return {};
         }
-        return fast_visit([this, handle, &table](
-                              auto& node) { return analyze_symbols_local(handle, table, node); },
-                          *handle);
+        return visit([this, handle,
+                      &table](auto& node) { return analyze_symbols_local(handle, table, node); },
+                     *handle);
     }
 
     Result<void, Analysis_Error> analyze_all_symbols_local(std::span<ast::Some_Node* const> handles,
@@ -134,7 +136,7 @@ private:
         if (auto* old = std::get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
-        auto& type_node = std::get<ast::Type>(*node.get_type());
+        auto& type_node = get<ast::Type>(*node.get_type());
         ast::Some_Node* g = type_node.get_width();
         if (g == nullptr) {
             return {};
@@ -143,7 +145,7 @@ private:
             const auto error = r.error();
             BIT_MANIPULATION_ASSERT(error.code()
                                     == Analysis_Error_Code::reference_to_undefined_variable);
-            if (auto* id = std::get_if<ast::Id_Expression>(g)) {
+            if (auto* id = get_if<ast::Id_Expression>(g)) {
                 table.emplace(id->get_identifier(), g);
                 id->bit_generic = true;
                 BIT_MANIPULATION_ASSERT(m_current_function != nullptr);

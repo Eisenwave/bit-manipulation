@@ -46,7 +46,7 @@ std::ostream& operator<<(std::ostream& out, const Analysis_Error_Code_Expectatio
     const auto print_parenthesized
         = [&](std::string_view s) -> std::ostream& { return out << '(' << s << ')'; };
 
-    return fast_visit(
+    return visit(
         [&](auto code) -> std::ostream& {
             using T = decltype(code);
             if constexpr (std::is_same_v<T, std::monostate>) {

@@ -92,8 +92,31 @@ struct Prefix_Expression;
 struct Function_Call_Expression;
 struct Id_Expression;
 struct Literal;
+struct Builtin_Function;
 
-struct Some_Node;
+using Some_Node = Variant<Program,
+                          Function,
+                          Parameter_List,
+                          Parameter,
+                          Type,
+                          Const,
+                          Let,
+                          Static_Assert,
+                          If_Statement,
+                          While_Statement,
+                          Break,
+                          Continue,
+                          Return_Statement,
+                          Assignment,
+                          Block_Statement,
+                          Conversion_Expression,
+                          If_Expression,
+                          Binary_Expression,
+                          Prefix_Expression,
+                          Function_Call_Expression,
+                          Id_Expression,
+                          Literal,
+                          Builtin_Function>;
 
 } // namespace ast
 

@@ -67,9 +67,9 @@ struct Analyzed_Program::Implementation {
     [[nodiscard]] const ast::Some_Node* find_entity(F filter) const
     {
         BIT_MANIPULATION_ASSERT(m_root);
-        const auto& program = std::get<ast::Program>(*m_root);
+        const auto& program = get<ast::Program>(*m_root);
         for (const ast::Some_Node* child : program.get_children()) {
-            if (fast_visit(filter, *child)) {
+            if (visit(filter, *child)) {
                 return child;
             }
         }
@@ -114,8 +114,8 @@ Analyzed_Program::Implementation::from_parser_node_recursively(astp::Handle hand
         [this, transform_child, child_from_parsed]<typename T>(const T& n) {
             using Result = typename T::AST_Node;
             ast::Some_Node* result = child_from_parsed(n);
-            std::get<Result>(*result).set_children(n.get_children()
-                                                   | std::views::transform(transform_child));
+            get<Result>(*result).set_children(n.get_children()
+                                              | std::views::transform(transform_child));
             return result;
         },
         parsed.get_node(handle));
@@ -180,7 +180,7 @@ Analyzed_Program::find_global_function_node(std::string_view name) const
     if (!entity) {
         return Introspection_Error_Code::nothing_found;
     }
-    if (!std::holds_alternative<ast::Function>(*entity)) {
+    if (!holds_alternative<ast::Function>(*entity)) {
         return Introspection_Error_Code::wrong_entity;
     }
     return entity;
@@ -193,7 +193,7 @@ Analyzed_Program::find_global_constant_node(std::string_view name) const
     if (!entity) {
         return Introspection_Error_Code::nothing_found;
     }
-    if (!std::holds_alternative<ast::Const>(*entity)) {
+    if (!holds_alternative<ast::Const>(*entity)) {
         return Introspection_Error_Code::wrong_entity;
     }
     return entity;
@@ -206,7 +206,7 @@ Analyzed_Program::find_global_function(std::string_view name) const
     if (!node) {
         return node.error();
     }
-    return &std::get<ast::Function>(**node);
+    return &get<ast::Function>(**node);
 }
 
 [[nodiscard]] Result<const ast::Const*, Introspection_Error_Code>
@@ -216,7 +216,7 @@ Analyzed_Program::find_global_constant(std::string_view name) const
     if (!node) {
         return node.error();
     }
-    return &std::get<ast::Const>(**node);
+    return &get<ast::Const>(**node);
 }
 
 } // namespace bit_manipulation::bms

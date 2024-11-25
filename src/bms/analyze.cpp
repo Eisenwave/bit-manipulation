@@ -60,7 +60,7 @@ public:
     Result<void, Analysis_Error> instantiate_all(const Widths& w)
     {
         for (ast::Some_Node* decl : get_children(*m_program.get_root())) {
-            if (auto* f = std::get_if<ast::Function>(decl)) {
+            if (auto* f = get_if<ast::Function>(decl)) {
                 auto r = instantiate_function(decl, *f, w);
                 if (!r) {
                     return r.error();
@@ -92,7 +92,7 @@ public:
         }
 
         ast::Some_Node* instance = deep_copy(h);
-        auto& instance_node = std::get<ast::Function>(*instance);
+        auto& instance_node = get<ast::Function>(*instance);
         Result<std::pmr::vector<int>, Analysis_Error> effective_widths
             = substitute_widths(instance_node, w);
         if (!effective_widths) {
@@ -114,15 +114,15 @@ private:
             return result;
         };
 
-        auto& params = std::get<ast::Parameter_List>(*instance.get_parameters());
+        auto& params = get<ast::Parameter_List>(*instance.get_parameters());
         for (ast::Some_Node* p : params.get_children()) {
-            auto& param_node = std::get<ast::Parameter>(*p);
-            auto& type_node = std::get<ast::Type>(*param_node.get_type());
+            auto& param_node = get<ast::Parameter>(*p);
+            auto& type_node = get<ast::Type>(*param_node.get_type());
             if (type_node.get_width() == nullptr) {
                 continue;
             }
             BIT_MANIPULATION_ASSERT(type_node.get_type() == Type_Type::Uint);
-            auto* id_node = std::get_if<ast::Id_Expression>(type_node.get_width());
+            auto* id_node = get_if<ast::Id_Expression>(type_node.get_width());
             // If it isn't an id-expression, it cannot be a generic parameter.
             if (id_node && id_node->bit_generic) {
                 const int width = next_width();
@@ -171,7 +171,7 @@ private:
         if (h == nullptr) {
             return;
         }
-        fast_visit(
+        visit(
             [this, &h]<typename T>(T& n) {
                 if constexpr (std::is_same_v<T, ast::Id_Expression>) {
                     BIT_MANIPULATION_ASSERT(n.bit_generic || n.lookup_result != nullptr);
@@ -191,7 +191,7 @@ private:
     ast::Some_Node* copy_single_node_for_instantiation(const ast::Some_Node* h)
     {
         BIT_MANIPULATION_ASSERT(h != nullptr);
-        return fast_visit(
+        return visit(
             [this]<typename T>(const T& n) {
                 if constexpr (requires { n.copy_for_instantiation(); }) {
                     return m_program.insert(n.copy_for_instantiation());
@@ -266,7 +266,7 @@ private:
         if (handle == nullptr) {
             return {};
         }
-        return fast_visit(
+        return visit(
             [this, handle, level, context](auto& node) {
                 return analyze_types(handle, node, level, context); //
             },
@@ -300,7 +300,7 @@ private:
                                                Expression_Context)
     {
         // Normally we don't check, but this is tricky to ensure with implicit instantiations etc.
-        BIT_MANIPULATION_ASSERT(&std::get<ast::Function>(*handle) == &node);
+        BIT_MANIPULATION_ASSERT(&get<ast::Function>(*handle) == &node);
         BIT_MANIPULATION_ASSERT(level != Analysis_Level::unanalyzed);
         if (node.analysis_so_far >= level) {
             return {};
@@ -326,7 +326,7 @@ private:
         if (auto r = analyze_types(node.get_return_type(), level, Expression_Context::normal); !r) {
             return r;
         }
-        auto& return_type = std::get<ast::Type>(*node.get_return_type());
+        auto& return_type = get<ast::Type>(*node.get_return_type());
         auto scope = push_function({ .function = &node,
                                      .return_type = return_type.const_value()->get_type(),
                                      .return_type_node = node.get_return_type() });
@@ -397,7 +397,7 @@ private:
         if (node.const_value()) {
             return {};
         }
-        auto& type = std::get<ast::Type>(*node.get_type());
+        auto& type = get<ast::Type>(*node.get_type());
         auto r = analyze_types(node.get_type(), type, level, Expression_Context::normal);
         if (!r) {
             return r;
@@ -462,7 +462,7 @@ private:
             return {};
         }
 
-        auto& type_node = std::get<ast::Type>(*node.get_type());
+        auto& type_node = get<ast::Type>(*node.get_type());
         const auto type_result
             = analyze_types(node.get_type(), type_node, level, Expression_Context::constant);
         if (!type_result) {
@@ -513,7 +513,7 @@ private:
             return {};
         }
 
-        auto& type_node = std::get<ast::Type>(*node.get_type());
+        auto& type_node = get<ast::Type>(*node.get_type());
         const auto type_result
             = analyze_types(node.get_type(), type_node, level, Expression_Context::constant);
         if (!type_result) {
@@ -566,7 +566,7 @@ private:
             Analysis_Error error { Analysis_Error_Code::static_assertion_failed, handle,
                                    node.get_expression() };
             if (const auto* const comparison
-                = std::get_if<ast::Binary_Expression>(node.get_expression());
+                = get_if<ast::Binary_Expression>(node.get_expression());
                 comparison && is_comparison_operator(comparison->get_op())) {
                 error.comparison_failure = comparison_failure_of(*comparison);
             }
@@ -591,7 +591,7 @@ private:
                                     node.get_condition() };
         }
 
-        auto& if_block = std::get<ast::Block_Statement>(*node.get_if_block());
+        auto& if_block = get<ast::Block_Statement>(*node.get_if_block());
         auto if_result
             = analyze_types(node.get_if_block(), if_block, level, Expression_Context::normal);
         if (!if_result) {
@@ -621,7 +621,7 @@ private:
                                     node.get_condition() };
         }
 
-        auto& block = std::get<ast::Block_Statement>(*node.get_block());
+        auto& block = get<ast::Block_Statement>(*node.get_block());
         if (auto r = analyze_types(node.get_block(), block, level, Expression_Context::normal);
             !r) {
             return r;
@@ -684,21 +684,21 @@ private:
         BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
 
         ast::Some_Node& looked_up_node = *node.lookup_result;
-        if (std::holds_alternative<ast::Parameter>(looked_up_node)) {
+        if (holds_alternative<ast::Parameter>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_parameter, handle,
                                     node.lookup_result };
         }
-        if (std::holds_alternative<ast::Function>(looked_up_node)) {
+        if (holds_alternative<ast::Function>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_function, handle,
                                     node.lookup_result };
         }
 
-        if (std::holds_alternative<ast::Const>(looked_up_node)) {
+        if (holds_alternative<ast::Const>(looked_up_node)) {
             return Analysis_Error { Analysis_Error_Code::assigning_const, handle,
                                     node.lookup_result };
         }
 
-        auto& looked_up_var = std::get<ast::Let>(looked_up_node);
+        auto& looked_up_var = get<ast::Let>(looked_up_node);
 
         if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
             return r;
@@ -738,7 +738,7 @@ private:
         if (auto r = analyze_types(node.get_expression(), level, context); !r) {
             return r;
         }
-        auto& target_type = std::get<ast::Type>(*node.get_target_type());
+        auto& target_type = get<ast::Type>(*node.get_target_type());
         if (auto r = analyze_types(node.get_expression(), target_type, level, context); !r) {
             return r;
         }
@@ -917,7 +917,7 @@ private:
 
         // 2.1. If the function is builtin, evaluate right away.
 
-        if (auto* const builtin = std::get_if<ast::Builtin_Function>(node.lookup_result)) {
+        if (auto* const builtin = get_if<ast::Builtin_Function>(node.lookup_result)) {
             auto type_result = check_builtin_function(builtin->get_function(), arg_values);
             if (!type_result) {
                 return Analysis_Error { type_result.error(), handle, node.lookup_result };
@@ -934,7 +934,7 @@ private:
 
         // 2.2. Otherwise, verify that we call a function.
 
-        auto* function = std::get_if<ast::Function>(node.lookup_result);
+        auto* function = get_if<ast::Function>(node.lookup_result);
         if (!function) {
             return Analysis_Error { Analysis_Error_Code::call_non_function, handle,
                                     node.lookup_result };
@@ -947,7 +947,7 @@ private:
 
         const ast::Parameter_List* possibly_generic_params = nullptr;
         if (function->get_parameters() != nullptr) {
-            possibly_generic_params = &std::get<ast::Parameter_List>(*function->get_parameters());
+            possibly_generic_params = &get<ast::Parameter_List>(*function->get_parameters());
             if (possibly_generic_params->get_children().size() != node.get_children().size()) {
                 return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, handle,
                                         function->get_parameters() };
@@ -966,14 +966,14 @@ private:
             BIT_MANIPULATION_ASSERT(possibly_generic_params != nullptr);
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
             for (Size i = 0; i < node.get_children().size(); ++i) {
-                auto& param = std::get<ast::Parameter>(*possibly_generic_params->get_children()[i]);
-                auto& type = std::get<ast::Type>(*param.get_type());
+                auto& param = get<ast::Parameter>(*possibly_generic_params->get_children()[i]);
+                auto& type = get<ast::Type>(*param.get_type());
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
                     continue;
                 }
-                auto* gen_expr = std::get_if<ast::Id_Expression>(type.get_width());
+                auto* gen_expr = get_if<ast::Id_Expression>(type.get_width());
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }
@@ -995,7 +995,7 @@ private:
             // The returned pointer is never null.
             BIT_MANIPULATION_ASSERT(*instantiation_result != nullptr);
             const auto& instance = **instantiation_result;
-            function = &std::get<ast::Function>(*instance.handle);
+            function = &get<ast::Function>(*instance.handle);
             // Memoization of deduction results.
             // Future analysis of this function call expression will treat it as a call to a
             // concrete instance.
@@ -1046,7 +1046,7 @@ private:
 
         const ast::Parameter_List* params = nullptr;
         if (function->get_parameters() != nullptr) {
-            params = &std::get<ast::Parameter_List>(*function->get_parameters());
+            params = &get<ast::Parameter_List>(*function->get_parameters());
         }
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
@@ -1059,7 +1059,7 @@ private:
 
         for (Size i = 0; i < node.get_children().size(); ++i) {
             BIT_MANIPULATION_ASSERT(params != nullptr);
-            auto& param = std::get<ast::Parameter>(*params->get_children()[i]);
+            auto& param = get<ast::Parameter>(*params->get_children()[i]);
             const Concrete_Type param_type = param.const_value().value().get_type();
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
@@ -1114,11 +1114,11 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
 
-        if (const auto* const looked_up_function = std::get_if<ast::Function>(node.lookup_result)) {
+        if (const auto* const looked_up_function = get_if<ast::Function>(node.lookup_result)) {
             return Analysis_Error { Analysis_Error_Code::function_in_expression, handle,
                                     node.lookup_result };
         }
-        if (const auto* const looked_up_var = std::get_if<ast::Let>(node.lookup_result)) {
+        if (const auto* const looked_up_var = get_if<ast::Let>(node.lookup_result)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::let_variable_in_constant_expression,
                                         handle, node.lookup_result };
@@ -1130,7 +1130,7 @@ private:
             node.const_value() = looked_up_var->const_value();
             return {};
         }
-        if (const auto* const looked_up_const = std::get_if<ast::Const>(node.lookup_result)) {
+        if (const auto* const looked_up_const = get_if<ast::Const>(node.lookup_result)) {
             // TODO: consider analyzing it from here, or analyzing global constants
             //       in a separate pass.
             if (!looked_up_const->const_value()) {
@@ -1140,7 +1140,7 @@ private:
             node.const_value() = looked_up_const->const_value();
             return {};
         }
-        if (const auto* const looked_up_param = std::get_if<ast::Parameter>(node.lookup_result)) {
+        if (const auto* const looked_up_param = get_if<ast::Parameter>(node.lookup_result)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error { Analysis_Error_Code::parameter_in_constant_expression,
                                         handle, node.lookup_result };

@@ -4,10 +4,9 @@
 #include <optional>
 #include <ranges>
 #include <span>
-#include <variant>
 #include <vector>
 
-#include "common/visit.hpp"
+#include "common/variant.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/astp.hpp"
@@ -136,15 +135,9 @@ public:
     {
     }
 
-    std::span<Some_Node*> get_children()
-    {
-        return m_children;
-    }
+    std::span<Some_Node*> get_children();
 
-    std::span<Some_Node* const> get_children() const
-    {
-        return m_children;
-    }
+    std::span<Some_Node* const> get_children() const;
 
     template <std::ranges::forward_range R>
     void set_children(R&& r)
@@ -711,34 +704,6 @@ public:
     }
 };
 
-using Variant = std::variant<Program,
-                             Function,
-                             Parameter_List,
-                             Parameter,
-                             Type,
-                             Const,
-                             Let,
-                             Static_Assert,
-                             If_Statement,
-                             While_Statement,
-                             Break,
-                             Continue,
-                             Return_Statement,
-                             Assignment,
-                             Block_Statement,
-                             Conversion_Expression,
-                             If_Expression,
-                             Binary_Expression,
-                             Prefix_Expression,
-                             Function_Call_Expression,
-                             Id_Expression,
-                             Literal,
-                             Builtin_Function>;
-
-struct Some_Node : Variant {
-    using Variant::variant;
-};
-
 template <int N>
 template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
 void detail::Parent<N>::set_children(Forward_It begin, Sentinel end)
@@ -753,21 +718,31 @@ void detail::Parent<N>::set_children(Forward_It begin, Sentinel end)
 
 namespace detail {
 
+inline std::span<Some_Node*> Dynamic_Parent::get_children()
+{
+    return m_children;
+}
+
+inline std::span<Some_Node* const> Dynamic_Parent::get_children() const
+{
+    return m_children;
+}
+
 inline const Node_Base& to_node_base(const Some_Node& node) noexcept
 {
-    return fast_visit([](const Node_Base& n) -> const Node_Base& { return n; }, node);
+    return visit([](const Node_Base& n) -> const Node_Base& { return n; }, node);
 }
 
 inline Node_Base& to_node_base(Some_Node& node) noexcept
 {
-    return fast_visit([](Node_Base& n) -> Node_Base& { return n; }, node);
+    return visit([](Node_Base& n) -> Node_Base& { return n; }, node);
 }
 
 } // namespace detail
 
 inline std::string_view get_node_name(const Some_Node& node)
 {
-    return fast_visit([]<typename T>(const T&) { return T::self_name; }, node);
+    return visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
 inline std::optional<Source_Span> get_source_position(const Some_Node& node)
@@ -787,12 +762,12 @@ inline const std::optional<Value>& get_const_value(const Some_Node& node)
 
 inline std::span<Some_Node*> get_children(Some_Node& node)
 {
-    return fast_visit([](auto& n) { return n.get_children(); }, node);
+    return visit([](auto& n) { return n.get_children(); }, node);
 }
 
 inline std::span<Some_Node* const> get_children(const Some_Node& node)
 {
-    return fast_visit([](auto& n) { return n.get_children(); }, node);
+    return visit([](auto& n) { return n.get_children(); }, node);
 }
 
 } // namespace bit_manipulation::bms::ast

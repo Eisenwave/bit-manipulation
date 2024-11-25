@@ -17,7 +17,7 @@ Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
 
         Concrete_Type operator()(const ast::Function& function)
         {
-            const auto& parameter_list = std::get<ast::Parameter_List>(*function.get_parameters());
+            const auto& parameter_list = get<ast::Parameter_List>(*function.get_parameters());
             BIT_MANIPULATION_ASSERT(i < parameter_list.get_children().size());
             const auto& value = get_const_value(*parameter_list.get_children()[i]);
             BIT_MANIPULATION_ASSERT(value);
@@ -38,7 +38,7 @@ Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
         }
     } visitor { i };
 
-    return fast_visit(visitor, some_function);
+    return visit(visitor, some_function);
 }
 
 struct Virtual_Code_Generator {
@@ -63,7 +63,7 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h)
     {
         BIT_MANIPULATION_ASSERT(h);
-        return fast_visit([this, h](const auto& node) { return generate_code(h, node); }, *h);
+        return visit([this, h](const auto& node) { return generate_code(h, node); }, *h);
     }
 
     Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Program&)
@@ -85,13 +85,13 @@ private:
             }
         }
 
-        const auto& return_type = std::get<ast::Type>(*function.get_return_type());
+        const auto& return_type = get<ast::Type>(*function.get_return_type());
         BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
 
         m_return_type = return_type.concrete_type();
         // TODO: add Scope_Exit to clean this up upon return (just for robustness, not critical)
 
-        const auto& body = std::get<ast::Block_Statement>(*function.get_body());
+        const auto& body = get<ast::Block_Statement>(*function.get_body());
         auto body_result = generate_code(function.get_body(), body);
         if (!body_result) {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -108,7 +108,7 @@ private:
                 return false;
             }
             for (const ast::Some_Node* n : std::views::reverse(body.get_children())) {
-                if (std::holds_alternative<ast::Return_Statement>(*n)) {
+                if (holds_alternative<ast::Return_Statement>(*n)) {
                     return true;
                 }
             }
@@ -350,7 +350,7 @@ private:
             return init;
         }
 
-        const auto& target_type = std::get<ast::Type>(*node.get_target_type());
+        const auto& target_type = get<ast::Type>(*node.get_target_type());
         out.push_back(ins::Convert { { h }, target_type.concrete_type().value() });
         return {};
     }
@@ -506,7 +506,7 @@ private:
             }
         }
 
-        if (const auto* const called = std::get_if<ast::Function>(node.lookup_result)) {
+        if (const auto* const called = get_if<ast::Function>(node.lookup_result)) {
 
             if (!called->was_analyzed()
                 || called->vm_address == ast::Function::invalid_vm_address) {
@@ -515,7 +515,7 @@ private:
             }
             out.push_back(ins::Call { { h }, called->vm_address });
         }
-        if (const auto* const called = std::get_if<ast::Builtin_Function>(node.lookup_result)) {
+        if (const auto* const called = get_if<ast::Builtin_Function>(node.lookup_result)) {
             BIT_MANIPULATION_ASSERT(called->was_analyzed());
             out.push_back(ins::Builtin_Call { { h }, called->get_function() });
         }

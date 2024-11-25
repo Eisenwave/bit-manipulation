@@ -376,7 +376,7 @@ namespace {
 bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     return error.code() == bms::Analysis_Error_Code::incompatible_types
-        && std::holds_alternative<bms::ast::Return_Statement>(*error.fail);
+        && holds_alternative<bms::ast::Return_Statement>(*error.fail);
 }
 
 [[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
@@ -397,8 +397,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 
     if (is_incompatible_return_type_error(error)) {
         BIT_MANIPULATION_ASSERT(error.cause);
-        const bool is_void
-            = std::get<bms::ast::Type>(*error.cause).get_type() == bms::Type_Type::Void;
+        const bool is_void = get<bms::ast::Type>(*error.cause).get_type() == bms::Type_Type::Void;
 
         result.lines.push_back(
             { Error_Line_Type::error, fail_pos,
