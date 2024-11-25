@@ -64,7 +64,6 @@ set(HEADERS
     src/common/source_position.hpp
     src/common/result.hpp
     src/common/variant.hpp
-    src/common/visit.hpp
 )
 
 add_library(bm STATIC ${HEADERS}
