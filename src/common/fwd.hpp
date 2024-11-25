@@ -12,6 +12,9 @@ struct Local_Source_Span;
 struct Source_Span;
 struct Source_Position;
 
+template <typename... Ts>
+struct Variant;
+
 } // namespace bit_manipulation
 
 #endif

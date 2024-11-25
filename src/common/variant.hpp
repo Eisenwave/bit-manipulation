@@ -96,9 +96,6 @@ constexpr decltype(auto) visit(F&& f, V&& v)
 
 #undef BIT_MANIPULATION_VISIT_CASE
 
-template <typename... Ts>
-struct Variant;
-
 namespace detail {
 
 template <typename V, typename T>
