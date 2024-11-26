@@ -41,7 +41,7 @@ bool Colored_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type type)
         return false;
     }
     char restore_fill = out.fill(c);
-    out.width(count);
+    out.width(std::streamsize(count));
     bool result(out << "");
     out.fill(restore_fill);
     return result;
@@ -49,7 +49,7 @@ bool Colored_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type type)
 
 bool Colored_HTML_Consumer::write(std::string_view s, bmd::HTML_Token_Type type)
 {
-    return (out << highlight_color_of(type)) && out.write(s.data(), s.length());
+    return (out << highlight_color_of(type)) && out.write(s.data(), std::streamsize(s.length()));
 }
 
 bool Simple_HTML_Consumer::write(char c, bmd::HTML_Token_Type)
@@ -60,7 +60,7 @@ bool Simple_HTML_Consumer::write(char c, bmd::HTML_Token_Type)
 bool Simple_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type)
 {
     char restore_fill = out.fill(c);
-    out.width(count);
+    out.width(std::streamsize(count));
     bool result(out << "");
     out.fill(restore_fill);
     return result;
