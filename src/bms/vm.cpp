@@ -185,7 +185,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
         return Execution_Error { call.debug_info, Execution_Error_Code::pop };
     }
     const Result<Concrete_Value, Evaluation_Error_Code> result = evaluate_builtin_function(
-        call.function, std::span { m_stack.end() - params, m_stack.end() });
+        call.function, std::span { m_stack.end() - int(params), m_stack.end() });
     if (!result) {
         Execution_Error error { call.debug_info, result.error() };
         if (call.function != bms::Builtin_Function::assert || !m_comparison_failure_for_assert) {

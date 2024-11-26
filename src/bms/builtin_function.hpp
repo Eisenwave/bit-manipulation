@@ -33,7 +33,7 @@ enum struct Builtin_Function : Default_Underlying {
 namespace detail {
 
 template <Builtin_Function F>
-inline constexpr std::nullptr_t builtin_parameters_v;
+inline constexpr std::nullptr_t builtin_parameters_v = nullptr;
 
 template <>
 inline constexpr Concrete_Type builtin_parameters_v<Builtin_Function::assert>[1] {

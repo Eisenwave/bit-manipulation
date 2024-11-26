@@ -36,7 +36,7 @@ struct Basic_Diagnostic_Consumer : Diagnostic_Consumer {
         return tokenize_errors.size() + parse_errors.size() + analysis_errors.size();
     }
 
-    void clear() noexcept
+    void clear() noexcept override
     {
         tokenize_errors.clear();
         parse_errors.clear();

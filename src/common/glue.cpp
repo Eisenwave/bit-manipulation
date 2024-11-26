@@ -68,7 +68,7 @@ bool Simple_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type)
 
 bool Simple_HTML_Consumer::write(std::string_view s, bmd::HTML_Token_Type)
 {
-    return bool(out.write(s.data(), s.length()));
+    return bool(out.write(s.data(), std::streamsize(s.length())));
 }
 
 } // namespace bit_manipulation

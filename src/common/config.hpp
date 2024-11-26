@@ -78,6 +78,9 @@ using Default_Underlying = unsigned char;
 #define BIT_MANIPULATION_ENUM_STRING_CASE(...)                                                     \
     case __VA_ARGS__: return #__VA_ARGS__
 
+template <typename>
+inline constexpr bool dependent_false = false;
+
 } // namespace bit_manipulation
 
 #endif

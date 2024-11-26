@@ -111,7 +111,7 @@ Analyzed_Program::Implementation::from_parser_node_recursively(astp::Handle hand
     };
 
     return visit(
-        [this, transform_child, child_from_parsed]<typename T>(const T& n) {
+        [&]<typename T>(const T& n) {
             using Result = typename T::AST_Node;
             ast::Some_Node* result = child_from_parsed(n);
             get<Result>(*result).set_children(n.get_children()

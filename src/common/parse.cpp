@@ -50,7 +50,7 @@ constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Bi
             if (!safe_mul(result, base)) {
                 return {};
             }
-            if (!safe_add(result, c - '0')) {
+            if (!safe_add(result, Big_Uint(c - '0'))) {
                 return {};
             }
         }
@@ -63,12 +63,12 @@ constexpr std::optional<Big_Uint> parse_uinteger_digits(std::string_view str, Bi
             return {};
         }
         if (c >= '0' && c <= '9') {
-            if (!safe_add(result, c - '0')) {
+            if (!safe_add(result, Big_Uint(c - '0'))) {
                 return {};
             }
         }
         else if (c >= 'a' && c <= 'f') {
-            if (!safe_add(result, 10 + c - 'a')) {
+            if (!safe_add(result, Big_Uint(10 + c - 'a'))) {
                 return {};
             }
         }

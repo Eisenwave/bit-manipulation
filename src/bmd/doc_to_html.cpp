@@ -95,7 +95,7 @@ std::optional<E> attribute_enum_by_name(std::string_view name)
         return nested_language_by_name(name);
     }
     else {
-        static_assert(false, "Invalid enum type");
+        static_assert(dependent_false<E>, "Invalid enum type");
     }
 }
 

@@ -69,7 +69,7 @@ struct Source_Span : Local_Source_Span {
     /// File name.
     std::string_view file_name;
 
-    [[nodiscard]] Source_Span(Local_Source_Span local, std::string_view file)
+    [[nodiscard]] constexpr Source_Span(Local_Source_Span local, std::string_view file)
         : Local_Source_Span(local)
         , file_name(file)
     {
@@ -88,13 +88,13 @@ struct Source_Position : Local_Source_Position {
     /// File name.
     std::string_view file_name;
 
-    [[nodiscard]] Source_Position(const Source_Span& span)
+    [[nodiscard]] constexpr Source_Position(const Source_Span& span)
         : Local_Source_Position(span)
         , file_name(span.file_name)
     {
     }
 
-    [[nodiscard]] Source_Position(Local_Source_Position local, std::string_view file)
+    [[nodiscard]] constexpr Source_Position(Local_Source_Position local, std::string_view file)
         : Local_Source_Position(local)
         , file_name(file)
     {

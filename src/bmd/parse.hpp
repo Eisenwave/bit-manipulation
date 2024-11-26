@@ -147,11 +147,7 @@ struct List : detail::Base {
 
     [[nodiscard]] std::span<Some_Node*> get_children();
     [[nodiscard]] std::span<Some_Node* const> get_children() const;
-
-    [[nodiscard]] bool empty() const
-    {
-        return m_children.empty();
-    }
+    [[nodiscard]] bool empty() const;
 };
 
 /// @brief A class which represents the `directive` rule in the grammar.
@@ -232,6 +228,11 @@ struct Text : detail::Base {
 [[nodiscard]] inline std::span<Some_Node* const> List::get_children() const
 {
     return m_children;
+}
+
+[[nodiscard]] inline bool List::empty() const
+{
+    return m_children.empty();
 }
 
 inline std::string_view get_node_name(const Some_Node& node)

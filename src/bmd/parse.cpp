@@ -70,8 +70,6 @@ bool is_escapeable(char c)
     return c == '\\' || c == '}' || c == '{';
 }
 
-constexpr std::string_view after_number_characters = "[]{}=, \r\t\n";
-
 Grammar_Rule grammar_rule_of(Literal_Type literal)
 {
     using enum Grammar_Rule;

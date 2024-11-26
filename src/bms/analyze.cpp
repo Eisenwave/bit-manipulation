@@ -172,7 +172,7 @@ private:
             return;
         }
         visit(
-            [this, &h]<typename T>(T& n) {
+            [&]<typename T>(T& n) {
                 if constexpr (std::is_same_v<T, ast::Id_Expression>) {
                     BIT_MANIPULATION_ASSERT(n.bit_generic || n.lookup_result != nullptr);
                 }

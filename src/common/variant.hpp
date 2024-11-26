@@ -487,7 +487,7 @@ struct Variant_Index_Of<Variant<Ts...>, T>
     : std::integral_constant<Size, pack_first_index_of_v<T, Ts...>> { };
 
 template <typename V, typename T>
-struct Has_Alternative;
+struct Has_Alternative : std::false_type { };
 
 template <typename T, typename... Ts>
 struct Has_Alternative<Variant<Ts...>, T> : std::bool_constant<(std::is_same_v<T, Ts> || ...)> { };
@@ -709,8 +709,8 @@ public:
     }
 
     template <typename T>
-    Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         requires has_alternative_v<Variant, std::remove_cvref_t<T>>
+    Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         : m_index(pack_first_index_of_v<std::remove_cvref_t<T>, Ts...>)
     {
         std::construct_at(reinterpret_cast<std::remove_reference_t<T>*>(m_storage),

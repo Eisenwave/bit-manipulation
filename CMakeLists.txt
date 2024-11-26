@@ -7,10 +7,16 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Werror -Wconversion -Wno-bit-int-extension)
-set(SANITIZER_OPTIONS
--fsanitize=address,undefined
-)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wno-bit-int-extension)
+    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion)
+    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    set(WARNING_OPTIONS -W4)
+    set(SANITIZER_OPTIONS -fsanitize:address)
+endif()
 
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
 

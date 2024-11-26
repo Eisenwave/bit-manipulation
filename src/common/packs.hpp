@@ -22,8 +22,9 @@ template <typename T, typename... Ts>
 consteval Size pack_first_index_of_impl()
 {
     Size i = 0;
-    Size result(-1);
-    ((std::is_same_v<T, Ts> ? result = i, true : ++i, false) || ...);
+    auto result = Size(-1);
+    bool warning_suppressor;
+    ((warning_suppressor = (std::is_same_v<T, Ts> ? (result = i, true) : (++i, false))) || ...);
     return result;
 }
 
@@ -31,8 +32,9 @@ template <template <typename> typename Predicate, typename... Ts>
 consteval Size pack_first_index_satisfying_impl()
 {
     Size i = 0;
-    Size result(-1);
-    ((Predicate<Ts>::value ? result = i, true : ++i, false) || ...);
+    auto result = Size(-1);
+    bool warning_suppressor;
+    ((warning_suppressor = (Predicate<Ts>::value ? (result = i, true) : (++i, false))) || ...);
     return result;
 }
 
@@ -40,8 +42,9 @@ template <typename T, typename... Ts>
 consteval Size pack_last_index_of_impl()
 {
     Size i = 0;
-    Size result(-1);
-    ((std::is_same_v<T, Ts> ? result = i++ : ++i), ...);
+    auto result = Size(-1);
+    bool warning_suppressor;
+    ((warning_suppressor = (std::is_same_v<T, Ts> ? result = i++ : ++i)), ...);
     return result;
 }
 
