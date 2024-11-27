@@ -106,8 +106,7 @@ public:
     }
 
 private:
-    template <typename T>
-    Result<void, Execution_Error> cycle(T& instruction) = delete;
+    friend struct Cycle_Impl;
 };
 
 } // namespace bit_manipulation::bms
