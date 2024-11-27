@@ -14,9 +14,8 @@ namespace bit_manipulation::bms {
 
 static_assert(std::is_trivially_copyable_v<Instruction>);
 
-// TODO: const-correctness
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Load& load)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Load& load)
 {
     auto pos = m_function_frame_stack.find(load.source);
     if (pos == nullptr) {
@@ -28,7 +27,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Load& load)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Store& store)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Store& store)
 {
     if (m_stack.empty()) {
         return Execution_Error { store.debug_info, Execution_Error_Code::pop };
@@ -41,7 +40,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Store& store)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Push& push)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Push& push)
 {
     m_stack.push_back(push.value);
     ++m_instruction_counter;
@@ -49,7 +48,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Push& push)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Pop& pop)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Pop& pop)
 {
     if (m_stack.empty()) {
         return Execution_Error { pop.debug_info, Execution_Error_Code::pop };
@@ -60,7 +59,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Pop& pop)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Relative_Jump& jump)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Relative_Jump& jump)
 {
     if (Signed_Size(m_instruction_counter) + jump.offset + 1
         >= Signed_Size(m_instructions.size())) {
@@ -71,7 +70,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Relative_Jump& jump)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Relative_Jump_If& jump_if)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Relative_Jump_If& jump_if)
 {
     if (m_stack.empty()) {
         return Execution_Error { jump_if.debug_info, Execution_Error_Code::pop };
@@ -92,7 +91,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Relative_Jump_If& jump
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Return& ret)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Return& ret)
 {
     std::optional<Concrete_Value> return_address = m_function_frame_stack.pop_frame();
     if (!return_address) {
@@ -103,7 +102,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Return& ret)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Convert& convert)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Convert& convert)
 {
     if (m_stack.empty()) {
         return Execution_Error { convert.debug_info, Execution_Error_Code::pop };
@@ -121,7 +120,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Convert& convert)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Unary_Operate& unary_operate)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Unary_Operate& unary_operate)
 {
     if (m_stack.empty()) {
         return Execution_Error { unary_operate.debug_info, Execution_Error_Code::pop };
@@ -139,7 +138,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Unary_Operate& unary_o
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Binary_Operate& binary_operate)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Binary_Operate& binary_operate)
 {
     if (m_stack.size() < 2) {
         return Execution_Error { binary_operate.debug_info, Execution_Error_Code::pop };
@@ -166,7 +165,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Binary_Operate& binary
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Call& call)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Call& call)
 {
     if (call.address > m_instructions.size()) {
         return Execution_Error { call.debug_info, Execution_Error_Code::call_out_of_program };
@@ -178,7 +177,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Call& call)
 }
 
 template <>
-Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
+Result<void, Execution_Error> Virtual_Machine::cycle(const ins::Builtin_Call& call)
 {
     const Size params = builtin_parameter_count(call.function);
     if (params > m_stack.size()) {
@@ -203,9 +202,9 @@ Result<void, Execution_Error> Virtual_Machine::cycle(ins::Builtin_Call& call)
 Result<void, Execution_Error> Virtual_Machine::cycle()
 {
     const auto counter = m_instruction_counter;
-    Instruction next = m_instructions.at(counter);
+    const Instruction& next = m_instructions.at(counter);
     auto result = visit(
-        [this]<typename T>(T& i) -> Result<void, Execution_Error> {
+        [this]<typename T>(const T& i) -> Result<void, Execution_Error> {
             if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                 return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };
             }
