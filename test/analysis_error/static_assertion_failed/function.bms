@@ -1,0 +1,4 @@
+function no() -> Bool {
+    return false;
+}
+static_assert(no());

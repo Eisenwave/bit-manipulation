@@ -383,11 +383,28 @@ TEST(BMS_Analysis_Error, static_assert_expression_not_bool)
         test_for_diagnostic("analysis_error/static_assert_expression_not_bool.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, static_assertion_failed)
+TEST(BMS_Analysis_Error, static_assertion_failed_constant)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::static_assertion_failed, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/static_assertion_failed/constant.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, static_assertion_failed_function)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::static_assertion_failed, .fail_line = 4 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/static_assertion_failed/function.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, static_assertion_failed_literal)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::static_assertion_failed, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/static_assertion_failed.bms", expectations));
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/static_assertion_failed/literal.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, requires_clause_not_bool)
