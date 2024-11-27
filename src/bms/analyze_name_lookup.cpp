@@ -136,8 +136,7 @@ private:
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
-        auto& type_node = get<ast::Type>(*node.get_type_node());
-        ast::Some_Node* g = type_node.get_width_node();
+        ast::Some_Node* g = node.get_type().get_width_node();
         if (g == nullptr) {
             return {};
         }
