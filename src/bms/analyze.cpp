@@ -22,8 +22,8 @@ namespace {
 
 [[nodiscard]] Comparison_Failure comparison_failure_of(const ast::Binary_Expression& expression)
 {
-    const Concrete_Value l = concrete_value_of(*expression.get_left());
-    const Concrete_Value r = concrete_value_of(*expression.get_right());
+    const Concrete_Value l = concrete_value_of(*expression.get_left_node());
+    const Concrete_Value r = concrete_value_of(*expression.get_right_node());
     return { l, r, expression.get_op() };
 }
 
@@ -114,15 +114,15 @@ private:
             return result;
         };
 
-        auto& params = get<ast::Parameter_List>(*instance.get_parameters());
+        auto& params = get<ast::Parameter_List>(*instance.get_parameters_node());
         for (ast::Some_Node* p : params.get_children()) {
             auto& param_node = get<ast::Parameter>(*p);
-            auto& type_node = get<ast::Type>(*param_node.get_type());
-            if (type_node.get_width() == nullptr) {
+            auto& type_node = get<ast::Type>(*param_node.get_type_node());
+            if (type_node.get_width_node() == nullptr) {
                 continue;
             }
             BIT_MANIPULATION_ASSERT(type_node.get_type() == Type_Type::Uint);
-            auto* id_node = get_if<ast::Id_Expression>(type_node.get_width());
+            auto* id_node = get_if<ast::Id_Expression>(type_node.get_width_node());
             // If it isn't an id-expression, it cannot be a generic parameter.
             if (id_node && id_node->bit_generic) {
                 const int width = next_width();
@@ -320,24 +320,26 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.instances.empty());
 
-        if (auto r = analyze_types(node.get_parameters(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_parameters_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        if (auto r = analyze_types(node.get_return_type(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_return_type_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        auto& return_type = get<ast::Type>(*node.get_return_type());
+        auto& return_type = get<ast::Type>(*node.get_return_type_node());
         auto scope = push_function({ .function = &node,
                                      .return_type = return_type.const_value()->get_type(),
-                                     .return_type_node = node.get_return_type() });
+                                     .return_type_node = node.get_return_type_node() });
 
-        if (node.get_requires_clause() != nullptr) {
-            auto& expr_const_value = get_const_value(*node.get_requires_clause());
+        if (node.get_requires_clause_node() != nullptr) {
+            auto& expr_const_value = get_const_value(*node.get_requires_clause_node());
             // Expressions in requires-clauses don't need to be checked twice, but we have to
             // determine this here instead of in the expression because expressions lack a
             // checking mechanism for themselves.
             if (!expr_const_value) {
-                if (auto r = analyze_types(node.get_requires_clause(),
+                if (auto r = analyze_types(node.get_requires_clause_node(),
                                            Analysis_Level::for_constant_evaluation,
                                            Expression_Context::constant);
                     !r) {
@@ -348,11 +350,11 @@ private:
 
                 if (node.const_value()->get_type() != Concrete_Type::Bool) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_bool,
-                                            node.get_requires_clause(), handle };
+                                            node.get_requires_clause_node(), handle };
                 }
                 if (!node.const_value()->as_bool()) {
                     return Analysis_Error { Analysis_Error_Code::requires_clause_not_satisfied,
-                                            node.get_requires_clause(), handle };
+                                            node.get_requires_clause_node(), handle };
                 }
             }
         }
@@ -361,7 +363,8 @@ private:
             node.analysis_so_far = Analysis_Level::shallow;
         }
         if (level >= Analysis_Level::full) {
-            if (auto r = analyze_types(node.get_body(), level, Expression_Context::normal); !r) {
+            if (auto r = analyze_types(node.get_body_node(), level, Expression_Context::normal);
+                !r) {
                 return r;
             }
         }
@@ -375,7 +378,7 @@ private:
             node.vm_address = vm_address;
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
-        node.const_value() = get_const_value(*node.get_return_type());
+        node.const_value() = get_const_value(*node.get_return_type_node());
         node.analysis_so_far = level;
         return {};
     }
@@ -397,8 +400,8 @@ private:
         if (node.const_value()) {
             return {};
         }
-        auto& type = get<ast::Type>(*node.get_type());
-        auto r = analyze_types(node.get_type(), type, level, Expression_Context::normal);
+        auto& type = get<ast::Type>(*node.get_type_node());
+        auto r = analyze_types(node.get_type_node(), type, level, Expression_Context::normal);
         if (!r) {
             return r;
         }
@@ -413,24 +416,24 @@ private:
         if (node.const_value()) {
             return {};
         }
-        if (node.get_width() == nullptr) {
+        if (node.get_width_node() == nullptr) {
             node.const_value() = Value::unknown_of_type(node.concrete_type().value());
             return {};
         }
 
-        if (auto r = analyze_types(node.get_width(), Analysis_Level::for_constant_evaluation,
+        if (auto r = analyze_types(node.get_width_node(), Analysis_Level::for_constant_evaluation,
                                    Expression_Context::constant);
             !r) {
             return r;
         }
-        auto width = get_const_value(*node.get_width());
+        auto width = get_const_value(*node.get_width_node());
         BIT_MANIPULATION_ASSERT(width.has_value());
         if (!width->get_type().is_integer()) {
-            return Analysis_Error { Analysis_Error_Code::width_not_integer, node.get_width() };
+            return Analysis_Error { Analysis_Error_Code::width_not_integer, node.get_width_node() };
         }
         const Big_Int folded_width = width->as_int();
         if (folded_width <= 0 || folded_width > uint_max_width) {
-            return Analysis_Error { Analysis_Error_Code::width_invalid, node.get_width() };
+            return Analysis_Error { Analysis_Error_Code::width_invalid, node.get_width_node() };
         }
         node.concrete_width = static_cast<int>(folded_width);
         node.const_value() = Value::unknown_of_type(node.concrete_type().value());
@@ -448,44 +451,44 @@ private:
             return {};
         }
         // Const nodes must always have an initializer.
-        BIT_MANIPULATION_ASSERT(node.get_initializer() != nullptr);
+        BIT_MANIPULATION_ASSERT(node.get_initializer_node() != nullptr);
 
-        if (node.get_type() == nullptr) {
-            if (auto r
-                = analyze_types(node.get_initializer(), Analysis_Level::for_constant_evaluation,
-                                Expression_Context::constant);
+        if (node.get_type_node() == nullptr) {
+            if (auto r = analyze_types(node.get_initializer_node(),
+                                       Analysis_Level::for_constant_evaluation,
+                                       Expression_Context::constant);
                 !r) {
                 return r;
             }
-            node.const_value() = get_const_value(*node.get_initializer());
+            node.const_value() = get_const_value(*node.get_initializer_node());
             BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
             return {};
         }
 
-        auto& type_node = get<ast::Type>(*node.get_type());
+        auto& type_node = get<ast::Type>(*node.get_type_node());
         const auto type_result
-            = analyze_types(node.get_type(), type_node, level, Expression_Context::constant);
+            = analyze_types(node.get_type_node(), type_node, level, Expression_Context::constant);
         if (!type_result) {
             return type_result;
         }
 
         if (const auto r
-            = analyze_types(node.get_initializer(), Analysis_Level::for_constant_evaluation,
+            = analyze_types(node.get_initializer_node(), Analysis_Level::for_constant_evaluation,
                             Expression_Context::constant);
             !r) {
             return r;
         }
-        auto initializer_value = get_const_value(*node.get_initializer());
+        auto initializer_value = get_const_value(*node.get_initializer_node());
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
         if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                    node.get_initializer() };
+                                    node.get_initializer_node() };
         }
         const Result<Value, Evaluation_Error_Code> r
             = evaluate_conversion(*initializer_value, type_node.const_value()->get_type());
         if (!r) {
-            return Analysis_Error { r.error(), handle, node.get_initializer() };
+            return Analysis_Error { r.error(), handle, node.get_initializer_node() };
         }
         node.const_value() = *r;
         return {};
@@ -494,17 +497,18 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Some_Node* handle, ast::Let& node, Analysis_Level level, Expression_Context)
     {
-        if (node.get_type() == nullptr) {
+        if (node.get_type_node() == nullptr) {
             // If there is no type, there must be an initializer.
             // This is "static type inference".
             // Prior analysis should have ensured this already, but we may a well double-check.
-            BIT_MANIPULATION_ASSERT(node.get_initializer() != nullptr);
+            BIT_MANIPULATION_ASSERT(node.get_initializer_node() != nullptr);
 
-            if (auto r = analyze_types(node.get_initializer(), level, Expression_Context::normal);
+            if (auto r
+                = analyze_types(node.get_initializer_node(), level, Expression_Context::normal);
                 !r) {
                 return r;
             }
-            auto initializer_value = get_const_value(*node.get_initializer());
+            auto initializer_value = get_const_value(*node.get_initializer_node());
             BIT_MANIPULATION_ASSERT(initializer_value.has_value());
             // Intentionally "forget" the value determined during constant folding.
             // For mutable variables, it is possible that the value is modified, and
@@ -513,27 +517,28 @@ private:
             return {};
         }
 
-        auto& type_node = get<ast::Type>(*node.get_type());
+        auto& type_node = get<ast::Type>(*node.get_type_node());
         const auto type_result
-            = analyze_types(node.get_type(), type_node, level, Expression_Context::constant);
+            = analyze_types(node.get_type_node(), type_node, level, Expression_Context::constant);
         if (!type_result) {
             return type_result;
         }
-        if (node.get_initializer() == nullptr) {
+        if (node.get_initializer_node() == nullptr) {
             node.const_value() = Value::unknown_of_type(type_node.concrete_type().value());
             return {};
         }
 
-        if (const auto r = analyze_types(node.get_initializer(), level, Expression_Context::normal);
+        if (const auto r
+            = analyze_types(node.get_initializer_node(), level, Expression_Context::normal);
             !r) {
             return r;
         }
-        auto initializer_value = get_const_value(*node.get_initializer());
+        auto initializer_value = get_const_value(*node.get_initializer_node());
 
         BIT_MANIPULATION_ASSERT(type_node.const_value().has_value());
         if (!initializer_value->get_type().is_convertible_to(type_node.const_value()->get_type())) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                    node.get_initializer() };
+                                    node.get_initializer_node() };
         }
         node.const_value() = Value::unknown_of_type(type_node.concrete_type().value());
         return {};
@@ -550,23 +555,23 @@ private:
             return {};
         }
         auto expression_result
-            = analyze_types(node.get_expression(), Analysis_Level::for_constant_evaluation,
+            = analyze_types(node.get_expression_node(), Analysis_Level::for_constant_evaluation,
                             Expression_Context::constant);
         if (!expression_result) {
             return expression_result;
         }
-        node.const_value() = get_const_value(*node.get_expression());
+        node.const_value() = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(node.const_value() && node.const_value()->is_known());
 
         if (node.const_value()->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::static_assert_expression_not_bool, handle,
-                                    node.get_expression() };
+                                    node.get_expression_node() };
         }
         if (!node.const_value()->as_bool()) {
             Analysis_Error error { Analysis_Error_Code::static_assertion_failed, handle,
-                                   node.get_expression() };
+                                   node.get_expression_node() };
             if (const auto* const comparison
-                = get_if<ast::Binary_Expression>(node.get_expression());
+                = get_if<ast::Binary_Expression>(node.get_expression_node());
                 comparison && is_comparison_operator(comparison->get_op())) {
                 error.comparison_failure = comparison_failure_of(*comparison);
             }
@@ -581,24 +586,25 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
-        if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_condition_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        auto condition_value = get_const_value(*node.get_condition());
+        auto condition_value = get_const_value(*node.get_condition_node());
         BIT_MANIPULATION_ASSERT(condition_value.has_value());
         if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
-                                    node.get_condition() };
+                                    node.get_condition_node() };
         }
 
-        auto& if_block = get<ast::Block_Statement>(*node.get_if_block());
+        auto& if_block = get<ast::Block_Statement>(*node.get_if_block_node());
         auto if_result
-            = analyze_types(node.get_if_block(), if_block, level, Expression_Context::normal);
+            = analyze_types(node.get_if_block_node(), if_block, level, Expression_Context::normal);
         if (!if_result) {
             return if_result;
         }
         if (auto else_result
-            = analyze_types(node.get_else_block(), level, Expression_Context::normal);
+            = analyze_types(node.get_else_block_node(), level, Expression_Context::normal);
             !else_result) {
             return else_result;
         }
@@ -611,18 +617,19 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
-        if (auto r = analyze_types(node.get_condition(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_condition_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        auto condition_value = get_const_value(*node.get_condition());
+        auto condition_value = get_const_value(*node.get_condition_node());
         BIT_MANIPULATION_ASSERT(condition_value.has_value());
         if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
-                                    node.get_condition() };
+                                    node.get_condition_node() };
         }
 
-        auto& block = get<ast::Block_Statement>(*node.get_block());
-        if (auto r = analyze_types(node.get_block(), block, level, Expression_Context::normal);
+        auto& block = get<ast::Block_Statement>(*node.get_block_node());
+        if (auto r = analyze_types(node.get_block_node(), block, level, Expression_Context::normal);
             !r) {
             return r;
         }
@@ -651,7 +658,7 @@ private:
     {
         const Function_Info& function_info = top_function();
 
-        if (!node.get_expression()) {
+        if (!node.get_expression_node()) {
             if (function_info.return_type != Concrete_Type::Void) {
                 return Analysis_Error { Analysis_Error_Code::empty_return_in_non_void_function,
                                         handle, function_info.return_type_node };
@@ -660,10 +667,11 @@ private:
             return {};
         }
 
-        if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_expression_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        auto expr_value = get_const_value(*node.get_expression());
+        auto expr_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
         if (!expr_value->get_type().is_convertible_to(function_info.return_type)) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
@@ -700,16 +708,17 @@ private:
 
         auto& looked_up_var = get<ast::Let>(looked_up_node);
 
-        if (auto r = analyze_types(node.get_expression(), level, Expression_Context::normal); !r) {
+        if (auto r = analyze_types(node.get_expression_node(), level, Expression_Context::normal);
+            !r) {
             return r;
         }
-        auto expr_value = get_const_value(*node.get_expression());
+        auto expr_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
         const Concrete_Type dest_type = looked_up_var.const_value().value().get_type();
         if (!expr_value->get_type().is_convertible_to(dest_type)) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                    node.get_expression() };
+                                    node.get_expression_node() };
         }
 
         const Result<Value, Evaluation_Error_Code> eval_result
@@ -735,15 +744,15 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_expression(), level, context); !r) {
+        if (auto r = analyze_types(node.get_expression_node(), level, context); !r) {
             return r;
         }
-        auto& target_type = get<ast::Type>(*node.get_target_type());
-        if (auto r = analyze_types(node.get_expression(), target_type, level, context); !r) {
+        auto& target_type = get<ast::Type>(*node.get_target_type_node());
+        if (auto r = analyze_types(node.get_expression_node(), target_type, level, context); !r) {
             return r;
         }
 
-        const auto& expression_value = get_const_value(*node.get_expression());
+        const auto& expression_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expression_value);
 
         std::optional<Concrete_Type> type = target_type.concrete_type();
@@ -751,7 +760,7 @@ private:
 
         if (!expression_value->get_type().is_convertible_to(*type)) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                    node.get_target_type() };
+                                    node.get_target_type_node() };
         }
 
         const Result<Value, Evaluation_Error_Code> eval_result
@@ -766,13 +775,13 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_condition(), level, context); !r) {
+        if (auto r = analyze_types(node.get_condition_node(), level, context); !r) {
             return r;
         }
-        auto condition_value = get_const_value(*node.get_condition());
+        auto condition_value = get_const_value(*node.get_condition_node());
         if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error { Analysis_Error_Code::condition_not_bool, handle,
-                                    node.get_condition() };
+                                    node.get_condition_node() };
         }
         Expression_Context left_context = context;
         Expression_Context right_context = context;
@@ -786,15 +795,15 @@ private:
             (evaluate_left ? right_context : left_context) = Expression_Context::normal;
         }
 
-        if (auto r = analyze_types(node.get_left(), level, left_context); !r) {
+        if (auto r = analyze_types(node.get_left_node(), level, left_context); !r) {
             return r;
         }
-        auto left_value = get_const_value(*node.get_left());
+        auto left_value = get_const_value(*node.get_left_node());
 
-        if (auto r = analyze_types(node.get_right(), level, right_context); !r) {
+        if (auto r = analyze_types(node.get_right_node(), level, right_context); !r) {
             return r;
         }
-        auto right_value = get_const_value(*node.get_right());
+        auto right_value = get_const_value(*node.get_right_node());
 
         Result<Concrete_Type, Analysis_Error_Code> type_result = check_if_expression(
             left_value->get_type(), condition_value->get_type(), right_value->get_type());
@@ -817,10 +826,10 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_left(), level, context); !r) {
+        if (auto r = analyze_types(node.get_left_node(), level, context); !r) {
             return r;
         }
-        const auto& left_value = get_const_value(*node.get_left());
+        const auto& left_value = get_const_value(*node.get_left_node());
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
                                 || (left_value && left_value->is_known()));
 
@@ -838,7 +847,7 @@ private:
             if (context == Expression_Context::constant && is_short_circuiting) {
                 if (left_value->get_type() != Concrete_Type::Bool) {
                     return Analysis_Error { Analysis_Error_Code::non_bool_logical, handle,
-                                            node.get_left() };
+                                            node.get_left_node() };
                 }
                 const bool circuit_breaker = node.get_op() == Token_Type::logical_or;
                 if (left_value->as_bool() == circuit_breaker) {
@@ -847,10 +856,10 @@ private:
             }
         }
 
-        if (auto r = analyze_types(node.get_right(), level, context); !r) {
+        if (auto r = analyze_types(node.get_right_node(), level, context); !r) {
             return r;
         }
-        const auto& right_value = get_const_value(*node.get_right());
+        const auto& right_value = get_const_value(*node.get_right_node());
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
                                 || (right_value && right_value->is_known()));
 
@@ -875,10 +884,10 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
-        if (auto r = analyze_types(node.get_expression(), level, context); !r) {
+        if (auto r = analyze_types(node.get_expression_node(), level, context); !r) {
             return r;
         }
-        const auto expr_value = get_const_value(*node.get_expression());
+        const auto expr_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
         const Result<Concrete_Type, Analysis_Error_Code> type_result
@@ -946,11 +955,11 @@ private:
         //    There is no function overloading.
 
         const ast::Parameter_List* possibly_generic_params = nullptr;
-        if (function->get_parameters() != nullptr) {
-            possibly_generic_params = &get<ast::Parameter_List>(*function->get_parameters());
+        if (function->get_parameters_node() != nullptr) {
+            possibly_generic_params = &get<ast::Parameter_List>(*function->get_parameters_node());
             if (possibly_generic_params->get_children().size() != node.get_children().size()) {
                 return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, handle,
-                                        function->get_parameters() };
+                                        function->get_parameters_node() };
             }
         }
         else if (node.get_children().size() != 0) {
@@ -967,19 +976,19 @@ private:
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
             for (Size i = 0; i < node.get_children().size(); ++i) {
                 auto& param = get<ast::Parameter>(*possibly_generic_params->get_children()[i]);
-                auto& type = get<ast::Type>(*param.get_type());
+                auto& type = get<ast::Type>(*param.get_type_node());
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
                     continue;
                 }
-                auto* gen_expr = get_if<ast::Id_Expression>(type.get_width());
+                auto* gen_expr = get_if<ast::Id_Expression>(type.get_width_node());
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }
                 if (!arg_values[i].get_type().is_uint()) {
                     return Analysis_Error { Analysis_Error_Code::width_deduction_from_non_uint,
-                                            node.get_children()[i], type.get_width() };
+                                            node.get_children()[i], type.get_width_node() };
                 }
                 deduced_widths.push_back(arg_values[i].get_type().width());
             }
@@ -1045,8 +1054,8 @@ private:
         //    concrete values for the parameters if need be.
 
         const ast::Parameter_List* params = nullptr;
-        if (function->get_parameters() != nullptr) {
-            params = &get<ast::Parameter_List>(*function->get_parameters());
+        if (function->get_parameters_node() != nullptr) {
+            params = &get<ast::Parameter_List>(*function->get_parameters_node());
         }
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.

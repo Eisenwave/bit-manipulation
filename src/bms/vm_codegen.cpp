@@ -17,7 +17,7 @@ Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
 
         Concrete_Type operator()(const ast::Function& function)
         {
-            const auto& parameter_list = get<ast::Parameter_List>(*function.get_parameters());
+            const auto& parameter_list = get<ast::Parameter_List>(*function.get_parameters_node());
             BIT_MANIPULATION_ASSERT(i < parameter_list.get_children().size());
             const auto& value = get_const_value(*parameter_list.get_children()[i]);
             BIT_MANIPULATION_ASSERT(value);
@@ -78,21 +78,21 @@ private:
     {
         const auto restore_size = out.size();
 
-        if (function.get_parameters() != nullptr) {
-            auto param_result = generate_code(function.get_parameters());
+        if (function.get_parameters_node() != nullptr) {
+            auto param_result = generate_code(function.get_parameters_node());
             if (!param_result) {
                 return param_result;
             }
         }
 
-        const auto& return_type = get<ast::Type>(*function.get_return_type());
+        const auto& return_type = get<ast::Type>(*function.get_return_type_node());
         BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
 
         m_return_type = return_type.concrete_type();
         // TODO: add Scope_Exit to clean this up upon return (just for robustness, not critical)
 
-        const auto& body = get<ast::Block_Statement>(*function.get_body());
-        auto body_result = generate_code(function.get_body(), body);
+        const auto& body = get<ast::Block_Statement>(*function.get_body_node());
+        auto body_result = generate_code(function.get_body_node(), body);
         if (!body_result) {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
             out.resize(restore_size);
@@ -165,10 +165,10 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Let& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        if (!node.get_initializer()) {
+        if (!node.get_initializer_node()) {
             return {};
         }
-        auto init = generate_code(node.get_initializer());
+        auto init = generate_code(node.get_initializer_node());
         if (!init) {
             return init;
         }
@@ -191,7 +191,7 @@ private:
             out.resize(restore_size);
         };
 
-        auto condition = generate_code(node.get_condition());
+        auto condition = generate_code(node.get_condition_node());
         if (!condition) {
             return condition;
         }
@@ -199,23 +199,23 @@ private:
         const Size blank_jump_to_else_index = out.size();
         out.push_back(ins::Relative_Jump_If { { h }, 0, false });
         const auto size_before_if = out.size();
-        auto if_result = generate_code(node.get_if_block());
+        auto if_result = generate_code(node.get_if_block_node());
         if (!if_result) {
             restore();
             return if_result;
         }
 
         get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset
-            = Signed_Size(out.size() - size_before_if + (node.get_else_block() != nullptr));
+            = Signed_Size(out.size() - size_before_if + (node.get_else_block_node() != nullptr));
 
-        if (node.get_else_block() == nullptr) {
+        if (node.get_else_block_node() == nullptr) {
             return {};
         }
 
         const Size blank_jump_past_else_index = out.size();
         out.push_back(ins::Relative_Jump { { h }, 0 });
         const auto size_before_else = out.size();
-        auto else_result = generate_code(node.get_else_block());
+        auto else_result = generate_code(node.get_else_block_node());
         if (!else_result) {
             restore();
             return else_result;
@@ -234,7 +234,7 @@ private:
             out.resize(initial_size);
         };
 
-        auto condition = generate_code(node.get_condition());
+        auto condition = generate_code(node.get_condition_node());
         if (!condition) {
             return condition;
         }
@@ -243,7 +243,7 @@ private:
         out.push_back(ins::Relative_Jump_If { { h }, 0, false });
         const auto size_before_block = out.size();
 
-        auto block = generate_code(node.get_block());
+        auto block = generate_code(node.get_block_node());
         if (!block) {
             restore();
             return block;
@@ -294,14 +294,14 @@ private:
 
         // Empty return statements produce Void, so the value is always known.
         // We should have early-returned already.
-        BIT_MANIPULATION_ASSERT(node.get_expression());
-        auto r = generate_code(node.get_expression());
+        BIT_MANIPULATION_ASSERT(node.get_expression_node());
+        auto r = generate_code(node.get_expression_node());
         if (!r) {
             return r;
         }
 
         const Concrete_Type expression_type
-            = get_const_value(*node.get_expression()).value().get_type();
+            = get_const_value(*node.get_expression_node()).value().get_type();
         if (expression_type != m_return_type) {
             out.push_back(ins::Convert { { h }, *m_return_type });
         }
@@ -313,7 +313,7 @@ private:
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Assignment& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
-        auto result = generate_code(node.get_expression());
+        auto result = generate_code(node.get_expression_node());
         if (!result) {
             return result;
         }
@@ -345,12 +345,12 @@ private:
             return {};
         }
 
-        auto init = generate_code(node.get_expression());
+        auto init = generate_code(node.get_expression_node());
         if (!init) {
             return init;
         }
 
-        const auto& target_type = get<ast::Type>(*node.get_target_type());
+        const auto& target_type = get<ast::Type>(*node.get_target_type_node());
         out.push_back(ins::Convert { { h }, target_type.concrete_type().value() });
         return {};
     }
@@ -368,7 +368,7 @@ private:
             out.resize(initial_size);
         };
 
-        auto condition = generate_code(node.get_condition());
+        auto condition = generate_code(node.get_condition_node());
         if (!condition) {
             return condition;
         }
@@ -376,7 +376,7 @@ private:
         out.push_back(ins::Relative_Jump_If { { h }, 0, false });
 
         const auto size_before_left = out.size();
-        auto left = generate_code(node.get_left());
+        auto left = generate_code(node.get_left_node());
         if (!left) {
             restore();
             return left;
@@ -387,7 +387,7 @@ private:
         const Size blank_jump_past_right_index = out.size();
         out.push_back(ins::Relative_Jump { { h }, 0 });
         const auto size_before_right = out.size();
-        auto right = generate_code(node.get_right());
+        auto right = generate_code(node.get_right_node());
         if (!right) {
             restore();
             return right;
@@ -412,7 +412,7 @@ private:
             out.resize(restore_size);
         };
 
-        auto left = generate_code(node.get_left());
+        auto left = generate_code(node.get_left_node());
         if (!left) {
             return left;
         }
@@ -435,7 +435,7 @@ private:
             out.push_back(ins::Relative_Jump_If { { h }, 0, circuit_breaker });
 
             const auto size_before_right = out.size();
-            auto right = generate_code(node.get_right());
+            auto right = generate_code(node.get_right_node());
             if (!right) {
                 restore();
                 return right;
@@ -448,7 +448,7 @@ private:
                 ins::Push { { h }, Concrete_Value { Concrete_Type::Bool, circuit_breaker } });
         }
         else {
-            auto right = generate_code(node.get_right());
+            auto right = generate_code(node.get_right_node());
             if (!right) {
                 restore();
                 return right;
@@ -468,7 +468,7 @@ private:
             return {};
         }
 
-        auto init = generate_code(node.get_expression());
+        auto init = generate_code(node.get_expression_node());
         if (!init) {
             return init;
         }

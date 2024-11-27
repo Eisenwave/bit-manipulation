@@ -136,8 +136,8 @@ private:
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
-        auto& type_node = get<ast::Type>(*node.get_type());
-        ast::Some_Node* g = type_node.get_width();
+        auto& type_node = get<ast::Type>(*node.get_type_node());
+        ast::Some_Node* g = type_node.get_width_node();
         if (g == nullptr) {
             return {};
         }
@@ -188,7 +188,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Static_Assert& node)
     {
-        return analyze_symbols_local(node.get_expression(), table);
+        return analyze_symbols_local(node.get_expression_node(), table);
     }
 
     Result<void, Analysis_Error>
@@ -196,7 +196,7 @@ private:
     {
         if (std::optional<ast::Some_Node*> result = table.find(node.name)) {
             node.lookup_result = *result;
-            return analyze_symbols_local(node.get_expression(), table);
+            return analyze_symbols_local(node.get_expression_node(), table);
         }
         return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, h };
     }
