@@ -108,6 +108,7 @@ enum struct Grammar_Rule : Default_Underlying;
 enum struct Analysis_Error_Code : Default_Underlying;
 enum struct Evaluation_Error_Code : Default_Underlying;
 enum struct Execution_Error_Code : Default_Underlying;
+enum struct Tokenize_Error_Code : Default_Underlying;
 
 enum struct Type_Type : Default_Underlying;
 enum struct Builtin_Function : Default_Underlying;

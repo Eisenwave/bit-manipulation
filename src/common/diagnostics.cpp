@@ -2,9 +2,7 @@
 #include <iostream>
 #include <span>
 
-#include "bmd/doc_to_html.hpp"
-#include "bmd/html_writer.hpp"
-#include "bmd/parse.hpp"
+#include "common/diagnostics.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
@@ -14,9 +12,14 @@
 #include "bms/fwd.hpp"
 #include "bms/grammar.hpp"
 #include "bms/operations.hpp"
+#include "bms/parse.hpp"
+#include "bms/parse_error.hpp"
+#include "bms/tokenize_error.hpp"
 #include "bms/tokens.hpp"
 
-#include "common/diagnostics.hpp"
+#include "bmd/doc_to_html.hpp"
+#include "bmd/html_writer.hpp"
+#include "bmd/parse.hpp"
 
 namespace bit_manipulation {
 
