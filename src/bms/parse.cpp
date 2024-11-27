@@ -67,6 +67,7 @@ Parameter::Parameter(Local_Source_Span pos, std::string_view name, Handle type)
     , Parent<1> { type }
     , name(name)
 {
+    BIT_MANIPULATION_ASSERT(type != astp::Handle::null);
 }
 
 Type::Type(Local_Source_Span pos, Type_Type type, Handle width)
