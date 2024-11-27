@@ -204,23 +204,23 @@ Result<void, Execution_Error> Virtual_Machine::cycle()
 {
     const auto counter = m_instruction_counter;
     Instruction next = m_instructions.at(counter);
-    return visit(
-        [this, counter]<typename T>(T& i) -> Result<void, Execution_Error> {
+    auto result = visit(
+        [this]<typename T>(T& i) -> Result<void, Execution_Error> {
             if constexpr (std::is_same_v<T, ins::Break> || std::is_same_v<T, ins::Continue>) {
                 return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };
             }
             else {
-                auto result = cycle(i);
-                if (!result) {
-                    return result;
-                }
-                if (counter == m_instruction_counter) {
-                    return Execution_Error { i.debug_info, Execution_Error_Code::infinite_loop };
-                }
-                return result;
+                return cycle(i);
             }
         },
         next);
+    if (!result) {
+        return result;
+    }
+    if (counter == m_instruction_counter) {
+        return Execution_Error { get_debug_info(next), Execution_Error_Code::infinite_loop };
+    }
+    return result;
 }
 
 } // namespace bit_manipulation::bms

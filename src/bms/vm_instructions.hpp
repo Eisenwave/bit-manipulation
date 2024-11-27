@@ -106,6 +106,20 @@ struct Instruction : Instruction_Variant {
     using Variant::Variant;
 };
 
+namespace detail {
+
+inline const ins::detail::Base& to_base(const Instruction& i)
+{
+    return visit([](auto& x) -> const ins::detail::Base& { return x; }, i);
+}
+
+} // namespace detail
+
+inline const ast::Some_Node* get_debug_info(const Instruction& i)
+{
+    return detail::to_base(i).debug_info;
+}
+
 } // namespace bit_manipulation::bms
 
 #endif
