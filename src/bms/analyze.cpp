@@ -875,7 +875,7 @@ private:
         if (auto r = analyze_types(node.get_right_node(), level, context); !r) {
             return r;
         }
-        const auto& right_value = get_const_value(*node.get_right_node());
+        const std::optional<Value>& right_value = get_const_value(*node.get_right_node());
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
                                 || (right_value && right_value->is_known()));
 
@@ -999,7 +999,7 @@ private:
                 if (type.concrete_width) {
                     continue;
                 }
-                auto* gen_expr = get_if<ast::Id_Expression>(type.get_width_node());
+                const auto* gen_expr = get_if<ast::Id_Expression>(type.get_width_node());
                 if (!gen_expr || !gen_expr->bit_generic) {
                     continue;
                 }
