@@ -418,13 +418,25 @@ TEST(BMS_Analysis_Error, use_of_undefined_variable)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/use_of_undefined_variable.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, use_of_undefined_constant)
+TEST(BMS_Analysis_Error, use_of_undefined_constant_direct)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::use_of_undefined_constant,
           .fail_line = 2,
           .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/use_of_undefined_constant.bms", expectations));
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/use_of_undefined_constant/direct.bms", expectations));
+}
+
+// TODO: rename and reorder
+TEST(BMS_Analysis_Error, use_of_undefined_constant_indirect)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::use_of_undefined_constant,
+          .fail_line = 1,
+          .cause_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/use_of_undefined_constant/indirect.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
