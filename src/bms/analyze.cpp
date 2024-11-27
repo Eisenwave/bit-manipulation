@@ -993,7 +993,7 @@ private:
             BIT_MANIPULATION_ASSERT(possibly_generic_params != nullptr);
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
             for (Size i = 0; i < node.get_argument_count(); ++i) {
-                ast::Type& type = possibly_generic_params->get_parameter(i).get_type();
+                const ast::Type& type = possibly_generic_params->get_parameter(i).get_type();
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
@@ -1083,7 +1083,7 @@ private:
 
         for (Size i = 0; i < node.get_argument_count(); ++i) {
             BIT_MANIPULATION_ASSERT(params != nullptr);
-            ast::Parameter& param = params->get_parameter(i);
+            const ast::Parameter& param = params->get_parameter(i);
             const Concrete_Type param_type = param.const_value().value().get_type();
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,

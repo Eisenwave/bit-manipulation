@@ -212,28 +212,45 @@ public:
     std::span<Some_Node*> get_parameter_nodes();
     std::span<const Some_Node* const> get_parameter_nodes() const;
 
-    Some_Node* get_parameters_node() const
+    Some_Node* get_parameters_node()
     {
         return m_children[0];
     }
-    Parameter_List& get_parameters() const;
+    const Some_Node* get_parameters_node() const
+    {
+        return m_children[0];
+    }
+    Parameter_List& get_parameters();
+    const Parameter_List& get_parameters() const;
 
-    Some_Node* get_return_type_node() const
+    Some_Node* get_return_type_node()
     {
         return m_children[1];
     }
-    Type& get_return_type() const;
+    const Some_Node* get_return_type_node() const
+    {
+        return m_children[1];
+    }
+
+    Type& get_return_type();
+    const Type& get_return_type() const;
 
     Some_Node* get_requires_clause_node() const
     {
         return m_children[2];
     }
 
-    Some_Node* get_body_node() const
+    Some_Node* get_body_node()
     {
         return m_children[3];
     }
-    Block_Statement& get_body() const;
+    const Some_Node* get_body_node() const
+    {
+        return m_children[3];
+    }
+
+    Block_Statement& get_body();
+    const Block_Statement& get_body() const;
 
     Function copy_for_instantiation() const
     {
@@ -273,12 +290,19 @@ struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
         return m_children.size();
     }
 
-    Some_Node* get_parameter_node(Size i) const
+    Some_Node* get_parameter_node(Size i)
     {
         BIT_MANIPULATION_ASSERT(i < m_children.size());
         return m_children[i];
     }
-    Parameter& get_parameter(Size i) const;
+    const Some_Node* get_parameter_node(Size i) const
+    {
+        BIT_MANIPULATION_ASSERT(i < m_children.size());
+        return m_children[i];
+    }
+
+    Parameter& get_parameter(Size i);
+    const Parameter& get_parameter(Size i) const;
 };
 
 struct Parameter final : detail::Node_Base, detail::Parent<1> {
@@ -300,11 +324,17 @@ public:
         return m_name;
     }
 
-    Some_Node* get_type_node() const
+    Some_Node* get_type_node()
     {
         return m_children[0];
     }
-    Type& get_type() const;
+    const Some_Node* get_type_node() const
+    {
+        return m_children[0];
+    }
+
+    Type& get_type();
+    const Type& get_type() const;
 };
 
 struct Type final : detail::Node_Base, detail::Parent<1> {
@@ -328,7 +358,11 @@ public:
         return m_type;
     }
 
-    Some_Node* get_width_node() const
+    Some_Node* get_width_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_width_node() const
     {
         return m_children[0];
     }
@@ -371,13 +405,23 @@ public:
         return m_name;
     }
 
-    Some_Node* get_type_node() const
+    Some_Node* get_type_node()
     {
         return m_children[0];
     }
-    Type& get_type() const;
+    const Some_Node* get_type_node() const
+    {
+        return m_children[0];
+    }
 
-    Some_Node* get_initializer_node() const
+    Type& get_type();
+    const Type& get_type() const;
+
+    Some_Node* get_initializer_node()
+    {
+        return m_children[1];
+    }
+    const Some_Node* get_initializer_node() const
     {
         return m_children[1];
     }
@@ -400,13 +444,23 @@ public:
         return m_name;
     }
 
-    Some_Node* get_type_node() const
+    Some_Node* get_type_node()
     {
         return m_children[0];
     }
-    Type& get_type() const;
+    const Some_Node* get_type_node() const
+    {
+        return m_children[0];
+    }
 
-    Some_Node* get_initializer_node() const
+    Type& get_type();
+    const Type& get_type() const;
+
+    Some_Node* get_initializer_node()
+    {
+        return m_children[1];
+    }
+    const Some_Node* get_initializer_node() const
     {
         return m_children[1];
     }
@@ -421,7 +475,11 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     {
     }
 
-    Some_Node* get_expression_node() const
+    Some_Node* get_expression_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -440,18 +498,32 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
     {
     }
 
-    Some_Node* get_condition_node() const
+    Some_Node* get_condition_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_condition_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_if_block_node() const
+    Some_Node* get_if_block_node()
     {
         return m_children[1];
     }
-    Block_Statement& get_if_block() const;
+    const Some_Node* get_if_block_node() const
+    {
+        return m_children[1];
+    }
 
-    Some_Node* get_else_node() const
+    Block_Statement& get_if_block();
+    const Block_Statement& get_if_block() const;
+
+    Some_Node* get_else_node()
+    {
+        return m_children[2];
+    }
+    const Some_Node* get_else_node() const
     {
         return m_children[2];
     }
@@ -466,16 +538,26 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     {
     }
 
-    Some_Node* get_condition_node() const
+    Some_Node* get_condition_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_condition_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_block_node() const
+    Some_Node* get_block_node()
     {
         return m_children[1];
     }
-    Block_Statement& get_block() const;
+    const Some_Node* get_block_node() const
+    {
+        return m_children[1];
+    }
+
+    Block_Statement& get_block();
+    const Block_Statement& get_block() const;
 };
 
 struct Break final : detail::Node_Base, detail::Parent<0> {
@@ -505,7 +587,11 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     {
     }
 
-    Some_Node* get_expression_node() const
+    Some_Node* get_expression_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -524,7 +610,11 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
     {
     }
 
-    Some_Node* get_expression_node() const
+    Some_Node* get_expression_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -556,16 +646,26 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
     {
     }
 
-    Some_Node* get_expression_node() const
+    Some_Node* get_expression_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_target_type_node() const
+    Some_Node* get_target_type_node()
     {
         return m_children[1];
     }
-    Type& get_target_type() const;
+    const Some_Node* get_target_type_node() const
+    {
+        return m_children[1];
+    }
+
+    Type& get_target_type();
+    const Type& get_target_type() const;
 };
 
 struct If_Expression final : detail::Node_Base, detail::Parent<3> {
@@ -577,15 +677,30 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     {
     }
 
-    Some_Node* get_left_node() const
+    Some_Node* get_left_node()
     {
         return m_children[0];
     }
-    Some_Node* get_condition_node() const
+
+    const Some_Node* get_left_node() const
+    {
+        return m_children[0];
+    }
+
+    Some_Node* get_condition_node()
     {
         return m_children[1];
     }
-    Some_Node* get_right_node() const
+    const Some_Node* get_condition_node() const
+    {
+        return m_children[1];
+    }
+
+    Some_Node* get_right_node()
+    {
+        return m_children[2];
+    }
+    const Some_Node* get_right_node() const
     {
         return m_children[2];
     }
@@ -610,11 +725,20 @@ public:
         return m_op;
     }
 
-    Some_Node* get_left_node() const
+    Some_Node* get_left_node()
     {
         return m_children[0];
     }
-    Some_Node* get_right_node() const
+    const Some_Node* get_left_node() const
+    {
+        return m_children[0];
+    }
+
+    Some_Node* get_right_node()
+    {
+        return m_children[1];
+    }
+    const Some_Node* get_right_node() const
     {
         return m_children[1];
     }
@@ -639,7 +763,11 @@ public:
         return m_op;
     }
 
-    Some_Node* get_expression_node() const
+    Some_Node* get_expression_node()
+    {
+        return m_children[0];
+    }
+    const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -679,13 +807,17 @@ public:
     {
         return m_children;
     }
-
-    std::span<Some_Node* const> get_argument_nodes() const
+    std::span<const Some_Node* const> get_argument_nodes() const
     {
         return m_children;
     }
 
-    Some_Node* get_argument_node(Size i) const
+    Some_Node* get_argument_node(Size i)
+    {
+        BIT_MANIPULATION_ASSERT(i < m_children.size());
+        return m_children[i];
+    }
+    const Some_Node* get_argument_node(Size i) const
     {
         BIT_MANIPULATION_ASSERT(i < m_children.size());
         return m_children[i];
@@ -792,7 +924,12 @@ struct Some_Node : Some_Node_Variant {
     using Variant::Variant;
 };
 
-inline Parameter_List& Function::get_parameters() const
+inline Parameter_List& Function::get_parameters()
+{
+    BIT_MANIPULATION_ASSERT(get_parameters_node());
+    return get<Parameter_List>(*get_parameters_node());
+}
+inline const Parameter_List& Function::get_parameters() const
 {
     BIT_MANIPULATION_ASSERT(get_parameters_node());
     return get<Parameter_List>(*get_parameters_node());
@@ -802,61 +939,105 @@ inline std::span<Some_Node*> Function::get_parameter_nodes()
 {
     return get_parameters().get_children();
 }
-
 inline std::span<const Some_Node* const> Function::get_parameter_nodes() const
 {
     return get_parameters().get_children();
 }
 
-inline Type& Function::get_return_type() const
+inline Type& Function::get_return_type()
+{
+    BIT_MANIPULATION_ASSERT(get_return_type_node());
+    return get<Type>(*get_return_type_node());
+}
+inline const Type& Function::get_return_type() const
 {
     BIT_MANIPULATION_ASSERT(get_return_type_node());
     return get<Type>(*get_return_type_node());
 }
 
-inline Block_Statement& Function::get_body() const
+inline Block_Statement& Function::get_body()
+{
+    BIT_MANIPULATION_ASSERT(get_body_node());
+    return get<Block_Statement>(*get_body_node());
+}
+inline const Block_Statement& Function::get_body() const
 {
     BIT_MANIPULATION_ASSERT(get_body_node());
     return get<Block_Statement>(*get_body_node());
 }
 
-inline Parameter& Parameter_List::get_parameter(Size i) const
+inline Parameter& Parameter_List::get_parameter(Size i)
+{
+    BIT_MANIPULATION_ASSERT(i < get_parameter_count());
+    return get<Parameter>(*m_children[i]);
+}
+inline const Parameter& Parameter_List::get_parameter(Size i) const
 {
     BIT_MANIPULATION_ASSERT(i < get_parameter_count());
     return get<Parameter>(*m_children[i]);
 }
 
-inline Type& Parameter::get_type() const
+inline Type& Parameter::get_type()
+{
+    BIT_MANIPULATION_ASSERT(get_type_node());
+    return get<Type>(*get_type_node());
+}
+inline const Type& Parameter::get_type() const
 {
     BIT_MANIPULATION_ASSERT(get_type_node());
     return get<Type>(*get_type_node());
 }
 
-inline Type& Let::get_type() const
+inline Type& Let::get_type()
+{
+    BIT_MANIPULATION_ASSERT(get_type_node());
+    return get<Type>(*get_type_node());
+}
+inline const Type& Let::get_type() const
 {
     BIT_MANIPULATION_ASSERT(get_type_node());
     return get<Type>(*get_type_node());
 }
 
-inline Type& Const::get_type() const
+inline Type& Const::get_type()
+{
+    BIT_MANIPULATION_ASSERT(get_type_node());
+    return get<Type>(*get_type_node());
+}
+inline const Type& Const::get_type() const
 {
     BIT_MANIPULATION_ASSERT(get_type_node());
     return get<Type>(*get_type_node());
 }
 
-inline Block_Statement& If_Statement::get_if_block() const
+inline Block_Statement& If_Statement::get_if_block()
+{
+    BIT_MANIPULATION_ASSERT(get_if_block_node());
+    return get<Block_Statement>(*get_if_block_node());
+}
+inline const Block_Statement& If_Statement::get_if_block() const
 {
     BIT_MANIPULATION_ASSERT(get_if_block_node());
     return get<Block_Statement>(*get_if_block_node());
 }
 
-inline Block_Statement& While_Statement::get_block() const
+inline Block_Statement& While_Statement::get_block()
+{
+    BIT_MANIPULATION_ASSERT(get_block_node());
+    return get<Block_Statement>(*get_block_node());
+}
+inline const Block_Statement& While_Statement::get_block() const
 {
     BIT_MANIPULATION_ASSERT(get_block_node());
     return get<Block_Statement>(*get_block_node());
 }
 
-inline Type& Conversion_Expression::get_target_type() const
+inline Type& Conversion_Expression::get_target_type()
+{
+    BIT_MANIPULATION_ASSERT(get_target_type_node());
+    return get<Type>(*get_target_type_node());
+}
+inline const Type& Conversion_Expression::get_target_type() const
 {
     BIT_MANIPULATION_ASSERT(get_target_type_node());
     return get<Type>(*get_target_type_node());
