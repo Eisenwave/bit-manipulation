@@ -14,33 +14,20 @@ namespace {
 
 Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
 {
-    struct Get_Parameter_Type {
-        std::size_t i;
-
-        Concrete_Type operator()(const ast::Function& function)
-        {
-            const ast::Parameter_List& parameter_list = function.get_parameters();
-            BIT_MANIPULATION_ASSERT(i < parameter_list.get_parameter_count());
-            const std::optional<Value>& value = parameter_list.get_parameter(i).const_value();
-            BIT_MANIPULATION_ASSERT(value);
-            return value->get_type();
-        }
-
-        Concrete_Type operator()(const ast::Builtin_Function& function)
-        {
-            const std::span<const Concrete_Type> parameters
-                = builtin_parameter_types(function.get_function());
-            BIT_MANIPULATION_ASSERT(i < parameters.size());
-            return parameters[i];
-        }
-
-        Concrete_Type operator()(Ignore)
-        {
-            BIT_MANIPULATION_ASSERT_UNREACHABLE("");
-        }
-    } visitor { i };
-
-    return visit(visitor, some_function);
+    if (const auto* f = get_if<ast::Function>(&some_function)) {
+        const ast::Parameter_List& parameter_list = f->get_parameters();
+        BIT_MANIPULATION_ASSERT(i < parameter_list.get_parameter_count());
+        const std::optional<Value>& value = parameter_list.get_parameter(i).const_value();
+        BIT_MANIPULATION_ASSERT(value);
+        return value->get_type();
+    }
+    if (const auto* f = get_if<ast::Builtin_Function>(&some_function)) {
+        const std::span<const Concrete_Type> parameters
+            = builtin_parameter_types(f->get_function());
+        BIT_MANIPULATION_ASSERT(i < parameters.size());
+        return parameters[i];
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
 
 struct Virtual_Code_Generator {
