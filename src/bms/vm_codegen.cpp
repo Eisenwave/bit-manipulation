@@ -325,7 +325,7 @@ private:
                                                const ast::Block_Statement& node)
     {
         const auto initial_size = out.size();
-        for (ast::Some_Node* child : node.get_children()) {
+        for (const ast::Some_Node* child : node.get_children()) {
             auto r = generate_code(child);
             if (!r) {
                 BIT_MANIPULATION_ASSERT(initial_size <= out.size());

@@ -84,7 +84,7 @@ public:
         return m_children;
     }
 
-    std::span<Some_Node* const> get_children() const
+    std::span<const Some_Node* const> get_children() const
     {
         return m_children;
     }
@@ -107,7 +107,7 @@ struct Parent<0> {
         return {};
     }
 
-    std::span<Some_Node* const> get_children() const
+    std::span<const Some_Node* const> get_children() const
     {
         return {};
     }
@@ -137,7 +137,7 @@ public:
 
     std::span<Some_Node*> get_children();
 
-    std::span<Some_Node* const> get_children() const;
+    std::span<const Some_Node* const> get_children() const;
 
     template <std::ranges::forward_range R>
     void set_children(R&& r)
@@ -876,7 +876,7 @@ inline std::span<Some_Node*> Dynamic_Parent::get_children()
     return m_children;
 }
 
-inline std::span<Some_Node* const> Dynamic_Parent::get_children() const
+inline std::span<const Some_Node* const> Dynamic_Parent::get_children() const
 {
     return m_children;
 }
@@ -918,7 +918,7 @@ inline std::span<Some_Node*> get_children(Some_Node& node)
     return visit([](auto& n) { return n.get_children(); }, node);
 }
 
-inline std::span<Some_Node* const> get_children(const Some_Node& node)
+inline std::span<const Some_Node* const> get_children(const Some_Node& node)
 {
     return visit([](auto& n) { return n.get_children(); }, node);
 }
