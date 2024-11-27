@@ -342,8 +342,8 @@ Analyzed_Program::Implementation::from_parser_node_recursively(ast::Some_Node* p
 Analyzed_Program::Analyzed_Program(const Parsed_Program& program,
                                    std::string_view file_name,
                                    std::pmr::memory_resource* memory)
-    : m_impl(std::pmr::polymorphic_allocator<>(memory) //
-                 .new_object<Implementation>(program, file_name, memory))
+    : m_memory(memory)
+    , m_impl(allocator().new_object<Implementation>(program, file_name, memory))
 {
 }
 
@@ -351,7 +351,7 @@ Analyzed_Program& Analyzed_Program::operator=(Analyzed_Program&& other) noexcept
 {
     Implementation* old = std::exchange(m_impl, std::exchange(other.m_impl, nullptr));
     if (old) {
-        std::pmr::polymorphic_allocator<>(&m_impl->m_memory_resource).delete_object(old);
+        allocator().delete_object(old);
     }
     return *this;
 }
@@ -359,7 +359,7 @@ Analyzed_Program& Analyzed_Program::operator=(Analyzed_Program&& other) noexcept
 Analyzed_Program::~Analyzed_Program()
 {
     if (m_impl) {
-        std::pmr::polymorphic_allocator<>(&m_impl->m_memory_resource).delete_object(m_impl);
+        allocator().delete_object(m_impl);
     }
 }
 
@@ -447,6 +447,11 @@ Analyzed_Program::find_global_constant(std::string_view name) const
         return node.error();
     }
     return &get<ast::Const>(**node);
+}
+
+std::pmr::polymorphic_allocator<> Analyzed_Program::allocator() const
+{
+    return std::pmr::polymorphic_allocator<>(m_memory);
 }
 
 } // namespace bit_manipulation::bms

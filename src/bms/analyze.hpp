@@ -27,6 +27,7 @@ enum struct Introspection_Error_Code {
 struct Analyzed_Program {
 private:
     struct Implementation;
+    std::pmr::memory_resource* m_memory;
     Implementation* m_impl;
 
 public:
@@ -78,6 +79,9 @@ public:
 
     [[nodiscard]] Result<const ast::Const*, Introspection_Error_Code>
     find_global_constant(std::string_view name) const;
+
+private:
+    std::pmr::polymorphic_allocator<> allocator() const;
 };
 
 Result<void, Analysis_Error> analyze_name_lookup(Analyzed_Program& program,
