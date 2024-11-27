@@ -436,11 +436,10 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
     }
     Block_Statement& get_if_block() const;
 
-    Some_Node* get_else_block_node() const
+    Some_Node* get_else_node() const
     {
         return m_children[2];
     }
-    Block_Statement& get_else_block() const;
 };
 
 struct While_Statement final : detail::Node_Base, detail::Parent<2> {
@@ -792,12 +791,6 @@ inline Block_Statement& If_Statement::get_if_block() const
 {
     BIT_MANIPULATION_ASSERT(get_if_block_node());
     return get<Block_Statement>(*get_if_block_node());
-}
-
-inline Block_Statement& If_Statement::get_else_block() const
-{
-    BIT_MANIPULATION_ASSERT(get_else_block_node());
-    return get<Block_Statement>(*get_else_block_node());
 }
 
 inline Block_Statement& While_Statement::get_block() const
