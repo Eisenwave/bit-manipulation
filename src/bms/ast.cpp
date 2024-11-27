@@ -10,12 +10,205 @@ namespace bit_manipulation::bms {
 
 namespace ast {
 
+namespace detail {
+
+Node_Base::Node_Base()
+    : m_parent(nullptr)
+    , m_const_value(Value::unknown_of_type(Concrete_Type::Void))
+{
+}
+
+Node_Base::Node_Base(Root_Node_Tag, const astp::detail::Node_Base& parsed, std::string_view file)
+    : m_parent(nullptr)
+    , m_position(Source_Span { parsed.pos, file })
+{
+}
+
+Node_Base::Node_Base(Some_Node& parent,
+                     const astp::detail::Node_Base& parsed,
+                     std::string_view file)
+    : m_parent(&parent)
+    , m_position(Source_Span { parsed.pos, file })
+{
+}
+
+Node_Base::Node_Base(Some_Node& parent, const Source_Span& pos, std::optional<Value> value)
+    : m_parent(&parent)
+    , m_position(pos)
+    , m_const_value(value)
+{
+}
+
+} // namespace detail
+
+Program::Program(const astp::Program& parsed,
+                 std::string_view file,
+                 std::pmr::memory_resource* memory)
+    : detail::Node_Base(Root_Node_Tag {}, parsed, file)
+    , detail::Dynamic_Parent(memory)
+{
+}
+
+Function::Function(Some_Node& parent, const astp::Function& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_name(parsed.name)
+{
+}
+
 Function::Function(const Function& other, Copy_for_Instantiation_Tag)
     : detail::Node_Base(other)
     , detail::Parent<4>(other)
     , m_name(other.m_name)
 {
     set_children(other.m_children);
+}
+
+Parameter_List::Parameter_List(Some_Node& parent,
+                               const astp::Parameter_List& parsed,
+                               std::string_view file,
+                               std::pmr::memory_resource* memory)
+    : detail::Node_Base(parent, parsed, file)
+    , detail::Dynamic_Parent(memory)
+{
+}
+
+Parameter::Parameter(Some_Node& parent, const astp::Parameter& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_name(parsed.name)
+{
+}
+
+Type::Type(Some_Node& parent, const astp::Type& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_type(parsed.type)
+{
+}
+
+Const::Const(Some_Node& parent, const astp::Const& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_name(parsed.name)
+{
+}
+
+Let::Let(Some_Node& parent, const astp::Let& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_name(parsed.name)
+{
+}
+
+Static_Assert::Static_Assert(Some_Node& parent,
+                             const astp::Static_Assert& parsed,
+                             std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+If_Statement::If_Statement(Some_Node& parent,
+                           const astp::If_Statement& parsed,
+                           std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+While_Statement::While_Statement(Some_Node& parent,
+                                 const astp::While_Statement& parsed,
+                                 std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+Break::Break(Some_Node& parent, const astp::Break& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+Continue::Continue(Some_Node& parent, const astp::Continue& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+Return_Statement::Return_Statement(Some_Node& parent,
+                                   const astp::Return_Statement& parsed,
+                                   std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+Assignment::Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , name(parsed.name)
+{
+}
+
+Block_Statement::Block_Statement(Some_Node& parent,
+                                 const astp::Block_Statement& parsed,
+                                 std::string_view file,
+                                 std::pmr::memory_resource* memory)
+    : detail::Node_Base(parent, parsed, file)
+    , detail::Dynamic_Parent(memory)
+{
+}
+
+Conversion_Expression::Conversion_Expression(Some_Node& parent,
+                                             const astp::Conversion_Expression& parsed,
+                                             std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+If_Expression::If_Expression(Some_Node& parent,
+                             const astp::If_Expression& parsed,
+                             std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+{
+}
+
+Binary_Expression::Binary_Expression(Some_Node& parent,
+                                     const astp::Binary_Expression& parsed,
+                                     std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_op(parsed.op)
+{
+}
+
+Prefix_Expression::Prefix_Expression(Some_Node& parent,
+                                     const astp::Prefix_Expression& parsed,
+                                     std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_op(parsed.op)
+{
+}
+
+Function_Call_Expression::Function_Call_Expression(Some_Node& parent,
+                                                   const astp::Function_Call_Expression& parsed,
+                                                   std::string_view file,
+                                                   std::pmr::memory_resource* memory)
+    : detail::Node_Base(parent, parsed, file)
+    , detail::Dynamic_Parent(memory)
+    , m_name(parsed.function)
+    , m_is_statement(parsed.is_statement)
+{
+}
+
+Id_Expression::Id_Expression(Some_Node& parent,
+                             const astp::Id_Expression& parsed,
+                             std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_identifier(parsed.identifier)
+{
+}
+
+Literal::Literal(Some_Node& parent, const astp::Literal& parsed, std::string_view file)
+    : detail::Node_Base(parent, parsed, file)
+    , m_literal(parsed.literal)
+    , m_type(parsed.type)
+{
+}
+
+Builtin_Function::Builtin_Function(bms::Builtin_Function function)
+    : detail::Node_Base(detail::Node_Base::make_builtin())
+    , m_function(function)
+{
 }
 
 } // namespace ast

@@ -10,6 +10,10 @@ namespace bit_manipulation::bms {
 
 namespace astp {
 
+namespace detail {
+struct Node_Base;
+}
+
 /// A type which represents a handle into the AST.
 /// It can be used only in conjunction with `Parsed_Program`.
 /// This is basically just an index, but with more type safety and protection against misuse.
