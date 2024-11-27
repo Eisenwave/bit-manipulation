@@ -53,10 +53,9 @@ public:
     }
 
 public:
-    Result<void, Analysis_Error> operator()(const ast::Function& function)
+    Result<void, Analysis_Error> operator()(const ast::Some_Node* h, const ast::Function& function)
     {
-        // FIXME: pass function handle here
-        return generate_code(nullptr, function);
+        return generate_code(h, function);
     }
 
 private:
@@ -70,8 +69,6 @@ private:
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("codegen starts at the function level");
     }
-
-    // FIXME: full expressions need to generate code which discards unused results
 
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
                                                const ast::Function& function)
@@ -554,10 +551,18 @@ private:
 } // namespace
 
 Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                           const ast::Some_Node* function_node,
                                            const ast::Function& function)
 {
+    BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &function);
     Virtual_Code_Generator gen { out };
-    return gen(function);
+    return gen(function_node, function);
+}
+
+Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                           const ast::Some_Node* function_node)
+{
+    return generate_code(out, function_node, get<ast::Function>(*function_node));
 }
 
 } // namespace bit_manipulation::bms

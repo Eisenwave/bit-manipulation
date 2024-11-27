@@ -195,7 +195,7 @@ private:
         if (level >= Analysis_Level::for_constant_evaluation) {
             const Size vm_address = constant_evaluation_machine.instruction_count();
             Result<void, Analysis_Error> instructions
-                = generate_code(constant_evaluation_machine.instructions(), node);
+                = generate_code(constant_evaluation_machine.instructions(), handle, node);
             if (!instructions) {
                 return instructions.error();
             }
