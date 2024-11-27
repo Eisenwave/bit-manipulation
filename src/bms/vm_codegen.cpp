@@ -1,3 +1,5 @@
+#include <ranges>
+
 #include "common/variant.hpp"
 
 #include "bms/analyze.hpp"

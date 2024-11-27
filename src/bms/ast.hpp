@@ -2,7 +2,6 @@
 #define BIT_MANIPULATION_BMS_AST_HPP
 
 #include <optional>
-#include <ranges>
 #include <span>
 #include <vector>
 
