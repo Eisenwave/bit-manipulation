@@ -54,11 +54,18 @@ public:
     Symbol_Table& operator=(const Symbol_Table&) = delete;
     Symbol_Table& operator=(Symbol_Table&&) = default;
 
-    Variant<map_type::iterator, ast::Some_Node*> emplace(std::string_view symbol,
-                                                         ast::Some_Node* node)
+    /// @brief Attempts to emplace a new symbol in the table.
+    /// @param symbol the symbol name
+    /// @param node the node to which the symbol refers
+    /// @param shadow if `true`, permits placing a symbol, even if one in the parent table conflicts
+    /// (duplicates at the same level are not possible though)
+    /// @return an iterator to the emplaced pair upon success, or a pointer to the existing node
+    /// with the given name upon failure
+    Variant<map_type::iterator, ast::Some_Node*>
+    emplace(std::string_view symbol, ast::Some_Node* node, bool shadow)
     {
         BIT_MANIPULATION_ASSERT(node != nullptr);
-        if (m_parent != nullptr) {
+        if (!shadow && m_parent != nullptr) {
             if (std::optional<ast::Some_Node*> old = m_parent->find(symbol)) {
                 return *old;
             }

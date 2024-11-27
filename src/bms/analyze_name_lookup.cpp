@@ -20,6 +20,8 @@ ast::Some_Node builtin_function_node = ast::Builtin_Function(F);
 const Symbol_Table builtin_symbols { { "assert",
                                        &builtin_function_node<Builtin_Function::assert> } };
 
+constexpr bool shadowing = false;
+
 /// @brief Class responsible for performing name lookup.
 /// This involves detecting lookup of undefined variables, duplicate variables, and other name
 /// lookup mistakes.
@@ -43,26 +45,22 @@ public:
 
     Result<void, Analysis_Error> operator()()
     {
-        return analyze_symbols_global(m_program.get_root(),
-                                      get<ast::Program>(*m_program.get_root()));
+        auto& program = get<ast::Program>(*m_program.get_root());
+
+        auto first_result = run_pass<Register_Global_Declarations>(program);
+        if (!first_result) {
+            return first_result;
+        }
+
+        return run_pass<Analyze_Symbols_Global>(get<ast::Program>(*m_program.get_root()));
     }
 
 private:
-    template <typename T>
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node*, T&)
+    template <typename F>
+    Result<void, Analysis_Error> run_pass(ast::Program& program)
     {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("Illegal AST node in global scope");
-    }
-
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle, ast::Program& n)
-    {
-        BIT_MANIPULATION_ASSERT(handle != nullptr);
-        for (ast::Some_Node* decl : n.get_children()) {
-            auto r = visit(
-                [this, decl]<typename T>(T& node) -> Result<void, Analysis_Error> {
-                    return analyze_symbols_global(decl, node);
-                },
-                *decl);
+        for (ast::Some_Node* decl : program.get_children()) {
+            auto r = visit(F { *this, decl }, *decl);
             if (!r) {
                 return r;
             }
@@ -70,45 +68,85 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle, ast::Const& n)
-    {
-        BIT_MANIPULATION_ASSERT(handle != nullptr);
-        auto it_or_handle = m_symbols.emplace(n.get_name(), handle);
-        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
-                                    *old };
-        }
-        return analyze_all_symbols_local(n.get_children(), m_symbols);
-    }
+    struct Register_Global_Declarations {
+        Name_Lookup_Analyzer& self;
+        ast::Some_Node* handle;
 
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle, ast::Function& n)
-    {
-        BIT_MANIPULATION_ASSERT(handle != nullptr);
-
-        auto it_or_handle = m_symbols.emplace(n.get_name(), handle);
-        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_function, handle, *old };
+        Result<void, Analysis_Error> operator()(const ast::Const& n)
+        {
+            BIT_MANIPULATION_ASSERT(handle != nullptr);
+            auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
+            if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+                return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
+                                        *old };
+            }
+            return {};
         }
 
-        m_current_function = &n;
-        Symbol_Table local_symbols { Symbol_Table::From_Parent_Tag {}, m_symbols };
-        return analyze_symbols_local(handle, local_symbols, n);
-    }
+        Result<void, Analysis_Error> operator()(const ast::Function& n)
+        {
+            BIT_MANIPULATION_ASSERT(handle != nullptr);
+            auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
+            if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+                return Analysis_Error { Analysis_Error_Code::failed_to_define_function, handle,
+                                        *old };
+            }
+            return {};
+        }
 
-    Result<void, Analysis_Error> analyze_symbols_global(ast::Some_Node* handle,
-                                                        ast::Static_Assert& n)
-    {
-        return analyze_symbols_local(handle, m_symbols, n);
-    }
+        Result<void, Analysis_Error> operator()(const ast::Static_Assert&)
+        {
+            BIT_MANIPULATION_ASSERT(handle != nullptr);
+            return {};
+        }
+
+        Result<void, Analysis_Error> operator()(Ignore)
+        {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Corrupted AST");
+        }
+    };
+
+    struct Analyze_Symbols_Global {
+        Name_Lookup_Analyzer& self;
+        ast::Some_Node* handle;
+
+        Result<void, Analysis_Error> operator()(ast::Const& n)
+        {
+            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()).value() == handle);
+
+            return self.analyze_all_symbols_local(n.get_children(), self.m_symbols);
+        }
+
+        Result<void, Analysis_Error> operator()(ast::Function& n)
+        {
+            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()).value() == handle);
+
+            self.m_current_function = &n;
+            Symbol_Table local_symbols { Symbol_Table::From_Parent_Tag {}, self.m_symbols };
+            return self.analyze_symbols_local(handle, local_symbols, n);
+        }
+
+        Result<void, Analysis_Error> operator()(ast::Static_Assert& n)
+        {
+            return self.analyze_symbols_local(handle, self.m_symbols, n);
+        }
+
+        Result<void, Analysis_Error> operator()(Ignore)
+        {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Corrupted AST");
+        }
+    };
 
     Result<void, Analysis_Error> analyze_symbols_local(ast::Some_Node* handle, Symbol_Table& table)
     {
         if (handle == nullptr) {
             return {};
         }
-        return visit([this, handle,
-                      &table](auto& node) { return analyze_symbols_local(handle, table, node); },
-                     *handle);
+        return visit(
+            [this, handle, &table](auto& node) { //
+                return analyze_symbols_local(handle, table, node);
+            },
+            *handle);
     }
 
     Result<void, Analysis_Error> analyze_all_symbols_local(std::span<ast::Some_Node* const> handles,
@@ -132,7 +170,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* handle, Symbol_Table& table, ast::Parameter& node)
     {
-        auto it_or_handle = table.emplace(node.get_name(), handle);
+        auto it_or_handle = table.emplace(node.get_name(), handle, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
         }
@@ -145,7 +183,7 @@ private:
             BIT_MANIPULATION_ASSERT(error.code()
                                     == Analysis_Error_Code::reference_to_undefined_variable);
             if (auto* id = get_if<ast::Id_Expression>(g)) {
-                table.emplace(id->get_identifier(), g);
+                table.emplace(id->get_identifier(), g, shadowing);
                 id->bit_generic = true;
                 BIT_MANIPULATION_ASSERT(m_current_function != nullptr);
                 m_current_function->is_generic = true;
@@ -167,7 +205,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Const& node)
     {
-        auto it_or_handle = table.emplace(node.get_name(), h);
+        auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
@@ -177,7 +215,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Let& node)
     {
-        auto it_or_handle = table.emplace(node.get_name(), h);
+        auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
             return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
         }
