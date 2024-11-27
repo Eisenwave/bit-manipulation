@@ -540,6 +540,11 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
         , detail::Dynamic_Parent(memory)
     {
     }
+
+    bool is_empty() const
+    {
+        return m_children.empty();
+    }
 };
 
 struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {

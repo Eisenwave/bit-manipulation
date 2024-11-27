@@ -18,8 +18,8 @@ Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
         Concrete_Type operator()(const ast::Function& function)
         {
             const ast::Parameter_List& parameter_list = function.get_parameters();
-            BIT_MANIPULATION_ASSERT(i < parameter_list.get_children().size());
-            const auto& value = get_const_value(*parameter_list.get_children()[i]);
+            BIT_MANIPULATION_ASSERT(i < parameter_list.get_parameter_count());
+            const std::optional<Value>& value = parameter_list.get_parameter(i).const_value();
             BIT_MANIPULATION_ASSERT(value);
             return value->get_type();
         }
@@ -103,10 +103,7 @@ private:
             return {};
         }
 
-        const bool returns_unconditionally = [&]() -> bool {
-            if (body.get_children().empty()) {
-                return false;
-            }
+        const bool returns_unconditionally = !body.is_empty() && [&]() -> bool {
             for (const ast::Some_Node* n : std::views::reverse(body.get_children())) {
                 if (holds_alternative<ast::Return_Statement>(*n)) {
                     return true;
@@ -128,10 +125,10 @@ private:
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         const auto initial_size = out.size();
-        for (Size i = node.get_children().size(); i-- != 0;) {
+        for (Size i = node.get_parameter_count(); i-- != 0;) {
             // We use left-to-right push order, so storing the parameters in variables upon
             // function entry happens in reverse order.
-            auto r = generate_code(node.get_children()[i]);
+            auto r = generate_code(node.get_parameter_node(i), node.get_parameter(i));
             if (!r) {
                 BIT_MANIPULATION_ASSERT(initial_size <= out.size());
                 out.resize(initial_size);
