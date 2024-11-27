@@ -17,7 +17,7 @@ Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
 
         Concrete_Type operator()(const ast::Function& function)
         {
-            const auto& parameter_list = get<ast::Parameter_List>(*function.get_parameters_node());
+            const ast::Parameter_List& parameter_list = function.get_parameters();
             BIT_MANIPULATION_ASSERT(i < parameter_list.get_children().size());
             const auto& value = get_const_value(*parameter_list.get_children()[i]);
             BIT_MANIPULATION_ASSERT(value);
@@ -85,13 +85,13 @@ private:
             }
         }
 
-        const auto& return_type = get<ast::Type>(*function.get_return_type_node());
+        const ast::Type& return_type = function.get_return_type();
         BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
 
         m_return_type = return_type.concrete_type();
         // TODO: add Scope_Exit to clean this up upon return (just for robustness, not critical)
 
-        const auto& body = get<ast::Block_Statement>(*function.get_body_node());
+        const ast::Block_Statement& body = function.get_body();
         auto body_result = generate_code(function.get_body_node(), body);
         if (!body_result) {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -206,16 +206,16 @@ private:
         }
 
         get<ins::Relative_Jump_If>(out[blank_jump_to_else_index]).offset
-            = Signed_Size(out.size() - size_before_if + (node.get_else_block_node() != nullptr));
+            = Signed_Size(out.size() - size_before_if + (node.get_else_node() != nullptr));
 
-        if (node.get_else_block_node() == nullptr) {
+        if (node.get_else_node() == nullptr) {
             return {};
         }
 
         const Size blank_jump_past_else_index = out.size();
         out.push_back(ins::Relative_Jump { { h }, 0 });
         const auto size_before_else = out.size();
-        auto else_result = generate_code(node.get_else_block_node());
+        auto else_result = generate_code(node.get_else_node());
         if (!else_result) {
             restore();
             return else_result;
@@ -350,7 +350,7 @@ private:
             return init;
         }
 
-        const auto& target_type = get<ast::Type>(*node.get_target_type_node());
+        const ast::Type& target_type = node.get_target_type();
         out.push_back(ins::Convert { { h }, target_type.concrete_type().value() });
         return {};
     }

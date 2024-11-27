@@ -114,10 +114,10 @@ private:
             return result;
         };
 
-        auto& params = get<ast::Parameter_List>(*instance.get_parameters_node());
+        ast::Parameter_List& params = instance.get_parameters();
         for (ast::Some_Node* p : params.get_children()) {
             auto& param_node = get<ast::Parameter>(*p);
-            auto& type_node = get<ast::Type>(*param_node.get_type_node());
+            ast::Type& type_node = param_node.get_type();
             if (type_node.get_width_node() == nullptr) {
                 continue;
             }
@@ -288,9 +288,12 @@ private:
         return {};
     }
 
-    [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Program& node, Analysis_Level level, Expression_Context)
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
+                                                                      ast::Program& node,
+                                                                      Analysis_Level level,
+                                                                      Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Program>(*handle) == &node);
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
@@ -299,7 +302,6 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
-        // Normally we don't check, but this is tricky to ensure with implicit instantiations etc.
         BIT_MANIPULATION_ASSERT(&get<ast::Function>(*handle) == &node);
         BIT_MANIPULATION_ASSERT(level != Analysis_Level::unanalyzed);
         if (node.analysis_so_far >= level) {
@@ -328,7 +330,7 @@ private:
             !r) {
             return r;
         }
-        auto& return_type = get<ast::Type>(*node.get_return_type_node());
+        ast::Type& return_type = node.get_return_type();
         auto scope = push_function({ .function = &node,
                                      .return_type = return_type.const_value()->get_type(),
                                      .return_type_node = node.get_return_type_node() });
@@ -383,24 +385,28 @@ private:
         return {};
     }
 
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node*,
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
                                                                       ast::Parameter_List& node,
                                                                       Analysis_Level level,
                                                                       Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Parameter_List>(*handle) == &node);
         if (node.const_value()) {
             return {};
         }
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
-    [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Parameter& node, Analysis_Level level, Expression_Context)
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
+                                                                      ast::Parameter& node,
+                                                                      Analysis_Level level,
+                                                                      Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Parameter>(*handle) == &node);
         if (node.const_value()) {
             return {};
         }
-        auto& type = get<ast::Type>(*node.get_type_node());
+        ast::Type& type = node.get_type();
         auto r = analyze_types(node.get_type_node(), type, level, Expression_Context::normal);
         if (!r) {
             return r;
@@ -411,8 +417,9 @@ private:
     }
 
     Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Type& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Some_Node* handle, ast::Type& node, Analysis_Level, Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Type>(*handle) == &node);
         if (node.const_value()) {
             return {};
         }
@@ -445,6 +452,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Const>(*handle) == &node);
         // Const nodes contain constant expressions, so if they have been analyzed in the past,
         // we can be sure that no further analysis is required.
         if (node.const_value()) {
@@ -465,7 +473,7 @@ private:
             return {};
         }
 
-        auto& type_node = get<ast::Type>(*node.get_type_node());
+        ast::Type& type_node = node.get_type();
         const auto type_result
             = analyze_types(node.get_type_node(), type_node, level, Expression_Context::constant);
         if (!type_result) {
@@ -497,6 +505,7 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Some_Node* handle, ast::Let& node, Analysis_Level level, Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Let>(*handle) == &node);
         if (node.get_type_node() == nullptr) {
             // If there is no type, there must be an initializer.
             // This is "static type inference".
@@ -517,7 +526,7 @@ private:
             return {};
         }
 
-        auto& type_node = get<ast::Type>(*node.get_type_node());
+        ast::Type& type_node = node.get_type();
         const auto type_result
             = analyze_types(node.get_type_node(), type_node, level, Expression_Context::constant);
         if (!type_result) {
@@ -549,6 +558,7 @@ private:
                                                Analysis_Level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Static_Assert>(*handle) == &node);
         // Static assertions never need to be checked twice.
         if (node.const_value()) {
             BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
@@ -586,6 +596,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::If_Statement>(*handle) == &node);
         if (auto r = analyze_types(node.get_condition_node(), level, Expression_Context::normal);
             !r) {
             return r;
@@ -597,14 +608,13 @@ private:
                                     node.get_condition_node() };
         }
 
-        auto& if_block = get<ast::Block_Statement>(*node.get_if_block_node());
-        auto if_result
-            = analyze_types(node.get_if_block_node(), if_block, level, Expression_Context::normal);
+        auto if_result = analyze_types(node.get_if_block_node(), node.get_if_block(), //
+                                       level, Expression_Context::normal);
         if (!if_result) {
             return if_result;
         }
         if (auto else_result
-            = analyze_types(node.get_else_block_node(), level, Expression_Context::normal);
+            = analyze_types(node.get_else_node(), level, Expression_Context::normal);
             !else_result) {
             return else_result;
         }
@@ -617,6 +627,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::While_Statement>(*handle) == &node);
         if (auto r = analyze_types(node.get_condition_node(), level, Expression_Context::normal);
             !r) {
             return r;
@@ -628,8 +639,8 @@ private:
                                     node.get_condition_node() };
         }
 
-        auto& block = get<ast::Block_Statement>(*node.get_block_node());
-        if (auto r = analyze_types(node.get_block_node(), block, level, Expression_Context::normal);
+        if (auto r = analyze_types(node.get_block_node(), node.get_block(), level,
+                                   Expression_Context::normal);
             !r) {
             return r;
         }
@@ -656,6 +667,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Return_Statement>(*handle) == &node);
         const Function_Info& function_info = top_function();
 
         if (!node.get_expression_node()) {
@@ -689,6 +701,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Assignment>(*handle) == &node);
         BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
 
         ast::Some_Node& looked_up_node = *node.lookup_result;
@@ -731,11 +744,12 @@ private:
         return {};
     }
 
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node*,
+    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
                                                                       ast::Block_Statement& node,
                                                                       Analysis_Level level,
                                                                       Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Block_Statement>(*handle) == &node);
         return analyze_child_types(node, level, Expression_Context::normal);
     }
 
@@ -744,11 +758,12 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Conversion_Expression>(*handle) == &node);
         if (auto r = analyze_types(node.get_expression_node(), level, context); !r) {
             return r;
         }
-        auto& target_type = get<ast::Type>(*node.get_target_type_node());
-        if (auto r = analyze_types(node.get_expression_node(), target_type, level, context); !r) {
+        auto& target_type = node.get_target_type();
+        if (auto r = analyze_types(node.get_target_type_node(), target_type, level, context); !r) {
             return r;
         }
 
@@ -775,6 +790,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::If_Expression>(*handle) == &node);
         if (auto r = analyze_types(node.get_condition_node(), level, context); !r) {
             return r;
         }
@@ -826,6 +842,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Binary_Expression>(*handle) == &node);
         if (auto r = analyze_types(node.get_left_node(), level, context); !r) {
             return r;
         }
@@ -884,6 +901,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Prefix_Expression>(*handle) == &node);
         if (auto r = analyze_types(node.get_expression_node(), level, context); !r) {
             return r;
         }
@@ -909,6 +927,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Function_Call_Expression>(*handle) == &node);
         BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
 
         // 1. Evaluate arguments.
@@ -956,7 +975,7 @@ private:
 
         const ast::Parameter_List* possibly_generic_params = nullptr;
         if (function->get_parameters_node() != nullptr) {
-            possibly_generic_params = &get<ast::Parameter_List>(*function->get_parameters_node());
+            possibly_generic_params = &function->get_parameters();
             if (possibly_generic_params->get_children().size() != node.get_children().size()) {
                 return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, handle,
                                         function->get_parameters_node() };
@@ -976,7 +995,7 @@ private:
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
             for (Size i = 0; i < node.get_children().size(); ++i) {
                 auto& param = get<ast::Parameter>(*possibly_generic_params->get_children()[i]);
-                auto& type = get<ast::Type>(*param.get_type_node());
+                ast::Type& type = param.get_type();
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
@@ -1053,10 +1072,8 @@ private:
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        const ast::Parameter_List* params = nullptr;
-        if (function->get_parameters_node() != nullptr) {
-            params = &get<ast::Parameter_List>(*function->get_parameters_node());
-        }
+        const ast::Parameter_List* params
+            = function->get_parameters_node() != nullptr ? &function->get_parameters() : nullptr;
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
 
@@ -1114,6 +1131,7 @@ private:
                                                Analysis_Level level,
                                                Expression_Context context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Id_Expression>(*handle) == &node);
         if (node.const_value()) {
             // In instantiations of bit-generic id-expressions,
             // id-expressions don't turn into literals, but "magically" obtain a const_value.
@@ -1173,6 +1191,7 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Some_Node* handle, ast::Literal& node, Analysis_Level, Expression_Context)
     {
+        BIT_MANIPULATION_ASSERT(&get<ast::Literal>(*handle) == &node);
         // Literals never need to be analyzed twice.
         if (node.const_value()) {
             BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
