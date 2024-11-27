@@ -42,6 +42,14 @@ public:
 
     Analyzed_Program(const Analyzed_Program&) = delete;
     Analyzed_Program& operator=(const Analyzed_Program&) = delete;
+
+    Analyzed_Program(Analyzed_Program&& other) noexcept
+        : m_impl(std::exchange(other.m_impl, nullptr))
+    {
+    }
+
+    Analyzed_Program& operator=(Analyzed_Program&& other) noexcept;
+
     ~Analyzed_Program();
 
     [[nodiscard]] std::string_view get_source() const;

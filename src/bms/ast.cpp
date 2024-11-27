@@ -342,8 +342,16 @@ Analyzed_Program::Implementation::from_parser_node_recursively(ast::Some_Node* p
 Analyzed_Program::Analyzed_Program(const Parsed_Program& program,
                                    std::string_view file_name,
                                    std::pmr::memory_resource* memory)
-    : m_impl(new Implementation(program, file_name, memory))
+    : m_impl(std::pmr::polymorphic_allocator<Implementation>(memory)
+                 .new_object<Implementation>(program, file_name, memory))
 {
+}
+
+Analyzed_Program& Analyzed_Program::operator=(Analyzed_Program&& other) noexcept
+{
+    Implementation* old = std::exchange(m_impl, std::exchange(other.m_impl, nullptr));
+    std::pmr::polymorphic_allocator<Implementation>().delete_object(old);
+    return *this;
 }
 
 Analyzed_Program::~Analyzed_Program()
