@@ -36,7 +36,7 @@ struct Analyzed_Program::Implementation {
         , m_memory_resource(memory)
     {
         m_nodes.reserve(program.get_node_count());
-        m_root = from_parser_node_recursively(program.get_root_handle(), program);
+        m_root = from_parser_node_recursively(nullptr, program.get_root_handle(), program);
         BIT_MANIPULATION_ASSERT(m_root != nullptr);
     }
 
@@ -61,7 +61,9 @@ struct Analyzed_Program::Implementation {
         }
     }
 
-    [[nodiscard]] ast::Some_Node* from_parser_node_recursively(astp::Handle, const Parsed_Program&);
+    [[nodiscard]] ast::Some_Node* from_parser_node_recursively(ast::Some_Node* parent,
+                                                               astp::Handle handle,
+                                                               const Parsed_Program& parsed);
 
     template <typename F>
     [[nodiscard]] const ast::Some_Node* find_entity(F filter) const
@@ -91,31 +93,54 @@ struct Analyzed_Program::Implementation {
 };
 
 ast::Some_Node*
-Analyzed_Program::Implementation::from_parser_node_recursively(astp::Handle handle,
+Analyzed_Program::Implementation::from_parser_node_recursively(ast::Some_Node* parent,
+                                                               astp::Handle handle,
                                                                const Parsed_Program& parsed)
 {
     if (handle == astp::Handle::null) {
         return nullptr;
     }
-    const auto transform_child
-        = [this, &parsed](astp::Handle h) { return from_parser_node_recursively(h, parsed); };
 
-    const auto child_from_parsed = [this]<typename T>(const T& n) {
+    /**
+     * Constructs an AST node from a single parser AST node, but not recursively.
+     * Note that the various AST nodes have different forms of constructors,
+     * so we pick whichever one is appropriate by testing which pattern fits via
+     * requires-expression.
+     */
+    const auto parser_node_to_ast_node = [&]<typename T>(const T& n) -> ast::Some_Node* {
         using Result = typename T::AST_Node;
         if constexpr (requires { Result(n, m_file_name, &m_memory_resource); }) {
+            // Root node; everything else should have a parent
             return emplace<Result>(n, m_file_name, &m_memory_resource);
         }
+        else if constexpr (requires { Result(*parent, n, m_file_name, &m_memory_resource); }) {
+            BIT_MANIPULATION_ASSERT(parent != nullptr);
+            // Node which dynamically stores child nodes
+            return emplace<Result>(*parent, n, m_file_name, &m_memory_resource);
+        }
         else {
-            return emplace<Result>(n, m_file_name);
+            BIT_MANIPULATION_ASSERT(parent != nullptr);
+            // Other nodes (static nodes, so to speak)
+            return emplace<Result>(*parent, n, m_file_name);
         }
     };
+
+    // Note that the current_parent will be re-assigned within the visitor.
+    // This way, we avoid defining the lambda below within another generic lambda,
+    // which drastically slows down the linter and probably impacts compilation speed
+    // quite negatively.
+    ast::Some_Node* current_parent = parent;
+
+    const auto transform_parser_node_child
+        = [&](astp::Handle h) { return from_parser_node_recursively(current_parent, h, parsed); };
 
     return visit(
         [&]<typename T>(const T& n) {
             using Result = typename T::AST_Node;
-            ast::Some_Node* result = child_from_parsed(n);
+            ast::Some_Node* result = parser_node_to_ast_node(n);
+            current_parent = result;
             get<Result>(*result).set_children(n.get_children()
-                                              | std::views::transform(transform_child));
+                                              | std::views::transform(transform_parser_node_child));
             return result;
         },
         parsed.get_node(handle));

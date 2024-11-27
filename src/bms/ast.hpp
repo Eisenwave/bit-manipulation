@@ -28,6 +28,9 @@ public:
     }
 
 protected:
+    struct Root_Node_Tag { };
+
+    Some_Node* m_parent;
     std::optional<Source_Span> m_position;
     /// @brief If present, indicates that type analysis for an AST node is complete.
     /// For some nodes such as expression nodes, this also indicates the value of the node, if it
@@ -35,22 +38,33 @@ protected:
     std::optional<Value> m_const_value;
 
     explicit Node_Base()
-        : m_const_value(Value::unknown_of_type(Concrete_Type::Void))
+        : m_parent(nullptr)
+        , m_const_value(Value::unknown_of_type(Concrete_Type::Void))
     {
     }
 
-public:
-    explicit Node_Base(const astp::detail::Node_Base& parsed, std::string_view file)
-        : m_position(Source_Span { parsed.pos, file })
+    explicit Node_Base(Root_Node_Tag, const astp::detail::Node_Base& parsed, std::string_view file)
+        : m_parent(nullptr)
+        , m_position(Source_Span { parsed.pos, file })
     {
     }
 
-    explicit Node_Base(const Source_Span& pos, std::optional<Value> value = {})
-        : m_position(pos)
+    explicit Node_Base(Some_Node& parent,
+                       const astp::detail::Node_Base& parsed,
+                       std::string_view file)
+        : m_parent(&parent)
+        , m_position(Source_Span { parsed.pos, file })
+    {
+    }
+
+    explicit Node_Base(Some_Node& parent, const Source_Span& pos, std::optional<Value> value = {})
+        : m_parent(&parent)
+        , m_position(pos)
         , m_const_value(value)
     {
     }
 
+public:
     std::optional<Source_Span> get_position() const
     {
         return m_position;
@@ -153,7 +167,7 @@ struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Program";
 
     Program(const astp::Program& parsed, std::string_view file, std::pmr::memory_resource* memory)
-        : detail::Node_Base(parsed, file)
+        : detail::Node_Base(Root_Node_Tag {}, parsed, file)
         , detail::Dynamic_Parent(memory)
     {
     }
@@ -198,8 +212,8 @@ private:
     Function(const Function& other, Copy_for_Instantiation_Tag);
 
 public:
-    Function(const astp::Function& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Function(Some_Node& parent, const astp::Function& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_name(parsed.name)
     {
     }
@@ -277,10 +291,11 @@ public:
 struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Parameter_List";
 
-    Parameter_List(const astp::Parameter_List& parsed,
+    Parameter_List(Some_Node& parent,
+                   const astp::Parameter_List& parsed,
                    std::string_view file,
                    std::pmr::memory_resource* memory)
-        : detail::Node_Base(parsed, file)
+        : detail::Node_Base(parent, parsed, file)
         , detail::Dynamic_Parent(memory)
     {
     }
@@ -313,8 +328,8 @@ private:
     std::string_view m_name;
 
 public:
-    Parameter(const astp::Parameter& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Parameter(Some_Node& parent, const astp::Parameter& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_name(parsed.name)
     {
     }
@@ -347,8 +362,8 @@ private:
 public:
     std::optional<int> concrete_width;
 
-    Type(const astp::Type& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Type(Some_Node& parent, const astp::Type& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_type(parsed.type)
     {
     }
@@ -394,8 +409,8 @@ private:
     std::string_view m_name;
 
 public:
-    Const(const astp::Const& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Const(Some_Node& parent, const astp::Const& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_name(parsed.name)
     {
     }
@@ -435,8 +450,8 @@ private:
     std::string_view m_name;
 
 public:
-    Let(const astp::Let& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Let(Some_Node& parent, const astp::Let& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_name(parsed.name) {};
 
     std::string_view get_name() const
@@ -470,8 +485,8 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Static_Assert(const astp::Static_Assert& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Static_Assert(Some_Node& parent, const astp::Static_Assert& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -493,8 +508,8 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
         "else_block",
     };
 
-    If_Statement(const astp::If_Statement& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    If_Statement(Some_Node& parent, const astp::If_Statement& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -533,8 +548,8 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
 
-    While_Statement(const astp::While_Statement& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    While_Statement(Some_Node& parent, const astp::While_Statement& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -563,8 +578,8 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 struct Break final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Break";
 
-    Break(const astp::Break& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Break(Some_Node& parent, const astp::Break& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 };
@@ -572,8 +587,8 @@ struct Break final : detail::Node_Base, detail::Parent<0> {
 struct Continue final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Continue";
 
-    Continue(const astp::Continue& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Continue(Some_Node& parent, const astp::Continue& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 };
@@ -582,8 +597,8 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 
-    Return_Statement(const astp::Return_Statement& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Return_Statement(Some_Node& parent, const astp::Return_Statement& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -604,8 +619,8 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
     std::string_view name;
     Some_Node* lookup_result = nullptr;
 
-    Assignment(const astp::Assignment& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , name(parsed.name)
     {
     }
@@ -623,10 +638,11 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Block_Statement";
 
-    Block_Statement(const astp::Block_Statement& parsed,
+    Block_Statement(Some_Node& parent,
+                    const astp::Block_Statement& parsed,
                     std::string_view file,
                     std::pmr::memory_resource* memory)
-        : detail::Node_Base(parsed, file)
+        : detail::Node_Base(parent, parsed, file)
         , detail::Dynamic_Parent(memory)
     {
     }
@@ -641,8 +657,10 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Conversion_Expression";
     static inline constexpr std::string_view child_names[] = { "expression", "target_type" };
 
-    Conversion_Expression(const astp::Conversion_Expression& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Conversion_Expression(Some_Node& parent,
+                          const astp::Conversion_Expression& parsed,
+                          std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -672,8 +690,8 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
 
-    If_Expression(const astp::If_Expression& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    If_Expression(Some_Node& parent, const astp::If_Expression& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
     {
     }
 
@@ -714,8 +732,10 @@ private:
     Token_Type m_op;
 
 public:
-    Binary_Expression(const astp::Binary_Expression& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Binary_Expression(Some_Node& parent,
+                      const astp::Binary_Expression& parsed,
+                      std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_op(parsed.op)
     {
     }
@@ -752,8 +772,10 @@ private:
     Token_Type m_op;
 
 public:
-    Prefix_Expression(const astp::Prefix_Expression& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Prefix_Expression(Some_Node& parent,
+                      const astp::Prefix_Expression& parsed,
+                      std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_op(parsed.op)
     {
     }
@@ -783,10 +805,11 @@ private:
 public:
     Some_Node* lookup_result = nullptr;
 
-    Function_Call_Expression(const astp::Function_Call_Expression& parsed,
+    Function_Call_Expression(Some_Node& parent,
+                             const astp::Function_Call_Expression& parsed,
                              std::string_view file,
                              std::pmr::memory_resource* memory)
-        : detail::Node_Base(parsed, file)
+        : detail::Node_Base(parent, parsed, file)
         , detail::Dynamic_Parent(memory)
         , m_name(parsed.function)
         , m_is_statement(parsed.is_statement)
@@ -839,8 +862,8 @@ public:
     Some_Node* lookup_result = nullptr;
     bool bit_generic = false;
 
-    Id_Expression(const astp::Id_Expression& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Id_Expression(Some_Node& parent, const astp::Id_Expression& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_identifier(parsed.identifier)
     {
     }
@@ -859,8 +882,8 @@ private:
     Token_Type m_type;
 
 public:
-    Literal(const astp::Literal& parsed, std::string_view file)
-        : detail::Node_Base(parsed, file)
+    Literal(Some_Node& parent, const astp::Literal& parsed, std::string_view file)
+        : detail::Node_Base(parent, parsed, file)
         , m_literal(parsed.literal)
         , m_type(parsed.type)
     {
