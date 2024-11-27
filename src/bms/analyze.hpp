@@ -27,8 +27,8 @@ enum struct Introspection_Error_Code {
 struct Analyzed_Program {
 private:
     struct Implementation;
-    std::pmr::memory_resource* m_memory;
-    Implementation* m_impl;
+    std::pmr::memory_resource* m_memory = nullptr;
+    Implementation* m_impl = nullptr;
 
 public:
     /// @brief Constructs an analyzed program from a parsed program.

@@ -451,6 +451,7 @@ Analyzed_Program::find_global_constant(std::string_view name) const
 
 std::pmr::polymorphic_allocator<> Analyzed_Program::allocator() const
 {
+    BIT_MANIPULATION_ASSERT(m_memory);
     return std::pmr::polymorphic_allocator<>(m_memory);
 }
 
