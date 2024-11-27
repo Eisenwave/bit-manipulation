@@ -704,6 +704,34 @@ public:
     }
 };
 
+using Some_Node_Variant = Variant<Program,
+                                  Function,
+                                  Parameter_List,
+                                  Parameter,
+                                  Type,
+                                  Const,
+                                  Let,
+                                  Static_Assert,
+                                  If_Statement,
+                                  While_Statement,
+                                  Break,
+                                  Continue,
+                                  Return_Statement,
+                                  Assignment,
+                                  Block_Statement,
+                                  Conversion_Expression,
+                                  If_Expression,
+                                  Binary_Expression,
+                                  Prefix_Expression,
+                                  Function_Call_Expression,
+                                  Id_Expression,
+                                  Literal,
+                                  Builtin_Function>;
+
+struct Some_Node : Some_Node_Variant {
+    using Variant::Variant;
+};
+
 template <int N>
 template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
 void detail::Parent<N>::set_children(Forward_It begin, Sentinel end)

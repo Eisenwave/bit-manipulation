@@ -26,7 +26,7 @@ struct Text;
 struct Number;
 struct Directive;
 
-using Some_Node = Variant<List, Directive, Text>;
+struct Some_Node;
 
 } // namespace ast
 

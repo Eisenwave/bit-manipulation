@@ -87,6 +87,25 @@ struct Builtin_Call : detail::Base {
 
 } // namespace ins
 
+using Instruction_Variant = Variant<ins::Load,
+                                    ins::Store,
+                                    ins::Push,
+                                    ins::Pop,
+                                    ins::Relative_Jump,
+                                    ins::Relative_Jump_If,
+                                    ins::Break,
+                                    ins::Continue,
+                                    ins::Return,
+                                    ins::Convert,
+                                    ins::Unary_Operate,
+                                    ins::Binary_Operate,
+                                    ins::Call,
+                                    ins::Builtin_Call>;
+
+struct Instruction : Instruction_Variant {
+    using Variant::Variant;
+};
+
 } // namespace bit_manipulation::bms
 
 #endif

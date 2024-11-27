@@ -43,28 +43,7 @@ struct Function_Call_Expression;
 struct Id_Expression;
 struct Literal;
 
-using Some_Node = Variant<Program,
-                          Function,
-                          Parameter_List,
-                          Parameter,
-                          Type,
-                          Const,
-                          Let,
-                          Static_Assert,
-                          If_Statement,
-                          While_Statement,
-                          Break,
-                          Continue,
-                          Return_Statement,
-                          Assignment,
-                          Block_Statement,
-                          Conversion_Expression,
-                          If_Expression,
-                          Binary_Expression,
-                          Prefix_Expression,
-                          Function_Call_Expression,
-                          Id_Expression,
-                          Literal>;
+struct Some_Node;
 
 } // namespace astp
 
@@ -94,29 +73,7 @@ struct Id_Expression;
 struct Literal;
 struct Builtin_Function;
 
-using Some_Node = Variant<Program,
-                          Function,
-                          Parameter_List,
-                          Parameter,
-                          Type,
-                          Const,
-                          Let,
-                          Static_Assert,
-                          If_Statement,
-                          While_Statement,
-                          Break,
-                          Continue,
-                          Return_Statement,
-                          Assignment,
-                          Block_Statement,
-                          Conversion_Expression,
-                          If_Expression,
-                          Binary_Expression,
-                          Prefix_Expression,
-                          Function_Call_Expression,
-                          Id_Expression,
-                          Literal,
-                          Builtin_Function>;
+struct Some_Node;
 
 } // namespace ast
 
@@ -139,20 +96,7 @@ struct Builtin_Call;
 
 } // namespace ins
 
-using Instruction = Variant<ins::Load,
-                            ins::Store,
-                            ins::Push,
-                            ins::Pop,
-                            ins::Relative_Jump,
-                            ins::Relative_Jump_If,
-                            ins::Break,
-                            ins::Continue,
-                            ins::Return,
-                            ins::Convert,
-                            ins::Unary_Operate,
-                            ins::Binary_Operate,
-                            ins::Call,
-                            ins::Builtin_Call>;
+struct Instruction;
 
 enum struct Token_Type : Default_Underlying;
 enum struct Grammar_Rule : Default_Underlying;

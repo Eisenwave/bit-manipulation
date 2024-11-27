@@ -431,6 +431,33 @@ struct Literal final : detail::Node_Base, detail::Parent<0> {
     Literal(Local_Source_Span pos, std::string_view literal, Token_Type type);
 };
 
+using Some_Node_Variant = Variant<Program,
+                                  Function,
+                                  Parameter_List,
+                                  Parameter,
+                                  Type,
+                                  Const,
+                                  Let,
+                                  Static_Assert,
+                                  If_Statement,
+                                  While_Statement,
+                                  Break,
+                                  Continue,
+                                  Return_Statement,
+                                  Assignment,
+                                  Block_Statement,
+                                  Conversion_Expression,
+                                  If_Expression,
+                                  Binary_Expression,
+                                  Prefix_Expression,
+                                  Function_Call_Expression,
+                                  Id_Expression,
+                                  Literal>;
+
+struct Some_Node : Some_Node_Variant {
+    using Variant::Variant;
+};
+
 static_assert(std::is_nothrow_move_constructible_v<Some_Node>);
 static_assert(std::is_nothrow_move_assignable_v<Some_Node>);
 

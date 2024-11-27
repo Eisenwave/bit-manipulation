@@ -235,6 +235,10 @@ struct Text : detail::Base {
     return m_children.empty();
 }
 
+struct Some_Node : Variant<List, Directive, Text> {
+    using Variant::Variant;
+};
+
 inline std::string_view get_node_name(const Some_Node& node)
 {
     return visit([]<typename T>(const T&) { return T::self_name; }, node);
