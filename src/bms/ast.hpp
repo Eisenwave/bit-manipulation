@@ -209,6 +209,9 @@ public:
         return m_name;
     }
 
+    std::span<Some_Node*> get_parameter_nodes();
+    std::span<const Some_Node* const> get_parameter_nodes() const;
+
     Some_Node* get_parameters_node() const
     {
         return m_children[0];
@@ -264,6 +267,18 @@ struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
         , detail::Dynamic_Parent(memory)
     {
     }
+
+    Size get_parameter_count() const
+    {
+        return m_children.size();
+    }
+
+    Some_Node* get_parameter_node(Size i) const
+    {
+        BIT_MANIPULATION_ASSERT(i < m_children.size());
+        return m_children[i];
+    }
+    Parameter& get_parameter(Size i) const;
 };
 
 struct Parameter final : detail::Node_Base, detail::Parent<1> {
@@ -650,6 +665,27 @@ public:
         return m_name;
     }
 
+    Size get_argument_count() const
+    {
+        return m_children.size();
+    }
+
+    std::span<Some_Node*> get_argument_nodes()
+    {
+        return m_children;
+    }
+
+    std::span<Some_Node* const> get_argument_nodes() const
+    {
+        return m_children;
+    }
+
+    Some_Node* get_argument_node(Size i) const
+    {
+        BIT_MANIPULATION_ASSERT(i < m_children.size());
+        return m_children[i];
+    }
+
     bool is_statement() const
     {
         return m_is_statement;
@@ -757,6 +793,16 @@ inline Parameter_List& Function::get_parameters() const
     return get<Parameter_List>(*get_parameters_node());
 }
 
+inline std::span<Some_Node*> Function::get_parameter_nodes()
+{
+    return get_parameters().get_children();
+}
+
+inline std::span<const Some_Node* const> Function::get_parameter_nodes() const
+{
+    return get_parameters().get_children();
+}
+
 inline Type& Function::get_return_type() const
 {
     BIT_MANIPULATION_ASSERT(get_return_type_node());
@@ -767,6 +813,12 @@ inline Block_Statement& Function::get_body() const
 {
     BIT_MANIPULATION_ASSERT(get_body_node());
     return get<Block_Statement>(*get_body_node());
+}
+
+inline Parameter& Parameter_List::get_parameter(Size i) const
+{
+    BIT_MANIPULATION_ASSERT(i < get_parameter_count());
+    return get<Parameter>(*m_children[i]);
 }
 
 inline Type& Parameter::get_type() const

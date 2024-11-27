@@ -114,8 +114,7 @@ private:
             return result;
         };
 
-        ast::Parameter_List& params = instance.get_parameters();
-        for (ast::Some_Node* p : params.get_children()) {
+        for (ast::Some_Node* p : instance.get_parameter_nodes()) {
             auto& param_node = get<ast::Parameter>(*p);
             ast::Type& type_node = param_node.get_type();
             if (type_node.get_width_node() == nullptr) {
@@ -934,9 +933,9 @@ private:
 
         std::pmr::monotonic_buffer_resource temp_memory_resource;
         std::pmr::vector<Value> arg_values(&temp_memory_resource);
-        arg_values.reserve(node.get_children().size());
+        arg_values.reserve(node.get_argument_count());
 
-        for (ast::Some_Node* const arg : node.get_children()) {
+        for (ast::Some_Node* const arg : node.get_argument_nodes()) {
             if (auto r = analyze_types(arg, level, context); !r) {
                 return r;
             }
@@ -976,12 +975,12 @@ private:
         const ast::Parameter_List* possibly_generic_params = nullptr;
         if (function->get_parameters_node() != nullptr) {
             possibly_generic_params = &function->get_parameters();
-            if (possibly_generic_params->get_children().size() != node.get_children().size()) {
+            if (possibly_generic_params->get_parameter_count() != node.get_argument_count()) {
                 return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, handle,
                                         function->get_parameters_node() };
             }
         }
-        else if (node.get_children().size() != 0) {
+        else if (node.get_argument_count() != 0) {
             return Analysis_Error { Analysis_Error_Code::wrong_number_of_arguments, handle,
                                     node.lookup_result };
         }
@@ -993,9 +992,8 @@ private:
             // Functions with no parameters cannot be generic.
             BIT_MANIPULATION_ASSERT(possibly_generic_params != nullptr);
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
-            for (Size i = 0; i < node.get_children().size(); ++i) {
-                auto& param = get<ast::Parameter>(*possibly_generic_params->get_children()[i]);
-                ast::Type& type = param.get_type();
+            for (Size i = 0; i < node.get_argument_count(); ++i) {
+                ast::Type& type = possibly_generic_params->get_parameter(i).get_type();
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
@@ -1007,7 +1005,7 @@ private:
                 }
                 if (!arg_values[i].get_type().is_uint()) {
                     return Analysis_Error { Analysis_Error_Code::width_deduction_from_non_uint,
-                                            node.get_children()[i], type.get_width_node() };
+                                            node.get_argument_node(i), type.get_width_node() };
                 }
                 deduced_widths.push_back(arg_values[i].get_type().width());
             }
@@ -1083,13 +1081,13 @@ private:
             constant_evaluation_machine.jump_to(function->vm_address);
         }
 
-        for (Size i = 0; i < node.get_children().size(); ++i) {
+        for (Size i = 0; i < node.get_argument_count(); ++i) {
             BIT_MANIPULATION_ASSERT(params != nullptr);
-            auto& param = get<ast::Parameter>(*params->get_children()[i]);
+            ast::Parameter& param = params->get_parameter(i);
             const Concrete_Type param_type = param.const_value().value().get_type();
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                        params->get_children()[i] };
+                                        params->get_parameter_node(i) };
             }
 
             Result<Value, Evaluation_Error_Code> conv_result
@@ -1097,7 +1095,7 @@ private:
             if (context == Expression_Context::constant) {
                 if (!conv_result) {
                     return Analysis_Error { conv_result.error(), handle,
-                                            params->get_children()[i] };
+                                            params->get_parameter_node(i) };
                 }
                 constant_evaluation_machine.push(conv_result->concrete_value());
             }
