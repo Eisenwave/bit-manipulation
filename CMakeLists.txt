@@ -43,6 +43,7 @@ set(HEADERS
     src/bms/evaluation_error.hpp
     src/bms/execution_error.hpp
     src/bms/grammar.hpp
+    src/bms/instantiate.hpp
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
     src/bms/parse_error.hpp
@@ -82,6 +83,7 @@ add_library(bm STATIC ${HEADERS}
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
     src/bms/ast.cpp
+    src/bms/instantiate.cpp
     src/bms/operations.cpp
     src/bms/parse.cpp
     src/bms/tokenize.cpp
