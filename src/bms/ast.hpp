@@ -67,6 +67,16 @@ public:
     {
         return m_const_value.has_value();
     }
+
+    Some_Node* get_parent()
+    {
+        return m_parent;
+    }
+
+    const Some_Node* get_parent() const
+    {
+        return m_parent;
+    }
 };
 
 template <int N>
@@ -1004,6 +1014,16 @@ inline Node_Base& to_node_base(Some_Node& node) noexcept
 inline std::string_view get_node_name(const Some_Node& node)
 {
     return visit([]<typename T>(const T&) { return T::self_name; }, node);
+}
+
+inline Some_Node* get_parent(Some_Node& node)
+{
+    return detail::to_node_base(node).get_parent();
+}
+
+inline const Some_Node* get_parent(const Some_Node& node)
+{
+    return detail::to_node_base(node).get_parent();
 }
 
 inline std::optional<Source_Span> get_source_position(const Some_Node& node)

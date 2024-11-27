@@ -194,6 +194,10 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Incompatible Uint widths for operation or conversion.";
     case wrong_argument_type: //
         return "Wrong argument types for function call.";
+    case break_outside_loop: //
+        return "This break statement is not inside of a loop.";
+    case continue_outside_loop: //
+        return "This continue statement is not inside of a loop.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }

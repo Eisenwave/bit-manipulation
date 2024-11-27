@@ -139,6 +139,10 @@ enum struct Analysis_Error_Code : Default_Underlying {
     incompatible_widths,
     /// @brief Wrong argument type for builtin function call.
     wrong_argument_type,
+    /// @brief A break statement appeared outside of a loop.
+    break_outside_loop,
+    /// @brief A continue statement appeared outside of a loop.
+    continue_outside_loop,
 };
 
 constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
@@ -189,6 +193,8 @@ constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
         BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
         BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
+        BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
+        BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
     };
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }

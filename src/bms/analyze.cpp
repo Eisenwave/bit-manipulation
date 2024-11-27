@@ -28,6 +28,16 @@ namespace {
     return { l, r, expression.get_op() };
 }
 
+bool is_in_loop(const ast::Some_Node& node)
+{
+    for (const ast::Some_Node* p = get_parent(node); p != nullptr; p = get_parent(*p)) {
+        if (holds_alternative<ast::While_Statement>(*p)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 enum struct Expression_Context : Default_Underlying {
     // The default context. Full analysis of functions and everything inside.
     normal,
@@ -471,15 +481,21 @@ private:
     }
 
     Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Break& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Some_Node* handle, ast::Break& node, Analysis_Level, Expression_Context)
     {
+        if (!is_in_loop(*handle)) {
+            return Analysis_Error { Analysis_Error_Code::break_outside_loop, handle };
+        }
         node.const_value() = Value::Void;
         return {};
     }
 
     Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Continue& node, Analysis_Level, Expression_Context)
+    analyze_types(ast::Some_Node* handle, ast::Continue& node, Analysis_Level, Expression_Context)
     {
+        if (!is_in_loop(*handle)) {
+            return Analysis_Error { Analysis_Error_Code::continue_outside_loop, handle };
+        }
         node.const_value() = Value::Void;
         return {};
     }
