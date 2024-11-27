@@ -59,6 +59,9 @@ using pack_head_t = typename detail::Pack_At_Index<0, Ts...>::type;
 template <typename T, typename... Ts>
 inline constexpr Size pack_first_index_of_v = detail::pack_first_index_of_impl<T, Ts...>();
 
+template <typename T, typename... Ts>
+inline constexpr bool pack_contains_v = (std::is_same_v<T, Ts> || ...);
+
 template <template <typename> typename Predicate, typename... Ts>
 inline constexpr Size pack_first_index_satisfying_v
     = detail::pack_first_index_satisfying_impl<Predicate, Ts...>();

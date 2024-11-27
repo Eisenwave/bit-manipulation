@@ -501,36 +501,10 @@ struct Variant_Alternative<Variant<Ts...>, I> {
 };
 
 struct Variant_Get_Impl {
-
-    template <Size I, typename... Ts>
-    [[nodiscard]] static pack_at_index_t<I, Ts...>* get_if(Variant<Ts...>* variant)
+    template <typename T>
+    static const_like_t<std::byte, T>* get_storage(T& variant) noexcept
     {
-        BIT_MANIPULATION_ASSERT(variant);
-        return variant->m_index == I
-            ? std::launder(reinterpret_cast<pack_at_index_t<I, Ts...>*>(variant->m_storage))
-            : nullptr;
-    }
-
-    template <Size I, typename... Ts>
-    [[nodiscard]] static const pack_at_index_t<I, Ts...>* get_if(const Variant<Ts...>* variant)
-    {
-        BIT_MANIPULATION_ASSERT(variant);
-        return variant->m_index == I
-            ? std::launder(reinterpret_cast<const pack_at_index_t<I, Ts...>*>(variant->m_storage))
-            : nullptr;
-    }
-
-    template <Size I, typename V>
-    [[nodiscard]] static decltype(auto) get(V&& variant)
-    {
-        using VV = std::remove_cvref_t<V>;
-        static_assert(I < VV::alternatives);
-        BIT_MANIPULATION_ASSERT(I == variant.m_index);
-
-        using Result
-            = const_like_t<typename Variant_Alternative<VV, I>::type, std::remove_reference_t<V>>;
-        Result* result = std::launder(reinterpret_cast<Result*>(variant.m_storage));
-        return forward_like<V>(*result);
+        return variant.m_storage;
     }
 };
 
@@ -725,42 +699,128 @@ public:
     friend struct detail::Variant_Get_Impl;
 };
 
-template <typename T, typename V>
-    requires has_alternative_v<V, T>
-[[nodiscard]] bool holds_alternative(const V& v) noexcept
+template <typename T, typename... Ts>
+[[nodiscard]] bool holds_alternative(const Variant<Ts...>& v) noexcept
 {
-    return v.index() == alternative_index_v<V, T>;
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    return v.index() == i;
 }
 
-template <Size I, typename V>
-    requires(I < std::remove_cv_t<V>::alternatives)
-[[nodiscard]] auto* get_if(V* variant)
+template <Size I, typename... Ts>
+[[nodiscard]] static pack_at_index_t<I, Ts...>* get_if(Variant<Ts...>* variant)
 {
-    return detail::Variant_Get_Impl::get_if<I>(variant);
+    BIT_MANIPULATION_ASSERT(variant);
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(*variant);
+    return variant->index() == I
+        ? std::launder(reinterpret_cast<pack_at_index_t<I, Ts...>*>(storage))
+        : nullptr;
 }
 
-template <typename T, typename V>
-    requires has_alternative_v<std::remove_cv_t<V>, T>
-[[nodiscard]] const_like_t<T, V>* get_if(V* variant) noexcept
+template <Size I, typename... Ts>
+[[nodiscard]] static const pack_at_index_t<I, Ts...>* get_if(const Variant<Ts...>* variant)
 {
-    return detail::Variant_Get_Impl::get_if<alternative_index_v<std::remove_cvref_t<V>, T>>(
-        variant);
+    BIT_MANIPULATION_ASSERT(variant);
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(*variant);
+    return variant->index() == I
+        ? std::launder(reinterpret_cast<const pack_at_index_t<I, Ts...>*>(storage))
+        : nullptr;
 }
 
-template <Size I, typename V>
-    requires(I < std::remove_cvref_t<V>::alternatives)
-[[nodiscard]] decltype(auto) get(V&& variant)
+template <typename T, typename... Ts>
+[[nodiscard]] static T* get_if(Variant<Ts...>* variant)
 {
-    return detail::Variant_Get_Impl::get<I>(std::forward<V>(variant));
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(variant);
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(*variant);
+    return variant->index() == i ? std::launder(reinterpret_cast<T*>(storage)) : nullptr;
 }
 
-template <typename T, typename V>
-[[nodiscard]] auto get(V&& variant) noexcept
-    -> decltype(detail::Variant_Get_Impl::get<alternative_index_v<std::remove_cvref_t<V>, T>>(
-        std::forward<V>(variant)))
+template <typename T, typename... Ts>
+[[nodiscard]] static const T* get_if(const Variant<Ts...>* variant)
 {
-    return detail::Variant_Get_Impl::get<alternative_index_v<std::remove_cvref_t<V>, T>>(
-        std::forward<V>(variant));
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(variant);
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(*variant);
+    return variant->index() == i ? std::launder(reinterpret_cast<const T*>(storage)) : nullptr;
+}
+
+template <Size I, typename... Ts>
+[[nodiscard]] static pack_at_index_t<I, Ts...>& get(Variant<Ts...>& variant)
+{
+    using Alternative = pack_at_index_t<I, Ts...>;
+    BIT_MANIPULATION_ASSERT(I == variant.index());
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return *std::launder(reinterpret_cast<Alternative*>(storage));
+}
+
+template <Size I, typename... Ts>
+[[nodiscard]] static const pack_at_index_t<I, Ts...>& get(const Variant<Ts...>& variant)
+{
+    using Alternative = pack_at_index_t<I, Ts...>;
+    BIT_MANIPULATION_ASSERT(I == variant.index());
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return *std::launder(reinterpret_cast<const Alternative*>(storage));
+}
+
+template <Size I, typename... Ts>
+[[nodiscard]] static pack_at_index_t<I, Ts...>&& get(Variant<Ts...>&& variant)
+{
+    using Alternative = pack_at_index_t<I, Ts...>;
+    BIT_MANIPULATION_ASSERT(I == variant.index());
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return std::move(*std::launder(reinterpret_cast<Alternative*>(storage)));
+}
+
+template <Size I, typename... Ts>
+[[nodiscard]] static const pack_at_index_t<I, Ts...>&& get(const Variant<Ts...>&& variant)
+{
+    using Alternative = pack_at_index_t<I, Ts...>;
+    BIT_MANIPULATION_ASSERT(I == variant.index());
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return std::move(*std::launder(reinterpret_cast<const Alternative*>(storage)));
+}
+
+template <typename T, typename... Ts>
+[[nodiscard]] static T& get(Variant<Ts...>& variant)
+{
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(i == variant.index());
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return *std::launder(reinterpret_cast<T*>(storage));
+}
+
+template <typename T, typename... Ts>
+[[nodiscard]] static const T& get(const Variant<Ts...>& variant)
+{
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(i == variant.index());
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return *std::launder(reinterpret_cast<const T*>(storage));
+}
+
+template <typename T, typename... Ts>
+[[nodiscard]] static T&& get(Variant<Ts...>&& variant)
+{
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(i == variant.index());
+    std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return std::move(*std::launder(reinterpret_cast<T*>(storage)));
+}
+
+template <typename T, typename... Ts>
+[[nodiscard]] static const T&& get(const Variant<Ts...>&& variant)
+{
+    constexpr Size i = pack_first_index_of_v<T, Ts...>;
+    static_assert(i != Size(-1), "The specified type is not an alternative of the variant.");
+    BIT_MANIPULATION_ASSERT(i == variant.index());
+    const std::byte* storage = detail::Variant_Get_Impl::get_storage(variant);
+    return std::move(*std::launder(reinterpret_cast<const T*>(storage)));
 }
 
 } // namespace bit_manipulation
