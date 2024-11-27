@@ -549,5 +549,19 @@ TEST(BMS_Analysis_Error, incompatible_widths)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_widths.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, break_outside_loop)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::break_outside_loop, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/break_outside_loop.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, continue_outside_loop)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::continue_outside_loop, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/continue_outside_loop.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
