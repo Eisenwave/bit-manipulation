@@ -65,11 +65,12 @@ bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
                                     std::string_view file_name,
                                     std::pmr::memory_resource* memory)
 {
-    if (Result<bms::Parsed_Program, bms::Parse_Error> parsed = bms::parse(tokens, source, memory)) {
-        return std::move(*parsed);
+    bms::Parsed_Program parsed { source, memory };
+    if (Result<void, bms::Parse_Error> result = bms::parse(parsed, tokens)) {
+        return parsed;
     }
     else {
-        print_parse_error(std::cout, file_name, source, parsed.error());
+        print_parse_error(std::cout, file_name, source, result.error());
         std::exit(1);
     }
 }

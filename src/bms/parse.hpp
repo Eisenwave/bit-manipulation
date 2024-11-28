@@ -18,19 +18,18 @@ namespace bit_manipulation::bms {
 
 struct Parsed_Program {
 private:
-    std::pmr::vector<astp::Some_Node> m_nodes;
+    std::pmr::memory_resource* m_memory = nullptr;
+    std::pmr::vector<astp::Some_Node> m_nodes { m_memory };
     std::string_view m_source;
     astp::Handle m_root_node = astp::Handle::null;
 
 public:
     [[nodiscard]] explicit Parsed_Program(std::string_view source,
                                           std::pmr::memory_resource* memory)
-        : m_nodes(memory)
+        : m_memory(memory)
         , m_source(source)
     {
     }
-
-    [[nodiscard]] Parsed_Program() = default;
 
     Parsed_Program(const Parsed_Program&) = delete;
     Parsed_Program& operator=(const Parsed_Program&) = delete;
@@ -93,22 +92,24 @@ public:
     {
         return m_source.substr(span.begin, span.length);
     }
+
+    std::pmr::memory_resource* get_memory() const
+    {
+        return m_memory;
+    }
 };
 
-Result<Parsed_Program, Parse_Error>
-parse(std::span<const Token> tokens, std::string_view source, std::pmr::memory_resource* memory);
+Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> tokens);
 
-inline std::optional<Parsed_Program> parse(std::span<const Token> tokens,
-                                           std::string_view source,
-                                           std::pmr::memory_resource* memory,
-                                           Diagnostic_Consumer& diagnostics)
+inline bool
+parse(Parsed_Program& program, std::span<const Token> tokens, Diagnostic_Consumer& diagnostics)
 {
-    if (auto result = parse(tokens, source, memory)) {
-        return std::move(result.value());
+    if (auto result = parse(program, tokens)) {
+        return true;
     }
     else {
         diagnostics(std::move(result.error()));
-        return {};
+        return false;
     }
 }
 

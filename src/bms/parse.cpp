@@ -229,31 +229,25 @@ struct Rule_Error {
 
 struct Parser {
 private:
-    /// @brief Upstream memory resource.
-    std::pmr::memory_resource* m_memory;
+    /// @brief The result program.
+    Parsed_Program& m_program;
     /// @brief The input tokens.
     std::span<const Token> m_tokens;
     /// @brief The parser position within `m_tokens`.
-    Size m_pos;
-    /// @brief The result program.
-    Parsed_Program m_program;
+    Size m_pos = 0;
 
 public:
-    explicit Parser(std::span<const Token> tokens,
-                    std::string_view source,
-                    std::pmr::memory_resource* memory)
-        : m_memory { memory }
+    explicit Parser(Parsed_Program& program, std::span<const Token> tokens)
+        : m_program { program }
         , m_tokens { tokens }
-        , m_pos { 0 }
-        , m_program { source, memory }
     {
     }
 
-    Result<Parsed_Program, Parse_Error> parse()
+    Result<void, Parse_Error> operator()()
     {
         if (auto program = match_program()) {
             m_program.set_root_handle(m_program.push_node(std::move(*program)));
-            return std::move(m_program);
+            return {};
         }
         else {
             const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
@@ -377,7 +371,7 @@ private:
         if (!first) {
             return first;
         }
-        std::pmr::vector<astp::Handle> declarations(m_memory);
+        std::pmr::vector<astp::Handle> declarations(m_program.get_memory());
         declarations.push_back(m_program.push_node(std::move(*first)));
 
         while (!eof()) {
@@ -550,7 +544,7 @@ private:
     Rule_Result match_parameter_sequence()
     {
         Local_Source_Span first_pos;
-        std::pmr::vector<astp::Handle> parameters(m_memory);
+        std::pmr::vector<astp::Handle> parameters(m_program.get_memory());
         while (true) {
             auto p = match_parameter();
             if (!p) {
@@ -817,7 +811,7 @@ private:
         if (!first) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_brace> };
         }
-        std::pmr::vector<astp::Handle> statements(m_memory);
+        std::pmr::vector<astp::Handle> statements(m_program.get_memory());
         while (true) {
             if (expect(Token_Type::right_brace)) {
                 return astp::Some_Node { astp::Block_Statement { first->pos,
@@ -1082,7 +1076,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        std::pmr::vector<astp::Handle> arguments(m_memory);
+        std::pmr::vector<astp::Handle> arguments(m_program.get_memory());
         for (bool demand_expression = false; true;) {
             if (!demand_expression && expect(Token_Type::right_parenthesis)) {
                 break;
@@ -1168,10 +1162,9 @@ private:
 
 } // namespace
 
-Result<Parsed_Program, Parse_Error>
-parse(std::span<const Token> tokens, std::string_view source, std::pmr::memory_resource* memory)
+Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> tokens)
 {
-    return Parser(tokens, source, memory).parse();
+    return Parser { program, tokens }();
 }
 
 } // namespace bit_manipulation::bms

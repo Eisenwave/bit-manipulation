@@ -113,7 +113,8 @@ bms_inline_code_to_html(HTML_Writer& out, std::string_view code, std::pmr::memor
         return Bms_Error { t.error() };
     }
 
-    Result<bms::Parsed_Program, bms::Parse_Error> p = bms::parse(tokens, code, memory);
+    bms::Parsed_Program parsed(code, memory);
+    Result<void, bms::Parse_Error> p = bms::parse(parsed, tokens);
     if (!p) {
         tokens_to_html(out, tokens, code);
         return Bms_Error { p.error() };

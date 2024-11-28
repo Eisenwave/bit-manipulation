@@ -411,18 +411,18 @@ bool test_validity(std::string_view file,
     case Policy_Action::CONTINUE: break;
     }
 
-    std::optional<bms::Parsed_Program> parsed = bms::parse(tokens, *source, &memory, diagnostics);
-    if (!parsed) {
+    bms::Parsed_Program parsed { *source, &memory };
+    if (!bms::parse(parsed, tokens, diagnostics)) {
         return policy.error(diagnostics.parse_errors.back()) == Policy_Action::SUCCESS;
     }
-    policy.parsed_program = &*parsed;
+    policy.parsed_program = &parsed;
     switch (policy.done(Testing_Stage::parse)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
     }
 
-    bms::Analyzed_Program analyzed(*parsed, full_path, &memory);
+    bms::Analyzed_Program analyzed(parsed, full_path, &memory);
     if (!bms::analyze(analyzed, &memory, diagnostics)) {
         return policy.error(diagnostics.analysis_errors.back()) == Policy_Action::SUCCESS;
     }
