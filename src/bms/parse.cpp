@@ -1,10 +1,12 @@
 #include <functional>
 #include <memory_resource>
 #include <optional>
+#include <vector>
 
 #include "common/assert.hpp"
 #include "common/result.hpp"
 
+#include "bms/astp.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/diagnostic_consumer.hpp"
 #include "bms/grammar.hpp"
@@ -12,6 +14,107 @@
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {
+
+struct Parsed_Program::Implementation {
+    std::pmr::vector<astp::Some_Node> nodes;
+    std::string_view source;
+    astp::Handle root_node = astp::Handle::null;
+
+    explicit Implementation(std::string_view source, std::pmr::memory_resource* memory)
+        : nodes(memory)
+        , source(source)
+    {
+    }
+};
+
+Parsed_Program::Parsed_Program(std::string_view source, std::pmr::memory_resource* memory)
+    : m_memory(memory)
+    , m_impl(allocator().new_object<Implementation>(source, memory))
+{
+}
+
+[[nodiscard]] Parsed_Program::Parsed_Program(Parsed_Program&& other) noexcept
+    : m_memory(other.m_memory)
+    , m_impl(std::exchange(other.m_impl, nullptr))
+{
+}
+
+Parsed_Program& Parsed_Program::operator=(Parsed_Program&& other) noexcept
+{
+    Implementation* old = std::exchange(m_impl, std::exchange(other.m_impl, nullptr));
+    if (old) {
+        allocator().delete_object(old);
+    }
+    return *this;
+}
+
+Parsed_Program::~Parsed_Program()
+{
+    if (m_impl) {
+        allocator().delete_object(m_impl);
+    }
+}
+
+/// @brief Return the program source code.
+[[nodiscard]] std::string_view Parsed_Program::get_source() const
+{
+    return m_impl->source;
+}
+
+/// @brief Returns a handle to the root node.
+[[nodiscard]] astp::Handle Parsed_Program::get_root_handle() const
+{
+    return m_impl->root_node;
+}
+
+void Parsed_Program::set_root_handle(astp::Handle root)
+{
+    BIT_MANIPULATION_ASSERT(root != astp::Handle::null);
+    m_impl->root_node = root;
+}
+
+/// @brief Returns the number of parsed AST nodes.
+[[nodiscard]] Size Parsed_Program::get_node_count() const
+{
+    return m_impl->nodes.size();
+}
+
+astp::Some_Node& Parsed_Program::get_node(astp::Handle handle) &
+{
+    BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
+    BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < m_impl->nodes.size());
+    return m_impl->nodes[static_cast<Size>(handle)];
+}
+
+const astp::Some_Node& Parsed_Program::get_node(astp::Handle handle) const&
+{
+    BIT_MANIPULATION_ASSERT(handle != astp::Handle::null);
+    BIT_MANIPULATION_ASSERT(static_cast<Size>(handle) < m_impl->nodes.size());
+    return m_impl->nodes[static_cast<Size>(handle)];
+}
+
+[[nodiscard]] std::string_view Parsed_Program::extract(const Local_Source_Span& span) const
+{
+    return m_impl->source.substr(span.begin, span.length);
+}
+
+void Parsed_Program::downsize_nodes(Size n) &
+{
+    BIT_MANIPULATION_ASSERT(n <= m_impl->nodes.size());
+    m_impl->nodes.erase(m_impl->nodes.begin() + std::ptrdiff_t(n), m_impl->nodes.end());
+}
+
+astp::Handle Parsed_Program::push_node(astp::Some_Node&& node) &
+{
+    const auto result = static_cast<astp::Handle>(m_impl->nodes.size());
+    m_impl->nodes.push_back(std::move(node));
+    return result;
+}
+
+std::pmr::polymorphic_allocator<> Parsed_Program::allocator() const
+{
+    return std::pmr::polymorphic_allocator<>(m_memory);
+}
 
 namespace {
 

@@ -4,6 +4,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
+#include "bms/astp.hpp"
 #include "bms/parse.hpp"
 
 namespace bit_manipulation::bms {
@@ -352,6 +353,12 @@ Analyzed_Program::Analyzed_Program(const Parsed_Program& program,
                                    std::pmr::memory_resource* memory)
     : m_memory(memory)
     , m_impl(allocator().new_object<Implementation>(program, file_name, memory))
+{
+}
+
+Analyzed_Program::Analyzed_Program(Analyzed_Program&& other) noexcept
+    : m_memory(other.m_memory)
+    , m_impl(std::exchange(other.m_impl, nullptr))
 {
 }
 

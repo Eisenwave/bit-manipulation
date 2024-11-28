@@ -6,6 +6,7 @@
 
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
+#include "bms/astp.hpp"
 #include "bms/concrete_value.hpp"
 #include "bms/evaluation_error.hpp"
 #include "bms/execution_error.hpp"

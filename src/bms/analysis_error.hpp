@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include "bms/comparison_failure.hpp"
-#include "bms/concrete_value.hpp"
+#include "bms/evaluation_error.hpp"
 #include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
 
