@@ -28,14 +28,15 @@ namespace {
     return { l, r, expression.get_op() };
 }
 
-bool is_in_loop(const ast::Some_Node& node)
+template <alternative_of<ast::Some_Node_Variant> T>
+const T* get_surrounding(const ast::Some_Node& node)
 {
     for (const ast::Some_Node* p = get_parent(node); p != nullptr; p = get_parent(*p)) {
-        if (holds_alternative<ast::While_Statement>(*p)) {
-            return true;
+        if (const auto* f = get_if<T>(p)) {
+            return f;
         }
     }
-    return false;
+    return nullptr;
 }
 
 enum struct Expression_Context : Default_Underlying {
@@ -47,34 +48,23 @@ enum struct Expression_Context : Default_Underlying {
 
 struct Type_Analyzer {
 private:
-    struct Function_Info {
-        ast::Function* function;
-        Concrete_Type return_type;
-        ast::Some_Node* return_type_node;
-    };
     Analyzed_Program& m_program;
     std::pmr::unsynchronized_pool_resource m_memory_resource;
     Virtual_Machine constant_evaluation_machine;
-    std::vector<Function_Info> m_function_stack;
+    std::vector<ast::Function*> m_function_stack;
 
     struct Function_Stack_Scope {
-        std::vector<Function_Info>& m_function_stack;
+        std::vector<ast::Function*>& m_function_stack;
         ~Function_Stack_Scope()
         {
             m_function_stack.pop_back();
         }
     };
 
-    [[nodiscard]] Function_Stack_Scope push_function(const Function_Info& info)
+    [[nodiscard]] Function_Stack_Scope push_function(ast::Function* info)
     {
         m_function_stack.push_back(info);
         return { m_function_stack };
-    }
-
-    const Function_Info& top_function() const
-    {
-        BIT_MANIPULATION_ASSERT(!m_function_stack.empty());
-        return m_function_stack.back();
     }
 
 public:
@@ -162,10 +152,7 @@ private:
             !r) {
             return r;
         }
-        ast::Type& return_type = node.get_return_type();
-        auto scope = push_function({ .function = &node,
-                                     .return_type = return_type.const_value()->get_type(),
-                                     .return_type_node = node.get_return_type_node() });
+        auto scope = push_function(&node);
 
         if (node.get_requires_clause_node() != nullptr) {
             auto& expr_const_value = get_const_value(*node.get_requires_clause_node());
@@ -483,7 +470,7 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Some_Node* handle, ast::Break& node, Analysis_Level, Expression_Context)
     {
-        if (!is_in_loop(*handle)) {
+        if (!get_surrounding<ast::While_Statement>(*handle)) {
             return Analysis_Error { Analysis_Error_Code::break_outside_loop, handle };
         }
         node.const_value() = Value::Void;
@@ -493,7 +480,7 @@ private:
     Result<void, Analysis_Error>
     analyze_types(ast::Some_Node* handle, ast::Continue& node, Analysis_Level, Expression_Context)
     {
-        if (!is_in_loop(*handle)) {
+        if (!get_surrounding<ast::While_Statement>(*handle)) {
             return Analysis_Error { Analysis_Error_Code::continue_outside_loop, handle };
         }
         node.const_value() = Value::Void;
@@ -506,12 +493,15 @@ private:
                                                Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(&get<ast::Return_Statement>(*handle) == &node);
-        const Function_Info& function_info = top_function();
+        const auto* function = get_surrounding<ast::Function>(node);
+        BIT_MANIPULATION_ASSERT(function);
+
+        const Concrete_Type return_type = function->get_return_type().concrete_type().value();
 
         if (!node.get_expression_node()) {
-            if (function_info.return_type != Concrete_Type::Void) {
+            if (return_type != Concrete_Type::Void) {
                 return Analysis_Error { Analysis_Error_Code::empty_return_in_non_void_function,
-                                        handle, function_info.return_type_node };
+                                        handle, function->get_return_type_node() };
             }
             node.const_value() = Concrete_Value::Void;
             return {};
@@ -523,14 +513,13 @@ private:
         }
         auto expr_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
-        if (!expr_value->get_type().is_convertible_to(function_info.return_type)) {
+        if (!expr_value->get_type().is_convertible_to(return_type)) {
             return Analysis_Error { Analysis_Error_Code::incompatible_types, handle,
-                                    function_info.return_type_node };
+                                    function->get_return_type_node() };
         }
         const Result<Value, Evaluation_Error_Code> eval_result
-            = evaluate_conversion(*expr_value, function_info.return_type);
-        node.const_value()
-            = eval_result ? *eval_result : Value::unknown_of_type(function_info.return_type);
+            = evaluate_conversion(*expr_value, return_type);
+        node.const_value() = eval_result ? *eval_result : Value::unknown_of_type(return_type);
         return {};
     }
 
@@ -888,8 +877,8 @@ private:
         // TODO: instead of a stack, we could also use a bool for functions and constants
         //       or simply all nodes, and track whether they are under analysis
         if (inner_level == Analysis_Level::for_constant_evaluation) {
-            for (const Function_Info& info : m_function_stack) {
-                if (function == info.function) {
+            for (const ast::Function* info : m_function_stack) {
+                if (function == info) {
                     // TODO: this should probably use a different diagnostic or the diagnostic
                     //       should be renamed
                     return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, handle,
