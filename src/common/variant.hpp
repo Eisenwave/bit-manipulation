@@ -525,6 +525,9 @@ inline constexpr Size alternative_index_v = detail::Variant_Index_Of<V, T>::valu
 template <typename V, typename T>
 inline constexpr bool has_alternative_v = detail::Has_Alternative<V, T>::value;
 
+template <typename T, typename V>
+concept alternative_of = has_alternative_v<V, T>;
+
 template <typename V, Size I>
 using alternative_t = typename detail::Variant_Alternative<V, I>::value;
 
