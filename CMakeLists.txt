@@ -22,6 +22,9 @@ set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
 
 set(HEADERS
     src/bmd/bms_to_html.hpp
+    src/bmd/code_span_type.hpp
+    src/bmd/code_string.hpp
+    src/bmd/codegen.hpp
     src/bmd/directive_type.hpp
     src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
