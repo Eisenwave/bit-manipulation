@@ -7,6 +7,7 @@
 #include "common/result.hpp"
 
 #include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/basic_diagnostic_consumer.hpp"
 #include "bms/grammar.hpp"

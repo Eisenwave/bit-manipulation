@@ -2,7 +2,7 @@
 
 #include "common/variant.hpp"
 
-#include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/astp.hpp"
 #include "bms/parse.hpp"

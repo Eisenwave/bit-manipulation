@@ -11,15 +11,16 @@
 #include "common/glue.hpp"
 #include "common/io.hpp"
 
-#include "bmd/doc_to_html.hpp"
-#include "bmd/html_writer.hpp"
-#include "bmd/parse.hpp"
-
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
+
+#include "bmd/doc_to_html.hpp"
+#include "bmd/html_writer.hpp"
+#include "bmd/parse.hpp"
 
 namespace bit_manipulation {
 namespace {

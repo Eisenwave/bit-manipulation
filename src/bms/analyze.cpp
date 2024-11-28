@@ -4,6 +4,7 @@
 
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/diagnostic_consumer.hpp"
 #include "bms/instantiate.hpp"

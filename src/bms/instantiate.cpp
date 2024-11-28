@@ -1,8 +1,9 @@
 #include <memory_resource>
 #include <unordered_map>
 
-#include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
+#include "bms/instantiate.hpp"
 
 namespace bit_manipulation::bms {
 namespace {

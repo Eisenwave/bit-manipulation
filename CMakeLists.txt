@@ -32,6 +32,7 @@ set(HEADERS
     src/bms/analysis_error.hpp
     src/bms/analysis_level.hpp
     src/bms/analyze.hpp
+    src/bms/analyzed_program.hpp
     src/bms/ast.hpp
     src/bms/astp.hpp
     src/bms/basic_diagnostic_consumer.hpp

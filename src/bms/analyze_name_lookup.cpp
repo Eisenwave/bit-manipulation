@@ -4,6 +4,7 @@
 #include "common/variant.hpp"
 
 #include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/builtin_function.hpp"
 #include "bms/operations.hpp"
