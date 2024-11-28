@@ -76,6 +76,12 @@ public:
     {
         return m_parent;
     }
+
+    void set_parent(Some_Node& parent)
+    {
+        BIT_MANIPULATION_ASSERT(m_parent != nullptr);
+        m_parent = &parent;
+    }
 };
 
 template <int N>
@@ -172,6 +178,8 @@ public:
     struct Instance {
         std::pmr::vector<int> widths;
         Some_Node* handle;
+
+        Instance(std::pmr::vector<int>&& widths, Some_Node* handle);
 
         bool has_widths(const Widths& w) const noexcept
         {
@@ -1023,6 +1031,11 @@ inline Some_Node* get_parent(Some_Node& node)
 inline const Some_Node* get_parent(const Some_Node& node)
 {
     return detail::to_node_base(node).get_parent();
+}
+
+inline void set_parent(Some_Node& node, Some_Node& parent)
+{
+    return detail::to_node_base(node).set_parent(parent);
 }
 
 inline std::optional<Source_Span> get_source_position(const Some_Node& node)

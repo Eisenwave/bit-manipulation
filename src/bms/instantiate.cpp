@@ -80,8 +80,7 @@ private:
         };
 
         for (ast::Some_Node* p : instance.get_parameter_nodes()) {
-            auto& param_node = get<ast::Parameter>(*p);
-            ast::Type& type_node = param_node.get_type();
+            ast::Type& type_node = get<ast::Parameter>(*p).get_type();
             if (type_node.get_width_node() == nullptr) {
                 continue;
             }
@@ -118,16 +117,32 @@ private:
 
     ast::Some_Node* deep_copy_for_instantiation(const ast::Some_Node* h)
     {
-        if (h == nullptr) {
-            return nullptr;
-        }
+        BIT_MANIPULATION_ASSERT(h != nullptr);
         ast::Some_Node* const result = copy_single_node_for_instantiation(h);
         m_remap.emplace(h, result);
 
         for (ast::Some_Node*& child : get_children(*result)) {
-            child = deep_copy_for_instantiation(child);
+            if (child != nullptr) {
+                child = deep_copy_for_instantiation(child);
+                set_parent(*child, *result);
+            }
         }
         return result;
+    }
+
+    ast::Some_Node* copy_single_node_for_instantiation(const ast::Some_Node* h)
+    {
+        BIT_MANIPULATION_ASSERT(h != nullptr);
+        return visit(
+            [this]<typename T>(const T& n) {
+                if constexpr (requires { n.copy_for_instantiation(); }) {
+                    return m_program.insert(n.copy_for_instantiation());
+                }
+                else {
+                    return m_program.insert(n);
+                }
+            },
+            *h);
     }
 
     void deep_update_name_lookup(ast::Some_Node* h)
@@ -150,21 +165,6 @@ private:
         for (ast::Some_Node* const child : get_children(*h)) {
             deep_update_name_lookup(child);
         }
-    }
-
-    ast::Some_Node* copy_single_node_for_instantiation(const ast::Some_Node* h)
-    {
-        BIT_MANIPULATION_ASSERT(h != nullptr);
-        return visit(
-            [this]<typename T>(const T& n) {
-                if constexpr (requires { n.copy_for_instantiation(); }) {
-                    return m_program.insert(n.copy_for_instantiation());
-                }
-                else {
-                    return m_program.insert(n);
-                }
-            },
-            *h);
     }
 };
 

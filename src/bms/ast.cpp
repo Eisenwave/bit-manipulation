@@ -63,6 +63,14 @@ Function::Function(const Function& other, Copy_for_Instantiation_Tag)
     set_children(other.m_children);
 }
 
+Function::Instance::Instance(std::pmr::vector<int>&& widths, Some_Node* handle)
+    : widths(std::move(widths))
+    , handle(handle)
+{
+    BIT_MANIPULATION_ASSERT(handle);
+    BIT_MANIPULATION_ASSERT(holds_alternative<Function>(*handle));
+}
+
 Parameter_List::Parameter_List(Some_Node& parent,
                                const astp::Parameter_List& parsed,
                                std::string_view file,
