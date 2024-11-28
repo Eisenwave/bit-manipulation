@@ -58,9 +58,6 @@ enum struct Analysis_Error_Code : Default_Underlying {
     width_not_integer,
     /// @brief The width of an integer exceeds the maximum (`uint_max_width`), is zero, or negative.
     width_invalid,
-
-    // TODO: add width_negative diagnostic
-
     /// @brief Expected a constant expression, but was unable to perform constant folding.
     expected_constant_expression,
     /// @brief Attempted to use a variable not declared 'const' in a constant expression.
