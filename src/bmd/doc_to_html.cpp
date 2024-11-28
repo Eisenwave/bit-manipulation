@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <string>
 #include <unordered_map>
 
 #include "bmd/bms_to_html.hpp"
