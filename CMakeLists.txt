@@ -76,6 +76,7 @@ set(HEADERS
 
 add_library(bm STATIC ${HEADERS}
     src/bmd/bms_to_html.cpp
+    src/bmd/codegen.cpp
     src/bmd/doc_to_html.cpp
     src/bmd/enums.cpp
     src/bmd/html_writer.cpp

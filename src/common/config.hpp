@@ -58,6 +58,8 @@ using Int8 = std::int8_t;
 using Size = std::size_t;
 /// @brief Signed counterpart to `uz`.
 using Signed_Size = std::make_signed_t<Size>;
+/// @brief Convenience alias for `std::ptrdiff_t`.
+using Difference = std::ptrdiff_t;
 
 /// @brief The integer type used throughout the program.
 using Int = Int64;
