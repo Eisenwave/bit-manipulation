@@ -2,14 +2,11 @@
 #define BIT_MANIPULATION_RESULT_HPP
 
 #include <concepts>
-#include <stdexcept>
 #include <utility>
 
-namespace bit_manipulation {
+#include "common/assert.hpp"
 
-struct Bad_Result_Access : std::runtime_error {
-    using std::runtime_error::runtime_error;
-};
+namespace bit_manipulation {
 
 struct Error_Tag { };
 struct Success_Tag { };
@@ -181,113 +178,85 @@ public:
 
     [[nodiscard]] constexpr const T* operator->() const
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator->" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::addressof(m_value);
     }
 
     [[nodiscard]] constexpr T* operator->()
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator->" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::addressof(m_value);
     }
 
     [[nodiscard]] constexpr const T& operator*() const&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator*" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return m_value;
     }
 
     [[nodiscard]] constexpr T& operator*() &
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator*" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return m_value;
     }
 
     [[nodiscard]] constexpr const T&& operator*() const&&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator*" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::move(m_value);
     }
 
     [[nodiscard]] constexpr T&& operator*() &&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator*" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::move(m_value);
     }
 
     [[nodiscard]] constexpr const T& value() const&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in value()" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return m_value;
     }
 
     [[nodiscard]] constexpr T& value() &
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in value()" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return m_value;
     }
 
     [[nodiscard]] constexpr const T&& value() const&&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in value()" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::move(m_value);
     }
 
     [[nodiscard]] constexpr T&& value() &&
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in value()" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
         return std::move(m_value);
     }
 
     [[nodiscard]] constexpr const Error& error() const&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return m_error;
     }
 
     [[nodiscard]] constexpr Error& error() &
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return m_error;
     }
 
     [[nodiscard]] constexpr const Error&& error() const&&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return std::move(m_error);
     }
 
     [[nodiscard]] constexpr Error&& error() &&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return std::move(m_error);
     }
 
@@ -459,47 +428,35 @@ public:
 
     constexpr void operator*() const
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in operator*" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
     }
 
     constexpr void value() const
     {
-        if (!m_has_value) {
-            throw Bad_Result_Access { "bad result access in value()" };
-        }
+        BIT_MANIPULATION_ASSERT(m_has_value);
     }
 
     [[nodiscard]] constexpr const Error& error() const&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return m_error;
     }
 
     [[nodiscard]] constexpr Error& error() &
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return m_error;
     }
 
     [[nodiscard]] constexpr const Error&& error() const&&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return std::move(m_error);
     }
 
     [[nodiscard]] constexpr Error&& error() &&
     {
-        if (m_has_value) {
-            throw Bad_Result_Access { "bad result access in error()" };
-        }
+        BIT_MANIPULATION_ASSERT(!m_has_value);
         return std::move(m_error);
     }
 
