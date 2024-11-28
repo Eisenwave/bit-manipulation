@@ -1,5 +1,5 @@
-#ifndef BIT_MANIPULATION_BMS_BMS_HPP
-#define BIT_MANIPULATION_BMS_BMS_HPP
+#ifndef BIT_MANIPULATION_BMS_ANALYSIS_ERROR_HPP
+#define BIT_MANIPULATION_BMS_ANALYSIS_ERROR_HPP
 
 #include <optional>
 #include <string_view>
@@ -10,34 +10,6 @@
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
-
-// TODO: this doesn't really belong here, or the header should be renamed
-
-/// @brief The level of analysis to perform on an AST node that represents a definable entity,
-/// such as a function.
-/// @see ast::Function::analysis_so_far
-enum struct Analysis_Level : Default_Underlying {
-    /// @brief No analysis has taken place.
-    unanalyzed,
-    /// @brief Analysis only of the declaration, but not of the definition.
-    /// For example, a function undergoes shallow analysis when it is called
-    /// so that type checking (matching arguments to parameters) can be done.
-    shallow,
-    /// @brief Full analysis of a function, including its body.
-    /// This is done when e.g. a function definition appears in code,
-    /// and the contents of its body should be analyzed.
-    full,
-    /// @brief Full analysis, recursively, for analyzing functions called in constant expressions.
-    /// In addition to the requirements posed by `full`,
-    /// this requires a definition of any called function to be available, recursively.
-    /// These requirements are extremely similar to requirements on `constexpr` functions.
-    for_constant_evaluation
-};
-
-constexpr auto operator<=>(Analysis_Level x, Analysis_Level y) noexcept
-{
-    return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
-}
 
 enum struct Analysis_Error_Code : Default_Underlying {
     /// @brief A name was already in use when attempting to define a global constant.
@@ -140,58 +112,7 @@ enum struct Analysis_Error_Code : Default_Underlying {
     continue_outside_loop,
 };
 
-constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
-{
-    switch (code) {
-        using enum Analysis_Error_Code;
-        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_global_const);
-        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_function);
-        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_parameter);
-        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_variable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(reference_to_undefined_variable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(assignment_of_undefined_variable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(call_to_undefined_function);
-        BIT_MANIPULATION_ENUM_STRING_CASE(width_not_integer);
-        BIT_MANIPULATION_ENUM_STRING_CASE(width_invalid);
-        BIT_MANIPULATION_ENUM_STRING_CASE(expected_constant_expression);
-        BIT_MANIPULATION_ENUM_STRING_CASE(let_variable_in_constant_expression);
-        BIT_MANIPULATION_ENUM_STRING_CASE(parameter_in_constant_expression);
-        BIT_MANIPULATION_ENUM_STRING_CASE(function_in_expression);
-        BIT_MANIPULATION_ENUM_STRING_CASE(execution_error);
-        BIT_MANIPULATION_ENUM_STRING_CASE(evaluation_error);
-        BIT_MANIPULATION_ENUM_STRING_CASE(condition_not_bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_integer_literal);
-        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_parameter);
-        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_function);
-        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_const);
-        BIT_MANIPULATION_ENUM_STRING_CASE(call_non_function);
-        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_number_of_arguments);
-        BIT_MANIPULATION_ENUM_STRING_CASE(codegen_call_to_unanalyzed);
-        BIT_MANIPULATION_ENUM_STRING_CASE(width_deduction_from_non_uint);
-        BIT_MANIPULATION_ENUM_STRING_CASE(static_assert_expression_not_bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(static_assertion_failed);
-        BIT_MANIPULATION_ENUM_STRING_CASE(requires_clause_not_bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(requires_clause_not_satisfied);
-        BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_variable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_constant);
-        BIT_MANIPULATION_ENUM_STRING_CASE(empty_return_in_non_void_function);
-        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_operator);
-        BIT_MANIPULATION_ENUM_STRING_CASE(void_operation);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_arithmetic);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_bitwise);
-        BIT_MANIPULATION_ENUM_STRING_CASE(bool_relational_comparison);
-        BIT_MANIPULATION_ENUM_STRING_CASE(int_bitwise);
-        BIT_MANIPULATION_ENUM_STRING_CASE(int_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(uint_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(non_bool_logical);
-        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
-        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
-        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
-        BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
-        BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
-    };
-    BIT_MANIPULATION_ASSERT_UNREACHABLE();
-}
+[[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code);
 
 /// @brief A high-level error that occurred during program analysis.
 /// No matter the cause (name lookup, type checking, execution errors, failed assertions, etc.),

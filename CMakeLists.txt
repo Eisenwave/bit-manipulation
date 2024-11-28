@@ -30,6 +30,7 @@ set(HEADERS
     src/bmd/scope_success_writer.hpp
 
     src/bms/analysis_error.hpp
+    src/bms/analysis_level.hpp
     src/bms/analyze.hpp
     src/bms/ast.hpp
     src/bms/astp.hpp

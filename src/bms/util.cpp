@@ -439,4 +439,57 @@ namespace bit_manipulation::bms {
     return "";
 }
 
+[[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code)
+{
+    switch (code) {
+        using enum Analysis_Error_Code;
+        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_global_const);
+        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_parameter);
+        BIT_MANIPULATION_ENUM_STRING_CASE(failed_to_define_variable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(reference_to_undefined_variable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(assignment_of_undefined_variable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(call_to_undefined_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(width_not_integer);
+        BIT_MANIPULATION_ENUM_STRING_CASE(width_invalid);
+        BIT_MANIPULATION_ENUM_STRING_CASE(expected_constant_expression);
+        BIT_MANIPULATION_ENUM_STRING_CASE(let_variable_in_constant_expression);
+        BIT_MANIPULATION_ENUM_STRING_CASE(parameter_in_constant_expression);
+        BIT_MANIPULATION_ENUM_STRING_CASE(function_in_expression);
+        BIT_MANIPULATION_ENUM_STRING_CASE(execution_error);
+        BIT_MANIPULATION_ENUM_STRING_CASE(evaluation_error);
+        BIT_MANIPULATION_ENUM_STRING_CASE(condition_not_bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_integer_literal);
+        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_parameter);
+        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(assigning_const);
+        BIT_MANIPULATION_ENUM_STRING_CASE(call_non_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_number_of_arguments);
+        BIT_MANIPULATION_ENUM_STRING_CASE(codegen_call_to_unanalyzed);
+        BIT_MANIPULATION_ENUM_STRING_CASE(width_deduction_from_non_uint);
+        BIT_MANIPULATION_ENUM_STRING_CASE(static_assert_expression_not_bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(static_assertion_failed);
+        BIT_MANIPULATION_ENUM_STRING_CASE(requires_clause_not_bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(requires_clause_not_satisfied);
+        BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_variable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(use_of_undefined_constant);
+        BIT_MANIPULATION_ENUM_STRING_CASE(empty_return_in_non_void_function);
+        BIT_MANIPULATION_ENUM_STRING_CASE(invalid_operator);
+        BIT_MANIPULATION_ENUM_STRING_CASE(void_operation);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_arithmetic);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bool_relational_comparison);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_bitwise);
+        BIT_MANIPULATION_ENUM_STRING_CASE(int_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(uint_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(non_bool_logical);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_types);
+        BIT_MANIPULATION_ENUM_STRING_CASE(incompatible_widths);
+        BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
+        BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
+        BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
+    };
+    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
+
 } // namespace bit_manipulation::bms

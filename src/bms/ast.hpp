@@ -8,6 +8,7 @@
 #include "common/variant.hpp"
 
 #include "bms/analysis_error.hpp"
+#include "bms/analysis_level.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
