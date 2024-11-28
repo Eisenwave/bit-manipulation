@@ -3,6 +3,7 @@
 #include "common/assert.hpp"
 #include "common/parse.hpp"
 
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/tokenize.hpp"
 #include "bms/tokens.hpp"
 
@@ -285,6 +286,19 @@ Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out, std::string_
 {
     Tokenizer tokenizer { source };
     return tokenizer.tokenize(out);
+}
+
+bool tokenize(std::pmr::vector<Token>& out,
+              std::string_view source,
+              Diagnostic_Consumer& diagnostics)
+{
+    if (auto result = tokenize(out, source)) {
+        return true;
+    }
+    else {
+        diagnostics(std::move(result.error()));
+        return false;
+    }
 }
 
 } // namespace bit_manipulation::bms

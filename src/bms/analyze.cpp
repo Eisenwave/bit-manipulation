@@ -5,6 +5,7 @@
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/instantiate.hpp"
 #include "bms/operations.hpp"
 #include "bms/parse.hpp"
@@ -1062,6 +1063,19 @@ Result<void, Analysis_Error> analyze(Analyzed_Program& program, std::pmr::memory
     }
     local_memory.release();
     return analyze_semantics(program, &local_memory);
+}
+
+bool analyze(Analyzed_Program& program,
+             std::pmr::memory_resource* memory_resource,
+             Diagnostic_Consumer& diagnostics)
+{
+    if (auto result = analyze(program, memory_resource)) {
+        return true;
+    }
+    else {
+        diagnostics(std::move(result.error()));
+        return false;
+    }
 }
 
 } // namespace bit_manipulation::bms

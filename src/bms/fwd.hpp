@@ -123,6 +123,8 @@ struct Analyzed_Program;
 
 struct Token;
 
+struct Diagnostic_Consumer;
+
 } // namespace bit_manipulation::bms
 
 #endif

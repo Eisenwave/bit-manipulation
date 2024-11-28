@@ -6,6 +6,7 @@
 #include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/grammar.hpp"
 #include "bms/parse.hpp"
 #include "bms/tokens.hpp"
@@ -1165,6 +1166,17 @@ private:
 Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> tokens)
 {
     return Parser { program, tokens }();
+}
+
+bool parse(Parsed_Program& program, std::span<const Token> tokens, Diagnostic_Consumer& diagnostics)
+{
+    if (auto result = parse(program, tokens)) {
+        return true;
+    }
+    else {
+        diagnostics(std::move(result.error()));
+        return false;
+    }
 }
 
 } // namespace bit_manipulation::bms

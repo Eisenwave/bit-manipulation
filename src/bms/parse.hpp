@@ -10,7 +10,6 @@
 #include "common/result.hpp"
 
 #include "bms/astp.hpp"
-#include "bms/diagnostic_consumer.hpp"
 #include "bms/fwd.hpp"
 #include "bms/parse_error.hpp"
 
@@ -101,17 +100,9 @@ public:
 
 Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> tokens);
 
-inline bool
-parse(Parsed_Program& program, std::span<const Token> tokens, Diagnostic_Consumer& diagnostics)
-{
-    if (auto result = parse(program, tokens)) {
-        return true;
-    }
-    else {
-        diagnostics(std::move(result.error()));
-        return false;
-    }
-}
+bool parse(Parsed_Program& program,
+           std::span<const Token> tokens,
+           Diagnostic_Consumer& diagnostics);
 
 } // namespace bit_manipulation::bms
 
