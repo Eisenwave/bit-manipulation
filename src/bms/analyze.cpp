@@ -28,17 +28,6 @@ namespace {
     return { l, r, expression.get_op() };
 }
 
-template <alternative_of<ast::Some_Node_Variant> T>
-const T* get_surrounding(const ast::Some_Node& node)
-{
-    for (const ast::Some_Node* p = get_parent(node); p != nullptr; p = get_parent(*p)) {
-        if (const auto* f = get_if<T>(p)) {
-            return f;
-        }
-    }
-    return nullptr;
-}
-
 enum struct Expression_Context : Default_Underlying {
     // The default context. Full analysis of functions and everything inside.
     normal,

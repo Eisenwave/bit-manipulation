@@ -1063,6 +1063,23 @@ inline std::span<const Some_Node* const> get_children(const Some_Node& node)
     return visit([](auto& n) { return n.get_children(); }, node);
 }
 
+template <alternative_of<ast::Some_Node_Variant> T>
+const T* get_surrounding(const Some_Node& node) noexcept
+{
+    for (const Some_Node* p = get_parent(node); p != nullptr; p = get_parent(*p)) {
+        if (const auto* f = get_if<T>(p)) {
+            return f;
+        }
+    }
+    return nullptr;
+}
+
+template <alternative_of<ast::Some_Node_Variant> T>
+T* get_surrounding(Some_Node& node) noexcept
+{
+    return const_cast<T*>(get_surrounding<T>(std::as_const(node)));
+}
+
 } // namespace bit_manipulation::bms::ast
 
 #endif
