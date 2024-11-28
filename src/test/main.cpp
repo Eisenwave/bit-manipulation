@@ -235,15 +235,6 @@ TEST(BMS_Analysis_Error, width_not_integer)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_integer.bms", expectations));
 }
 
-// FIXME: width_not_integer looks to be dead diagnostic because more specific diagnostics like
-//        let_variable_in_constant_expression get triggered instead
-TEST(BMS_Analysis_Error, DISABLED_width_not_const)
-{
-    static const Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::width_not_const, .fail_line = 4, .cause_line = 3 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/width_not_const.bms", expectations));
-}
-
 TEST(BMS_Analysis_Error, width_invalid_because_negative)
 {
     static const Analysis_Error_Expectations expectations //

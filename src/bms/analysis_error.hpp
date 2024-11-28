@@ -56,8 +56,6 @@ enum struct Analysis_Error_Code : Default_Underlying {
     call_to_undefined_function,
     /// @brief The width of an integer is not an integer. (e.g. Uint(true))
     width_not_integer,
-    /// @brief The width of an integer is not a constant expression.
-    width_not_const,
     /// @brief The width of an integer exceeds the maximum (`uint_max_width`), is zero, or negative.
     width_invalid,
 
@@ -157,7 +155,6 @@ constexpr std::string_view analysis_error_code_name(Analysis_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(assignment_of_undefined_variable);
         BIT_MANIPULATION_ENUM_STRING_CASE(call_to_undefined_function);
         BIT_MANIPULATION_ENUM_STRING_CASE(width_not_integer);
-        BIT_MANIPULATION_ENUM_STRING_CASE(width_not_const);
         BIT_MANIPULATION_ENUM_STRING_CASE(width_invalid);
         BIT_MANIPULATION_ENUM_STRING_CASE(expected_constant_expression);
         BIT_MANIPULATION_ENUM_STRING_CASE(let_variable_in_constant_expression);

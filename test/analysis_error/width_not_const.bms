@@ -1,4 +1,0 @@
-function awoo(x: Int) -> Void
-{
-    let y: Uint(identity(x));
-}

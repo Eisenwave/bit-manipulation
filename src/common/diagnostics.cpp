@@ -122,8 +122,6 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "A function call to an undefined function was attempted.";
     case width_not_integer: //
         return "The width of Uint must be an integer.";
-    case width_not_const: //
-        return "The width of Uint must be a constant expression.";
     case width_invalid: //
         static_assert(uint_max_width == 128);
         return "The width of Uint must be in range [0, 128).";
@@ -318,8 +316,6 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "An entity with the same name is already defined here:";
     case width_not_integer: //
         return "The following expression must be of type 'Int':";
-    case width_not_const: //
-        return "The following expression is not a constant expression:";
     case width_invalid: //
         return "The following expression results in invalid width:";
     case let_variable_in_constant_expression: //
@@ -463,6 +459,15 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
         else {
             result.lines.push_back(
                 { Error_Line_Type::note, cause_pos, std::string(cause_to_prose(error.code())) });
+        }
+    }
+
+    if (error.code() == bms::Analysis_Error_Code::let_variable_in_constant_expression
+        || error.code() == bms::Analysis_Error_Code::parameter_in_constant_expression) {
+        const auto* type = get_surrounding<bms::ast::Type>(*error.fail);
+        if (type) {
+            result.lines.push_back({ Error_Line_Type::note, type->get_position(),
+                                     "The width of Uint must be a constant expression." });
         }
     }
 
