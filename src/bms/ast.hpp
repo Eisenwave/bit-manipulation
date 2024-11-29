@@ -163,6 +163,7 @@ public:
 
 struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Program";
+    static inline constexpr bool is_expression = false;
 
     Program(const astp::Program& parsed, std::string_view file, std::pmr::memory_resource* memory);
 };
@@ -175,6 +176,7 @@ public:
     static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
         = { "parameters", "return_type", "requires_clause", "body" };
+    static inline constexpr bool is_expression = false;
 
     struct Instance {
         std::pmr::vector<int> widths;
@@ -213,6 +215,11 @@ public:
     std::string_view get_name() const
     {
         return m_name;
+    }
+
+    Size get_parameter_count() const
+    {
+        return get_parameter_nodes().size();
     }
 
     std::span<Some_Node*> get_parameter_nodes();
@@ -282,6 +289,7 @@ public:
 // a function hold a parameter list followed by the other types, but not impossible.
 struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Parameter_List";
+    static inline constexpr bool is_expression = false;
 
     Parameter_List(Some_Node& parent,
                    const astp::Parameter_List& parsed,
@@ -311,6 +319,7 @@ struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
 struct Parameter final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Parameter";
     static inline constexpr std::string_view child_names[] = { "type" };
+    static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
@@ -318,7 +327,7 @@ private:
 public:
     Parameter(Some_Node& parent, const astp::Parameter& parsed, std::string_view file);
 
-    std::string_view get_name()
+    std::string_view get_name() const
     {
         return m_name;
     }
@@ -339,6 +348,7 @@ public:
 struct Type final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
+    static inline constexpr bool is_expression = false;
 
 private:
     Type_Type m_type;
@@ -384,6 +394,7 @@ public:
 struct Const final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+    static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
@@ -421,6 +432,7 @@ public:
 struct Let final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+    static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
@@ -458,6 +470,7 @@ public:
 struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
+    static inline constexpr bool is_expression = false;
 
     Static_Assert(Some_Node& parent, const astp::Static_Assert& parsed, std::string_view file);
 
@@ -478,6 +491,7 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
         "if_block",
         "else_block",
     };
+    static inline constexpr bool is_expression = false;
 
     If_Statement(Some_Node& parent, const astp::If_Statement& parsed, std::string_view file);
 
@@ -515,6 +529,7 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
 struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
+    static inline constexpr bool is_expression = false;
 
     While_Statement(Some_Node& parent, const astp::While_Statement& parsed, std::string_view file);
 
@@ -542,12 +557,14 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 
 struct Break final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Break";
+    static inline constexpr bool is_expression = false;
 
     Break(Some_Node& parent, const astp::Break& parsed, std::string_view file);
 };
 
 struct Continue final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Continue";
+    static inline constexpr bool is_expression = false;
 
     Continue(Some_Node& parent, const astp::Continue& parsed, std::string_view file);
 };
@@ -555,6 +572,7 @@ struct Continue final : detail::Node_Base, detail::Parent<0> {
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
+    static inline constexpr bool is_expression = false;
 
     Return_Statement(Some_Node& parent,
                      const astp::Return_Statement& parsed,
@@ -573,11 +591,17 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
 struct Assignment final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Assignment";
     static inline constexpr std::string_view child_names[] = { "expression" };
+    static inline constexpr bool is_expression = false;
 
     std::string_view name;
     Some_Node* lookup_result = nullptr;
 
     Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file);
+
+    std::string_view get_name() const
+    {
+        return name;
+    }
 
     Some_Node* get_expression_node()
     {
@@ -591,6 +615,7 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 
 struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Block_Statement";
+    static inline constexpr bool is_expression = false;
 
     Block_Statement(Some_Node& parent,
                     const astp::Block_Statement& parsed,
@@ -606,6 +631,7 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
 struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Conversion_Expression";
     static inline constexpr std::string_view child_names[] = { "expression", "target_type" };
+    static inline constexpr bool is_expression = true;
 
     Conversion_Expression(Some_Node& parent,
                           const astp::Conversion_Expression& parsed,
@@ -636,6 +662,7 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
 struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
+    static inline constexpr bool is_expression = true;
 
     If_Expression(Some_Node& parent, const astp::If_Expression& parsed, std::string_view file);
 
@@ -671,6 +698,7 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
 struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Binary_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "right" };
+    static inline constexpr bool is_expression = true;
 
 private:
     Token_Type m_op;
@@ -707,6 +735,7 @@ public:
 struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Prefix_Expression";
     static inline constexpr std::string_view child_names[] = { "expression" };
+    static inline constexpr bool is_expression = true;
 
 private:
     Token_Type m_op;
@@ -733,6 +762,7 @@ public:
 
 struct Function_Call_Expression final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
+    static inline constexpr bool is_expression = true;
 
 private:
     std::string_view m_name;
@@ -784,6 +814,7 @@ public:
 
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Id_Expression";
+    static inline constexpr bool is_expression = true;
 
 private:
     std::string_view m_identifier;
@@ -802,6 +833,7 @@ public:
 
 struct Literal final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Literal";
+    static inline constexpr bool is_expression = true;
 
 private:
     std::string_view m_literal;
@@ -824,6 +856,7 @@ public:
 struct Builtin_Function final : detail::Node_Base, detail::Parent<0> {
 public:
     static inline constexpr std::string_view self_name = "Builtin_Function";
+    static inline constexpr bool is_expression = false;
 
     bms::Builtin_Function m_function;
 
@@ -1018,6 +1051,11 @@ inline Node_Base& to_node_base(Some_Node& node) noexcept
 }
 
 } // namespace detail
+
+inline bool is_expression(const Some_Node& node)
+{
+    return visit([]<typename T>(const T&) { return T::is_expression; }, node);
+}
 
 inline std::string_view get_node_name(const Some_Node& node)
 {
