@@ -153,7 +153,7 @@ struct C_Code_Generator {
 private:
     Code_String& m_out;
     const bms::Analyzed_Program& m_program;
-    Code_Options m_formatting;
+    Code_Options m_options;
     Size m_depth = 0;
     bool m_start_of_line = true;
 
@@ -163,7 +163,7 @@ public:
                      const Code_Options& options)
         : m_out(out)
         , m_program(program)
-        , m_formatting(options)
+        , m_options(options)
     {
     }
 
@@ -175,7 +175,7 @@ public:
 private:
     void separate_after_function()
     {
-        if (m_formatting.break_after_function) {
+        if (m_options.break_after_function) {
             end_line();
         }
         else {
@@ -185,7 +185,7 @@ private:
 
     void separate_after_if()
     {
-        if (m_formatting.break_after_if) {
+        if (m_options.break_after_if) {
             end_line();
         }
         else {
@@ -198,11 +198,11 @@ private:
     [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
                                                               const bms::Concrete_Type& type)
     {
-        const auto c_type = to_c_type(type, m_formatting.c23);
+        const auto c_type = to_c_type(type, m_options.c23);
         if (!c_type) {
             return Generator_Error { c_type.error(), node };
         }
-        append_type(m_out, *c_type, m_formatting.c23);
+        append_type(m_out, *c_type, m_options.c23);
         return {};
     }
 
@@ -225,7 +225,7 @@ private:
     void write_indent()
     {
         if (m_start_of_line) {
-            m_out.append(m_depth * m_formatting.indent_size, m_formatting.indent_char);
+            m_out.append(m_depth * m_options.indent_size, m_options.indent_char);
             m_start_of_line = false;
         }
     }
@@ -422,7 +422,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Const& constant)
     {
-        if (!self.m_formatting.c23) {
+        if (!self.m_options.c23) {
             return Generator_Error { Generator_Error_Code::empty, node };
         }
         Attempt attempt = self.start_attempt();
@@ -717,7 +717,7 @@ struct C_Code_Generator::Visitor {
         if (const auto* constant = get_if<Const>(id.lookup_result)) {
             // Only C23 supports constexpr; there are no "true constants" prior to that.
             // Therefore, we are forced to inline these whenever used.
-            if (!self.m_formatting.c23) {
+            if (!self.m_options.c23) {
                 append_value(self.m_out, constant->const_value()->concrete_value());
             }
             return {};
