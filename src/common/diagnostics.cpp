@@ -3,6 +3,7 @@
 #include <span>
 
 #include "common/diagnostics.hpp"
+#include "common/to_string.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
@@ -24,8 +25,6 @@
 
 namespace bit_manipulation {
 
-namespace {
-
 std::string to_string(Uint128 x)
 {
     /// The greatest power of 10 that fits into a 64-bit integer.
@@ -40,7 +39,9 @@ std::string to_string(Int128 x)
     return x >= 0 ? to_string(Uint128(x)) : '-' + to_string(-Uint128(x));
 }
 
-std::string to_string(bms::Concrete_Value v)
+namespace {
+
+std::string value_to_string(bms::Concrete_Value v)
 {
     switch (v.type.type()) {
     case bms::Type_Type::Void: return "Void";
@@ -448,8 +449,8 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     if (error.comparison_failure) {
         result.lines.push_back(
             { Error_Line_Type::note, cause_pos, "Comparison evaluated to ",
-              Printable_Comparison { to_string(error.comparison_failure->left),
-                                     to_string(error.comparison_failure->right),
+              Printable_Comparison { value_to_string(error.comparison_failure->left),
+                                     value_to_string(error.comparison_failure->right),
                                      token_type_code_name(error.comparison_failure->op) } });
     }
     else if (error.cause != nullptr) {
