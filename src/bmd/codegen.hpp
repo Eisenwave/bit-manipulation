@@ -5,6 +5,8 @@
 
 #include "bms/fwd.hpp"
 
+#include "bmd/fwd.hpp"
+
 namespace bit_manipulation::bmd {
 
 enum struct Code_Language : Default_Underlying {

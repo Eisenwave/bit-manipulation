@@ -3,7 +3,9 @@
 #include "common/assert.hpp"
 #include "common/parse.hpp"
 
+#include "bmd/ast.hpp"
 #include "bmd/directive_type.hpp"
+#include "bmd/grammar.hpp"
 #include "bmd/parse.hpp"
 
 namespace bit_manipulation::bmd {

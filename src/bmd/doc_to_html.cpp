@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "bmd/ast.hpp"
 #include "bmd/bms_to_html.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/doc_to_html.hpp"
