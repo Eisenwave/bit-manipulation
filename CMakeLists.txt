@@ -107,6 +107,8 @@ target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
 target_link_options(bm PUBLIC ${SANITIZER_OPTIONS})
 
 add_executable(bm-cli ${HEADERS}
+    src/cli/compile.cpp
+    src/cli/compile.hpp
     src/cli/glue.cpp
     src/cli/glue.hpp
     src/cli/main.cpp
