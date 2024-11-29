@@ -50,6 +50,26 @@ static_assert(std::ranges::random_access_range<Code_String>);
 
 namespace {
 
+enum struct C_Dialect : Default_Underlying {
+    /// @brief C99
+    c99,
+    /// @brief C23
+    c23,
+    /// @brief C++20
+    cpp20
+};
+
+[[nodiscard]] constexpr bool is_c(C_Dialect dialect)
+{
+    return static_cast<Default_Underlying>(dialect)
+        < static_cast<Default_Underlying>(C_Dialect::cpp20);
+}
+
+[[nodiscard]] constexpr bool is_cpp(C_Dialect dialect)
+{
+    return dialect == C_Dialect::cpp20;
+}
+
 enum struct C_Type_Type { void_, int_, bool_, uint8, uint16, uint32, uint64, bitint, bituint };
 
 struct C_Type {
@@ -79,8 +99,15 @@ void append_value(Code_String& out, const bms::Concrete_Value& v)
     }
 }
 
-void append_type(Code_String& out, C_Type type, bool c23)
+void append_type(Code_String& out, C_Type type, C_Dialect dialect)
 {
+    const auto prepend_std = [&]() {
+        if (is_cpp(dialect)) {
+            out.append("std", Code_Span_Type::type_name);
+            out.append("::", Code_Span_Type::operation);
+        }
+    };
+
     using enum C_Type_Type;
     switch (type.type) {
     case void_: //
@@ -90,19 +117,23 @@ void append_type(Code_String& out, C_Type type, bool c23)
         out.append("int", Code_Span_Type::keyword);
         break;
     case bool_: //
-        out.append(c23 ? "bool" : "_Bool", Code_Span_Type::keyword);
+        out.append(dialect == C_Dialect::c99 ? "_Bool" : "bool", Code_Span_Type::keyword);
         break;
 
-    case uint8: //
+    case uint8:
+        prepend_std();
         out.append("uint8_t", Code_Span_Type::type_name);
         break;
-    case uint16: //
+    case uint16:
+        prepend_std();
         out.append("uint16_t", Code_Span_Type::type_name);
         break;
-    case uint32: //
+    case uint32:
+        prepend_std();
         out.append("uint32_t", Code_Span_Type::type_name);
         break;
-    case uint64: //
+    case uint64:
+        prepend_std();
         out.append("uint64_t", Code_Span_Type::type_name);
         break;
 
@@ -121,9 +152,11 @@ void append_type(Code_String& out, C_Type type, bool c23)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid C type");
 }
 
-[[nodiscard]] Result<C_Type, Generator_Error_Code> to_c_type(const bms::Concrete_Type& type,
-                                                             const Code_Options& options)
+[[nodiscard]] Result<C_Type, Generator_Error_Code>
+to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Dialect dialect)
 {
+    const bool bitint_allowed = dialect != C_Dialect::cpp20 && options.c_23;
+
     using enum bms::Type_Type;
     switch (type.type()) {
     case Void: return C_Type { C_Type_Type::void_ };
@@ -132,7 +165,7 @@ void append_type(Code_String& out, C_Type type, bool c23)
 
     case Uint:
         int width = type.width();
-        if (options.c_23 && options.c_prefer_bitint) {
+        if (bitint_allowed && options.c_prefer_bitint) {
             return C_Type { C_Type_Type::bituint, type.width() };
         }
         switch (width) {
@@ -141,7 +174,7 @@ void append_type(Code_String& out, C_Type type, bool c23)
         case 32: return C_Type { C_Type_Type::uint32 };
         case 64: return C_Type { C_Type_Type::uint64 };
         default:
-            if (options.c_23) {
+            if (bitint_allowed) {
                 return C_Type { C_Type_Type::bituint, width };
             }
             else {
@@ -158,17 +191,20 @@ struct C_Code_Generator {
 private:
     Code_String& m_out;
     const bms::Analyzed_Program& m_program;
-    Code_Options m_options;
+    const Code_Options m_options;
+    const C_Dialect m_dialect;
     Size m_depth = 0;
     bool m_start_of_line = true;
 
 public:
     C_Code_Generator(Code_String& out,
                      const bms::Analyzed_Program& program,
-                     const Code_Options& options)
+                     const Code_Options& options,
+                     C_Dialect dialect)
         : m_out(out)
         , m_program(program)
         , m_options(options)
+        , m_dialect(dialect)
     {
     }
 
@@ -203,11 +239,11 @@ private:
     [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
                                                               const bms::Concrete_Type& type)
     {
-        const auto c_type = to_c_type(type, m_options);
+        const auto c_type = to_c_type(type, m_options, m_dialect);
         if (!c_type) {
             return Generator_Error { c_type.error(), node };
         }
-        append_type(m_out, *c_type, m_options.c_23);
+        append_type(m_out, *c_type, m_dialect);
         return {};
     }
 
@@ -759,8 +795,14 @@ bool generate_code(Code_String& out,
 {
     using enum Code_Language;
     switch (language) {
-    case c: return C_Code_Generator { out, program, options }();
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Sorry, codegen only implemented for C.");
+    case c:
+    case cpp: {
+        auto dialect = language == Code_Language::cpp ? C_Dialect::cpp20
+            : options.c_23                            ? C_Dialect::c23
+                                                      : C_Dialect::c99;
+        return C_Code_Generator { out, program, options, dialect }();
+    }
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Sorry, codegen only implemented for C and C++.");
     }
 }
 
