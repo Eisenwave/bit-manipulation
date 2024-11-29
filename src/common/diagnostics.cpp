@@ -19,7 +19,9 @@
 #include "bms/tokenize_error.hpp"
 #include "bms/tokens.hpp"
 
+#include "bmd/ast.hpp"
 #include "bmd/doc_to_html.hpp"
+#include "bmd/grammar.hpp"
 #include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
 

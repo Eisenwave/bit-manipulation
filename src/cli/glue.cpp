@@ -1,7 +1,8 @@
 #include <ostream>
 
-#include <common/ansi.hpp>
-#include <common/glue.hpp>
+#include "common/ansi.hpp"
+
+#include "cli/glue.hpp"
 
 namespace bit_manipulation {
 namespace {

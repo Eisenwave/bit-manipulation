@@ -1,7 +1,8 @@
 #include <iosfwd>
+#include <memory_resource>
 
-#include <bmd/doc_to_html.hpp>
-#include <bmd/html_writer.hpp>
+#include "bmd/doc_to_html.hpp"
+#include "bmd/html_writer.hpp"
 
 namespace bit_manipulation {
 

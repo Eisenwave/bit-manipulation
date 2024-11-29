@@ -8,7 +8,6 @@
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
 #include "common/diagnostics.hpp"
-#include "common/glue.hpp"
 #include "common/io.hpp"
 
 #include "bms/analysis_error.hpp"
@@ -18,63 +17,16 @@
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
+#include "bmd/codegen.hpp"
 #include "bmd/doc_to_html.hpp"
 #include "bmd/html_writer.hpp"
 #include "bmd/parse.hpp"
 
+#include "cli/compile.hpp"
+#include "cli/glue.hpp"
+
 namespace bit_manipulation {
 namespace {
-
-std::pmr::vector<bms::Token>
-tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
-{
-    std::pmr::vector<bms::Token> tokens(memory);
-    if (const Result<void, bms::Tokenize_Error> result = tokenize(tokens, source)) {
-        return tokens;
-    }
-    else {
-        print_tokenize_error(std::cout, file, source, result.error());
-        std::exit(1);
-    }
-}
-
-std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory)
-{
-    Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
-    if (!result) {
-        print_io_error(std::cout, file, result.error());
-        std::exit(1);
-    }
-    return std::move(*result);
-}
-
-bmd::Parsed_Document
-parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
-{
-
-    Result<bmd::Parsed_Document, bmd::Parse_Error> parsed = bmd::parse(source, memory);
-    if (!parsed) {
-        print_parse_error(std::cout, file, source, parsed.error());
-        std::exit(1);
-    }
-
-    return std::move(*parsed);
-}
-
-bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
-                                    std::string_view source,
-                                    std::string_view file_name,
-                                    std::pmr::memory_resource* memory)
-{
-    bms::Parsed_Program parsed { source, memory };
-    if (Result<void, bms::Parse_Error> result = bms::parse(parsed, tokens)) {
-        return parsed;
-    }
-    else {
-        print_parse_error(std::cout, file_name, source, result.error());
-        std::exit(1);
-    }
-}
 
 int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
 {
@@ -166,13 +118,24 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
-    bms::Analyzed_Program a(p, file, &memory_resource);
+    bms::Analyzed_Program a = analyze_parsed(p, source, file, &memory_resource);
 
-    Result<void, bms::Analysis_Error> result = bms::analyze(a, &memory_resource);
-    if (!result) {
-        print_analysis_error(std::cout, p, result.error());
+    std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
+    return 0;
+}
+
+int generate(std::string_view file, std::string_view language, std::pmr::memory_resource* memory)
+{
+    if (!file.ends_with(".bms")) {
+        std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
         return 1;
     }
+    std::pmr::unsynchronized_pool_resource memory_resource(memory);
+    const std::pmr::string source = load_file(file, &memory_resource);
+
+    const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
+    bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
+    bms::Analyzed_Program a = analyze_parsed(p, source, file, &memory_resource);
 
     std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
     return 0;
@@ -189,6 +152,8 @@ constexpr Command_Help command_helps[] {
     { "dump_ast", "FILE", "Prints the BMS/BMD abstract syntax tree." },
     { "verify", "FILE",
       "Performs semantic analysis on the BMS file, i.e. checks for correctness." },
+    { "generate", "FILE LANGUAGE",
+      "Converts the given BMS file to code in the specified language." },
     { "html", "FILE [OUTPUT_FILE]", "Converts the BMD file to an HTML file, or prints to stdout." }
 };
 

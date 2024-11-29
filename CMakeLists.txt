@@ -21,6 +21,7 @@ endif()
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
 
 set(HEADERS
+    src/bmd/ast.hpp
     src/bmd/bms_to_html.hpp
     src/bmd/code_span_type.hpp
     src/bmd/code_string.hpp
@@ -28,6 +29,7 @@ set(HEADERS
     src/bmd/directive_type.hpp
     src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
+    src/bmd/grammar.hpp
     src/bmd/parse.hpp
     src/bmd/html_writer.hpp
     src/bmd/scope_success_writer.hpp
@@ -68,7 +70,6 @@ set(HEADERS
     src/common/config.hpp
     src/common/diagnostics.hpp
     src/common/fwd.hpp
-    src/common/glue.hpp
     src/common/io.hpp
     src/common/io_error.hpp
     src/common/packs.hpp
@@ -98,7 +99,6 @@ add_library(bm STATIC ${HEADERS}
     src/bms/vm.cpp
 
     src/common/diagnostics.cpp
-    src/common/glue.cpp
     src/common/io.cpp
     src/common/parse.cpp
 )
@@ -107,6 +107,8 @@ target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
 target_link_options(bm PUBLIC ${SANITIZER_OPTIONS})
 
 add_executable(bm-cli ${HEADERS}
+    src/cli/glue.cpp
+    src/cli/glue.hpp
     src/cli/main.cpp
 )
 
