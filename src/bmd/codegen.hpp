@@ -49,8 +49,12 @@ struct Code_Options {
     bool break_after_function = is_break_after_function(brace_style);
     /// @brief If `true`, breaks the line after the condition.
     bool break_after_if = is_break_after_if(brace_style);
+
     /// @brief If `true`, prefer C23 features such as spelling `_Bool` as `bool`.
-    bool c23 = false;
+    bool c_23 = false;
+    /// @brief If `true`, prefers `_BitInt(N)` over `uintN_t`.
+    /// Only available when `c_23` is `true`, and defaults to the `c_23` setting.
+    bool c_prefer_bitint = c_23;
 };
 
 [[nodiscard]] std::string_view code_language_name(Code_Language lang);

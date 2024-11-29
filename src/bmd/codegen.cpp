@@ -122,22 +122,27 @@ void append_type(Code_String& out, C_Type type, bool c23)
 }
 
 [[nodiscard]] Result<C_Type, Generator_Error_Code> to_c_type(const bms::Concrete_Type& type,
-                                                             bool c23)
+                                                             const Code_Options& options)
 {
     using enum bms::Type_Type;
     switch (type.type()) {
     case Void: return C_Type { C_Type_Type::void_ };
     case Int: return C_Type { C_Type_Type::int_ };
     case Bool: return C_Type { C_Type_Type::bool_ };
+
     case Uint:
-        switch (type.width()) {
+        int width = type.width();
+        if (options.c_23 && options.c_prefer_bitint) {
+            return C_Type { C_Type_Type::bituint, type.width() };
+        }
+        switch (width) {
         case 8: return C_Type { C_Type_Type::uint8 };
         case 16: return C_Type { C_Type_Type::uint16 };
         case 32: return C_Type { C_Type_Type::uint32 };
         case 64: return C_Type { C_Type_Type::uint64 };
         default:
-            if (c23) {
-                return C_Type { C_Type_Type::bituint, type.width() };
+            if (options.c_23) {
+                return C_Type { C_Type_Type::bituint, width };
             }
             else {
                 return Generator_Error_Code::unsupported_integer_width;
@@ -198,11 +203,11 @@ private:
     [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
                                                               const bms::Concrete_Type& type)
     {
-        const auto c_type = to_c_type(type, m_options.c23);
+        const auto c_type = to_c_type(type, m_options);
         if (!c_type) {
             return Generator_Error { c_type.error(), node };
         }
-        append_type(m_out, *c_type, m_options.c23);
+        append_type(m_out, *c_type, m_options.c_23);
         return {};
     }
 
@@ -422,7 +427,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Const& constant)
     {
-        if (!self.m_options.c23) {
+        if (!self.m_options.c_23) {
             return Generator_Error { Generator_Error_Code::empty, node };
         }
         Attempt attempt = self.start_attempt();
@@ -717,7 +722,7 @@ struct C_Code_Generator::Visitor {
         if (const auto* constant = get_if<Const>(id.lookup_result)) {
             // Only C23 supports constexpr; there are no "true constants" prior to that.
             // Therefore, we are forced to inline these whenever used.
-            if (!self.m_options.c23) {
+            if (!self.m_options.c_23) {
                 append_value(self.m_out, constant->const_value()->concrete_value());
             }
             return {};
