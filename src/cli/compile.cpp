@@ -62,7 +62,6 @@ bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
 }
 
 bms::Analyzed_Program analyze_parsed(const bms::Parsed_Program& parsed,
-                                     std::string_view source,
                                      std::string_view file_name,
                                      std::pmr::memory_resource* memory)
 {

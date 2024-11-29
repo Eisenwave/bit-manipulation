@@ -118,7 +118,7 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
-    bms::Analyzed_Program a = analyze_parsed(p, source, file, &memory_resource);
+    bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
     std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
     return 0;
@@ -135,7 +135,7 @@ int generate(std::string_view file, std::string_view language, std::pmr::memory_
 
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
-    bms::Analyzed_Program a = analyze_parsed(p, source, file, &memory_resource);
+    bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
     std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
     return 0;
