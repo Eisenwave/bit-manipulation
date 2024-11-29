@@ -8,13 +8,21 @@
 namespace bit_manipulation::bmd {
 
 enum struct Code_Language : Default_Underlying {
+    /// @brief Bit Manipulation Script
     bms,
+    /// @brief C
     c,
+    /// @brief C++
     cpp,
+    /// @brief Rust
     rust,
+    /// @brief Java
     java,
+    /// @brief Kotlin
     kotlin,
+    /// @brief JavaScript
     javascript,
+    /// @brief TypeScript
     typescript
 };
 
