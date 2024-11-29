@@ -1,6 +1,7 @@
 #include <optional>
 
 #include "common/assert.hpp"
+#include "common/result.hpp"
 #include "common/to_string.hpp"
 #include "common/variant.hpp"
 
@@ -78,18 +79,18 @@ void append_value(Code_String& out, const bms::Concrete_Value& v)
     }
 }
 
-void append_type(Code_String& out, C_Type type)
+void append_type(Code_String& out, C_Type type, bool c23)
 {
     using enum C_Type_Type;
     switch (type.type) {
     case void_: //
         out.append("void", Code_Span_Type::keyword);
-        break;
+        return;
     case int_: //
         out.append("int", Code_Span_Type::keyword);
         break;
     case bool_: //
-        out.append("_Bool", Code_Span_Type::keyword);
+        out.append(c23 ? "bool" : "_Bool", Code_Span_Type::keyword);
         break;
 
     case uint8: //
@@ -117,22 +118,30 @@ void append_type(Code_String& out, C_Type type)
         out.append(')', Code_Span_Type::bracket);
         break;
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid C type");
 }
 
-C_Type to_c_type(const bms::Concrete_Type& type)
+[[nodiscard]] Result<C_Type, Generator_Error_Code> to_c_type(const bms::Concrete_Type& type,
+                                                             bool c23)
 {
     using enum bms::Type_Type;
     switch (type.type()) {
-    case Void: return { C_Type_Type::void_ };
-    case Int: return { C_Type_Type::int_ };
-    case Bool: return { C_Type_Type::bool_ };
+    case Void: return C_Type { C_Type_Type::void_ };
+    case Int: return C_Type { C_Type_Type::int_ };
+    case Bool: return C_Type { C_Type_Type::bool_ };
     case Uint:
         switch (type.width()) {
-        case 8: return { C_Type_Type::uint8 };
-        case 16: return { C_Type_Type::uint16 };
-        case 32: return { C_Type_Type::uint32 };
-        case 64: return { C_Type_Type::uint64 };
-        default: return { C_Type_Type::bituint, type.width() };
+        case 8: return C_Type { C_Type_Type::uint8 };
+        case 16: return C_Type { C_Type_Type::uint16 };
+        case 32: return C_Type { C_Type_Type::uint32 };
+        case 64: return C_Type { C_Type_Type::uint64 };
+        default:
+            if (c23) {
+                return C_Type { C_Type_Type::bituint, type.width() };
+            }
+            else {
+                return Generator_Error_Code::unsupported_integer_width;
+            }
         }
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("BMS types should always have a C equivalent");
@@ -140,16 +149,11 @@ C_Type to_c_type(const bms::Concrete_Type& type)
 
 using namespace bms::ast;
 
-struct Code_Formatting {
-    char indent_char = ' ';
-    Size indent_size = 4;
-};
-
 struct C_Code_Generator {
 private:
     Code_String& m_out;
     const bms::Analyzed_Program& m_program;
-    Code_Formatting m_formatting {};
+    Code_Options m_formatting {};
     Size m_depth = 0;
     bool m_start_of_line = true;
 
@@ -168,9 +172,38 @@ private:
         }
     };
 
+    struct Attempt {
+    private:
+        Code_String* out;
+        const Code_String::Length restore_length = out->get_length();
+
+    public:
+        Attempt(Code_String& out)
+            : out(&out)
+        {
+        }
+
+        ~Attempt()
+        {
+            if (out) {
+                out->resize(restore_length);
+            }
+        }
+
+        void commit()
+        {
+            out = nullptr;
+        }
+    };
+
     Indent_Guard push_indent()
     {
         return Indent_Guard { m_depth };
+    }
+
+    Attempt start_attempt()
+    {
+        return Attempt { m_out };
     }
 
 public:
@@ -180,296 +213,43 @@ public:
     {
     }
 
-    void operator()()
+    bool operator()()
     {
-        generate_code(m_program.get_root());
-    }
-
-    void operator()(const Program& program)
-    {
-        for (const Some_Node* node : program.get_children()) {
-            generate_code(node);
-        }
-    }
-
-    void operator()(const Function& function)
-    {
-        if (function.is_generic) {
-            return;
-        }
-        write_indent();
-        (*this)(function.get_return_type());
-        m_out.append(' ');
-        m_out.append(function.get_name(), Code_Span_Type::identifier);
-
-        m_out.append('(', Code_Span_Type::bracket);
-
-        if (const Some_Node* params_node = function.get_parameters_node()) {
-            (*this)(get<Parameter_List>(*params_node));
-        }
-        else {
-            m_out.append("void", Code_Span_Type::keyword);
-        }
-
-        m_out.append(')', Code_Span_Type::bracket);
-    }
-
-    void operator()(const Parameter_List& parameters)
-    {
-        const Size n = parameters.get_parameter_count();
-        if (n == 0) {
-            m_out.append("void", Code_Span_Type::keyword);
-            return;
-        }
-
-        for (Size i = 0; i < n; ++i) {
-            if (i != 0) {
-                m_out.append(',', Code_Span_Type::punctuation);
-                m_out.append(' ');
-            }
-            (*this)(parameters.get_parameter(i));
-        }
-    }
-
-    void operator()(const Parameter& parameter)
-    {
-        (*this)(parameter.get_type());
-        m_out.append(' ');
-        m_out.append(parameter.get_name(), Code_Span_Type::identifier);
-    }
-
-    void operator()(const Type& type)
-    {
-        const C_Type c_type = to_c_type(type.concrete_type().value());
-        append_type(m_out, c_type);
-    }
-
-    void operator()(const Const& constant)
-    {
-        write_indent();
-
-        m_out.append("constexpr", Code_Span_Type::keyword);
-        m_out.append(' ');
-
-        const C_Type c_type = to_c_type(constant.const_value()->get_type());
-        append_type(m_out, c_type);
-        m_out.append(' ');
-        m_out.append(constant.get_name(), Code_Span_Type::identifier);
-
-        m_out.append(' ');
-        m_out.append('=', Code_Span_Type::operation);
-        m_out.append(' ');
-        append_value(m_out, constant.const_value()->concrete_value());
-
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Let& variable)
-    {
-        write_indent();
-
-        const C_Type c_type = to_c_type(variable.const_value()->get_type());
-        append_type(m_out, c_type);
-        m_out.append(' ');
-        m_out.append(variable.get_name(), Code_Span_Type::identifier);
-
-        if (const Some_Node* initializer = variable.get_initializer_node()) {
-            m_out.append(' ');
-            m_out.append('=', Code_Span_Type::operation);
-            m_out.append(' ');
-            generate_code(initializer);
-        }
-
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Static_Assert&) { }
-
-    void operator()(const If_Statement& statement)
-    {
-        write_indent();
-
-        m_out.append("if", Code_Span_Type::keyword);
-        m_out.append(' ');
-
-        m_out.append('(', Code_Span_Type::bracket);
-        generate_code(statement.get_condition_node());
-        m_out.append(')', Code_Span_Type::bracket);
-
-        m_out.append(' ');
-        (*this)(statement.get_if_block());
-
-        if (const Some_Node* else_node = statement.get_else_node()) {
-            if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
-                write_indent();
-                m_out.append("else", Code_Span_Type::keyword);
-                m_out.append(' ');
-                (*this)(*else_if);
-                return;
-            }
-            if (const Block_Statement* else_block = get_if<Block_Statement>(else_node)) {
-                (*this)(*else_block);
-                return;
-            }
-            BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected else contents.");
-        }
-    }
-
-    void operator()(const While_Statement& statement)
-    {
-        write_indent();
-
-        m_out.append("while", Code_Span_Type::keyword);
-        m_out.append(' ');
-
-        m_out.append('(', Code_Span_Type::bracket);
-        generate_code(statement.get_condition_node());
-        m_out.append(')', Code_Span_Type::bracket);
-
-        m_out.append(' ');
-        (*this)(statement.get_block());
-    }
-
-    void operator()(const Break&)
-    {
-        write_indent();
-        m_out.append("break", Code_Span_Type::keyword);
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Continue&)
-    {
-        write_indent();
-        m_out.append("continue", Code_Span_Type::keyword);
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Return_Statement& statement)
-    {
-        write_indent();
-        m_out.append("return", Code_Span_Type::keyword);
-
-        if (const Some_Node* expr = statement.get_expression_node()) {
-            m_out.append(' ');
-            generate_code(expr);
-        }
-
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Assignment& assignment)
-    {
-        write_indent();
-        m_out.append(assignment.get_name(), Code_Span_Type::identifier);
-        m_out.append(' ');
-        m_out.append('=', Code_Span_Type::operation);
-        m_out.append(' ');
-        generate_code(assignment.get_expression_node());
-        m_out.append(';', Code_Span_Type::punctuation);
-        end_line();
-    }
-
-    void operator()(const Block_Statement& block)
-    {
-        write_line("{", Code_Span_Type::bracket);
-        {
-            Indent_Guard _ = push_indent();
-            for (const Some_Node* node : block.get_children()) {
-                generate_code(node);
-            }
-        }
-        write_line("}", Code_Span_Type::bracket);
-    }
-
-    void operator()(const Conversion_Expression& conversion)
-    {
-        m_out.append('(', Code_Span_Type::bracket);
-        (*this)(conversion.get_target_type());
-        m_out.append(')', Code_Span_Type::bracket);
-        generate_code(conversion.get_expression_node());
-    }
-
-    void operator()(const If_Expression& expression)
-    {
-        const Some_Node& parent = *expression.get_parent();
-        const bool parenthesize = is_expression(parent);
-
-        if (parenthesize) {
-            m_out.append('(', Code_Span_Type::bracket);
-        }
-
-        generate_code(expression.get_condition_node());
-        m_out.append(' ');
-        m_out.append('?', Code_Span_Type::operation);
-        m_out.append(' ');
-        generate_code(expression.get_left_node());
-        m_out.append(' ');
-        m_out.append(':', Code_Span_Type::operation);
-        m_out.append(' ');
-        generate_code(expression.get_right_node());
-
-        if (!parenthesize) {
-            m_out.append(')', Code_Span_Type::bracket);
-        }
-    }
-
-    void operator()(const Binary_Expression& expression)
-    {
-        generate_code(expression.get_left_node());
-        m_out.append(' ');
-        m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
-        m_out.append(' ');
-        generate_code(expression.get_right_node());
-    }
-
-    void operator()(const Prefix_Expression& expression)
-    {
-        m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
-        generate_code(expression.get_expression_node());
-    }
-
-    void operator()(const Function_Call_Expression& call)
-    {
-        m_out.append(call.get_name(), Code_Span_Type::identifier);
-        m_out.append('(', Code_Span_Type::bracket);
-        bool first = true;
-        for (const Some_Node* argument : call.get_argument_nodes()) {
-            if (!first) {
-                m_out.append(',', Code_Span_Type::punctuation);
-                m_out.append(' ');
-            }
-            generate_code(argument);
-            first = false;
-        }
-        m_out.append(')', Code_Span_Type::bracket);
-    }
-
-    void operator()(const Id_Expression& id)
-    {
-        m_out.append(id.get_identifier(), Code_Span_Type::identifier);
-    }
-
-    void operator()(const Literal& literal)
-    {
-        // TODO: preserve original style (hex vs. decimal literal etc.)
-        append_value(m_out, literal.const_value()->concrete_value());
-    }
-
-    void operator()(const Builtin_Function&)
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE(
-            "builtin functions can be looked up, but are not children in the AST");
+        return generate_code(m_program.get_root()).has_value();
     }
 
 private:
-    void generate_code(const Some_Node* node)
+    void separate_after_function()
     {
-        visit(*this, *node);
+        if (m_formatting.break_after_function) {
+            end_line();
+        }
+        else {
+            m_out.append(' ');
+        }
+    }
+
+    void separate_after_if()
+    {
+        if (m_formatting.break_after_if) {
+            end_line();
+        }
+        else {
+            m_out.append(' ');
+        }
+    }
+
+    Result<void, Generator_Error> generate_code(const Some_Node* node);
+
+    Result<void, Generator_Error> generate_type(const Some_Node* node,
+                                                const bms::Concrete_Type& type)
+    {
+        const auto c_type = to_c_type(type, m_formatting.c23);
+        if (!c_type) {
+            return Generator_Error { c_type.error(), node };
+        }
+        append_type(m_out, *c_type, m_formatting.c23);
+        return {};
     }
 
     void write_line(std::string_view text)
@@ -501,11 +281,446 @@ private:
         m_out.append('\n');
         m_start_of_line = true;
     }
+
+    struct Visitor;
 };
+
+struct C_Code_Generator::Visitor {
+    C_Code_Generator& self;
+    const Some_Node* node;
+
+    Result<void, Generator_Error> operator()(const Program& program)
+    {
+        Attempt attempt = self.start_attempt();
+
+        bool first = true;
+        for (const Some_Node* declaration : program.get_children()) {
+            if (auto r = self.generate_code(declaration)) {
+                if (!first) {
+                    self.end_line();
+                }
+                first = false;
+                self.end_line();
+            }
+            else if (r.error().code != Generator_Error_Code::empty) {
+                return r;
+            }
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Function& function)
+    {
+        if (function.is_generic) {
+            return Generator_Error { Generator_Error_Code::empty, node };
+        }
+        Attempt attempt = self.start_attempt();
+
+        self.write_indent();
+        if (auto r = (*this)(function.get_return_type()); !r) {
+            return r;
+        }
+        self.m_out.append(' ');
+        self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+
+        self.m_out.append('(', Code_Span_Type::bracket);
+
+        if (const Some_Node* params_node = function.get_parameters_node()) {
+            if (auto r = (*this)(get<Parameter_List>(*params_node)); !r) {
+                return r;
+            }
+        }
+        else {
+            self.m_out.append("void", Code_Span_Type::keyword);
+        }
+
+        self.m_out.append(')', Code_Span_Type::bracket);
+
+        self.separate_after_function();
+        if (auto r = (*this)(function.get_body()); !r) {
+            return r;
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Parameter_List& parameters)
+    {
+        const Size n = parameters.get_parameter_count();
+        if (n == 0) {
+            self.m_out.append("void", Code_Span_Type::keyword);
+            return {};
+        }
+
+        Attempt attempt = self.start_attempt();
+        for (Size i = 0; i < n; ++i) {
+            if (i != 0) {
+                self.m_out.append(',', Code_Span_Type::punctuation);
+                self.m_out.append(' ');
+            }
+            if (auto r = (*this)(parameters.get_parameter(i)); !r) {
+                return r;
+            }
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Parameter& parameter)
+    {
+        if (auto r = (*this)(parameter.get_type()); !r) {
+            return r;
+        }
+        self.m_out.append(' ');
+        self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Type& type)
+    {
+        return self.generate_type(node, type.concrete_type().value());
+    }
+
+    Result<void, Generator_Error> operator()(const Const& constant)
+    {
+        if (!self.m_formatting.c23) {
+            return Generator_Error { Generator_Error_Code::empty, node };
+        }
+        Attempt attempt = self.start_attempt();
+        self.write_indent();
+
+        self.m_out.append("constexpr", Code_Span_Type::keyword);
+        self.m_out.append(' ');
+
+        if (auto r = self.generate_type(node, constant.const_value()->get_type()); !r) {
+            return r;
+        }
+
+        self.m_out.append(' ');
+        self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
+
+        self.m_out.append(' ');
+        self.m_out.append('=', Code_Span_Type::operation);
+        self.m_out.append(' ');
+        append_value(self.m_out, constant.const_value()->concrete_value());
+
+        self.m_out.append(';', Code_Span_Type::punctuation);
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Let& variable)
+    {
+        self.write_indent();
+
+        if (auto r = self.generate_type(node, variable.const_value()->get_type()); !r) {
+            return r;
+        }
+
+        self.m_out.append(' ');
+        self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
+
+        if (const Some_Node* initializer = variable.get_initializer_node()) {
+            self.m_out.append(' ');
+            self.m_out.append('=', Code_Span_Type::operation);
+            self.m_out.append(' ');
+            if (auto r = self.generate_code(initializer); !r) {
+                return r;
+            }
+        }
+
+        self.m_out.append(';', Code_Span_Type::punctuation);
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Static_Assert&)
+    {
+        return Generator_Error { Generator_Error_Code::empty, node };
+    }
+
+    Result<void, Generator_Error> operator()(const If_Statement& statement)
+    {
+        Attempt attempt = self.start_attempt();
+        self.write_indent();
+
+        self.m_out.append("if", Code_Span_Type::keyword);
+        self.m_out.append(' ');
+
+        self.m_out.append('(', Code_Span_Type::bracket);
+        self.generate_code(statement.get_condition_node());
+        self.m_out.append(')', Code_Span_Type::bracket);
+
+        self.separate_after_if();
+        if (auto r = (*this)(statement.get_if_block()); !r) {
+            return r;
+        }
+
+        if (const Some_Node* else_node = statement.get_else_node()) {
+            if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
+                self.write_indent();
+                self.m_out.append("else", Code_Span_Type::keyword);
+                self.m_out.append(' ');
+                if (auto r = (*this)(*else_if); !r) {
+                    return r;
+                }
+            }
+            else if (const Block_Statement* else_block = get_if<Block_Statement>(else_node)) {
+                if (auto r = (*this)(*else_block); !r) {
+                    return r;
+                }
+            }
+            else {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected else contents.");
+            }
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const While_Statement& statement)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.write_indent();
+
+        self.m_out.append("while", Code_Span_Type::keyword);
+        self.m_out.append(' ');
+
+        self.m_out.append('(', Code_Span_Type::bracket);
+        if (auto r = self.generate_code(statement.get_condition_node()); !r) {
+            return r;
+        }
+        self.m_out.append(')', Code_Span_Type::bracket);
+
+        self.separate_after_if();
+        if (auto r = (*this)(statement.get_block()); !r) {
+            return r;
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Break&)
+    {
+        self.write_indent();
+        self.m_out.append("break", Code_Span_Type::keyword);
+        self.m_out.append(';', Code_Span_Type::punctuation);
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Continue&)
+    {
+        self.write_indent();
+        self.m_out.append("continue", Code_Span_Type::keyword);
+        self.m_out.append(';', Code_Span_Type::punctuation);
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Return_Statement& statement)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.write_indent();
+        self.m_out.append("return", Code_Span_Type::keyword);
+
+        if (const Some_Node* expr = statement.get_expression_node()) {
+            self.m_out.append(' ');
+            if (auto r = self.generate_code(expr); !r) {
+                return r;
+            }
+        }
+
+        self.m_out.append(';', Code_Span_Type::punctuation);
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Assignment& assignment)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.write_indent();
+        self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(' ');
+        self.m_out.append('=', Code_Span_Type::operation);
+        self.m_out.append(' ');
+        self.generate_code(assignment.get_expression_node());
+        self.m_out.append(';', Code_Span_Type::punctuation);
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Block_Statement& block)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.m_out.append("{", Code_Span_Type::bracket);
+        self.end_line();
+        {
+            Indent_Guard _ = self.push_indent();
+            for (const Some_Node* node : block.get_children()) {
+                if (auto r = self.generate_code(node)) {
+                    self.end_line();
+                    return r;
+                }
+                else if (r.error().code != Generator_Error_Code::empty) {
+                    return r;
+                }
+            }
+        }
+        self.write_indent();
+        self.m_out.append("}", Code_Span_Type::bracket);
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.m_out.append('(', Code_Span_Type::bracket);
+        if (auto r = (*this)(conversion.get_target_type()); !r) {
+            return r;
+        }
+        self.m_out.append(')', Code_Span_Type::bracket);
+
+        if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
+            return r;
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const If_Expression& expression)
+    {
+        Attempt attempt = self.start_attempt();
+
+        const Some_Node& parent = *expression.get_parent();
+        const bool parenthesize = is_expression(parent);
+
+        if (parenthesize) {
+            self.m_out.append('(', Code_Span_Type::bracket);
+        }
+
+        if (auto r = self.generate_code(expression.get_condition_node()); !r) {
+            return r;
+        }
+        self.m_out.append(' ');
+        self.m_out.append('?', Code_Span_Type::operation);
+        self.m_out.append(' ');
+        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+            return r;
+        }
+        self.m_out.append(' ');
+        self.m_out.append(':', Code_Span_Type::operation);
+        self.m_out.append(' ');
+        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+            return r;
+        }
+
+        if (!parenthesize) {
+            self.m_out.append(')', Code_Span_Type::bracket);
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Binary_Expression& expression)
+    {
+        Attempt attempt = self.start_attempt();
+
+        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+            return r;
+        }
+
+        self.m_out.append(' ');
+        self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
+        self.m_out.append(' ');
+        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+            return r;
+        }
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
+    {
+        self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
+        return self.generate_code(expression.get_expression_node());
+    }
+
+    Result<void, Generator_Error> operator()(const Function_Call_Expression& call)
+    {
+        Attempt attempt = self.start_attempt();
+
+        self.m_out.append(call.get_name(), Code_Span_Type::identifier);
+        self.m_out.append('(', Code_Span_Type::bracket);
+        bool first = true;
+        for (const Some_Node* argument : call.get_argument_nodes()) {
+            if (!first) {
+                self.m_out.append(',', Code_Span_Type::punctuation);
+                self.m_out.append(' ');
+            }
+            if (auto r = self.generate_code(argument); !r) {
+                return r;
+            }
+            first = false;
+        }
+        self.m_out.append(')', Code_Span_Type::bracket);
+
+        attempt.commit();
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Id_Expression& id)
+    {
+        if (const auto* constant = get_if<Const>(id.lookup_result)) {
+            // Only C23 supports constexpr; there are no "true constants" prior to that.
+            // Therefore, we are forced to inline these whenever used.
+            if (!self.m_formatting.c23) {
+                append_value(self.m_out, constant->const_value()->concrete_value());
+            }
+            return {};
+        }
+        self.m_out.append(id.get_identifier(), Code_Span_Type::identifier);
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Literal& literal)
+    {
+        // TODO: preserve original style (hex vs. decimal literal etc.)
+        append_value(self.m_out, literal.const_value()->concrete_value());
+        return {};
+    }
+
+    Result<void, Generator_Error> operator()(const Builtin_Function&)
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE(
+            "builtin functions can be looked up, but are not children in the AST");
+    }
+};
+
+Result<void, Generator_Error> C_Code_Generator::generate_code(const Some_Node* node)
+{
+    return visit(Visitor { *this, node }, *node);
+}
 
 } // namespace
 
-void generate_code(Code_String& out, const bms::Analyzed_Program& program, Code_Language language)
+bool generate_code(Code_String& out, const bms::Analyzed_Program& program, Code_Language language)
 {
     using enum Code_Language;
     switch (language) {

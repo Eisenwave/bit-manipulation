@@ -22,6 +22,11 @@ struct Code_String_Iterator;
 
 struct Code_String {
 public:
+    struct Length {
+        Size text_length;
+        Size span_count;
+    };
+
     using iterator = Code_String_Iterator;
     using const_iterator = Code_String_Iterator;
 
@@ -40,6 +45,17 @@ public:
         : m_text(memory)
         , m_spans(memory)
     {
+    }
+
+    Length get_length() const
+    {
+        return { .text_length = m_text.size(), .span_count = m_spans.size() };
+    }
+
+    void resize(Length length)
+    {
+        m_text.resize(length.text_length);
+        m_spans.resize(length.span_count);
     }
 
     /// @brief Appends a raw range of text to the string.
