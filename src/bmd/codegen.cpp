@@ -157,55 +157,6 @@ private:
     Size m_depth = 0;
     bool m_start_of_line = true;
 
-    struct Indent_Guard {
-        Size& indent;
-
-        Indent_Guard(Size& indent)
-            : indent(indent)
-        {
-            ++indent;
-        }
-
-        ~Indent_Guard()
-        {
-            --indent;
-        }
-    };
-
-    struct Attempt {
-    private:
-        Code_String* out;
-        const Code_String::Length restore_length = out->get_length();
-
-    public:
-        Attempt(Code_String& out)
-            : out(&out)
-        {
-        }
-
-        ~Attempt()
-        {
-            if (out) {
-                out->resize(restore_length);
-            }
-        }
-
-        void commit()
-        {
-            out = nullptr;
-        }
-    };
-
-    Indent_Guard push_indent()
-    {
-        return Indent_Guard { m_depth };
-    }
-
-    Attempt start_attempt()
-    {
-        return Attempt { m_out };
-    }
-
 public:
     C_Code_Generator(Code_String& out, const bms::Analyzed_Program& program)
         : m_out(out)
@@ -276,10 +227,94 @@ private:
         }
     }
 
+    void write_infix_operator(std::string_view op)
+    {
+        m_out.append(' ');
+        m_out.append(op, Code_Span_Type::operation);
+        m_out.append(' ');
+    }
+
+    void write_separating_comma()
+    {
+        m_out.append(',', Code_Span_Type::punctuation);
+        m_out.append(' ');
+    }
+
     void end_line()
     {
         m_out.append('\n');
         m_start_of_line = true;
+    }
+
+    struct Indent_Guard {
+        Size& indent;
+
+        Indent_Guard(Size& indent)
+            : indent(indent)
+        {
+            ++indent;
+        }
+
+        ~Indent_Guard()
+        {
+            --indent;
+        }
+    };
+
+    Indent_Guard push_indent()
+    {
+        return Indent_Guard { m_depth };
+    }
+
+    struct Attempt {
+    private:
+        Code_String* out;
+        const Code_String::Length restore_length = out->get_length();
+
+    public:
+        Attempt(Code_String& out)
+            : out(&out)
+        {
+        }
+
+        ~Attempt()
+        {
+            if (out) {
+                out->resize(restore_length);
+            }
+        }
+
+        void commit()
+        {
+            out = nullptr;
+        }
+    };
+
+    Attempt start_attempt()
+    {
+        return Attempt { m_out };
+    }
+
+    struct Parenthesization {
+    private:
+        Code_String& out;
+
+    public:
+        Parenthesization(Code_String& out)
+            : out(out)
+        {
+            out.append('(', Code_Span_Type::bracket);
+        }
+
+        ~Parenthesization()
+        {
+            out.append(')', Code_Span_Type::bracket);
+        }
+    };
+
+    Parenthesization parenthesize()
+    {
+        return Parenthesization { m_out };
     }
 
     struct Visitor;
@@ -322,21 +357,19 @@ struct C_Code_Generator::Visitor {
         if (auto r = (*this)(function.get_return_type()); !r) {
             return r;
         }
-        self.m_out.append(' ');
-        self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+        {
+            self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+            Parenthesization p = self.parenthesize();
 
-        self.m_out.append('(', Code_Span_Type::bracket);
-
-        if (const Some_Node* params_node = function.get_parameters_node()) {
-            if (auto r = (*this)(get<Parameter_List>(*params_node)); !r) {
-                return r;
+            if (const Some_Node* params_node = function.get_parameters_node()) {
+                if (auto r = (*this)(get<Parameter_List>(*params_node)); !r) {
+                    return r;
+                }
+            }
+            else {
+                self.m_out.append("void", Code_Span_Type::keyword);
             }
         }
-        else {
-            self.m_out.append("void", Code_Span_Type::keyword);
-        }
-
-        self.m_out.append(')', Code_Span_Type::bracket);
 
         self.separate_after_function();
         if (auto r = (*this)(function.get_body()); !r) {
@@ -358,8 +391,7 @@ struct C_Code_Generator::Visitor {
         Attempt attempt = self.start_attempt();
         for (Size i = 0; i < n; ++i) {
             if (i != 0) {
-                self.m_out.append(',', Code_Span_Type::punctuation);
-                self.m_out.append(' ');
+                self.write_separating_comma();
             }
             if (auto r = (*this)(parameters.get_parameter(i)); !r) {
                 return r;
@@ -403,9 +435,7 @@ struct C_Code_Generator::Visitor {
         self.m_out.append(' ');
         self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
 
-        self.m_out.append(' ');
-        self.m_out.append('=', Code_Span_Type::operation);
-        self.m_out.append(' ');
+        self.write_infix_operator("=");
         append_value(self.m_out, constant.const_value()->concrete_value());
 
         self.m_out.append(';', Code_Span_Type::punctuation);
@@ -426,9 +456,7 @@ struct C_Code_Generator::Visitor {
         self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
 
         if (const Some_Node* initializer = variable.get_initializer_node()) {
-            self.m_out.append(' ');
-            self.m_out.append('=', Code_Span_Type::operation);
-            self.m_out.append(' ');
+            self.write_infix_operator("=");
             if (auto r = self.generate_code(initializer); !r) {
                 return r;
             }
@@ -450,10 +478,10 @@ struct C_Code_Generator::Visitor {
 
         self.m_out.append("if", Code_Span_Type::keyword);
         self.m_out.append(' ');
-
-        self.m_out.append('(', Code_Span_Type::bracket);
-        self.generate_code(statement.get_condition_node());
-        self.m_out.append(')', Code_Span_Type::bracket);
+        {
+            Parenthesization p = self.parenthesize();
+            self.generate_code(statement.get_condition_node());
+        }
 
         self.separate_after_if();
         if (auto r = (*this)(statement.get_if_block()); !r) {
@@ -492,11 +520,12 @@ struct C_Code_Generator::Visitor {
         self.m_out.append("while", Code_Span_Type::keyword);
         self.m_out.append(' ');
 
-        self.m_out.append('(', Code_Span_Type::bracket);
-        if (auto r = self.generate_code(statement.get_condition_node()); !r) {
-            return r;
+        {
+            Parenthesization p = self.parenthesize();
+            if (auto r = self.generate_code(statement.get_condition_node()); !r) {
+                return r;
+            }
         }
-        self.m_out.append(')', Code_Span_Type::bracket);
 
         self.separate_after_if();
         if (auto r = (*this)(statement.get_block()); !r) {
@@ -549,9 +578,7 @@ struct C_Code_Generator::Visitor {
 
         self.write_indent();
         self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
-        self.m_out.append(' ');
-        self.m_out.append('=', Code_Span_Type::operation);
-        self.m_out.append(' ');
+        self.write_infix_operator("=");
         self.generate_code(assignment.get_expression_node());
         self.m_out.append(';', Code_Span_Type::punctuation);
 
@@ -587,13 +614,12 @@ struct C_Code_Generator::Visitor {
     Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
         Attempt attempt = self.start_attempt();
-
-        self.m_out.append('(', Code_Span_Type::bracket);
-        if (auto r = (*this)(conversion.get_target_type()); !r) {
-            return r;
+        {
+            Parenthesization p = self.parenthesize();
+            if (auto r = (*this)(conversion.get_target_type()); !r) {
+                return r;
+            }
         }
-        self.m_out.append(')', Code_Span_Type::bracket);
-
         if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
             return r;
         }
@@ -616,15 +642,11 @@ struct C_Code_Generator::Visitor {
         if (auto r = self.generate_code(expression.get_condition_node()); !r) {
             return r;
         }
-        self.m_out.append(' ');
-        self.m_out.append('?', Code_Span_Type::operation);
-        self.m_out.append(' ');
+        self.write_infix_operator("?");
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
         }
-        self.m_out.append(' ');
-        self.m_out.append(':', Code_Span_Type::operation);
-        self.m_out.append(' ');
+        self.write_infix_operator(":");
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
         }
@@ -645,9 +667,7 @@ struct C_Code_Generator::Visitor {
             return r;
         }
 
-        self.m_out.append(' ');
-        self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
-        self.m_out.append(' ');
+        self.write_infix_operator(token_type_code_name(expression.get_op()));
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
         }
@@ -667,19 +687,19 @@ struct C_Code_Generator::Visitor {
         Attempt attempt = self.start_attempt();
 
         self.m_out.append(call.get_name(), Code_Span_Type::identifier);
-        self.m_out.append('(', Code_Span_Type::bracket);
-        bool first = true;
-        for (const Some_Node* argument : call.get_argument_nodes()) {
-            if (!first) {
-                self.m_out.append(',', Code_Span_Type::punctuation);
-                self.m_out.append(' ');
+        {
+            Parenthesization p = self.parenthesize();
+            bool first = true;
+            for (const Some_Node* argument : call.get_argument_nodes()) {
+                if (!first) {
+                    self.write_separating_comma();
+                }
+                if (auto r = self.generate_code(argument); !r) {
+                    return r;
+                }
+                first = false;
             }
-            if (auto r = self.generate_code(argument); !r) {
-                return r;
-            }
-            first = false;
         }
-        self.m_out.append(')', Code_Span_Type::bracket);
 
         attempt.commit();
         return {};
