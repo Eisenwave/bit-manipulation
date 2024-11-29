@@ -77,7 +77,10 @@ struct Generator_Error {
     const bms::ast::Some_Node* fail;
 };
 
-bool generate_code(Code_String& out, const bms::Analyzed_Program& program, Code_Language language);
+bool generate_code(Code_String& out,
+                   const bms::Analyzed_Program& program,
+                   Code_Language language,
+                   const Code_Options& options = {});
 
 } // namespace bit_manipulation::bmd
 

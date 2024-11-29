@@ -153,14 +153,17 @@ struct C_Code_Generator {
 private:
     Code_String& m_out;
     const bms::Analyzed_Program& m_program;
-    Code_Options m_formatting {};
+    Code_Options m_formatting;
     Size m_depth = 0;
     bool m_start_of_line = true;
 
 public:
-    C_Code_Generator(Code_String& out, const bms::Analyzed_Program& program)
+    C_Code_Generator(Code_String& out,
+                     const bms::Analyzed_Program& program,
+                     const Code_Options& options)
         : m_out(out)
         , m_program(program)
+        , m_formatting(options)
     {
     }
 
@@ -744,11 +747,14 @@ Result<void, Generator_Error> C_Code_Generator::generate_code(const Some_Node* n
 
 } // namespace
 
-bool generate_code(Code_String& out, const bms::Analyzed_Program& program, Code_Language language)
+bool generate_code(Code_String& out,
+                   const bms::Analyzed_Program& program,
+                   Code_Language language,
+                   const Code_Options& options)
 {
     using enum Code_Language;
     switch (language) {
-    case c: return C_Code_Generator { out, program }();
+    case c: return C_Code_Generator { out, program, options }();
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Sorry, codegen only implemented for C.");
     }
 }
