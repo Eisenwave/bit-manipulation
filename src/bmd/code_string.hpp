@@ -56,11 +56,24 @@ public:
         m_text.push_back(c);
     }
 
+    /// @brief Appends a raw character of text multiple times to the string.
+    /// This is typically useful for e.g. whitespace between pieces of code.
+    void append(Size amount, char c)
+    {
+        m_text.insert(m_text.end(), amount, c);
+    }
+
     void append(std::string_view text, Code_Span_Type type)
     {
         BIT_MANIPULATION_ASSERT(!text.empty());
         m_spans.push_back({ .begin = m_text.size(), .length = text.size(), .type = type });
         m_text.insert(m_text.end(), text.begin(), text.end());
+    }
+
+    void append(char c, Code_Span_Type type)
+    {
+        m_spans.push_back({ .begin = m_text.size(), .length = 1, .type = type });
+        m_text.push_back(c);
     }
 
     [[nodiscard]] std::string_view get_text() const
