@@ -190,10 +190,10 @@ private:
         }
     }
 
-    Result<void, Generator_Error> generate_code(const Some_Node* node);
+    [[nodiscard]] Result<void, Generator_Error> generate_code(const Some_Node* node);
 
-    Result<void, Generator_Error> generate_type(const Some_Node* node,
-                                                const bms::Concrete_Type& type)
+    [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
+                                                              const bms::Concrete_Type& type)
     {
         const auto c_type = to_c_type(type, m_formatting.c23);
         if (!c_type) {
@@ -324,7 +324,7 @@ struct C_Code_Generator::Visitor {
     C_Code_Generator& self;
     const Some_Node* node;
 
-    Result<void, Generator_Error> operator()(const Program& program)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Program& program)
     {
         Attempt attempt = self.start_attempt();
 
@@ -346,7 +346,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Function& function)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Function& function)
     {
         if (function.is_generic) {
             return Generator_Error { Generator_Error_Code::empty, node };
@@ -380,7 +380,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Parameter_List& parameters)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter_List& parameters)
     {
         const Size n = parameters.get_parameter_count();
         if (n == 0) {
@@ -402,7 +402,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Parameter& parameter)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter& parameter)
     {
         if (auto r = (*this)(parameter.get_type()); !r) {
             return r;
@@ -412,12 +412,12 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Type& type)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Type& type)
     {
         return self.generate_type(node, type.concrete_type().value());
     }
 
-    Result<void, Generator_Error> operator()(const Const& constant)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Const& constant)
     {
         if (!self.m_formatting.c23) {
             return Generator_Error { Generator_Error_Code::empty, node };
@@ -444,7 +444,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Let& variable)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Let& variable)
     {
         self.write_indent();
 
@@ -466,12 +466,12 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Static_Assert&)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Static_Assert&)
     {
         return Generator_Error { Generator_Error_Code::empty, node };
     }
 
-    Result<void, Generator_Error> operator()(const If_Statement& statement)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const If_Statement& statement)
     {
         Attempt attempt = self.start_attempt();
         self.write_indent();
@@ -480,7 +480,9 @@ struct C_Code_Generator::Visitor {
         self.m_out.append(' ');
         {
             Parenthesization p = self.parenthesize();
-            self.generate_code(statement.get_condition_node());
+            if (auto r = self.generate_code(statement.get_condition_node()); !r) {
+                return r;
+            }
         }
 
         self.separate_after_if();
@@ -511,7 +513,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const While_Statement& statement)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const While_Statement& statement)
     {
         Attempt attempt = self.start_attempt();
 
@@ -536,7 +538,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Break&)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Break&)
     {
         self.write_indent();
         self.m_out.append("break", Code_Span_Type::keyword);
@@ -544,7 +546,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Continue&)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Continue&)
     {
         self.write_indent();
         self.m_out.append("continue", Code_Span_Type::keyword);
@@ -552,7 +554,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Return_Statement& statement)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Return_Statement& statement)
     {
         Attempt attempt = self.start_attempt();
 
@@ -572,21 +574,23 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Assignment& assignment)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Assignment& assignment)
     {
         Attempt attempt = self.start_attempt();
 
         self.write_indent();
         self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
         self.write_infix_operator("=");
-        self.generate_code(assignment.get_expression_node());
+        if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
+            return r;
+        }
         self.m_out.append(';', Code_Span_Type::punctuation);
 
         attempt.commit();
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Block_Statement& block)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Block_Statement& block)
     {
         Attempt attempt = self.start_attempt();
 
@@ -611,7 +615,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
         Attempt attempt = self.start_attempt();
         {
@@ -628,7 +632,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const If_Expression& expression)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const If_Expression& expression)
     {
         Attempt attempt = self.start_attempt();
 
@@ -659,7 +663,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Binary_Expression& expression)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Binary_Expression& expression)
     {
         Attempt attempt = self.start_attempt();
 
@@ -676,7 +680,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
     {
         self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
         return self.generate_code(expression.get_expression_node());
@@ -705,7 +709,7 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Id_Expression& id)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Id_Expression& id)
     {
         if (const auto* constant = get_if<Const>(id.lookup_result)) {
             // Only C23 supports constexpr; there are no "true constants" prior to that.
@@ -719,14 +723,14 @@ struct C_Code_Generator::Visitor {
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Literal& literal)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Literal& literal)
     {
         // TODO: preserve original style (hex vs. decimal literal etc.)
         append_value(self.m_out, literal.const_value()->concrete_value());
         return {};
     }
 
-    Result<void, Generator_Error> operator()(const Builtin_Function&)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Builtin_Function&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE(
             "builtin functions can be looked up, but are not children in the AST");
