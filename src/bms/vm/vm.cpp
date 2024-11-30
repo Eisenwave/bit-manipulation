@@ -4,8 +4,8 @@
 #include "common/assert.hpp"
 #include "common/variant.hpp"
 
-#include "bms/builtin_function.hpp"
-#include "bms/operations.hpp"
+#include "bms/evaluation/builtin_function.hpp"
+#include "bms/evaluation/operations.hpp"
 #include "bms/vm/instructions.hpp"
 #include "bms/vm/linear_map_stack.hpp"
 #include "bms/vm/vm.hpp"

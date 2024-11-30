@@ -4,7 +4,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
-#include "bms/builtin_function.hpp"
+#include "bms/evaluation/builtin_function.hpp"
 #include "bms/vm/codegen.hpp"
 #include "bms/vm/instructions.hpp"
 

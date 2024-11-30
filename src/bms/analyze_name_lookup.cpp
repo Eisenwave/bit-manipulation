@@ -6,8 +6,8 @@
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
-#include "bms/builtin_function.hpp"
-#include "bms/operations.hpp"
+#include "bms/evaluation/builtin_function.hpp"
+#include "bms/evaluation/operations.hpp"
 #include "bms/symbol_table.hpp"
 
 namespace bit_manipulation::bms {

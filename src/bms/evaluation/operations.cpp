@@ -2,8 +2,8 @@
 #include <ranges>
 
 #include "bms/analysis_error.hpp"
-#include "bms/builtin_function.hpp"
-#include "bms/operations.hpp"
+#include "bms/evaluation/builtin_function.hpp"
+#include "bms/evaluation/operations.hpp"
 #include "bms/tokenization/token_type.hpp"
 
 namespace bit_manipulation::bms {

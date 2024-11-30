@@ -40,18 +40,18 @@ set(HEADERS
     src/bms/analyzed_program.hpp
     src/bms/ast.hpp
     src/bms/basic_diagnostic_consumer.hpp
-    src/bms/builtin_function.hpp
     src/bms/comparison_failure.hpp
     src/bms/concrete_type.hpp
     src/bms/concrete_value.hpp
     src/bms/deduction.hpp
     src/bms/diagnostic_consumer.hpp
-    src/bms/evaluation_error.hpp
-    src/bms/instantiate.hpp
-    
-    src/bms/operations.hpp
+    src/bms/instantiate.hpp    
     src/bms/symbol_table.hpp
     src/bms/value.hpp
+
+    src/bms/evaluation/builtin_function.hpp
+    src/bms/evaluation/evaluation_error.hpp
+    src/bms/evaluation/operations.hpp
 
     src/bms/parsing/astp.hpp
     src/bms/parsing/grammar.hpp
@@ -96,8 +96,8 @@ add_library(bm STATIC ${HEADERS}
     src/bms/analyze.cpp
     src/bms/ast.cpp
     src/bms/instantiate.cpp
-    src/bms/operations.cpp
     src/bms/util.cpp
+    src/bms/evaluation/operations.cpp
     src/bms/parsing/parse.cpp
     src/bms/tokenization/tokenize.cpp
     src/bms/vm/codegen.cpp

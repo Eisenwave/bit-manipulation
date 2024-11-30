@@ -4,7 +4,7 @@
 #include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
-#include "bms/evaluation_error.hpp"
+#include "bms/evaluation/evaluation_error.hpp"
 
 namespace bit_manipulation::bms {
 
