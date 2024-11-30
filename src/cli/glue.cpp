@@ -2,12 +2,16 @@
 
 #include "common/ansi.hpp"
 
+#include "bmd/code_span_type.hpp"
+#include "bmd/code_string.hpp"
 #include "bmd/codegen.hpp"
 
 #include "cli/glue.hpp"
 
 namespace bit_manipulation {
+
 namespace {
+
 std::string_view highlight_color_of(bmd::HTML_Token_Type type)
 {
     using enum bmd::HTML_Token_Type;
@@ -31,6 +35,30 @@ std::string_view highlight_color_of(bmd::HTML_Token_Type type)
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
 }
+
+std::string_view highlight_color_of(bmd::Code_Span_Type type)
+{
+    using enum bmd::Code_Span_Type;
+    switch (type) {
+    case identifier: return ansi::h_white;
+    case type_name: return ansi::h_blue;
+
+    case number: return ansi::h_cyan;
+
+    case comment:
+    case operation: return ansi::h_black;
+
+    case bracket:
+    case punctuation: return ansi::black;
+
+    case keyword:
+    case boolean_literal: return ansi::h_magenta;
+
+    case error: return ansi::h_red;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
+}
+
 } // namespace
 
 std::optional<bmd::Code_Language> code_language_by_name(std::string_view name)
@@ -114,6 +142,31 @@ bool Simple_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type)
 bool Simple_HTML_Consumer::write(std::string_view s, bmd::HTML_Token_Type)
 {
     return bool(out.write(s.data(), std::streamsize(s.length())));
+}
+
+std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors)
+{
+    const std::string_view text = string.get_text();
+    if (!colors) {
+        return out << text;
+    }
+
+    bmd::Code_String_Span previous {};
+    for (bmd::Code_String_Span span : string) {
+        const Size previous_end = previous.begin + previous.length;
+        BIT_MANIPULATION_ASSERT(span.begin >= previous_end);
+        if (previous_end != span.begin) {
+            out << text.substr(previous_end, span.begin - previous_end);
+        }
+        out << highlight_color_of(span.type) << text.substr(span.begin, span.length) << ansi::reset;
+        previous = span;
+    }
+    const Size last_span_end = previous.begin + previous.length;
+    if (last_span_end != text.size()) {
+        out << text.substr(last_span_end);
+    }
+
+    return out;
 }
 
 } // namespace bit_manipulation

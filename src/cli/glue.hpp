@@ -60,4 +60,6 @@ inline Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& ou
     return bmd::doc_to_html(out, document, options, memory);
 }
 
+std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors);
+
 } // namespace bit_manipulation
