@@ -6,6 +6,13 @@
 
 namespace bit_manipulation {
 
+/// @brief Returns a `Code_Language` by a name.
+/// Every enumerator name in `Code_Language` is supported, in addition to various human-readable
+/// names, such as `cpp` and `C++` for `Code_Language::cpp`.
+/// @param name the name of the language
+/// @return the `Code_Language` if any name matched, or `std::nullopt`
+std::optional<bmd::Code_Language> code_language_by_name(std::string_view name);
+
 /// @brief A `bmd::HTML_Token_Consumer` which writes token surrounded by syntax highlighting colors.
 /// This class is intended to be used only for output to the CLI.
 struct Colored_HTML_Consumer final : bmd::HTML_Token_Consumer {

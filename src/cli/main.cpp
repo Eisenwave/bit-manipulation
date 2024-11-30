@@ -17,6 +17,7 @@
 #include "bms/parse.hpp"
 #include "bms/tokenize.hpp"
 
+#include "bmd/code_string.hpp"
 #include "bmd/codegen.hpp"
 #include "bmd/doc_to_html.hpp"
 #include "bmd/html_writer.hpp"
@@ -127,12 +128,20 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
     return 0;
 }
 
-int generate(std::string_view file, std::string_view language, std::pmr::memory_resource* memory)
+int generate(std::string_view file,
+             std::string_view language_name,
+             std::pmr::memory_resource* memory)
 {
     if (!file.ends_with(".bms")) {
-        std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
+        std::cout << ansi::red << "Error: file must have '.bms' suffix.\n";
         return 1;
     }
+    std::optional<bmd::Code_Language> language = code_language_by_name(language_name);
+    if (!language) {
+        std::cout << ansi::red << "Error: unrecognized code language: '" << language_name << "'\n";
+        return 1;
+    }
+
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
     const std::pmr::string source = load_file(file, &memory_resource);
 
@@ -140,7 +149,13 @@ int generate(std::string_view file, std::string_view language, std::pmr::memory_
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
     bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
-    std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
+    bmd::Code_String out { &memory_resource };
+    if (!bmd::generate_code(out, a, *language)) {
+        std::cout << ansi::red << "Error: failed to generate code.\n";
+        return 1;
+    }
+    std::cout << out.get_text() << '\n';
+
     return 0;
 }
 
@@ -175,9 +190,9 @@ void print_help(std::string_view program_name)
 int main(int argc, const char** argv)
 try {
     const std::vector<std::string_view> args(argv, argv + argc);
+    const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
 
     if (args.size() < 3) {
-        const std::string_view program_name = args.size() == 0 ? "bitmanip" : args[0];
         print_help(program_name);
         return 1;
     }
@@ -192,6 +207,13 @@ try {
     }
     else if (args[1] == "verify") {
         return check_semantics(args[2], &memory);
+    }
+    else if (args[1] == "generate") {
+        if (args.size() < 4) {
+            print_help(program_name);
+            return 1;
+        }
+        return generate(args[2], args[3], &memory);
     }
     else if (args[1] == "html") {
         return to_html(args[2], argc > 3 ? args[3] : std::optional<std::string_view> {}, &memory);

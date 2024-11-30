@@ -2,6 +2,8 @@
 
 #include "common/ansi.hpp"
 
+#include "bmd/codegen.hpp"
+
 #include "cli/glue.hpp"
 
 namespace bit_manipulation {
@@ -30,6 +32,48 @@ std::string_view highlight_color_of(bmd::HTML_Token_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
 }
 } // namespace
+
+std::optional<bmd::Code_Language> code_language_by_name(std::string_view name)
+{
+    using enum bmd::Code_Language;
+    // clang-format off
+    static constexpr struct {
+        std::string_view name;
+        bmd::Code_Language language;
+    } languages_by_name[] = {
+        { "bms", bms },
+        { "BMS", bms },
+        { "c", c },
+        { "C", c },
+        { "c++", cpp },
+        { "C++", cpp },
+        { "cpp", cpp },
+        { "cxx", cpp },
+        { "rs", rust },
+        { "rust", rust },
+        { "Rust", rust },
+        { "java", java },
+        { "Java", java },
+        { "kotlin", kotlin },
+        { "Kotlin", kotlin },
+        { "kt", kotlin },
+        { "js", javascript },
+        { "JS", javascript },
+        { "javascript", javascript },
+        { "JavaScript", javascript },
+        { "ts", typescript },
+        { "TS", typescript },
+        { "TypeScript", typescript },
+    };
+    // clang-format on
+
+    for (const auto& pair : languages_by_name) {
+        if (name == pair.name) {
+            return pair.language;
+        }
+    }
+    return {};
+}
 
 bool Colored_HTML_Consumer::write(char c, bmd::HTML_Token_Type type)
 {
