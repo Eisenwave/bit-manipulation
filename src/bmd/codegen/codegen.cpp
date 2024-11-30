@@ -11,6 +11,7 @@
 
 #include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
+#include "bmd/codegen/generator_base.hpp"
 
 namespace bit_manipulation::bmd {
 
@@ -187,54 +188,22 @@ to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Dialect
 
 using namespace bms::ast;
 
-struct C_Code_Generator {
+struct C_Code_Generator final : Code_Generator_Base {
 private:
-    Code_String& m_out;
-    const bms::Analyzed_Program& m_program;
-    const Code_Options m_options;
     const C_Dialect m_dialect;
-    Size m_depth = 0;
-    bool m_start_of_line = true;
 
 public:
     C_Code_Generator(Code_String& out,
                      const bms::Analyzed_Program& program,
                      const Code_Options& options,
                      C_Dialect dialect)
-        : m_out(out)
-        , m_program(program)
-        , m_options(options)
+        : Code_Generator_Base(out, program, options)
         , m_dialect(dialect)
     {
     }
 
-    bool operator()()
-    {
-        return generate_code(m_program.get_root()).has_value();
-    }
-
 private:
-    void separate_after_function()
-    {
-        if (m_options.break_after_function) {
-            end_line();
-        }
-        else {
-            m_out.append(' ');
-        }
-    }
-
-    void separate_after_if()
-    {
-        if (m_options.break_after_if) {
-            end_line();
-        }
-        else {
-            m_out.append(' ');
-        }
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> generate_code(const Some_Node* node);
+    [[nodiscard]] Result<void, Generator_Error> generate_code(const Some_Node* node) final;
 
     [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
                                                               const bms::Concrete_Type& type)
@@ -247,120 +216,6 @@ private:
         return {};
     }
 
-    void write_line(std::string_view text)
-    {
-        BIT_MANIPULATION_ASSERT(m_start_of_line);
-        write_indent();
-        m_out.append(text);
-        end_line();
-    }
-
-    void write_line(std::string_view text, Code_Span_Type type)
-    {
-        BIT_MANIPULATION_ASSERT(m_start_of_line);
-        write_indent();
-        m_out.append(text, type);
-        end_line();
-    }
-
-    void write_indent()
-    {
-        if (m_start_of_line) {
-            m_out.append(m_depth * m_options.indent_size, m_options.indent_char);
-            m_start_of_line = false;
-        }
-    }
-
-    void write_infix_operator(std::string_view op)
-    {
-        m_out.append(' ');
-        m_out.append(op, Code_Span_Type::operation);
-        m_out.append(' ');
-    }
-
-    void write_separating_comma()
-    {
-        m_out.append(',', Code_Span_Type::punctuation);
-        m_out.append(' ');
-    }
-
-    void end_line()
-    {
-        m_out.append('\n');
-        m_start_of_line = true;
-    }
-
-    struct Indent_Guard {
-        Size& indent;
-
-        Indent_Guard(Size& indent)
-            : indent(indent)
-        {
-            ++indent;
-        }
-
-        ~Indent_Guard()
-        {
-            --indent;
-        }
-    };
-
-    Indent_Guard push_indent()
-    {
-        return Indent_Guard { m_depth };
-    }
-
-    struct Attempt {
-    private:
-        Code_String* out;
-        const Code_String::Length restore_length = out->get_length();
-
-    public:
-        Attempt(Code_String& out)
-            : out(&out)
-        {
-        }
-
-        ~Attempt()
-        {
-            if (out) {
-                out->resize(restore_length);
-            }
-        }
-
-        void commit()
-        {
-            out = nullptr;
-        }
-    };
-
-    Attempt start_attempt()
-    {
-        return Attempt { m_out };
-    }
-
-    struct Parenthesization {
-    private:
-        Code_String& out;
-
-    public:
-        Parenthesization(Code_String& out)
-            : out(out)
-        {
-            out.append('(', Code_Span_Type::bracket);
-        }
-
-        ~Parenthesization()
-        {
-            out.append(')', Code_Span_Type::bracket);
-        }
-    };
-
-    Parenthesization parenthesize()
-    {
-        return Parenthesization { m_out };
-    }
-
     struct Visitor;
 };
 
@@ -370,7 +225,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Program& program)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         bool first = true;
         for (const Some_Node* declaration : program.get_children()) {
@@ -395,7 +250,7 @@ struct C_Code_Generator::Visitor {
         if (function.is_generic) {
             return Generator_Error { Generator_Error_Code::empty, node };
         }
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
         if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
@@ -406,7 +261,7 @@ struct C_Code_Generator::Visitor {
         self.m_out.append(function.get_name(), Code_Span_Type::identifier);
 
         {
-            Parenthesization p = self.parenthesize();
+            Scoped_Parenthesization p = self.parenthesize();
 
             if (const Some_Node* params_node = function.get_parameters_node()) {
                 Visitor v { self, function.get_parameters_node() };
@@ -436,7 +291,7 @@ struct C_Code_Generator::Visitor {
             return {};
         }
 
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
         for (Size i = 0; i < n; ++i) {
             if (i != 0) {
                 self.write_separating_comma();
@@ -472,7 +327,7 @@ struct C_Code_Generator::Visitor {
         if (!self.m_options.c_23) {
             return Generator_Error { Generator_Error_Code::empty, node };
         }
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
         self.m_out.append("constexpr", Code_Span_Type::keyword);
@@ -523,13 +378,13 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Statement& statement)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
         self.m_out.append("if", Code_Span_Type::keyword);
         self.m_out.append(' ');
         {
-            Parenthesization p = self.parenthesize();
+            Scoped_Parenthesization p = self.parenthesize();
             if (auto r = self.generate_code(statement.get_condition_node()); !r) {
                 return r;
             }
@@ -566,7 +421,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const While_Statement& statement)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
 
@@ -574,7 +429,7 @@ struct C_Code_Generator::Visitor {
         self.m_out.append(' ');
 
         {
-            Parenthesization p = self.parenthesize();
+            Scoped_Parenthesization p = self.parenthesize();
             if (auto r = self.generate_code(statement.get_condition_node()); !r) {
                 return r;
             }
@@ -607,7 +462,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Return_Statement& statement)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
         self.m_out.append("return", Code_Span_Type::keyword);
@@ -627,7 +482,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Assignment& assignment)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
         self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
@@ -643,12 +498,12 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Block_Statement& block)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.m_out.append("{", Code_Span_Type::bracket);
         self.end_line();
         {
-            Indent_Guard _ = self.push_indent();
+            Scoped_Indentation _ = self.push_indent();
             for (const Some_Node* node : block.get_children()) {
                 if (auto r = self.generate_code(node)) {
                     self.end_line();
@@ -667,9 +522,9 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
         {
-            Parenthesization p = self.parenthesize();
+            Scoped_Parenthesization p = self.parenthesize();
             Visitor v { self, conversion.get_target_type_node() };
             if (auto r = v(conversion.get_target_type()); !r) {
                 return r;
@@ -685,7 +540,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Expression& expression)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         const Some_Node& parent = *expression.get_parent();
         const bool parenthesize = is_expression(parent);
@@ -716,7 +571,7 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Binary_Expression& expression)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
@@ -739,11 +594,11 @@ struct C_Code_Generator::Visitor {
 
     Result<void, Generator_Error> operator()(const Function_Call_Expression& call)
     {
-        Attempt attempt = self.start_attempt();
+        Scoped_Attempt attempt = self.start_attempt();
 
         self.m_out.append(call.get_name(), Code_Span_Type::identifier);
         {
-            Parenthesization p = self.parenthesize();
+            Scoped_Parenthesization p = self.parenthesize();
             bool first = true;
             for (const Some_Node* argument : call.get_argument_nodes()) {
                 if (!first) {

@@ -15,8 +15,10 @@ enum struct Grammar_Rule : Default_Underlying {
     document, // = [blank | paragraph_break], [content];
     content, // = paragraph, { paragraph_break, [paragraph] };
     paragraph, // = { (directive | text), [blank] };
-    paragraph_break, // = (* whitespace/comment sequence containing a whitespace line outside comments *);
-    text, // = (* longest sequence of characters that does not include a "\\" (other than for escape sequences) or paragraph_break *);
+    paragraph_break, // = (* whitespace/comment sequence containing a whitespace line outside
+                     // comments *);
+    text, // = (* longest sequence of characters that does not include a "\\" (other than for escape
+          // sequences) or paragraph_break *);
     directive, // = "\\", identifier, [arguments], [block];
     arguments, // = "[", { [blank], argument, [blank], [","] }, [blank] "]";
     block, // = "{", raw_content | ([blank | paragraph_break], content), "}";
