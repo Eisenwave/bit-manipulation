@@ -652,7 +652,6 @@ struct C_Code_Generator::Visitor {
             for (const Some_Node* node : block.get_children()) {
                 if (auto r = self.generate_code(node)) {
                     self.end_line();
-                    return r;
                 }
                 else if (r.error().code != Generator_Error_Code::empty) {
                     return r;
