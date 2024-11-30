@@ -4,12 +4,6 @@
 namespace bit_manipulation::bmd {
 
 Result<void, Generator_Error>
-generate_bms_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&)
-{
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Sorry, BMS codegen not implemented yet");
-}
-
-Result<void, Generator_Error>
 generate_rust_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&)
 {
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Sorry, Rust codegen not implemented yet");
