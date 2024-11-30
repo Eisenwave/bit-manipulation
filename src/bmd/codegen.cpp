@@ -115,27 +115,27 @@ void append_type(Code_String& out, C_Type type, C_Dialect dialect)
         return;
     case int_: //
         out.append("int", Code_Span_Type::keyword);
-        break;
+        return;
     case bool_: //
         out.append(dialect == C_Dialect::c99 ? "_Bool" : "bool", Code_Span_Type::keyword);
-        break;
+        return;
 
     case uint8:
         prepend_std();
         out.append("uint8_t", Code_Span_Type::type_name);
-        break;
+        return;
     case uint16:
         prepend_std();
         out.append("uint16_t", Code_Span_Type::type_name);
-        break;
+        return;
     case uint32:
         prepend_std();
         out.append("uint32_t", Code_Span_Type::type_name);
-        break;
+        return;
     case uint64:
         prepend_std();
         out.append("uint64_t", Code_Span_Type::type_name);
-        break;
+        return;
 
     case bituint: //
         out.append("unsigned", Code_Span_Type::keyword);
@@ -147,7 +147,7 @@ void append_type(Code_String& out, C_Type type, C_Dialect dialect)
         // TODO: using allocations here is really dirty; better avoid
         out.append(std::to_string(type.width));
         out.append(')', Code_Span_Type::bracket);
-        break;
+        return;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid C type");
 }
