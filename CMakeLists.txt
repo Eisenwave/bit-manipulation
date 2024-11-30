@@ -47,15 +47,11 @@ set(HEADERS
     src/bms/deduction.hpp
     src/bms/diagnostic_consumer.hpp
     src/bms/evaluation_error.hpp
-    src/bms/execution_error.hpp
     src/bms/instantiate.hpp
-    src/bms/linear_map_stack.hpp
+    
     src/bms/operations.hpp
     src/bms/symbol_table.hpp
     src/bms/value.hpp
-    src/bms/vm_codegen.hpp
-    src/bms/vm_instructions.hpp
-    src/bms/vm.hpp
 
     src/bms/parsing/astp.hpp
     src/bms/parsing/grammar.hpp
@@ -66,6 +62,12 @@ set(HEADERS
     src/bms/tokenization/tokenize_error.hpp
     src/bms/tokenization/tokenize.hpp
     src/bms/tokenization/token.hpp
+
+    src/bms/vm/execution_error.hpp
+    src/bms/vm/linear_map_stack.hpp
+    src/bms/vm/codegen.hpp
+    src/bms/vm/instructions.hpp
+    src/bms/vm/vm.hpp
 
     src/common/ansi.hpp
     src/common/assert.hpp
@@ -96,12 +98,10 @@ add_library(bm STATIC ${HEADERS}
     src/bms/instantiate.cpp
     src/bms/operations.cpp
     src/bms/util.cpp
-    src/bms/vm_codegen.cpp
-    src/bms/vm.cpp
-
     src/bms/parsing/parse.cpp
-
     src/bms/tokenization/tokenize.cpp
+    src/bms/vm/codegen.cpp
+    src/bms/vm/vm.cpp
 
     src/common/diagnostics.cpp
     src/common/io.cpp

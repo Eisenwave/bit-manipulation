@@ -5,10 +5,10 @@
 #include "common/variant.hpp"
 
 #include "bms/builtin_function.hpp"
-#include "bms/linear_map_stack.hpp"
 #include "bms/operations.hpp"
-#include "bms/vm.hpp"
-#include "bms/vm_instructions.hpp"
+#include "bms/vm/instructions.hpp"
+#include "bms/vm/linear_map_stack.hpp"
+#include "bms/vm/vm.hpp"
 
 namespace bit_manipulation::bms {
 

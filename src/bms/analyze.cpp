@@ -9,9 +9,9 @@
 #include "bms/diagnostic_consumer.hpp"
 #include "bms/instantiate.hpp"
 #include "bms/operations.hpp"
-#include "bms/vm.hpp"
-#include "bms/vm_codegen.hpp"
-#include "bms/vm_instructions.hpp"
+#include "bms/vm/codegen.hpp"
+#include "bms/vm/instructions.hpp"
+#include "bms/vm/vm.hpp"
 
 namespace bit_manipulation::bms {
 

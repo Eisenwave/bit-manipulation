@@ -9,9 +9,9 @@
 #include "common/variant.hpp"
 
 #include "bms/comparison_failure.hpp"
-#include "bms/execution_error.hpp"
-#include "bms/linear_map_stack.hpp"
-#include "bms/vm_instructions.hpp"
+#include "bms/vm/execution_error.hpp"
+#include "bms/vm/instructions.hpp"
+#include "bms/vm/linear_map_stack.hpp"
 
 namespace bit_manipulation::bms {
 

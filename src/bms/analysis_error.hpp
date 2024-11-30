@@ -6,8 +6,8 @@
 
 #include "bms/comparison_failure.hpp"
 #include "bms/evaluation_error.hpp"
-#include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
+#include "bms/vm/execution_error.hpp"
 
 namespace bit_manipulation::bms {
 

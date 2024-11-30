@@ -9,7 +9,6 @@
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
 #include "bms/evaluation_error.hpp"
-#include "bms/execution_error.hpp"
 #include "bms/fwd.hpp"
 #include "bms/operations.hpp"
 #include "bms/parsing/astp.hpp"
@@ -18,6 +17,7 @@
 #include "bms/parsing/parse_error.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/tokenization/tokenize_error.hpp"
+#include "bms/vm/execution_error.hpp"
 
 #include "bmd/ast.hpp"
 #include "bmd/doc_to_html.hpp"
