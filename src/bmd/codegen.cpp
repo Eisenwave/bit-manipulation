@@ -401,8 +401,10 @@ struct C_Code_Generator::Visitor {
         if (auto r = (*this)(function.get_return_type()); !r) {
             return r;
         }
+        self.m_out.append(' ');
+        self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+
         {
-            self.m_out.append(function.get_name(), Code_Span_Type::identifier);
             Parenthesization p = self.parenthesize();
 
             if (const Some_Node* params_node = function.get_parameters_node()) {
