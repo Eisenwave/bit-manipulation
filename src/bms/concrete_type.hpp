@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_CONCRETE_TYPE_HPP
 #define BIT_MANIPULATION_CONCRETE_TYPE_HPP
 
+#include <string_view>
+
 #include "common/assert.hpp"
 #include "common/config.hpp"
 
@@ -17,6 +19,18 @@ enum struct Type_Type : Default_Underlying {
     /// @brief An arbitrary precision unsigned integer.
     Uint,
 };
+
+[[nodiscard]] constexpr std::string_view type_type_name(Type_Type type)
+{
+    using enum Type_Type;
+    switch (type) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(Void);
+        BIT_MANIPULATION_ENUM_STRING_CASE(Bool);
+        BIT_MANIPULATION_ENUM_STRING_CASE(Int);
+        BIT_MANIPULATION_ENUM_STRING_CASE(Uint);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type type.");
+}
 
 /// @brief A type in the BMS language, with specified width in the case of `Uint`.
 struct Concrete_Type {
