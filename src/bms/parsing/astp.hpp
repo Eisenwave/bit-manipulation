@@ -9,7 +9,7 @@
 #include "common/variant.hpp"
 
 #include "bms/fwd.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
 
 /// @brief Namespace containing all the abstract syntax tree (AST) nodes used during parsing.
 /// These nodes are later converted to regular AST nodes, which don't rely on storage in a single

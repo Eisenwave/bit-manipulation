@@ -7,7 +7,7 @@
 #include "common/result.hpp"
 
 #include "bms/fwd.hpp"
-#include "bms/tokenize_error.hpp"
+#include "bms/tokenization/tokenize_error.hpp"
 
 namespace bit_manipulation::bms {
 

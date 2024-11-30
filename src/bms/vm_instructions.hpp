@@ -5,7 +5,7 @@
 
 #include "bms/concrete_value.hpp"
 #include "bms/fwd.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token_type.hpp"
 
 namespace bit_manipulation::bms {
 namespace ins {

@@ -12,7 +12,7 @@
 #include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
 #include "bms/fwd.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
 #include "bms/value.hpp"
 
 namespace bit_manipulation::bms::ast {

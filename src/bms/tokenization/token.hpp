@@ -6,7 +6,7 @@
 #include "common/config.hpp"
 #include "common/source_position.hpp"
 
-#include "bms/token_type.hpp"
+#include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
 

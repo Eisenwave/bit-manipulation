@@ -4,8 +4,9 @@
 #include "common/parse.hpp"
 
 #include "bms/diagnostic_consumer.hpp"
-#include "bms/tokenize.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
+#include "bms/tokenization/token_type.hpp"
+#include "bms/tokenization/tokenize.hpp"
 
 namespace bit_manipulation::bms {
 

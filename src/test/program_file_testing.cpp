@@ -12,7 +12,7 @@
 #include "bms/operations.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/parsing/parse.hpp"
-#include "bms/tokenize.hpp"
+#include "bms/tokenization/tokenize.hpp"
 
 #include "test/diagnostic_policy.hpp"
 #include "test/program_file_testing.hpp"

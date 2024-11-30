@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "bms/parsing/parse.hpp"
-#include "bms/tokenize_error.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
+#include "bms/tokenization/tokenize_error.hpp"
 
 #include "bmd/parse.hpp"
 

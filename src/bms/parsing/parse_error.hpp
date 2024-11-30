@@ -4,7 +4,7 @@
 #include <span>
 
 #include "bms/fwd.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
 
 namespace bit_manipulation::bms {
 

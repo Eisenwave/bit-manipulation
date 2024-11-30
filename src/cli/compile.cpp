@@ -4,7 +4,7 @@
 
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
-#include "bms/tokenize.hpp"
+#include "bms/tokenization/tokenize.hpp"
 
 #include "cli/compile.hpp"
 

@@ -11,7 +11,8 @@
 #include "bms/parsing/astp.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/parsing/parse.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
+#include "bms/tokenization/token_type.hpp"
 
 namespace bit_manipulation::bms {
 

@@ -1,6 +1,6 @@
 #include "bms/analysis_error.hpp"
 #include "bms/parsing/grammar.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token_type.hpp"
 
 namespace bit_manipulation::bms {
 

@@ -16,8 +16,8 @@
 #include "bms/parsing/grammar.hpp"
 #include "bms/parsing/parse.hpp"
 #include "bms/parsing/parse_error.hpp"
-#include "bms/tokenize_error.hpp"
-#include "bms/tokens.hpp"
+#include "bms/tokenization/token.hpp"
+#include "bms/tokenization/tokenize_error.hpp"
 
 #include "bmd/ast.hpp"
 #include "bmd/doc_to_html.hpp"

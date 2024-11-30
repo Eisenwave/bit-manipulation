@@ -52,10 +52,6 @@ set(HEADERS
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
     src/bms/symbol_table.hpp
-    src/bms/tokens.hpp
-    src/bms/tokenize_error.hpp
-    src/bms/tokenize.hpp
-    src/bms/token_type.hpp
     src/bms/value.hpp
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
@@ -65,6 +61,11 @@ set(HEADERS
     src/bms/parsing/grammar.hpp
     src/bms/parsing/parse_error.hpp
     src/bms/parsing/parse.hpp
+    
+    src/bms/tokenization/token_type.hpp
+    src/bms/tokenization/tokenize_error.hpp
+    src/bms/tokenization/tokenize.hpp
+    src/bms/tokenization/token.hpp
 
     src/common/ansi.hpp
     src/common/assert.hpp
@@ -94,12 +95,13 @@ add_library(bm STATIC ${HEADERS}
     src/bms/ast.cpp
     src/bms/instantiate.cpp
     src/bms/operations.cpp
-    src/bms/tokenize.cpp
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
 
     src/bms/parsing/parse.cpp
+
+    src/bms/tokenization/tokenize.cpp
 
     src/common/diagnostics.cpp
     src/common/io.cpp
