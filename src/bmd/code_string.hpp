@@ -221,22 +221,22 @@ public:
     }
 };
 
-auto Code_String::begin() const -> const_iterator
+inline auto Code_String::begin() const -> const_iterator
 {
     return { this, 0 };
 }
 
-auto Code_String::end() const -> const_iterator
+inline auto Code_String::end() const -> const_iterator
 {
     return { this, Difference(m_spans.size()) };
 }
 
-auto Code_String::cbegin() const -> const_iterator
+inline auto Code_String::cbegin() const -> const_iterator
 {
     return begin();
 }
 
-auto Code_String::cend() const -> const_iterator
+inline auto Code_String::cend() const -> const_iterator
 {
     return end();
 }
