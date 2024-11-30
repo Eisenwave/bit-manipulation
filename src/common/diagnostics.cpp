@@ -89,8 +89,6 @@ struct Printable_Error {
 const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
 const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
 
-} // namespace
-
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
     switch (e) {
@@ -376,8 +374,6 @@ std::string_view to_prose(IO_Error_Code e)
     }
 }
 
-namespace {
-
 bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     return error.code() == bms::Analysis_Error_Code::incompatible_types
@@ -495,23 +491,6 @@ print_source_position(std::ostream& out, const std::optional<Source_Position>& p
     return print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
 }
 
-} // namespace
-
-std::ostream& print_file_position(std::ostream& out,
-                                  std::string_view file,
-                                  const Local_Source_Position& pos,
-                                  bool colors)
-{
-    if (colors) {
-        out << ansi::black;
-    }
-    out << file << ":" << pos.line + 1 << ":" << pos.column + 1;
-    if (colors) {
-        out << ansi::reset;
-    }
-    return out;
-}
-
 std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error, bool colors)
 {
     for (const Error_Line& line : error.lines) {
@@ -539,6 +518,23 @@ std::ostream& print_printable_error(std::ostream& out, const Printable_Error& er
         print_internal_error_notice(out, colors);
     }
 
+    return out;
+}
+
+} // namespace
+
+std::ostream& print_file_position(std::ostream& out,
+                                  std::string_view file,
+                                  const Local_Source_Position& pos,
+                                  bool colors)
+{
+    if (colors) {
+        out << ansi::black;
+    }
+    out << file << ":" << pos.line + 1 << ":" << pos.column + 1;
+    if (colors) {
+        out << ansi::reset;
+    }
     return out;
 }
 

@@ -5,6 +5,7 @@
 #include "bms/analyze.hpp"
 #include "bms/ast.hpp"
 #include "bms/builtin_function.hpp"
+#include "bms/vm_codegen.hpp"
 #include "bms/vm_instructions.hpp"
 
 namespace bit_manipulation::bms {

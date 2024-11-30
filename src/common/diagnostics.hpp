@@ -16,16 +16,6 @@
 
 namespace bit_manipulation {
 
-/// @brief Converts the given error code to a prose string which explains the problem.
-/// @param  e the error code
-/// @return The representative prose.
-std::string_view to_prose(bms::Tokenize_Error_Code e);
-
-/// @brief Converts the given error code to a prose string which explains the problem.
-/// @param e the error code
-/// @return The representative prose.
-std::string_view to_prose(IO_Error_Code e);
-
 /// @brief Returns the line that contains the given index.
 /// @param source the source string
 /// @param index the index within the source string, in range `[0, source.size())`
