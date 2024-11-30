@@ -94,18 +94,21 @@ struct Bms_Code_Generator::Visitor {
 
         bool first = true;
         for (const Some_Node* declaration : program.get_children()) {
-            if (auto r = self.generate_code(declaration)) {
-                if (!first) {
-                    self.end_line();
-                }
-                first = false;
+            Scoped_Attempt newline_attempt = self.start_attempt();
+            if (!first) {
                 self.end_line();
+                self.end_line();
+            }
+            if (auto r = self.generate_code(declaration)) {
+                first = false;
+                newline_attempt.commit();
             }
             else if (r.error().code != Generator_Error_Code::empty) {
                 return r;
             }
         }
 
+        self.end_line();
         attempt.commit();
         return {};
     }
@@ -115,10 +118,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
-            !r) {
-            return r;
-        }
+        self.m_out.append("function", Code_Span_Type::keyword);
         self.m_out.append(' ');
         self.m_out.append(function.get_name(), Code_Span_Type::identifier);
 
@@ -131,6 +131,11 @@ struct Bms_Code_Generator::Visitor {
                     return r;
                 }
             }
+        }
+        self.write_infix_operator("->", Code_Span_Type::operation);
+        if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
+            !r) {
+            return r;
         }
 
         self.separate_after_function();
@@ -267,6 +272,7 @@ struct Bms_Code_Generator::Visitor {
                 return r;
             }
         }
+        self.m_out.append(';', Code_Span_Type::punctuation);
 
         attempt.commit();
         return {};
