@@ -48,6 +48,30 @@ Result<void, Generator_Error> generate_code(Code_String& out,
                                             Code_Language language,
                                             const Code_Options& options = {});
 
+Result<void, Generator_Error>
+generate_bms_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_rust_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_c_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_cpp_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_java_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_kotlin_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_javascript_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
+Result<void, Generator_Error>
+generate_typescript_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+
 } // namespace bit_manipulation::bmd
 
 #endif
