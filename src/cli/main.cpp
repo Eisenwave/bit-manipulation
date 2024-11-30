@@ -154,7 +154,7 @@ int generate(std::string_view file,
         std::cout << ansi::red << "Error: failed to generate code.\n";
         return 1;
     }
-    std::cout << out.get_text() << '\n';
+    std::cout << out.get_text();
 
     return 0;
 }
