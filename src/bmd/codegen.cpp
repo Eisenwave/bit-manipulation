@@ -398,7 +398,8 @@ struct C_Code_Generator::Visitor {
         Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        if (auto r = (*this)(function.get_return_type()); !r) {
+        if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
+            !r) {
             return r;
         }
         self.m_out.append(' ');
@@ -408,7 +409,8 @@ struct C_Code_Generator::Visitor {
             Parenthesization p = self.parenthesize();
 
             if (const Some_Node* params_node = function.get_parameters_node()) {
-                if (auto r = (*this)(get<Parameter_List>(*params_node)); !r) {
+                Visitor v { self, function.get_parameters_node() };
+                if (auto r = v(get<Parameter_List>(*params_node)); !r) {
                     return r;
                 }
             }
@@ -418,7 +420,7 @@ struct C_Code_Generator::Visitor {
         }
 
         self.separate_after_function();
-        if (auto r = (*this)(function.get_body()); !r) {
+        if (auto r = Visitor { self, function.get_body_node() }(function.get_body()); !r) {
             return r;
         }
 
@@ -439,7 +441,8 @@ struct C_Code_Generator::Visitor {
             if (i != 0) {
                 self.write_separating_comma();
             }
-            if (auto r = (*this)(parameters.get_parameter(i)); !r) {
+            Visitor v { self, parameters.get_parameter_node(i) };
+            if (auto r = v(parameters.get_parameter(i)); !r) {
                 return r;
             }
         }
@@ -450,7 +453,8 @@ struct C_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter& parameter)
     {
-        if (auto r = (*this)(parameter.get_type()); !r) {
+
+        if (auto r = Visitor { self, parameter.get_type_node() }(parameter.get_type()); !r) {
             return r;
         }
         self.m_out.append(' ');
@@ -532,7 +536,8 @@ struct C_Code_Generator::Visitor {
         }
 
         self.separate_after_if();
-        if (auto r = (*this)(statement.get_if_block()); !r) {
+        if (auto r = Visitor { self, statement.get_if_block_node() }(statement.get_if_block());
+            !r) {
             return r;
         }
 
@@ -541,12 +546,12 @@ struct C_Code_Generator::Visitor {
                 self.write_indent();
                 self.m_out.append("else", Code_Span_Type::keyword);
                 self.m_out.append(' ');
-                if (auto r = (*this)(*else_if); !r) {
+                if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
             }
             else if (const Block_Statement* else_block = get_if<Block_Statement>(else_node)) {
-                if (auto r = (*this)(*else_block); !r) {
+                if (auto r = Visitor { self, else_node }(*else_block); !r) {
                     return r;
                 }
             }
@@ -576,7 +581,7 @@ struct C_Code_Generator::Visitor {
         }
 
         self.separate_after_if();
-        if (auto r = (*this)(statement.get_block()); !r) {
+        if (auto r = Visitor { self, statement.get_block_node() }(statement.get_block()); !r) {
             return r;
         }
 
@@ -666,7 +671,8 @@ struct C_Code_Generator::Visitor {
         Attempt attempt = self.start_attempt();
         {
             Parenthesization p = self.parenthesize();
-            if (auto r = (*this)(conversion.get_target_type()); !r) {
+            Visitor v { self, conversion.get_target_type_node() };
+            if (auto r = v(conversion.get_target_type()); !r) {
                 return r;
             }
         }
