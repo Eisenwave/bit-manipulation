@@ -17,11 +17,11 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
-#include "bmd/code_string.hpp"
-#include "bmd/codegen.hpp"
-#include "bmd/doc_to_html.hpp"
-#include "bmd/html_writer.hpp"
-#include "bmd/parse.hpp"
+#include "bmd/codegen/code_string.hpp"
+#include "bmd/codegen/codegen.hpp"
+#include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/html_writer.hpp"
+#include "bmd/parsing/parse.hpp"
 
 #include "cli/compile.hpp"
 #include "cli/glue.hpp"

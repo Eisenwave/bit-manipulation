@@ -19,11 +19,11 @@
 #include "bms/tokenization/tokenize_error.hpp"
 #include "bms/vm/execution_error.hpp"
 
-#include "bmd/ast.hpp"
-#include "bmd/doc_to_html.hpp"
-#include "bmd/grammar.hpp"
-#include "bmd/html_writer.hpp"
-#include "bmd/parse.hpp"
+#include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/html_writer.hpp"
+#include "bmd/parsing/ast.hpp"
+#include "bmd/parsing/grammar.hpp"
+#include "bmd/parsing/parse.hpp"
 
 namespace bit_manipulation {
 

@@ -10,7 +10,7 @@
 #include "bms/parsing/parse_error.hpp"
 #include "bms/tokenization/tokenize_error.hpp"
 
-#include "bmd/html_writer.hpp"
+#include "bmd/fwd.hpp"
 
 namespace bit_manipulation::bmd {
 

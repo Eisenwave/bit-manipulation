@@ -2,12 +2,12 @@
 #include <string>
 #include <unordered_map>
 
-#include "bmd/ast.hpp"
-#include "bmd/bms_to_html.hpp"
 #include "bmd/directive_type.hpp"
-#include "bmd/doc_to_html.hpp"
-#include "bmd/html_writer.hpp"
-#include "bmd/parse.hpp"
+#include "bmd/html/bms_to_html.hpp"
+#include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/html_writer.hpp"
+#include "bmd/parsing/ast.hpp"
+#include "bmd/parsing/parse.hpp"
 
 namespace bit_manipulation::bmd {
 

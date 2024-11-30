@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "bmd/directive_type.hpp"
-#include "bmd/html_writer.hpp"
+#include "bmd/html/html_writer.hpp"
 
 namespace bit_manipulation::bmd {
 

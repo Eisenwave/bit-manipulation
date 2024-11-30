@@ -10,7 +10,7 @@
 #include "bms/tokenization/token.hpp"
 #include "bms/tokenization/tokenize_error.hpp"
 
-#include "bmd/parse.hpp"
+#include "bmd/parsing/parse.hpp"
 
 namespace bit_manipulation {
 

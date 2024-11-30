@@ -1,11 +1,11 @@
-#include "bmd/bms_to_html.hpp"
-#include "bmd/code_span_type.hpp"
-#include "bmd/html_writer.hpp"
-
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/tokenization/token_type.hpp"
 #include "bms/tokenization/tokenize.hpp"
+
+#include "bmd/codegen/code_span_type.hpp"
+#include "bmd/html/bms_to_html.hpp"
+#include "bmd/html/html_writer.hpp"
 
 namespace bit_manipulation::bmd {
 

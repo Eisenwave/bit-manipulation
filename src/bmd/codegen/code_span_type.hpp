@@ -3,8 +3,9 @@
 
 #include <string_view>
 
-#include "bmd/fwd.hpp"
 #include "common/assert.hpp"
+
+#include "bmd/fwd.hpp"
 
 namespace bit_manipulation::bmd {
 

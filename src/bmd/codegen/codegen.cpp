@@ -9,8 +9,8 @@
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
 
-#include "bmd/code_string.hpp"
-#include "bmd/codegen.hpp"
+#include "bmd/codegen/code_string.hpp"
+#include "bmd/codegen/codegen.hpp"
 
 namespace bit_manipulation::bmd {
 

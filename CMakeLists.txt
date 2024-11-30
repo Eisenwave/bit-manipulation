@@ -21,18 +21,21 @@ endif()
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
 
 set(HEADERS
-    src/bmd/ast.hpp
-    src/bmd/bms_to_html.hpp
-    src/bmd/code_span_type.hpp
-    src/bmd/code_string.hpp
-    src/bmd/codegen.hpp
     src/bmd/directive_type.hpp
-    src/bmd/doc_to_html.hpp
     src/bmd/fwd.hpp
-    src/bmd/grammar.hpp
-    src/bmd/parse.hpp
-    src/bmd/html_writer.hpp
     src/bmd/scope_success_writer.hpp
+
+    src/bmd/codegen/code_span_type.hpp
+    src/bmd/codegen/code_string.hpp
+    src/bmd/codegen/codegen.hpp
+
+    src/bmd/html/bms_to_html.hpp
+    src/bmd/html/doc_to_html.hpp
+    src/bmd/html/html_writer.hpp
+    
+    src/bmd/parsing/ast.hpp
+    src/bmd/parsing/grammar.hpp
+    src/bmd/parsing/parse.hpp
 
     src/bms/analysis_error.hpp
     src/bms/analysis_level.hpp
@@ -85,12 +88,12 @@ set(HEADERS
 )
 
 add_library(bm STATIC ${HEADERS}
-    src/bmd/bms_to_html.cpp
-    src/bmd/codegen.cpp
-    src/bmd/doc_to_html.cpp
     src/bmd/enums.cpp
-    src/bmd/html_writer.cpp
-    src/bmd/parse.cpp
+    src/bmd/codegen/codegen.cpp
+    src/bmd/html/bms_to_html.cpp
+    src/bmd/html/doc_to_html.cpp
+    src/bmd/html/html_writer.cpp
+    src/bmd/parsing/parse.cpp
 
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp

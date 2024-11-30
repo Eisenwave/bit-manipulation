@@ -9,7 +9,7 @@
 
 #include "common/source_position.hpp"
 
-#include "bmd/code_span_type.hpp"
+#include "bmd/codegen/code_span_type.hpp"
 
 namespace bit_manipulation::bmd {
 

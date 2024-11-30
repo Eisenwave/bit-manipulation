@@ -2,9 +2,11 @@
 
 #include "common/ansi.hpp"
 
-#include "bmd/code_span_type.hpp"
-#include "bmd/code_string.hpp"
-#include "bmd/codegen.hpp"
+#include "bmd/codegen/code_span_type.hpp"
+#include "bmd/codegen/code_string.hpp"
+#include "bmd/codegen/codegen.hpp"
+#include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/html_writer.hpp"
 
 #include "cli/glue.hpp"
 
@@ -142,6 +144,20 @@ bool Simple_HTML_Consumer::write(char c, Size count, bmd::HTML_Token_Type)
 bool Simple_HTML_Consumer::write(std::string_view s, bmd::HTML_Token_Type)
 {
     return bool(out.write(s.data(), std::streamsize(s.length())));
+}
+
+/// @brief Writes the document with standard stylesheets attached and
+/// the usual indent options.
+Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
+                                             const bmd::Parsed_Document& document,
+                                             std::pmr::memory_resource* memory)
+{
+    static constexpr std::string_view stylesheets[] { "/css/code.css", "/css/main.css" };
+
+    constexpr bmd::Document_Options options { .indent_width = 2, //
+                                              .stylesheets = stylesheets };
+
+    return bmd::doc_to_html(out, document, options, memory);
 }
 
 std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors)

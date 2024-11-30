@@ -1,8 +1,11 @@
 #include <iosfwd>
 #include <memory_resource>
+#include <optional>
 
-#include "bmd/doc_to_html.hpp"
-#include "bmd/html_writer.hpp"
+#include "common/result.hpp"
+
+#include "bmd/fwd.hpp"
+#include "bmd/html/token_consumer.hpp"
 
 namespace bit_manipulation {
 
@@ -48,17 +51,9 @@ struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
 
 /// @brief Writes the document with standard stylesheets attached and
 /// the usual indent options.
-inline Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
-                                                    const bmd::Parsed_Document& document,
-                                                    std::pmr::memory_resource* memory)
-{
-    static constexpr std::string_view stylesheets[] { "/css/code.css", "/css/main.css" };
-
-    constexpr bmd::Document_Options options { .indent_width = 2, //
-                                              .stylesheets = stylesheets };
-
-    return bmd::doc_to_html(out, document, options, memory);
-}
+Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
+                                             const bmd::Parsed_Document& document,
+                                             std::pmr::memory_resource* memory);
 
 std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors);
 

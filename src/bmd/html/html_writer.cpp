@@ -2,7 +2,8 @@
 
 #include "common/source_position.hpp"
 
-#include "bmd/html_writer.hpp"
+#include "bmd/html/html_writer.hpp"
+#include "bmd/html/token_consumer.hpp"
 
 namespace bit_manipulation::bmd {
 
