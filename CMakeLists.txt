@@ -76,6 +76,7 @@ set(HEADERS
     src/common/parse.hpp
     src/common/source_position.hpp
     src/common/result.hpp
+    src/common/tty.hpp
     src/common/variant.hpp
 )
 
@@ -101,6 +102,7 @@ add_library(bm STATIC ${HEADERS}
     src/common/diagnostics.cpp
     src/common/io.cpp
     src/common/parse.cpp
+    src/common/tty.cpp
 )
 
 target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})

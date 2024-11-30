@@ -479,27 +479,43 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     return result;
 }
 
-std::ostream& print_source_position(std::ostream& out, const std::optional<Source_Position>& pos)
+std::ostream&
+print_source_position(std::ostream& out, const std::optional<Source_Position>& pos, bool colors)
 {
     if (!pos) {
-        return out << ansi::black << "(internal)" << ansi::reset;
+        if (colors) {
+            out << ansi::black;
+        }
+        out << "(internal)";
+        if (colors) {
+            out << ansi::reset;
+        }
+        return out;
     }
-    return print_file_position(out, pos->file_name, Local_Source_Position { *pos });
+    return print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
 }
 
 } // namespace
 
-std::ostream&
-print_file_position(std::ostream& out, std::string_view file, const Local_Source_Position& pos)
+std::ostream& print_file_position(std::ostream& out,
+                                  std::string_view file,
+                                  const Local_Source_Position& pos,
+                                  bool colors)
 {
-    return out << ansi::black << file << ":" << pos.line + 1 << ":" << pos.column + 1
-               << ansi::reset;
+    if (colors) {
+        out << ansi::black;
+    }
+    out << file << ":" << pos.line + 1 << ":" << pos.column + 1;
+    if (colors) {
+        out << ansi::reset;
+    }
+    return out;
 }
 
-std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error)
+std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error, bool colors)
 {
     for (const Error_Line& line : error.lines) {
-        print_source_position(out, line.pos) << ": ";
+        print_source_position(out, line.pos, colors) << ": ";
         switch (line.type) {
         case Error_Line_Type::error: out << error_prefix; break;
         case Error_Line_Type::note: out << note_prefix; break;
@@ -507,19 +523,20 @@ std::ostream& print_printable_error(std::ostream& out, const Printable_Error& er
         out << line.message;
 
         if (line.comp) {
-            out << ansi::h_magenta << line.comp->left << ansi::reset //
+            const auto color = [&](std::string_view c) { return colors ? c : ""; };
+            out << color(ansi::h_magenta) << line.comp->left << color(ansi::reset) //
                 << ' ' << line.comp->op << ' ' //
-                << ansi::h_magenta << line.comp->right << ansi::reset;
+                << color(ansi::h_magenta) << line.comp->right << color(ansi::reset);
         }
 
         out << '\n';
         if (line.pos) {
-            print_affected_line(out, error.source, *line.pos);
+            print_affected_line(out, error.source, *line.pos, colors);
         }
     }
 
     if (error.is_internal) {
-        print_internal_error_notice(out);
+        print_internal_error_notice(out, colors);
     }
 
     return out;
@@ -537,33 +554,56 @@ std::string_view find_line(std::string_view source, Size index)
     return source.substr(begin, end - begin);
 }
 
-std::ostream& print_location_of_file(std::ostream& out, std::string_view file)
+std::ostream& print_location_of_file(std::ostream& out, std::string_view file, bool colors)
 {
-    return out << ansi::black << file << ":" << ansi::reset;
+    if (colors) {
+        out << ansi::black;
+    }
+    out << file << ":";
+    if (colors) {
+        out << ansi::reset;
+    }
+    return out;
 }
 
-std::ostream&
-print_affected_line(std::ostream& out, std::string_view source, const Local_Source_Position& pos)
+std::ostream& print_affected_line(std::ostream& out,
+                                  std::string_view source,
+                                  const Local_Source_Position& pos,
+                                  bool colors)
 {
     constexpr std::string_view separator = " | ";
 
     const std::string_view line = find_line(source, pos.begin);
-    return out << std::right << std::setfill(' ') //
-               << ansi::h_yellow << std::setw(5) << pos.line + 1 << ansi::reset << separator //
-               << line << '\n' //
-               << std::setw(5) << "" << separator //
-               << std::string(pos.column, ' ') << ansi::h_green << "^\n"
-               << ansi::reset;
+    if (colors) {
+        out << ansi::h_yellow;
+    }
+    out << std::right << std::setfill(' ') //
+        << std::setw(5) << pos.line + 1 << separator;
+    if (colors) {
+        out << ansi::reset;
+    }
+    out << line << '\n' //
+        << std::setw(5) << "" << separator //
+        << std::string(pos.column, ' ');
+    if (colors) {
+        out << ansi::h_green;
+    }
+    out << "^\n";
+    if (colors) {
+        out << ansi::reset;
+    }
+    return out;
 }
 
 std::ostream& print_tokenize_error(std::ostream& out,
                                    std::string_view file,
                                    std::string_view source,
-                                   const bms::Tokenize_Error& e)
+                                   const bms::Tokenize_Error& e,
+                                   bool colors)
 {
-    print_file_position(out, file, e.pos);
+    print_file_position(out, file, e.pos, colors);
     out << ": " << error_prefix << to_prose(e.code) << '\n';
-    print_affected_line(out, source, e.pos);
+    print_affected_line(out, source, e.pos, colors);
     std::exit(1);
     return out;
 }
@@ -571,13 +611,15 @@ std::ostream& print_tokenize_error(std::ostream& out,
 std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
-                                const bms::Parse_Error& error)
+                                const bms::Parse_Error& error,
+                                bool colors)
 {
-    print_file_position(out, file, error.fail_token.pos) << ": " << error_prefix;
+    print_file_position(out, file, error.fail_token.pos, colors) << ": " << error_prefix;
     out << "unexpected token " << token_type_readable_name(error.fail_token.type)
         << " while matching '" << grammar_rule_name(error.fail_rule) << "'\n";
 
-    print_file_position(out, file, error.fail_token.pos) << ": " << note_prefix << "expected ";
+    print_file_position(out, file, error.fail_token.pos, colors)
+        << ": " << note_prefix << "expected ";
 
     const std::span<const bms::Token_Type> expected = error.expected_tokens;
     if (expected.size() == 0) {
@@ -594,15 +636,16 @@ std::ostream& print_parse_error(std::ostream& out,
         }
     }
     out << "\n";
-    return print_affected_line(out, source, error.fail_token.pos);
+    return print_affected_line(out, source, error.fail_token.pos, colors);
 }
 
 std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
-                                const bmd::Parse_Error& error)
+                                const bmd::Parse_Error& error,
+                                bool colors)
 {
-    print_file_position(out, file, error.pos) << ": " << error_prefix;
+    print_file_position(out, file, error.pos, colors) << ": " << error_prefix;
 
     if (error.code == bmd::Parse_Error_Code::unexpected_character) {
         out << "unexpected character '" << source[error.pos.begin] << "' while matching '"
@@ -617,36 +660,43 @@ std::ostream& print_parse_error(std::ostream& out,
         return out;
     }
 
-    return print_affected_line(out, source, error.pos);
+    return print_affected_line(out, source, error.pos, colors);
 }
 
 std::ostream& print_analysis_error(std::ostream& out,
                                    const bms::Parsed_Program& program,
-                                   const bms::Analysis_Error& error)
+                                   const bms::Analysis_Error& error,
+                                   bool colors)
 {
     const auto printable = make_error_printable(program, error);
-    return print_printable_error(out, printable);
+    return print_printable_error(out, printable, colors);
 }
 
 std::ostream& print_document_error(std::ostream& out,
                                    std::string_view file,
                                    std::string_view source,
-                                   const bmd::Document_Error& error)
+                                   const bmd::Document_Error& error,
+                                   bool colors)
 {
-    print_file_position(out, file, error.pos)
+    print_file_position(out, file, error.pos, colors)
         << ": " << error_prefix << to_prose(error.code) << '\n';
 
-    print_affected_line(out, source, error.pos);
+    print_affected_line(out, source, error.pos, colors);
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
-        print_internal_error_notice(out);
+        print_internal_error_notice(out, colors);
     }
     return out;
 }
 
-std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& error)
+std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& error, bool colors)
 {
-
-    out << ansi::h_red << "Assertion failed! " << ansi::reset;
+    if (colors) {
+        out << ansi::h_red;
+    }
+    out << "Assertion failed! ";
+    if (colors) {
+        out << ansi::reset;
+    }
 
     if (error.type == Assertion_Error_Type::expression) {
         out << "The following expression evaluated to 'false', but was expected to be 'true':\n\n";
@@ -658,15 +708,23 @@ std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& er
     Local_Source_Position pos { .line = error.location.line(),
                                 .column = error.location.column(),
                                 .begin = {} };
-    print_file_position(out, error.location.file_name(), pos)
-        << ": " << ansi::red << error.message << ansi::reset << "\n\n";
-
-    return print_internal_error_notice(out);
+    print_file_position(out, error.location.file_name(), pos, colors);
+    out << ": ";
+    if (colors) {
+        out << ansi::red;
+    }
+    out << error.message;
+    if (colors) {
+        out << ansi::reset;
+    }
+    out << "\n\n";
+    return print_internal_error_notice(out, colors);
 }
 
-std::ostream& print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error)
+std::ostream&
+print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error, bool colors)
 {
-    print_location_of_file(std::cout, file) << ": " << to_prose(error) << '\n';
+    print_location_of_file(std::cout, file, colors) << ": " << to_prose(error) << '\n';
     return out;
 }
 
@@ -858,11 +916,17 @@ std::ostream& print_ast(std::ostream& out,
     return out;
 }
 
-std::ostream& print_internal_error_notice(std::ostream& out)
+std::ostream& print_internal_error_notice(std::ostream& out, bool colors)
 {
-    return out << ansi::h_yellow << "This is an internal error. Please report this bug at:\n"
-               << "https://github.com/Eisenwave/bit-manipulation/issues\n"
-               << ansi::reset;
+    if (colors) {
+        out << ansi::h_yellow;
+    }
+    out << "This is an internal error. Please report this bug at:\n"
+        << "https://github.com/Eisenwave/bit-manipulation/issues\n";
+    if (colors) {
+        out << ansi::reset;
+    }
+    return out;
 }
 
 } // namespace bit_manipulation

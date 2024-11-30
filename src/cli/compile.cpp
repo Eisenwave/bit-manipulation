@@ -10,6 +10,9 @@
 
 namespace bit_manipulation {
 
+// FIXME: detect TTY
+constexpr bool colors = true;
+
 std::pmr::vector<bms::Token>
 tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
 {
@@ -18,7 +21,7 @@ tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memo
         return tokens;
     }
     else {
-        print_tokenize_error(std::cout, file, source, result.error());
+        print_tokenize_error(std::cout, file, source, result.error(), colors);
         std::exit(1);
     }
 }
@@ -27,7 +30,7 @@ std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* mem
 {
     Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
     if (!result) {
-        print_io_error(std::cout, file, result.error());
+        print_io_error(std::cout, file, result.error(), colors);
         std::exit(1);
     }
     return std::move(*result);
@@ -39,7 +42,7 @@ parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_
 
     Result<bmd::Parsed_Document, bmd::Parse_Error> parsed = bmd::parse(source, memory);
     if (!parsed) {
-        print_parse_error(std::cout, file, source, parsed.error());
+        print_parse_error(std::cout, file, source, parsed.error(), colors);
         std::exit(1);
     }
 
@@ -56,7 +59,7 @@ bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
         return parsed;
     }
     else {
-        print_parse_error(std::cout, file_name, source, result.error());
+        print_parse_error(std::cout, file_name, source, result.error(), colors);
         std::exit(1);
     }
 }
@@ -71,7 +74,7 @@ bms::Analyzed_Program analyze_parsed(const bms::Parsed_Program& parsed,
         return analyzed;
     }
     else {
-        print_analysis_error(std::cout, parsed, result.error());
+        print_analysis_error(std::cout, parsed, result.error(), colors);
         std::exit(1);
     }
 }

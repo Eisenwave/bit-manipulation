@@ -3,6 +3,7 @@
 
 #include "common/diagnostics.hpp"
 #include "common/io.hpp"
+#include "common/tty.hpp"
 
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
@@ -18,6 +19,13 @@
 
 namespace bit_manipulation {
 namespace {
+
+const bool should_print_colors = is_tty(stdout);
+
+std::string_view color(std::string_view c)
+{
+    return should_print_colors ? c : "";
+}
 
 std::ostream& print_analysis_error_name(std::ostream& out, const bms::Analysis_Error& e)
 {
@@ -113,26 +121,26 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         m_failed = true;
-        print_io_error(std::cout, file, e);
+        print_io_error(std::cout, file, e, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         m_failed = true;
-        print_tokenize_error(std::cout, file, source, e);
+        print_tokenize_error(std::cout, file, source, e, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
         m_failed = true;
-        print_parse_error(std::cout, file, source, e);
+        print_parse_error(std::cout, file, source, e, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Analysis_Error& e) final
     {
         m_failed = true;
         if (parsed_program != nullptr) {
-            print_analysis_error(std::cout, *parsed_program, e);
+            print_analysis_error(std::cout, *parsed_program, e, should_print_colors);
         }
         return Policy_Action::FAILURE;
     }
@@ -164,7 +172,7 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e);
+        print_io_error(std::cout, file, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
@@ -173,9 +181,9 @@ public:
         if (e.code == m_expected) {
             return m_state = Policy_Action::SUCCESS;
         }
-        std::cout << ansi::red << "Expected '" << name_of(m_expected) //
+        std::cout << color(ansi::red) << "Expected '" << name_of(m_expected) //
                   << "' but got '" << name_of(e.code) << "':\n";
-        print_tokenize_error(std::cout, file, source, e);
+        print_tokenize_error(std::cout, file, source, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error&) final
@@ -216,13 +224,13 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e);
+        print_io_error(std::cout, file, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_tokenize_error(std::cout, file, source, e);
+        print_tokenize_error(std::cout, file, source, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
@@ -231,18 +239,19 @@ public:
 
         const auto test_expectations = [&]() -> bool {
             if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
-                std::cout << ansi::red << "Expected error while matching '"
+                std::cout << color(ansi::red) << "Expected error while matching '"
                           << grammar_rule_name(*m_expectations.rule) //
                           << "' but got '" << grammar_rule_name(e.fail_rule) << "':\n";
                 return false;
             }
             if (m_expectations.line && e.fail_token.pos.line != *m_expectations.line - 1) {
-                std::cout << ansi::red << "Expected parse error on line " << *m_expectations.line //
+                std::cout << color(ansi::red) << "Expected parse error on line "
+                          << *m_expectations.line //
                           << " but error was on line " << e.fail_token.pos.line + 1 << ":\n";
                 return false;
             }
             if (m_expectations.token_type && e.fail_token.type != *m_expectations.token_type) {
-                std::cout << ansi::red << "Expected parse error at token of type "
+                std::cout << color(ansi::red) << "Expected parse error at token of type "
                           << token_type_readable_name(*m_expectations.token_type) //
                           << " but error was at " << token_type_readable_name(e.fail_token.type)
                           << ":\n";
@@ -252,7 +261,7 @@ public:
         };
 
         if (!test_expectations()) {
-            print_parse_error(std::cout, file, source, e);
+            print_parse_error(std::cout, file, source, e, should_print_colors);
             return m_state = Policy_Action::FAILURE;
         }
 
@@ -294,19 +303,19 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e);
+        print_io_error(std::cout, file, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_tokenize_error(std::cout, file, source, e);
+        print_tokenize_error(std::cout, file, source, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_parse_error(std::cout, file, source, e);
+        print_parse_error(std::cout, file, source, e, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
 
@@ -314,14 +323,14 @@ public:
     {
         const auto test_expectations = [&]() -> bool {
             if (!m_expectations.code.met_by(e)) {
-                std::cout << ansi::red << "Expected '" << m_expectations.code //
+                std::cout << color(ansi::red) << "Expected '" << m_expectations.code //
                           << "' but got '";
                 print_analysis_error_name(std::cout, e) << "':\n";
                 return false;
             }
             if (m_expectations.fail_line) {
                 if (!e.fail) {
-                    std::cout << ansi::red << "Expected analysis have failed on line "
+                    std::cout << color(ansi::red) << "Expected analysis have failed on line "
                               << *m_expectations.fail_line //
                               << " but it has not failed on any specific AST node:\n";
                     return false;
@@ -329,7 +338,7 @@ public:
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.fail);
                 BIT_MANIPULATION_ASSERT(pos);
                 if (pos->line != Size(*m_expectations.fail_line - 1)) {
-                    std::cout << ansi::red << "Expected analysis error on line "
+                    std::cout << color(ansi::red) << "Expected analysis error on line "
                               << *m_expectations.fail_line //
                               << " but error was on line " << pos->line + 1 << ":\n";
                     return false;
@@ -337,7 +346,8 @@ public:
             }
             if (m_expectations.cause_line) {
                 if (!e.cause) {
-                    std::cout << ansi::red << "Expected analysis error to have cause on line "
+                    std::cout << color(ansi::red)
+                              << "Expected analysis error to have cause on line "
                               << *m_expectations.cause_line //
                               << " but error has no cause:\n";
                     return false;
@@ -345,7 +355,7 @@ public:
                 std::optional<bit_manipulation::Source_Span> pos = get_source_position(*e.cause);
                 BIT_MANIPULATION_ASSERT(pos);
                 if (pos->line != Size(*m_expectations.cause_line - 1)) {
-                    std::cout << ansi::red << "Expected analysis error cause on line "
+                    std::cout << color(ansi::red) << "Expected analysis error cause on line "
                               << *m_expectations.cause_line //
                               << " but cause was on line " << pos->line + 1 << ":\n";
                     return false;
@@ -356,7 +366,7 @@ public:
 
         if (!test_expectations()) {
             BIT_MANIPULATION_ASSERT(parsed_program);
-            print_analysis_error(std::cout, *parsed_program, e);
+            print_analysis_error(std::cout, *parsed_program, e, should_print_colors);
             return m_state = Policy_Action::FAILURE;
         }
         return m_state = Policy_Action::SUCCESS;
@@ -366,9 +376,9 @@ public:
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
         if (stage == Testing_Stage::analyze) {
-            std::cout << ansi::red << "Expected '" << m_expectations.code //
+            std::cout << color(ansi::red) << "Expected '" << m_expectations.code //
                       << "' but program was analyzed with no errors.\n"
-                      << ansi::reset;
+                      << color(ansi::reset);
             return m_state = Policy_Action::FAILURE;
         }
         return Policy_Action::CONTINUE;
