@@ -149,10 +149,10 @@ protected:
         }
     }
 
-    void write_infix_operator(std::string_view op)
+    void write_infix_operator(std::string_view op, Code_Span_Type type = Code_Span_Type::operation)
     {
         m_out.append(' ');
-        m_out.append(op, Code_Span_Type::operation);
+        m_out.append(op, type);
         m_out.append(' ');
     }
 
