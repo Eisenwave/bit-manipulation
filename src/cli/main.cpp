@@ -14,7 +14,7 @@
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
-#include "bms/parse.hpp"
+#include "bms/parsing/parse.hpp"
 #include "bms/tokenize.hpp"
 
 #include "bmd/code_string.hpp"

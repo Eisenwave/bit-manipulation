@@ -1,5 +1,5 @@
 #include "bms/analysis_error.hpp"
-#include "bms/grammar.hpp"
+#include "bms/parsing/grammar.hpp"
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {

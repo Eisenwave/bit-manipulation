@@ -6,11 +6,11 @@
 #include "common/assert.hpp"
 #include "common/result.hpp"
 
-#include "bms/astp.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/diagnostic_consumer.hpp"
-#include "bms/grammar.hpp"
-#include "bms/parse.hpp"
+#include "bms/parsing/astp.hpp"
+#include "bms/parsing/grammar.hpp"
+#include "bms/parsing/parse.hpp"
 #include "bms/tokens.hpp"
 
 namespace bit_manipulation::bms {

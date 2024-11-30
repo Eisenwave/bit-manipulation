@@ -5,7 +5,7 @@
 
 #include "bms/analysis_error.hpp"
 #include "bms/diagnostic_consumer.hpp"
-#include "bms/parse_error.hpp"
+#include "bms/parsing/parse_error.hpp"
 #include "bms/tokenize_error.hpp"
 
 namespace bit_manipulation::bms {

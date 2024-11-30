@@ -9,7 +9,6 @@
 #include "bms/diagnostic_consumer.hpp"
 #include "bms/instantiate.hpp"
 #include "bms/operations.hpp"
-#include "bms/parse.hpp"
 #include "bms/vm.hpp"
 #include "bms/vm_codegen.hpp"
 #include "bms/vm_instructions.hpp"

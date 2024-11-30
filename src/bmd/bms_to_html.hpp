@@ -7,7 +7,7 @@
 #include "common/result.hpp"
 #include "common/variant.hpp"
 
-#include "bms/parse_error.hpp"
+#include "bms/parsing/parse_error.hpp"
 #include "bms/tokenize_error.hpp"
 
 #include "bmd/html_writer.hpp"

@@ -10,9 +10,9 @@
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/basic_diagnostic_consumer.hpp"
-#include "bms/grammar.hpp"
 #include "bms/operations.hpp"
-#include "bms/parse.hpp"
+#include "bms/parsing/grammar.hpp"
+#include "bms/parsing/parse.hpp"
 #include "bms/tokenize.hpp"
 
 #include "test/program_file_testing.hpp"

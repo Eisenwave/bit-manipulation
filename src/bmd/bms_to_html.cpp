@@ -2,7 +2,7 @@
 #include "bmd/code_span_type.hpp"
 #include "bmd/html_writer.hpp"
 
-#include "bms/parse.hpp"
+#include "bms/parsing/parse.hpp"
 #include "bms/tokenize.hpp"
 #include "bms/tokens.hpp"
 

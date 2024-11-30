@@ -6,7 +6,7 @@
 #include <string_view>
 #include <vector>
 
-#include "bms/parse.hpp"
+#include "bms/parsing/parse.hpp"
 #include "bms/tokenize_error.hpp"
 #include "bms/tokens.hpp"
 

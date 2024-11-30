@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_PARSING_HPP
 #define BIT_MANIPULATION_BMS_PARSING_HPP
 
+#include <memory_resource>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -9,7 +10,7 @@
 #include "common/result.hpp"
 
 #include "bms/fwd.hpp"
-#include "bms/parse_error.hpp"
+#include "bms/parsing/parse_error.hpp"
 
 namespace bit_manipulation::bms {
 

@@ -6,7 +6,7 @@
 #include "common/io_error.hpp"
 
 #include "bms/analysis_error.hpp"
-#include "bms/parse_error.hpp"
+#include "bms/parsing/parse_error.hpp"
 #include "bms/tokenize_error.hpp"
 
 #include "test/compilation_stage.hpp"

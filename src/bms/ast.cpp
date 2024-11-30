@@ -4,8 +4,8 @@
 
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
-#include "bms/astp.hpp"
-#include "bms/parse.hpp"
+#include "bms/parsing/astp.hpp"
+#include "bms/parsing/parse.hpp"
 
 namespace bit_manipulation::bms {
 

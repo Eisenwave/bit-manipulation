@@ -39,7 +39,6 @@ set(HEADERS
     src/bms/analyze.hpp
     src/bms/analyzed_program.hpp
     src/bms/ast.hpp
-    src/bms/astp.hpp
     src/bms/basic_diagnostic_consumer.hpp
     src/bms/builtin_function.hpp
     src/bms/comparison_failure.hpp
@@ -49,12 +48,9 @@ set(HEADERS
     src/bms/diagnostic_consumer.hpp
     src/bms/evaluation_error.hpp
     src/bms/execution_error.hpp
-    src/bms/grammar.hpp
     src/bms/instantiate.hpp
     src/bms/linear_map_stack.hpp
     src/bms/operations.hpp
-    src/bms/parse_error.hpp
-    src/bms/parse.hpp
     src/bms/symbol_table.hpp
     src/bms/tokens.hpp
     src/bms/tokenize_error.hpp
@@ -64,6 +60,11 @@ set(HEADERS
     src/bms/vm_codegen.hpp
     src/bms/vm_instructions.hpp
     src/bms/vm.hpp
+
+    src/bms/parsing/astp.hpp
+    src/bms/parsing/grammar.hpp
+    src/bms/parsing/parse_error.hpp
+    src/bms/parsing/parse.hpp
 
     src/common/ansi.hpp
     src/common/assert.hpp
@@ -93,11 +94,12 @@ add_library(bm STATIC ${HEADERS}
     src/bms/ast.cpp
     src/bms/instantiate.cpp
     src/bms/operations.cpp
-    src/bms/parse.cpp
     src/bms/tokenize.cpp
     src/bms/util.cpp
     src/bms/vm_codegen.cpp
     src/bms/vm.cpp
+
+    src/bms/parsing/parse.cpp
 
     src/common/diagnostics.cpp
     src/common/io.cpp
