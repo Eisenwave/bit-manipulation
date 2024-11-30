@@ -14,7 +14,8 @@
 namespace bit_manipulation::bmd {
 
 struct Code_String_Span {
-    std::string_view text;
+    Size begin;
+    Size length;
     Code_Span_Type type;
 };
 
@@ -47,9 +48,14 @@ public:
     {
     }
 
-    Length get_length() const
+    [[nodiscard]] Length get_length() const
     {
         return { .text_length = m_text.size(), .span_count = m_spans.size() };
+    }
+
+    [[nodiscard]] Size get_text_length() const
+    {
+        return m_text.size();
     }
 
     void resize(Length length)
@@ -110,8 +116,7 @@ public:
 private:
     Code_String_Span extract(const Internal_Span& span) const
     {
-        const char* begin = m_text.data() + Difference(span.begin);
-        return { .text = { begin, span.length }, .type = span.type };
+        return { .begin = span.begin, .length = span.length, .type = span.type };
     }
 };
 
