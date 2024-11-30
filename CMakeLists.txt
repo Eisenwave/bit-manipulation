@@ -29,6 +29,7 @@ set(HEADERS
     src/bmd/codegen/code_string.hpp
     src/bmd/codegen/codegen.hpp
     src/bmd/codegen/generator_base.hpp
+    src/bmd/codegen/generator_error.hpp
 
     src/bmd/html/bms_to_html.hpp
     src/bmd/html/doc_to_html.hpp

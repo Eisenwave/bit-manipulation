@@ -650,10 +650,10 @@ Result<void, Generator_Error> C_Code_Generator::generate_code(const Some_Node* n
 
 } // namespace
 
-bool generate_code(Code_String& out,
-                   const bms::Analyzed_Program& program,
-                   Code_Language language,
-                   const Code_Options& options)
+Result<void, Generator_Error> generate_code(Code_String& out,
+                                            const bms::Analyzed_Program& program,
+                                            Code_Language language,
+                                            const Code_Options& options)
 {
     using enum Code_Language;
     switch (language) {

@@ -7,6 +7,7 @@
 
 #include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
+#include "bmd/codegen/generator_error.hpp"
 
 namespace bit_manipulation::bmd {
 
@@ -95,9 +96,9 @@ public:
     {
     }
 
-    bool operator()()
+    Result<void, Generator_Error> operator()()
     {
-        return generate_code(m_program.get_root()).has_value();
+        return generate_code(m_program.get_root());
     }
 
 protected:

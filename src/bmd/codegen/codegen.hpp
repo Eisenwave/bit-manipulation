@@ -3,8 +3,11 @@
 
 #include <string_view>
 
+#include "common/result.hpp"
+
 #include "bms/fwd.hpp"
 
+#include "bmd/codegen/generator_error.hpp"
 #include "bmd/fwd.hpp"
 
 namespace bit_manipulation::bmd {
@@ -63,30 +66,10 @@ struct Code_Options {
 
 [[nodiscard]] std::string_view code_language_readable_name(Code_Language lang);
 
-enum struct Generator_Error_Code : Default_Underlying {
-    /// @brief The code construct could not be translated or is irrelevant to the result language.
-    /// However, this is not a critical issue and the construct can simply be ignored.
-    /// For example, this can happen with `static_assert` when translated into languages that have
-    /// no such assertions.
-    empty,
-    /// @brief An integer with an unsupported width was requested.
-    /// For example, this would happen when converting `Uint(3)` to a language that has only the
-    /// traditional 8-bit, 16-bit, etc. integers.
-    unsupported_integer_width,
-    /// @brief The code construct could not be translated, and this makes the resulting code
-    /// nonsensical or ill-formed.
-    error
-};
-
-struct Generator_Error {
-    Generator_Error_Code code;
-    const bms::ast::Some_Node* fail;
-};
-
-bool generate_code(Code_String& out,
-                   const bms::Analyzed_Program& program,
-                   Code_Language language,
-                   const Code_Options& options = {});
+Result<void, Generator_Error> generate_code(Code_String& out,
+                                            const bms::Analyzed_Program& program,
+                                            Code_Language language,
+                                            const Code_Options& options = {});
 
 } // namespace bit_manipulation::bmd
 
