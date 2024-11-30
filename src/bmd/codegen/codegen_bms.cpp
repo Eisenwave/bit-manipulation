@@ -7,6 +7,7 @@
 
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
+#include "bms/concrete_type.hpp"
 #include "bms/concrete_value.hpp"
 
 #include "bmd/codegen/code_language.hpp"
@@ -21,42 +22,12 @@ static_assert(std::ranges::random_access_range<Code_String>);
 
 namespace {
 
-enum struct C_Cpp_Dialect : Default_Underlying {
-    /// @brief C99
-    c99,
-    /// @brief C23
-    c23,
-    /// @brief C++20
-    cpp20
-};
-
-[[nodiscard]] constexpr bool is_c(C_Cpp_Dialect dialect)
-{
-    return static_cast<Default_Underlying>(dialect)
-        < static_cast<Default_Underlying>(C_Cpp_Dialect::cpp20);
-}
-
-[[nodiscard]] constexpr bool is_cpp(C_Cpp_Dialect dialect)
-{
-    return dialect == C_Cpp_Dialect::cpp20;
-}
-
-enum struct C_Cpp_Type_Type { void_, int_, bool_, uint8, uint16, uint32, uint64, bitint, bituint };
-
-struct C_Cpp_Type {
-    C_Cpp_Type_Type type;
-    int width = 0;
-};
-
+[[maybe_unused]]
 void append_value(Code_String& out, const bms::Concrete_Value& v)
 {
     switch (v.type.type()) {
     case bms::Type_Type::Void: //
-        out.append('(', Code_Span_Type::bracket);
-        out.append("void", Code_Span_Type::keyword);
-        out.append(')', Code_Span_Type::bracket);
-        out.append('0', Code_Span_Type::number);
-        break;
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Cannot have values of type Void.");
     case bms::Type_Type::Bool:
         out.append(v.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
         break;
@@ -70,121 +41,45 @@ void append_value(Code_String& out, const bms::Concrete_Value& v)
     }
 }
 
-void append_type(Code_String& out, C_Cpp_Type type, C_Cpp_Dialect dialect)
+[[maybe_unused]]
+void append_type(Code_String& out, const bms::Concrete_Type& type)
 {
-    const auto prepend_std = [&]() {
-        if (is_cpp(dialect)) {
-            out.append("std", Code_Span_Type::type_name);
-            out.append("::", Code_Span_Type::operation);
-        }
-    };
-
-    using enum C_Cpp_Type_Type;
-    switch (type.type) {
-    case void_: //
-        out.append("void", Code_Span_Type::keyword);
+    using enum bms::Type_Type;
+    switch (type.type()) {
+    case Void: //
+        out.append("Void", Code_Span_Type::keyword);
         return;
-    case int_: //
-        out.append("int", Code_Span_Type::keyword);
+    case Int: //
+        out.append("Int", Code_Span_Type::keyword);
         return;
-    case bool_: //
-        out.append(dialect == C_Cpp_Dialect::c99 ? "_Bool" : "bool", Code_Span_Type::keyword);
+    case Bool: //
+        out.append("Bool", Code_Span_Type::keyword);
         return;
-
-    case uint8:
-        prepend_std();
-        out.append("uint8_t", Code_Span_Type::type_name);
+    case Uint:
+        out.append("Uint", Code_Span_Type::keyword);
         return;
-    case uint16:
-        prepend_std();
-        out.append("uint16_t", Code_Span_Type::type_name);
-        return;
-    case uint32:
-        prepend_std();
-        out.append("uint32_t", Code_Span_Type::type_name);
-        return;
-    case uint64:
-        prepend_std();
-        out.append("uint64_t", Code_Span_Type::type_name);
-        return;
-
-    case bituint: //
-        out.append("unsigned", Code_Span_Type::keyword);
-        out.append(' ');
-        [[fallthrough]];
-    case bitint:
-        out.append("_BitInt", Code_Span_Type::keyword);
         out.append('(', Code_Span_Type::bracket);
         // TODO: using allocations here is really dirty; better avoid
-        out.append(std::to_string(type.width));
+        out.append(std::to_string(type.width()));
         out.append(')', Code_Span_Type::bracket);
         return;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid C type");
 }
 
-[[nodiscard]] Result<C_Cpp_Type, Generator_Error_Code>
-to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Cpp_Dialect dialect)
-{
-    const bool bitint_allowed = dialect != C_Cpp_Dialect::cpp20 && options.c_23;
-
-    using enum bms::Type_Type;
-    switch (type.type()) {
-    case Void: return C_Cpp_Type { C_Cpp_Type_Type::void_ };
-    case Int: return C_Cpp_Type { C_Cpp_Type_Type::int_ };
-    case Bool: return C_Cpp_Type { C_Cpp_Type_Type::bool_ };
-
-    case Uint:
-        int width = type.width();
-        if (bitint_allowed && options.c_prefer_bitint) {
-            return C_Cpp_Type { C_Cpp_Type_Type::bituint, type.width() };
-        }
-        switch (width) {
-        case 8: return C_Cpp_Type { C_Cpp_Type_Type::uint8 };
-        case 16: return C_Cpp_Type { C_Cpp_Type_Type::uint16 };
-        case 32: return C_Cpp_Type { C_Cpp_Type_Type::uint32 };
-        case 64: return C_Cpp_Type { C_Cpp_Type_Type::uint64 };
-        default:
-            if (bitint_allowed) {
-                return C_Cpp_Type { C_Cpp_Type_Type::bituint, width };
-            }
-            else {
-                return Generator_Error_Code::unsupported_integer_width;
-            }
-        }
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("BMS types should always have a C equivalent");
-}
-
 using namespace bms::ast;
 
 struct Bms_Code_Generator final : Code_Generator_Base {
-private:
-    const C_Cpp_Dialect m_dialect;
-
 public:
     Bms_Code_Generator(Code_String& out,
                        const bms::Analyzed_Program& program,
-                       const Code_Options& options,
-                       C_Cpp_Dialect dialect)
+                       const Code_Options& options)
         : Code_Generator_Base(out, program, options)
-        , m_dialect(dialect)
     {
     }
 
 private:
     [[nodiscard]] Result<void, Generator_Error> generate_code(const Some_Node* node) final;
-
-    [[nodiscard]] Result<void, Generator_Error> generate_type(const Some_Node* node,
-                                                              const bms::Concrete_Type& type)
-    {
-        const auto c_type = to_c_type(type, m_options, m_dialect);
-        if (!c_type) {
-            return Generator_Error { c_type.error(), node };
-        }
-        append_type(m_out, *c_type, m_dialect);
-        return {};
-    }
 
     struct Visitor;
 };
@@ -217,9 +112,6 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Function& function)
     {
-        if (function.is_generic) {
-            return Generator_Error { Generator_Error_Code::empty, node };
-        }
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
@@ -239,9 +131,6 @@ struct Bms_Code_Generator::Visitor {
                     return r;
                 }
             }
-            else {
-                self.m_out.append("void", Code_Span_Type::keyword);
-            }
         }
 
         self.separate_after_function();
@@ -255,13 +144,9 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter_List& parameters)
     {
-        const Size n = parameters.get_parameter_count();
-        if (n == 0) {
-            self.m_out.append("void", Code_Span_Type::keyword);
-            return {};
-        }
-
         Scoped_Attempt attempt = self.start_attempt();
+
+        const Size n = parameters.get_parameter_count();
         for (Size i = 0; i < n; ++i) {
             if (i != 0) {
                 self.write_separating_comma();
@@ -278,57 +163,85 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter& parameter)
     {
+        Scoped_Attempt attempt = self.start_attempt();
 
-        if (auto r = Visitor { self, parameter.get_type_node() }(parameter.get_type()); !r) {
+        self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(':');
+        self.m_out.append(' ');
+        auto v = Visitor { self, parameter.get_type_node() };
+        if (auto r = v(parameter.get_type()); !r) {
             return r;
         }
-        self.m_out.append(' ');
-        self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+
+        attempt.commit();
         return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Type& type)
     {
-        return self.generate_type(node, type.concrete_type().value());
+        const bms::Type_Type type_type = type.get_type();
+
+        if (type_type != bms::Type_Type::Uint) {
+            self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
+            return {};
+        }
+
+        Scoped_Attempt attempt = self.start_attempt();
+        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
+        {
+            Scoped_Parenthesization p = self.parenthesize();
+            BIT_MANIPULATION_ASSERT(type.get_width_node());
+            if (auto r = self.generate_code(type.get_width_node()); !r) {
+                return r;
+            }
+        }
+        attempt.commit();
+        return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Const& constant)
     {
-        if (!self.m_options.c_23) {
-            return Generator_Error { Generator_Error_Code::empty, node };
-        }
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("constexpr", Code_Span_Type::keyword);
-        self.m_out.append(' ');
-
-        if (auto r = self.generate_type(node, constant.const_value()->get_type()); !r) {
-            return r;
-        }
-
+        self.m_out.append("const", Code_Span_Type::keyword);
         self.m_out.append(' ');
         self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
 
+        if (const Some_Node* type = constant.get_type_node()) {
+            self.m_out.append(':', Code_Span_Type::punctuation);
+            self.m_out.append(' ');
+            if (auto r = Visitor { self, type }(constant.get_type()); !r) {
+                return r;
+            }
+        }
+
         self.write_infix_operator("=");
-        append_value(self.m_out, constant.const_value()->concrete_value());
+        if (auto r = self.generate_code(constant.get_initializer_node()); !r) {
+            return r;
+        }
 
         self.m_out.append(';', Code_Span_Type::punctuation);
-
         attempt.commit();
         return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Let& variable)
     {
+        Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        if (auto r = self.generate_type(node, variable.const_value()->get_type()); !r) {
-            return r;
-        }
-
+        self.m_out.append("let", Code_Span_Type::keyword);
         self.m_out.append(' ');
         self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
+
+        if (const Some_Node* type = variable.get_type_node()) {
+            self.m_out.append(':', Code_Span_Type::punctuation);
+            self.m_out.append(' ');
+            if (auto r = Visitor { self, type }(variable.get_type()); !r) {
+                return r;
+            }
+        }
 
         if (const Some_Node* initializer = variable.get_initializer_node()) {
             self.write_infix_operator("=");
@@ -338,12 +251,25 @@ struct Bms_Code_Generator::Visitor {
         }
 
         self.m_out.append(';', Code_Span_Type::punctuation);
+        attempt.commit();
         return {};
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Static_Assert&)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Static_Assert& assertion)
     {
-        return Generator_Error { Generator_Error_Code::empty, node };
+        Scoped_Attempt attempt = self.start_attempt();
+        self.write_indent();
+
+        self.m_out.append("static_assert", Code_Span_Type::keyword);
+        {
+            Scoped_Parenthesization p = self.parenthesize();
+            if (auto r = self.generate_code(assertion.get_expression_node()); !r) {
+                return r;
+            }
+        }
+
+        attempt.commit();
+        return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Statement& statement)
@@ -353,11 +279,8 @@ struct Bms_Code_Generator::Visitor {
 
         self.m_out.append("if", Code_Span_Type::keyword);
         self.m_out.append(' ');
-        {
-            Scoped_Parenthesization p = self.parenthesize();
-            if (auto r = self.generate_code(statement.get_condition_node()); !r) {
-                return r;
-            }
+        if (auto r = self.generate_code(statement.get_condition_node()); !r) {
+            return r;
         }
 
         self.separate_after_if();
@@ -398,11 +321,8 @@ struct Bms_Code_Generator::Visitor {
         self.m_out.append("while", Code_Span_Type::keyword);
         self.m_out.append(' ');
 
-        {
-            Scoped_Parenthesization p = self.parenthesize();
-            if (auto r = self.generate_code(statement.get_condition_node()); !r) {
-                return r;
-            }
+        if (auto r = self.generate_code(statement.get_condition_node()); !r) {
+            return r;
         }
 
         self.separate_after_if();
@@ -493,14 +413,12 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
         Scoped_Attempt attempt = self.start_attempt();
-        {
-            Scoped_Parenthesization p = self.parenthesize();
-            Visitor v { self, conversion.get_target_type_node() };
-            if (auto r = v(conversion.get_target_type()); !r) {
-                return r;
-            }
-        }
         if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
+            return r;
+        }
+        self.write_infix_operator("as", Code_Span_Type::keyword);
+        auto v = Visitor { self, conversion.get_target_type_node() };
+        if (auto r = v(conversion.get_target_type()); !r) {
             return r;
         }
 
@@ -519,14 +437,14 @@ struct Bms_Code_Generator::Visitor {
             self.m_out.append('(', Code_Span_Type::bracket);
         }
 
-        if (auto r = self.generate_code(expression.get_condition_node()); !r) {
-            return r;
-        }
-        self.write_infix_operator("?");
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
         }
-        self.write_infix_operator(":");
+        self.write_infix_operator("if", Code_Span_Type::keyword);
+        if (auto r = self.generate_code(expression.get_condition_node()); !r) {
+            return r;
+        }
+        self.write_infix_operator("else", Code_Span_Type::keyword);
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
         }
@@ -546,7 +464,6 @@ struct Bms_Code_Generator::Visitor {
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
         }
-
         self.write_infix_operator(token_type_code_name(expression.get_op()));
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
@@ -590,22 +507,13 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Id_Expression& id)
     {
-        if (const auto* constant = get_if<Const>(id.lookup_result)) {
-            // Only C23 supports constexpr; there are no "true constants" prior to that.
-            // Therefore, we are forced to inline these whenever used.
-            if (!self.m_options.c_23) {
-                append_value(self.m_out, constant->const_value()->concrete_value());
-            }
-            return {};
-        }
         self.m_out.append(id.get_identifier(), Code_Span_Type::identifier);
         return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Literal& literal)
     {
-        // TODO: preserve original style (hex vs. decimal literal etc.)
-        append_value(self.m_out, literal.const_value()->concrete_value());
+        self.m_out.append(literal.get_literal(), Code_Span_Type::number);
         return {};
     }
 
@@ -621,31 +529,13 @@ Result<void, Generator_Error> Bms_Code_Generator::generate_code(const Some_Node*
     return visit(Visitor { *this, node }, *node);
 }
 
-Result<void, Generator_Error> generate_c_cpp_code(Code_String& out,
-                                                  const bms::Analyzed_Program& program,
-                                                  Code_Language language,
-                                                  const Code_Options& options)
-{
-    BIT_MANIPULATION_ASSERT(language == Code_Language::c || language == Code_Language::cpp);
-    auto dialect = language == Code_Language::cpp ? C_Cpp_Dialect::cpp20
-        : options.c_23                            ? C_Cpp_Dialect::c23
-                                                  : C_Cpp_Dialect::c99;
-    return Bms_Code_Generator { out, program, options, dialect }();
-}
-
 } // namespace
 
-Result<void, Generator_Error>
-generate_c_code(Code_String& out, const bms::Analyzed_Program& program, const Code_Options& options)
-{
-    return generate_c_cpp_code(out, program, Code_Language::c, options);
-}
-
-Result<void, Generator_Error> generate_cpp_code(Code_String& out,
+Result<void, Generator_Error> generate_bms_code(Code_String& out,
                                                 const bms::Analyzed_Program& program,
                                                 const Code_Options& options)
 {
-    return generate_c_cpp_code(out, program, Code_Language::cpp, options);
+    return Bms_Code_Generator { out, program, options }();
 }
 
 } // namespace bit_manipulation::bmd
