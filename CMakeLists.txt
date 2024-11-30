@@ -25,6 +25,7 @@ set(HEADERS
     src/bmd/fwd.hpp
     src/bmd/scope_success_writer.hpp
 
+    src/bmd/codegen/code_language.hpp
     src/bmd/codegen/code_span_type.hpp
     src/bmd/codegen/code_string.hpp
     src/bmd/codegen/codegen.hpp

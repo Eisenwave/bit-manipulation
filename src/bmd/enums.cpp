@@ -1,5 +1,6 @@
 #include <algorithm>
 
+#include "bmd/codegen/code_language.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/html/html_writer.hpp"
 
@@ -231,6 +232,38 @@ std::string_view directive_type_tag(Directive_Type type)
     case item: return "";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
+}
+
+std::string_view code_language_name(Code_Language lang)
+{
+    using enum Code_Language;
+    switch (lang) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(bms);
+        BIT_MANIPULATION_ENUM_STRING_CASE(c);
+        BIT_MANIPULATION_ENUM_STRING_CASE(cpp);
+        BIT_MANIPULATION_ENUM_STRING_CASE(rust);
+        BIT_MANIPULATION_ENUM_STRING_CASE(java);
+        BIT_MANIPULATION_ENUM_STRING_CASE(kotlin);
+        BIT_MANIPULATION_ENUM_STRING_CASE(javascript);
+        BIT_MANIPULATION_ENUM_STRING_CASE(typescript);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid lang");
+}
+
+std::string_view code_language_readable_name(Code_Language lang)
+{
+    using enum Code_Language;
+    switch (lang) {
+    case bms: return "BMS";
+    case c: return "C";
+    case cpp: return "C++";
+    case rust: return "Rust";
+    case java: return "Java";
+    case kotlin: return "Kotlin";
+    case javascript: return "JavaScript";
+    case typescript: return "TypeScript";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid lang");
 }
 
 } // namespace bit_manipulation::bmd

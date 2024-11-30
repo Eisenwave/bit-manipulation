@@ -2,6 +2,7 @@
 
 #include "common/ansi.hpp"
 
+#include "bmd/codegen/code_language.hpp"
 #include "bmd/codegen/code_span_type.hpp"
 #include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"

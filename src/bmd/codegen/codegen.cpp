@@ -9,6 +9,8 @@
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
 
+#include "bmd/codegen/code_language.hpp"
+#include "bmd/codegen/code_span_type.hpp"
 #include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/codegen/generator_base.hpp"
@@ -16,38 +18,6 @@
 namespace bit_manipulation::bmd {
 
 static_assert(std::ranges::random_access_range<Code_String>);
-
-[[nodiscard]] std::string_view code_language_name(Code_Language lang)
-{
-    using enum Code_Language;
-    switch (lang) {
-        BIT_MANIPULATION_ENUM_STRING_CASE(bms);
-        BIT_MANIPULATION_ENUM_STRING_CASE(c);
-        BIT_MANIPULATION_ENUM_STRING_CASE(cpp);
-        BIT_MANIPULATION_ENUM_STRING_CASE(rust);
-        BIT_MANIPULATION_ENUM_STRING_CASE(java);
-        BIT_MANIPULATION_ENUM_STRING_CASE(kotlin);
-        BIT_MANIPULATION_ENUM_STRING_CASE(javascript);
-        BIT_MANIPULATION_ENUM_STRING_CASE(typescript);
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid lang");
-}
-
-[[nodiscard]] std::string_view code_language_readable_name(Code_Language lang)
-{
-    using enum Code_Language;
-    switch (lang) {
-    case bms: return "BMS";
-    case c: return "C";
-    case cpp: return "C++";
-    case rust: return "Rust";
-    case java: return "Java";
-    case kotlin: return "Kotlin";
-    case javascript: return "JavaScript";
-    case typescript: return "TypeScript";
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid lang");
-}
 
 namespace {
 
