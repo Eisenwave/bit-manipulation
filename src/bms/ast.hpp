@@ -713,6 +713,7 @@ struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
 
 private:
     Token_Type m_op;
+    Expression_Type m_type;
 
 public:
     Binary_Expression(Some_Node& parent,
@@ -721,26 +722,7 @@ public:
 
     [[nodiscard]] Expression_Type get_expression_type() const
     {
-        switch (m_op) {
-        case Token_Type::logical_and: return Expression_Type::logical_and;
-        case Token_Type::logical_or: return Expression_Type::logical_or;
-        case Token_Type::equals: return Expression_Type::equals;
-        case Token_Type::not_equals: return Expression_Type::not_equals;
-        case Token_Type::less_than: return Expression_Type::less_than;
-        case Token_Type::greater_than: return Expression_Type::greater_than;
-        case Token_Type::less_or_equal: return Expression_Type::less_or_equal;
-        case Token_Type::plus: return Expression_Type::binary_plus;
-        case Token_Type::minus: return Expression_Type::binary_minus;
-        case Token_Type::multiplication: return Expression_Type::multiplication;
-        case Token_Type::division: return Expression_Type::division;
-        case Token_Type::remainder: return Expression_Type::remainder;
-        case Token_Type::shift_left: return Expression_Type::shift_left;
-        case Token_Type::shift_right: return Expression_Type::shift_right;
-        case Token_Type::bitwise_and: return Expression_Type::bitwise_and;
-        case Token_Type::bitwise_or: return Expression_Type::bitwise_or;
-        case Token_Type::bitwise_xor: return Expression_Type::bitwise_xor;
-        default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid m_op.");
-        }
+        return m_type;
     }
 
     Token_Type get_op() const
@@ -774,6 +756,7 @@ struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
 
 private:
     Token_Type m_op;
+    Expression_Type m_type;
 
 public:
     Prefix_Expression(Some_Node& parent,
@@ -782,13 +765,7 @@ public:
 
     [[nodiscard]] Expression_Type get_expression_type() const
     {
-        switch (m_op) {
-        case Token_Type::plus: return Expression_Type::unary_plus;
-        case Token_Type::minus: return Expression_Type::unary_minus;
-        case Token_Type::logical_not: return Expression_Type::logical_not;
-        case Token_Type::bitwise_not: return Expression_Type::bitwise_not;
-        default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid m_op.");
-        }
+        return m_type;
     }
 
     Token_Type get_op() const

@@ -9,6 +9,47 @@
 
 namespace bit_manipulation::bms {
 
+namespace {
+
+[[nodiscard]] Expression_Type binary_expression_type_of_token(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case logical_and: return Expression_Type::logical_and;
+    case logical_or: return Expression_Type::logical_or;
+    case equals: return Expression_Type::equals;
+    case not_equals: return Expression_Type::not_equals;
+    case less_than: return Expression_Type::less_than;
+    case greater_than: return Expression_Type::greater_than;
+    case less_or_equal: return Expression_Type::less_or_equal;
+    case plus: return Expression_Type::binary_plus;
+    case minus: return Expression_Type::binary_minus;
+    case multiplication: return Expression_Type::multiplication;
+    case division: return Expression_Type::division;
+    case remainder: return Expression_Type::remainder;
+    case shift_left: return Expression_Type::shift_left;
+    case shift_right: return Expression_Type::shift_right;
+    case bitwise_and: return Expression_Type::bitwise_and;
+    case bitwise_or: return Expression_Type::bitwise_or;
+    case bitwise_xor: return Expression_Type::bitwise_xor;
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid operation.");
+    }
+}
+
+[[nodiscard]] Expression_Type unary_expression_type_of_token(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case plus: return Expression_Type::unary_plus;
+    case minus: return Expression_Type::unary_minus;
+    case logical_not: return Expression_Type::logical_not;
+    case bitwise_not: return Expression_Type::bitwise_not;
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid m_op.");
+    }
+}
+
+} // namespace
+
 namespace ast {
 
 namespace detail {
@@ -177,6 +218,7 @@ Binary_Expression::Binary_Expression(Some_Node& parent,
                                      std::string_view file)
     : detail::Node_Base(parent, parsed, file)
     , m_op(parsed.op)
+    , m_type(binary_expression_type_of_token(parsed.op))
 {
 }
 
@@ -185,6 +227,7 @@ Prefix_Expression::Prefix_Expression(Some_Node& parent,
                                      std::string_view file)
     : detail::Node_Base(parent, parsed, file)
     , m_op(parsed.op)
+    , m_type(unary_expression_type_of_token(parsed.op))
 {
 }
 
