@@ -52,7 +52,7 @@ using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
     case __VA_ARGS__: return static_cast<F&&>(f)(get<__VA_ARGS__>(static_cast<V&&>(v)))
 
 template <typename F, typename V>
-    requires(std::remove_reference_t<V>::alternatives <= 24)
+    requires(std::remove_reference_t<V>::alternatives <= 25)
 constexpr decltype(auto) visit(F&& f, V&& v)
 {
     using VV = std::remove_reference_t<V>;
@@ -469,6 +469,36 @@ constexpr decltype(auto) visit(F&& f, V&& v)
             BIT_MANIPULATION_VISIT_CASE(21);
             BIT_MANIPULATION_VISIT_CASE(22);
             BIT_MANIPULATION_VISIT_CASE(23);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
+    }
+    else if constexpr (std::remove_reference_t<V>::alternatives == 25) {
+        switch (v.index()) {
+            BIT_MANIPULATION_VISIT_CASE(0);
+            BIT_MANIPULATION_VISIT_CASE(1);
+            BIT_MANIPULATION_VISIT_CASE(2);
+            BIT_MANIPULATION_VISIT_CASE(3);
+            BIT_MANIPULATION_VISIT_CASE(4);
+            BIT_MANIPULATION_VISIT_CASE(5);
+            BIT_MANIPULATION_VISIT_CASE(6);
+            BIT_MANIPULATION_VISIT_CASE(7);
+            BIT_MANIPULATION_VISIT_CASE(8);
+            BIT_MANIPULATION_VISIT_CASE(9);
+            BIT_MANIPULATION_VISIT_CASE(10);
+            BIT_MANIPULATION_VISIT_CASE(11);
+            BIT_MANIPULATION_VISIT_CASE(12);
+            BIT_MANIPULATION_VISIT_CASE(13);
+            BIT_MANIPULATION_VISIT_CASE(14);
+            BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
+            BIT_MANIPULATION_VISIT_CASE(17);
+            BIT_MANIPULATION_VISIT_CASE(18);
+            BIT_MANIPULATION_VISIT_CASE(19);
+            BIT_MANIPULATION_VISIT_CASE(20);
+            BIT_MANIPULATION_VISIT_CASE(21);
+            BIT_MANIPULATION_VISIT_CASE(22);
+            BIT_MANIPULATION_VISIT_CASE(23);
+            BIT_MANIPULATION_VISIT_CASE(24);
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
     }

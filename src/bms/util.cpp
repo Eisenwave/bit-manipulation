@@ -1,5 +1,6 @@
 #include "bms/analysis_error.hpp"
 #include "bms/expression_type.hpp"
+#include "bms/parsing/attribute.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/tokenization/token_type.hpp"
 
@@ -47,6 +48,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(dot);
         BIT_MANIPULATION_ENUM_STRING_CASE(colon);
         BIT_MANIPULATION_ENUM_STRING_CASE(comma);
+        BIT_MANIPULATION_ENUM_STRING_CASE(at);
         BIT_MANIPULATION_ENUM_STRING_CASE(semicolon);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_as);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_let);
@@ -112,6 +114,7 @@ namespace bit_manipulation::bms {
     case dot: return "'.'";
     case colon: return "':'";
     case comma: return "','";
+    case at: return "'@'";
     case semicolon: return "';'";
     case keyword_as: return "'as'";
     case keyword_let: return "'let'";
@@ -225,6 +228,7 @@ namespace bit_manipulation::bms {
     case dot:
     case colon:
     case comma:
+    case at:
     case semicolon: return 1;
 
     case equals:
@@ -269,6 +273,18 @@ namespace bit_manipulation::bms {
 [[nodiscard]] bool is_comment(Token_Type type)
 {
     return type == Token_Type::line_comment || type == Token_Type::block_comment;
+}
+
+[[nodiscard]] bool is_integer_literal(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case binary_literal:
+    case octal_literal:
+    case decimal_literal:
+    case hexadecimal_literal: return true;
+    default: return false;
+    }
 }
 
 [[nodiscard]] bool is_literal(Token_Type type)
@@ -443,6 +459,10 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter_sequence);
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter);
         BIT_MANIPULATION_ENUM_STRING_CASE(static_assertion);
+        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_sequence);
+        BIT_MANIPULATION_ENUM_STRING_CASE(attribute);
+        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_argument_sequence);
+        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_argument);
         BIT_MANIPULATION_ENUM_STRING_CASE(statement);
         BIT_MANIPULATION_ENUM_STRING_CASE(assignment_statement);
         BIT_MANIPULATION_ENUM_STRING_CASE(function_call_statement);
@@ -477,7 +497,19 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(type);
         BIT_MANIPULATION_ENUM_STRING_CASE(uint);
     }
-    return "";
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid grammar rule.");
+}
+
+[[nodiscard]] constexpr std::string_view attribute_type_name(Attribute_Type type)
+{
+    using enum Attribute_Type;
+    switch (type) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(immutable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(loop_variable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(loop_increment);
+        BIT_MANIPULATION_ENUM_STRING_CASE(instantiate);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid attribute type.");
 }
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code)
@@ -530,7 +562,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
     };
-    BIT_MANIPULATION_ASSERT_UNREACHABLE();
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid analysis error code.");
 }
 
 } // namespace bit_manipulation::bms

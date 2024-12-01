@@ -376,17 +376,21 @@ Analyzed_Program::Implementation::from_parser_node_recursively(ast::Some_Node* p
     // quite negatively.
     ast::Some_Node* current_parent = parent;
 
-    const auto transform_parser_node_child
-        = [&](astp::Handle h) { return from_parser_node_recursively(current_parent, h, parsed); };
+    const auto recursive_child_transform = std::views::transform(
+        [&](astp::Handle h) { return from_parser_node_recursively(current_parent, h, parsed); });
 
     return visit(
-        [&]<typename T>(const T& n) {
-            using Result = typename T::AST_Node;
-            ast::Some_Node* result = parser_node_to_ast_node(n);
-            current_parent = result;
-            get<Result>(*result).set_children(n.get_children()
-                                              | std::views::transform(transform_parser_node_child));
-            return result;
+        [&]<typename T>(const T& n) -> ast::Some_Node* {
+            if constexpr (requires { typename T::AST_Node; }) {
+                using Result = typename T::AST_Node;
+                ast::Some_Node* result = parser_node_to_ast_node(n);
+                current_parent = result;
+                get<Result>(*result).set_children(n.get_children() | recursive_child_transform);
+                return result;
+            }
+            else {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE("No AST equivalent to this parser node.");
+            }
         },
         parsed.get_node(handle));
 }

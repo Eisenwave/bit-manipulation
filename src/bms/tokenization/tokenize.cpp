@@ -157,6 +157,9 @@ std::optional<Token_Type> match_fixed_length_token(std::string_view s) noexcept
     case ',': {
         return comma;
     }
+    case '@': {
+        return at;
+    }
     }
     return std::nullopt;
 }

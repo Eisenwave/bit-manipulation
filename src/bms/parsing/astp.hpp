@@ -9,6 +9,7 @@
 #include "common/variant.hpp"
 
 #include "bms/fwd.hpp"
+#include "bms/parsing/attribute.hpp"
 #include "bms/tokenization/token.hpp"
 
 /// @brief Namespace containing all the abstract syntax tree (AST) nodes used during parsing.
@@ -74,36 +75,41 @@ struct Program final : detail::Node_Base {
     }
 };
 
-struct Function final : detail::Node_Base, detail::Parent<4> {
+struct Function final : detail::Node_Base, detail::Parent<5> {
     using AST_Node = ast::Function;
     static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
-        = { "parameters", "return_type", "requires_clause", "body" };
+        = { "attributes", "parameters", "return_type", "requires_clause", "body" };
 
     std::string_view name;
 
     Function(Local_Source_Span pos,
              std::string_view name,
+             Handle attributes,
              Handle parameters,
              Handle return_type,
              Handle requires_clause,
              Handle body);
 
-    Handle get_parameters() const
+    Handle get_attributes() const
     {
         return children[0];
     }
-    Handle get_return_type() const
+    Handle get_parameters() const
     {
         return children[1];
     }
-    Handle get_requires_clause() const
+    Handle get_return_type() const
     {
         return children[2];
     }
-    Handle get_body() const
+    Handle get_requires_clause() const
     {
         return children[3];
+    }
+    Handle get_body() const
+    {
+        return children[4];
     }
 };
 
@@ -158,15 +164,24 @@ struct Type final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Const final : detail::Node_Base, detail::Parent<2> {
+struct Const final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::Const;
     static inline constexpr std::string_view self_name = "Const";
-    static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+    static inline constexpr std::string_view child_names[]
+        = { "attributes", "type", "initializer" };
 
     std::string_view name;
 
-    Const(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer);
+    Const(Local_Source_Span pos,
+          std::string_view name,
+          Handle attributes,
+          Handle type,
+          Handle initializer);
 
+    Handle get_attributes() const
+    {
+        return children[0];
+    }
     Handle get_type() const
     {
         return children[0];
@@ -177,22 +192,31 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-struct Let final : detail::Node_Base, detail::Parent<2> {
+struct Let final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::Let;
     static inline constexpr std::string_view self_name = "Let";
-    static inline constexpr std::string_view child_names[] = { "type", "initializer" };
+    static inline constexpr std::string_view child_names[]
+        = { "attributes", "type", "initializer" };
 
     std::string_view name;
 
-    Let(Local_Source_Span pos, std::string_view name, Handle type, Handle initializer);
+    Let(Local_Source_Span pos,
+        std::string_view name,
+        Handle attributes,
+        Handle type,
+        Handle initializer);
 
-    Handle get_type() const
+    Handle get_attributes() const
     {
         return children[0];
     }
-    Handle get_initializer() const
+    Handle get_type() const
     {
         return children[1];
+    }
+    Handle get_initializer() const
+    {
+        return children[2];
     }
 };
 
@@ -207,6 +231,56 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     {
         return children[0];
     }
+};
+
+struct Attribute_List final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Attribute_List";
+
+    std::pmr::vector<Handle> attributes;
+
+    Attribute_List(Local_Source_Span pos, std::pmr::vector<Handle>&& parameters);
+
+    Attribute_List(Attribute_List&&) noexcept = default;
+    Attribute_List& operator=(Attribute_List&&) noexcept = default;
+
+    std::span<Handle> get_children()
+    {
+        return attributes;
+    }
+    std::span<const Handle> get_children() const
+    {
+        return attributes;
+    }
+};
+
+struct Attribute final : detail::Node_Base {
+    static inline constexpr std::string_view self_name = "Attribute";
+    static inline constexpr std::string_view child_names[] = { "type" };
+
+    std::string_view name;
+    std::pmr::vector<Handle> arguments;
+
+    Attribute(Local_Source_Span pos, std::string_view name, std::pmr::vector<Handle>&& arguments);
+
+    Attribute(Attribute&&) noexcept = default;
+    Attribute& operator=(Attribute&&) noexcept = default;
+
+    std::span<Handle> get_children()
+    {
+        return arguments;
+    }
+    std::span<const Handle> get_children() const
+    {
+        return arguments;
+    }
+};
+
+struct Attribute_Argument final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Attribute_Argument";
+
+    std::string_view value;
+
+    Attribute_Argument(Local_Source_Span pos, std::string_view value);
 };
 
 struct If_Statement final : detail::Node_Base, detail::Parent<3> {
@@ -278,18 +352,22 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Assignment final : detail::Node_Base, detail::Parent<1> {
+struct Assignment final : detail::Node_Base, detail::Parent<2> {
     using AST_Node = ast::Assignment;
     static inline constexpr std::string_view self_name = "Assignment";
-    static inline constexpr std::string_view child_names[] = { "expression" };
+    static inline constexpr std::string_view child_names[] = { "attributes", "expression" };
 
     std::string_view name;
 
-    Assignment(Local_Source_Span pos, std::string_view name, Handle expression);
+    Assignment(Local_Source_Span pos, std::string_view name, Handle attributes, Handle expression);
 
-    Handle get_expression() const
+    Handle get_attributes() const
     {
         return children[0];
+    }
+    Handle get_expression() const
+    {
+        return children[1];
     }
 };
 
@@ -439,6 +517,9 @@ using Some_Node_Variant = Variant<Program,
                                   Const,
                                   Let,
                                   Static_Assert,
+                                  Attribute_List,
+                                  Attribute,
+                                  Attribute_Argument,
                                   If_Statement,
                                   While_Statement,
                                   Break,
@@ -453,6 +534,8 @@ using Some_Node_Variant = Variant<Program,
                                   Function_Call_Expression,
                                   Id_Expression,
                                   Literal>;
+
+static_assert(Some_Node_Variant::alternatives == 25);
 
 struct Some_Node : Some_Node_Variant {
     using Variant::Variant;

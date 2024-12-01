@@ -83,6 +83,8 @@ enum struct Token_Type : Default_Underlying {
     colon,
     // comma
     comma,
+    // @
+    at,
     // ;
     semicolon,
     // as
@@ -160,6 +162,8 @@ enum struct Token_Type : Default_Underlying {
 [[nodiscard]] bool is_logical_operator(Token_Type type);
 
 [[nodiscard]] bool is_relational_comparison_operator(Token_Type type);
+
+[[nodiscard]] bool is_integer_literal(Token_Type type);
 
 [[nodiscard]] bool is_literal(Token_Type type);
 
