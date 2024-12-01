@@ -1,7 +1,9 @@
 program
     = declaration, { declaration };
 program_declaration
-    = const_declaration | function_declaration | static_assertion;
+    = const_declaration
+    | function_declaration
+    | static_assertion;
 const_declaration
     = "const", identifier, [":", type], initializer;
 let_declaration
@@ -52,11 +54,13 @@ else_statement
 while_statement
     = "while", expression, block_statement;
 init_clause
-    = let_declaration | assignment;
+    = let_declaration
+    | assignment;
 block_statement
     = "{", { statement }, "}";
 expression
-    = conversion_expression | if_expression;
+    = conversion_expression
+    | if_expression;
 conversion_expression
     = prefix_expression, "as", type;
 if_expression
@@ -71,7 +75,8 @@ arithmetic_expression
 prefix_expression
     = [unary_operator], postfix_expression;
 postfix_expression
-    = function_call_expression | primary_expression;
+    = function_call_expression
+    | primary_expression;
 function_call_expression
     = identifier, "(", [expression_sequence], ")";
 expression_sequence
