@@ -9,6 +9,7 @@
 #include "bms/ast.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/concrete_value.hpp"
+#include "bms/expression_type.hpp"
 
 #include "bmd/codegen/code_language.hpp"
 #include "bmd/codegen/code_span_type.hpp"
@@ -81,6 +82,26 @@ public:
 private:
     [[nodiscard]] Result<void, Generator_Error> generate_code(const Some_Node* node) final;
 
+    void write_operator(bms::Token_Type op)
+    {
+        Code_Generator_Base::write_operator(bms::token_type_code_name(op));
+    }
+
+    void write_keyword(bms::Token_Type keyword)
+    {
+        Code_Generator_Base::write_keyword(bms::token_type_code_name(keyword));
+    }
+
+    void write_infix_operator(bms::Token_Type op, Code_Span_Type type = Code_Span_Type::operation)
+    {
+        Code_Generator_Base::write_infix_operator(bms::token_type_code_name(op), type);
+    }
+
+    void write_infix_keyword(bms::Token_Type op, Code_Span_Type type = Code_Span_Type::keyword)
+    {
+        Code_Generator_Base::write_infix_keyword(bms::token_type_code_name(op), type);
+    }
+
     struct Visitor;
 };
 
@@ -118,7 +139,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append("function", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_function);
         self.m_out.append(' ');
         self.m_out.append(function.get_name(), Code_Span_Type::identifier);
 
@@ -132,7 +153,7 @@ struct Bms_Code_Generator::Visitor {
                 }
             }
         }
-        self.write_infix_operator("->", Code_Span_Type::operation);
+        self.write_infix_operator(bms::Token_Type::right_arrow, Code_Span_Type::punctuation);
         if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
             !r) {
             return r;
@@ -209,7 +230,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("const", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_const);
         self.m_out.append(' ');
         self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
 
@@ -221,12 +242,12 @@ struct Bms_Code_Generator::Visitor {
             }
         }
 
-        self.write_infix_operator("=");
+        self.write_infix_operator(bms::Token_Type::assign);
         if (auto r = self.generate_code(constant.get_initializer_node()); !r) {
             return r;
         }
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
         attempt.commit();
         return {};
     }
@@ -236,7 +257,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("let", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_let);
         self.m_out.append(' ');
         self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
 
@@ -249,13 +270,13 @@ struct Bms_Code_Generator::Visitor {
         }
 
         if (const Some_Node* initializer = variable.get_initializer_node()) {
-            self.write_infix_operator("=");
+            self.write_infix_operator(bms::Token_Type::assign);
             if (auto r = self.generate_code(initializer); !r) {
                 return r;
             }
         }
+        self.write_semicolon();
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
         attempt.commit();
         return {};
     }
@@ -265,14 +286,14 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("static_assert", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_static_assert);
         {
             Scoped_Parenthesization p = self.parenthesize();
             if (auto r = self.generate_code(assertion.get_expression_node()); !r) {
                 return r;
             }
         }
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};
@@ -283,7 +304,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("if", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_if);
         self.m_out.append(' ');
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
             return r;
@@ -298,7 +319,7 @@ struct Bms_Code_Generator::Visitor {
         if (const Some_Node* else_node = statement.get_else_node()) {
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
                 self.write_indent();
-                self.m_out.append("else", Code_Span_Type::keyword);
+                self.write_keyword(bms::Token_Type::keyword_else);
                 self.m_out.append(' ');
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
@@ -324,7 +345,7 @@ struct Bms_Code_Generator::Visitor {
 
         self.write_indent();
 
-        self.m_out.append("while", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_while);
         self.m_out.append(' ');
 
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
@@ -343,7 +364,7 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Break&)
     {
         self.write_indent();
-        self.m_out.append("break", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_break);
         self.m_out.append(';', Code_Span_Type::punctuation);
         return {};
     }
@@ -351,7 +372,7 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Continue&)
     {
         self.write_indent();
-        self.m_out.append("continue", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_continue);
         self.m_out.append(';', Code_Span_Type::punctuation);
         return {};
     }
@@ -361,7 +382,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append("return", Code_Span_Type::keyword);
+        self.write_keyword(bms::Token_Type::keyword_return);
 
         if (const Some_Node* expr = statement.get_expression_node()) {
             self.m_out.append(' ');
@@ -370,7 +391,7 @@ struct Bms_Code_Generator::Visitor {
             }
         }
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};
@@ -382,11 +403,11 @@ struct Bms_Code_Generator::Visitor {
 
         self.write_indent();
         self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
-        self.write_infix_operator("=");
+        self.write_infix_operator(bms::Token_Type::assign);
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;
         }
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};
@@ -422,7 +443,7 @@ struct Bms_Code_Generator::Visitor {
         if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
             return r;
         }
-        self.write_infix_operator("as", Code_Span_Type::keyword);
+        self.write_infix_operator(bms::Token_Type::keyword_as, Code_Span_Type::keyword);
         auto v = Visitor { self, conversion.get_target_type_node() };
         if (auto r = v(conversion.get_target_type()); !r) {
             return r;
@@ -446,11 +467,11 @@ struct Bms_Code_Generator::Visitor {
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
         }
-        self.write_infix_operator("if", Code_Span_Type::keyword);
+        self.write_infix_operator(bms::Token_Type::keyword_if, Code_Span_Type::keyword);
         if (auto r = self.generate_code(expression.get_condition_node()); !r) {
             return r;
         }
-        self.write_infix_operator("else", Code_Span_Type::keyword);
+        self.write_infix_operator(bms::Token_Type::keyword_else, Code_Span_Type::keyword);
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
         }
@@ -470,7 +491,7 @@ struct Bms_Code_Generator::Visitor {
         if (auto r = self.generate_code(expression.get_left_node()); !r) {
             return r;
         }
-        self.write_infix_operator(token_type_code_name(expression.get_op()));
+        self.write_infix_operator(expression.get_op());
         if (auto r = self.generate_code(expression.get_right_node()); !r) {
             return r;
         }

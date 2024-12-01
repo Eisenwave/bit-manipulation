@@ -149,11 +149,33 @@ protected:
         }
     }
 
+    void write_operator(std::string_view op)
+    {
+        m_out.append(op, Code_Span_Type::operation);
+    }
+
+    void write_keyword(std::string_view keyword)
+    {
+        m_out.append(keyword, Code_Span_Type::keyword);
+    }
+
     void write_infix_operator(std::string_view op, Code_Span_Type type = Code_Span_Type::operation)
     {
         m_out.append(' ');
         m_out.append(op, type);
         m_out.append(' ');
+    }
+
+    void write_infix_keyword(std::string_view op, Code_Span_Type type = Code_Span_Type::keyword)
+    {
+        m_out.append(' ');
+        m_out.append(op, type);
+        m_out.append(' ');
+    }
+
+    void write_semicolon()
+    {
+        m_out.append(';', Code_Span_Type::punctuation);
     }
 
     void write_separating_comma()
