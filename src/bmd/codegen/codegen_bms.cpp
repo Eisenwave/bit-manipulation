@@ -106,7 +106,7 @@ private:
                                          const Some_Node& inner) const final
     {
         const bms::Expression_Type inner_type = bms::ast::get_expression_type(inner);
-        return !std::is_lt(bms::compare_precedence(outer_type, inner_type));
+        return !std::is_lteq(bms::compare_precedence(outer_type, inner_type));
     }
 
     struct Visitor;
