@@ -1,4 +1,5 @@
 #include "bms/analysis_error.hpp"
+#include "bms/expression_type.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/tokenization/token_type.hpp"
 
@@ -384,6 +385,47 @@ namespace bit_manipulation::bms {
     case bitwise_xor: return true;
     default: return false;
     }
+}
+
+[[nodiscard]] Token_Type expression_type_token(Expression_Type type)
+{
+    using enum Expression_Type;
+
+    switch (type) {
+    case if_expression: return Token_Type::keyword_if;
+    case conversion: return Token_Type::keyword_as;
+    case logical_and: return Token_Type::logical_and;
+    case logical_or: return Token_Type::logical_or;
+    case equals: return Token_Type::equals;
+    case not_equals: return Token_Type::not_equals;
+    case less_than: return Token_Type::less_than;
+    case greater_than: return Token_Type::greater_than;
+    case less_or_equal: return Token_Type::less_or_equal;
+    case greater_or_equal: return Token_Type::greater_or_equal;
+    case binary_plus: return Token_Type::plus;
+    case binary_minus: return Token_Type::minus;
+    case multiplication: return Token_Type::multiplication;
+    case division: return Token_Type::division;
+    case remainder: return Token_Type::remainder;
+    case shift_left: return Token_Type::shift_left;
+    case shift_right: return Token_Type::shift_right;
+    case bitwise_and: return Token_Type::bitwise_and;
+    case bitwise_or: return Token_Type::bitwise_or;
+    case bitwise_xor: return Token_Type::bitwise_xor;
+    case unary_plus: return Token_Type::plus;
+    case unary_minus: return Token_Type::minus;
+    case logical_not: return Token_Type::logical_not;
+    case bitwise_not: return Token_Type::bitwise_not;
+    case function_call: return Token_Type::keyword_function;
+    case literal: return Token_Type::remainder;
+    case id: return Token_Type::remainder;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid expression type.");
+}
+
+[[nodiscard]] std::string_view expression_type_code_name(Expression_Type type)
+{
+    return token_type_code_name(expression_type_token(type));
 }
 
 [[nodiscard]] std::string_view grammar_rule_name(Grammar_Rule rule)

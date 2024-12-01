@@ -12,8 +12,8 @@
 namespace bit_manipulation::bms {
 
 enum struct Expression_Type : Default_Underlying {
-    conversion,
     if_expression,
+    conversion,
 
     logical_and,
     logical_or,
@@ -47,6 +47,106 @@ enum struct Expression_Type : Default_Underlying {
     literal,
     id,
 };
+
+[[nodiscard]] Token_Type expression_type_token(Expression_Type type);
+
+[[nodiscard]] std::string_view expression_type_code_name(Expression_Type type);
+
+[[nodiscard]] constexpr bool is_primary(Expression_Type type) noexcept
+{
+    return type == Expression_Type::literal || type == Expression_Type::id;
+}
+
+[[nodiscard]] constexpr bool is_postfix_unary(Expression_Type type) noexcept
+{
+    return type == Expression_Type::function_call;
+}
+
+[[nodiscard]] constexpr bool is_prefix_unary(Expression_Type type) noexcept
+{
+    using enum Expression_Type;
+    switch (type) {
+    case unary_plus:
+    case unary_minus:
+    case logical_not:
+    case bitwise_not: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] constexpr bool is_equality_comparison(Expression_Type type) noexcept
+{
+    return type == Expression_Type::equals || type == Expression_Type::not_equals;
+}
+
+[[nodiscard]] constexpr bool is_relational_comparison(Expression_Type type) noexcept
+{
+    using enum Expression_Type;
+    switch (type) {
+    case less_than:
+    case greater_than:
+    case less_or_equal:
+    case greater_or_equal: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] constexpr bool is_binary_comparison(Expression_Type type) noexcept
+{
+    return is_equality_comparison(type) || is_relational_comparison(type);
+}
+
+[[nodiscard]] constexpr bool is_unary_arithmetic(Expression_Type type) noexcept
+{
+    return type == Expression_Type::unary_plus || type == Expression_Type::unary_minus;
+}
+
+[[nodiscard]] constexpr bool is_binary_arithmetic(Expression_Type type) noexcept
+{
+    using enum Expression_Type;
+    switch (type) {
+    case binary_plus:
+    case binary_minus:
+    case multiplication:
+    case division:
+    case remainder: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] constexpr bool is_arithmetic(Expression_Type type) noexcept
+{
+    return is_unary_arithmetic(type) || is_binary_arithmetic(type);
+}
+
+[[nodiscard]] constexpr bool is_binary_bitwise(Expression_Type type) noexcept
+{
+    using enum Expression_Type;
+    switch (type) {
+    case bitwise_and:
+    case bitwise_or:
+    case bitwise_xor:
+    case shift_left:
+    case shift_right: return true;
+    default: return false;
+    }
+}
+
+[[nodiscard]] constexpr bool is_binary_logical(Expression_Type type) noexcept
+{
+    return type == Expression_Type::logical_and || type == Expression_Type::logical_or;
+}
+
+[[nodiscard]] constexpr bool is_bitwise(Expression_Type type) noexcept
+{
+    return type == Expression_Type::bitwise_not || is_binary_bitwise(type);
+}
+
+[[nodiscard]] constexpr bool is_binary(Expression_Type type) noexcept
+{
+    return Default_Underlying(type) >= Default_Underlying(Expression_Type::conversion)
+        && Default_Underlying(type) <= Default_Underlying(Expression_Type::bitwise_xor);
+}
 
 namespace detail {
 
@@ -137,63 +237,6 @@ constexpr std::partial_ordering operator<=>(Precedence_Group x, Precedence_Group
 };
 
 } // namespace detail
-
-[[nodiscard]] constexpr bool is_primary(Expression_Type type) noexcept
-{
-    return type == Expression_Type::literal || type == Expression_Type::id;
-}
-
-[[nodiscard]] constexpr bool is_postfix_unary(Expression_Type type) noexcept
-{
-    return type == Expression_Type::function_call;
-}
-
-[[nodiscard]] constexpr bool is_prefix_unary(Expression_Type type) noexcept
-{
-    using enum Expression_Type;
-    switch (type) {
-    case unary_plus:
-    case unary_minus:
-    case logical_not:
-    case bitwise_not: return true;
-    default: return false;
-    }
-}
-
-[[nodiscard]] constexpr bool is_equality_comparison(Expression_Type type) noexcept
-{
-    return type == Expression_Type::equals || type == Expression_Type::not_equals;
-}
-
-[[nodiscard]] constexpr bool is_relational_comparison(Expression_Type type) noexcept
-{
-    using enum Expression_Type;
-    switch (type) {
-    case less_than:
-    case greater_than:
-    case less_or_equal:
-    case greater_or_equal: return true;
-    default: return false;
-    }
-}
-
-[[nodiscard]] constexpr bool is_binary_comparison(Expression_Type type) noexcept
-{
-    return is_equality_comparison(type) || is_relational_comparison(type);
-}
-
-[[nodiscard]] constexpr bool is_binary_arithmetic(Expression_Type type) noexcept
-{
-    using enum Expression_Type;
-    switch (type) {
-    case binary_plus:
-    case binary_minus:
-    case multiplication:
-    case division:
-    case remainder: return true;
-    default: return false;
-    }
-}
 
 /// @brief Returns the precedence between two expressions `x` and `y`.
 /// For example, `compare_precedence(equals, binary_plus)` is `less`, meaning that `equals` has

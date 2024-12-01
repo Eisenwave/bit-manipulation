@@ -19,11 +19,11 @@ namespace bit_manipulation::bms {
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> get_common_type(Concrete_Type lhs,
                                                                          Concrete_Type rhs);
 
-[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Token_Type op,
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Expression_Type op,
                                                                               Concrete_Type value);
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
-check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs);
+check_binary_operator(Concrete_Type lhs, Expression_Type op, Concrete_Type rhs);
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs);
@@ -43,10 +43,10 @@ check_builtin_function(Builtin_Function f, std::span<const Value> args);
 evaluate_conversion(Concrete_Value value, Concrete_Type to);
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_unary_operator(Token_Type op, Concrete_Value value);
+evaluate_unary_operator(Expression_Type op, Concrete_Value value);
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs);
+evaluate_binary_operator(Concrete_Value lhs, Expression_Type op, Concrete_Value rhs);
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs);
@@ -59,11 +59,11 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
                                                                        Concrete_Type to);
 
-[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Expression_Type op,
                                                                            Value value);
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
-evaluate_binary_operator(Value lhs, Token_Type op, Value rhs);
+evaluate_binary_operator(Value lhs, Expression_Type op, Value rhs);
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
 evaluate_if_expression(Value lhs, Value condition, Value rhs);

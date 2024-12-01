@@ -66,12 +66,12 @@ struct Convert : detail::Base {
 
 /// @brief Pops a value off the stack, applies a unary operation, and pushes the result.
 struct Unary_Operate : detail::Base {
-    Token_Type op;
+    Expression_Type op;
 };
 
 /// @brief Pops `y` off the stack. Pops `x` off the stack. Pushes `x op y`.
 struct Binary_Operate : detail::Base {
-    Token_Type op;
+    Expression_Type op;
 };
 
 /// @brief Pushes the return address.

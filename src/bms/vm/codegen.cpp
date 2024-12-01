@@ -436,7 +436,7 @@ private:
                 restore();
                 return right;
             }
-            out.push_back(ins::Binary_Operate { { h }, node.get_op() });
+            out.push_back(ins::Binary_Operate { { h }, node.get_expression_type() });
         }
 
         return {};
@@ -455,7 +455,7 @@ private:
         if (!init) {
             return init;
         }
-        out.push_back(ins::Unary_Operate { { h }, node.get_op() });
+        out.push_back(ins::Unary_Operate { { h }, node.get_expression_type() });
         return {};
     }
 

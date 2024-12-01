@@ -26,7 +26,7 @@ namespace {
 {
     const Concrete_Value l = concrete_value_of(*expression.get_left_node());
     const Concrete_Value r = concrete_value_of(*expression.get_right_node());
-    return { l, r, expression.get_op() };
+    return { l, r, expression.get_expression_type() };
 }
 
 enum struct Expression_Context : Default_Underlying {
@@ -697,14 +697,14 @@ private:
         BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
                                 || (right_value && right_value->is_known()));
 
-        const Result<Concrete_Type, Analysis_Error_Code> type_result
-            = check_binary_operator(left_value->get_type(), node.get_op(), right_value->get_type());
+        const Result<Concrete_Type, Analysis_Error_Code> type_result = check_binary_operator(
+            left_value->get_type(), node.get_expression_type(), right_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
         }
 
         const Result<Value, Evaluation_Error_Code> eval_result
-            = evaluate_binary_operator(*left_value, node.get_op(), *right_value);
+            = evaluate_binary_operator(*left_value, node.get_expression_type(), *right_value);
         if (!eval_result && context == Expression_Context::constant) {
             return Analysis_Error { eval_result.error(), handle };
         }
@@ -726,12 +726,12 @@ private:
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
         const Result<Concrete_Type, Analysis_Error_Code> type_result
-            = check_unary_operator(node.get_op(), expr_value->get_type());
+            = check_unary_operator(node.get_expression_type(), expr_value->get_type());
         if (!type_result) {
             return Analysis_Error { type_result.error(), handle };
         }
         const Result<Value, Evaluation_Error_Code> eval_result
-            = evaluate_unary_operator(node.get_op(), *expr_value);
+            = evaluate_unary_operator(node.get_expression_type(), *expr_value);
         if (!eval_result && context == Expression_Context::constant) {
             return Analysis_Error { eval_result.error(), handle };
         }

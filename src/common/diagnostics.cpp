@@ -449,7 +449,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
             { Error_Line_Type::note, cause_pos, "Comparison evaluated to ",
               Printable_Comparison { value_to_string(error.comparison_failure->left),
                                      value_to_string(error.comparison_failure->right),
-                                     token_type_code_name(error.comparison_failure->op) } });
+                                     expression_type_code_name(error.comparison_failure->op) } });
     }
     else if (error.cause != nullptr) {
         if (error.code() == bms::Analysis_Error_Code::evaluation_error) {

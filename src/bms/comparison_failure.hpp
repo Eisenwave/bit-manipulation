@@ -11,7 +11,7 @@ namespace bit_manipulation::bms {
 /// assertions such as `x == 0`, etc.
 struct Comparison_Failure {
     Concrete_Value left, right;
-    Token_Type op;
+    Expression_Type op;
 };
 
 } // namespace bit_manipulation::bms

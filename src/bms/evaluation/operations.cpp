@@ -4,7 +4,7 @@
 #include "bms/analysis_error.hpp"
 #include "bms/evaluation/builtin_function.hpp"
 #include "bms/evaluation/operations.hpp"
-#include "bms/tokenization/token_type.hpp"
+#include "bms/expression_type.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -154,10 +154,10 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 
 // TYPE ============================================================================================
 
-[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Token_Type op,
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Expression_Type op,
                                                                               Concrete_Type value)
 {
-    if (!is_unary_operator(op)) {
+    if (!is_prefix_unary(op)) {
         return Analysis_Error_Code::invalid_operator;
     }
 
@@ -168,27 +168,27 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
     }
 
     case Type_Type::Bool: {
-        if (is_arithmetic_operator(op)) {
+        if (is_unary_arithmetic(op)) {
             return Analysis_Error_Code::bool_arithmetic;
         }
-        if (is_bitwise_operator(op)) {
+        if (op == Expression_Type::bitwise_not) {
             return Analysis_Error_Code::bool_bitwise;
         }
         return value;
     }
 
     case Type_Type::Int: {
-        if (is_bitwise_operator(op)) {
+        if (op == Expression_Type::bitwise_not) {
             return Analysis_Error_Code::int_bitwise;
         }
-        if (is_logical_operator(op)) {
+        if (op == Expression_Type::logical_not) {
             return Analysis_Error_Code::int_logical;
         }
         return value;
     }
 
     case Type_Type::Uint: {
-        if (is_logical_operator(op)) {
+        if (op == Expression_Type::logical_not) {
             return Analysis_Error_Code::uint_logical;
         }
         return value;
@@ -199,9 +199,9 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 }
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
-check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
+check_binary_operator(Concrete_Type lhs, Expression_Type op, Concrete_Type rhs)
 {
-    if (!is_binary_operator(op)) {
+    if (!is_binary(op)) {
         return Analysis_Error_Code::invalid_operator;
     }
     if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
@@ -220,36 +220,36 @@ check_binary_operator(Concrete_Type lhs, Token_Type op, Concrete_Type rhs)
     }
 
     case Type_Type::Bool: {
-        if (is_arithmetic_operator(op)) {
+        if (is_binary_arithmetic(op)) {
             return Analysis_Error_Code::bool_arithmetic;
         }
-        if (is_bitwise_operator(op)) {
+        if (is_binary_bitwise(op)) {
             return Analysis_Error_Code::bool_bitwise;
         }
-        if (is_relational_comparison_operator(op)) {
+        if (is_relational_comparison(op)) {
             return Analysis_Error_Code::bool_relational_comparison;
         }
         return Concrete_Type::Bool;
     }
 
     case Type_Type::Int: {
-        if (is_bitwise_operator(op)) {
+        if (is_binary_bitwise(op)) {
             return Analysis_Error_Code::int_bitwise;
         }
-        if (is_logical_operator(op)) {
+        if (is_binary_logical(op)) {
             return Analysis_Error_Code::int_logical;
         }
-        return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
+        return is_binary_comparison(op) ? Concrete_Type::Bool : lhs;
     }
 
     case Type_Type::Uint: {
         if (lhs.width() != rhs.width()) {
             return Analysis_Error_Code::incompatible_widths;
         }
-        if (is_logical_operator(op)) {
+        if (is_binary_logical(op)) {
             return Analysis_Error_Code::uint_logical;
         }
-        return is_comparison_operator(op) ? Concrete_Type::Bool : lhs;
+        return is_binary_comparison(op) ? Concrete_Type::Bool : lhs;
     }
 
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected type.");
@@ -298,7 +298,7 @@ evaluate_conversion(Concrete_Value value, Concrete_Type to)
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_unary_operator(Token_Type op, Concrete_Value value)
+evaluate_unary_operator(Expression_Type op, Concrete_Value value)
 {
     if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error_Code::type_error;
@@ -307,30 +307,30 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value)
     switch (value.type.type()) {
 
     case Type_Type::Bool: {
-        if (op == Token_Type::logical_not) {
+        if (op == Expression_Type::logical_not) {
             return Concrete_Value { Concrete_Type::Bool, value.int_value ^ 1 };
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
 
     case Type_Type::Int: {
-        if (op == Token_Type::plus) {
+        if (op == Expression_Type::unary_plus) {
             return value;
         }
-        if (op == Token_Type::minus) {
+        if (op == Expression_Type::unary_minus) {
             return Concrete_Value { Concrete_Type::Int, -value.int_value };
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Int operation not caught by type-check.");
     }
 
     case Type_Type::Uint: {
-        if (op == Token_Type::plus) {
+        if (op == Expression_Type::unary_plus) {
             return value;
         }
-        if (op == Token_Type::minus) {
+        if (op == Expression_Type::unary_minus) {
             return value.transform_uint([](Big_Uint x) { return Big_Uint(-x); });
         }
-        if (op == Token_Type::bitwise_not) {
+        if (op == Expression_Type::bitwise_not) {
             return value.transform_uint([](Big_Uint x) { return Big_Uint(~x); });
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Uint operation not caught by type-check.");
@@ -341,7 +341,7 @@ evaluate_unary_operator(Token_Type op, Concrete_Value value)
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
+evaluate_binary_operator(Concrete_Value lhs, Expression_Type op, Concrete_Value rhs)
 {
     Result<Concrete_Type, Analysis_Error_Code> target_type
         = check_binary_operator(lhs.type, op, rhs.type);
@@ -370,31 +370,32 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
 
     if (lhs.type.is_integer()) {
         switch (op) {
-        case Token_Type::division:
-        case Token_Type::remainder: {
+        case Expression_Type::division:
+        case Expression_Type::remainder: {
             if (rhs.int_value == 0) {
                 return Evaluation_Error_Code::division_by_zero;
             }
-            return op == Token_Type::division
+            return op == Expression_Type::division
                 ? Concrete_Value { lhs.type, lhs.int_value / rhs.int_value }
                 : Concrete_Value { lhs.type, lhs.int_value % rhs.int_value };
         }
         // Relational comparisons don't simply check for bit-equality, so they cannot be handled
         // commonly for both.
-        case Token_Type::equals: //
+        case Expression_Type::equals: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
-        case Token_Type::not_equals: //
+        case Expression_Type::not_equals: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value != rhs.int_value) };
         default: break;
         }
     }
 
     switch (lhs.type.type()) {
+        using enum Expression_Type;
     case Type_Type::Bool: {
-        if (op == Token_Type::logical_and) {
+        if (op == logical_and) {
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value && rhs.int_value) };
         }
-        if (op == Token_Type::logical_or) {
+        if (op == logical_or) {
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value || rhs.int_value) };
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
@@ -402,19 +403,19 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
 
     case Type_Type::Int: {
         switch (op) {
-        case Token_Type::less_than: //
+        case less_than: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value < rhs.int_value) };
-        case Token_Type::greater_than: //
+        case greater_than: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value > rhs.int_value) };
-        case Token_Type::less_or_equal: //
+        case less_or_equal: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value <= rhs.int_value) };
-        case Token_Type::greater_or_equal: //
+        case greater_or_equal: //
             return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value >= rhs.int_value) };
-        case Token_Type::plus: //
+        case binary_plus: //
             return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value + rhs.int_value) };
-        case Token_Type::minus: //
+        case binary_minus: //
             return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value - rhs.int_value) };
-        case Token_Type::multiplication: //
+        case multiplication: //
             return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value * rhs.int_value) };
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
@@ -423,31 +424,30 @@ evaluate_binary_operator(Concrete_Value lhs, Token_Type op, Concrete_Value rhs)
     }
 
     case Type_Type::Uint: {
-
         switch (op) {
-        case Token_Type::less_than: //
+        case less_than: //
             return compare_uint([](Big_Uint x, Big_Uint y) { return x < y; });
-        case Token_Type::greater_than: //
+        case greater_than: //
             return compare_uint([](Big_Uint x, Big_Uint y) { return x > y; });
-        case Token_Type::less_or_equal: //
+        case less_or_equal: //
             return compare_uint([](Big_Uint x, Big_Uint y) { return x <= y; });
-        case Token_Type::greater_or_equal: //
+        case greater_or_equal: //
             return compare_uint([](Big_Uint x, Big_Uint y) { return x >= y; });
-        case Token_Type::plus: //
+        case binary_plus: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x + y; });
-        case Token_Type::minus: //
+        case binary_minus: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x - y; });
-        case Token_Type::multiplication: //
+        case multiplication: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x * y; });
-        case Token_Type::bitwise_and: //
+        case bitwise_and: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x & y; });
-        case Token_Type::bitwise_or: //
+        case bitwise_or: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x | y; });
-        case Token_Type::bitwise_xor: //
+        case bitwise_xor: //
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x ^ y; });
-        case Token_Type::shift_left:
+        case shift_left:
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x << y; });
-        case Token_Type::shift_right:
+        case shift_right:
             return transform_uint([](Big_Uint x, Big_Uint y) -> Big_Uint { return x >> y; });
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
@@ -489,7 +489,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
     return value.convert_to(to, Conversion_Type::lossless_numeric);
 }
 
-[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Token_Type op,
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Expression_Type op,
                                                                            Value value)
 {
     if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.get_type());
@@ -503,7 +503,7 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
-evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
+evaluate_binary_operator(Value lhs, Expression_Type op, Value rhs)
 {
     const Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_binary_operator(lhs.get_type(), op, rhs.get_type());
@@ -520,10 +520,11 @@ evaluate_binary_operator(Value lhs, Token_Type op, Value rhs)
     // Even if we don't know the values of both operands, there are certain operations which are
     // illegal no matter what the other operand is, such as division by zero.
     if (rhs) {
-        if ((op == Token_Type::division || op == Token_Type::remainder) && rhs.as_int() == 0) {
+        using enum Expression_Type;
+        if ((op == division || op == remainder) && rhs.as_int() == 0) {
             return Evaluation_Error_Code::division_by_zero;
         }
-        if ((op == Token_Type::shift_left || op == Token_Type::shift_right)
+        if ((op == shift_left || op == shift_right)
             && (rhs.as_int() < 0 || rhs.as_int() >= lhs.get_type().width())) {
             return Evaluation_Error_Code::shift_too_much;
         }
