@@ -150,7 +150,7 @@ int generate(std::string_view file,
     bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
     bmd::Code_String out { &memory_resource };
-    if (!bmd::generate_code(out, a, *language)) {
+    if (!bmd::generate_code(out, a, *language, { .always_parenthesize_subexpressions = true })) {
         std::cout << ansi::red << "Error: failed to generate code.\n";
         return 1;
     }

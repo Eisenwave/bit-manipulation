@@ -21,6 +21,99 @@ static_assert(std::ranges::random_access_range<Code_String>);
 
 namespace {
 
+// https://en.cppreference.com/w/cpp/language/operator_precedence
+// technically there are more, but the rest can never be produced from BMS
+enum struct C_Cpp_Precedence_Group : Default_Underlying {
+    conditional,
+    logical_or,
+    logical_and,
+    bitwise_or,
+    bitwise_xor,
+    bitwise_and,
+    equality,
+    relational,
+    shift,
+    additive,
+    multiplicative,
+    prefix,
+    postfix,
+    primary
+};
+
+std::strong_ordering compare_minimally(C_Cpp_Precedence_Group x, C_Cpp_Precedence_Group y) noexcept
+{
+    return Default_Underlying(x) <=> Default_Underlying(y);
+}
+
+bool is_binary(C_Cpp_Precedence_Group group) noexcept
+{
+    return Default_Underlying(group) >= Default_Underlying(C_Cpp_Precedence_Group::logical_or)
+        && Default_Underlying(group) <= Default_Underlying(C_Cpp_Precedence_Group::multiplicative);
+}
+
+bool is_binary_bitwise(C_Cpp_Precedence_Group group) noexcept
+{
+    const auto underlying = Default_Underlying(group);
+    return group == C_Cpp_Precedence_Group::shift
+        || (underlying >= Default_Underlying(C_Cpp_Precedence_Group::bitwise_or)
+            && underlying <= Default_Underlying(C_Cpp_Precedence_Group::bitwise_and));
+}
+
+bool is_binary_logical(C_Cpp_Precedence_Group group) noexcept
+{
+    return group == C_Cpp_Precedence_Group::logical_and
+        || group == C_Cpp_Precedence_Group::logical_or;
+}
+
+std::partial_ordering compare_readably(C_Cpp_Precedence_Group x, C_Cpp_Precedence_Group y) noexcept
+{
+    if (x == y) {
+        return std::partial_ordering::equivalent;
+    }
+    if (is_binary_logical(x) && is_binary_logical(y)) {
+        return std::partial_ordering::unordered;
+    }
+    if ((is_binary_bitwise(x) && is_binary(y)) || (is_binary(x) && is_binary_bitwise(y))) {
+        return std::partial_ordering::unordered;
+    }
+    return compare_minimally(x, y);
+}
+
+[[nodiscard]] C_Cpp_Precedence_Group precedence_group_of(bms::Expression_Type type)
+{
+    using enum bms::Expression_Type;
+    switch (type) {
+    case if_expression: return C_Cpp_Precedence_Group::conditional;
+    case logical_or: return C_Cpp_Precedence_Group::logical_or;
+    case logical_and: return C_Cpp_Precedence_Group::logical_and;
+    case bitwise_or: return C_Cpp_Precedence_Group::bitwise_or;
+    case bitwise_xor: return C_Cpp_Precedence_Group::bitwise_xor;
+    case bitwise_and: return C_Cpp_Precedence_Group::bitwise_and;
+    case equals:
+    case not_equals: return C_Cpp_Precedence_Group::equality;
+    case less_than:
+    case greater_than:
+    case less_or_equal:
+    case greater_or_equal: return C_Cpp_Precedence_Group::relational;
+    case shift_left:
+    case shift_right: return C_Cpp_Precedence_Group::shift;
+    case binary_plus:
+    case binary_minus: return C_Cpp_Precedence_Group::additive;
+    case multiplication:
+    case division:
+    case remainder: return C_Cpp_Precedence_Group::multiplicative;
+    case conversion:
+    case unary_plus:
+    case unary_minus:
+    case logical_not:
+    case bitwise_not: return C_Cpp_Precedence_Group::prefix;
+    case function_call: return C_Cpp_Precedence_Group::postfix;
+    case literal:
+    case id: return C_Cpp_Precedence_Group::primary;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid expression type.");
+};
+
 enum struct C_Cpp_Dialect : Default_Underlying {
     /// @brief C99
     c99,
@@ -186,10 +279,12 @@ private:
         return {};
     }
 
-    [[nodiscard]] bool needs_parentheses(bms::Expression_Type, const Some_Node&) const final
+    [[nodiscard]] bool needs_parentheses(bms::Expression_Type outer_type,
+                                         const Some_Node& inner) const final
     {
-        // TODO: implement
-        return false;
+        const C_Cpp_Precedence_Group outer_group = precedence_group_of(outer_type);
+        const C_Cpp_Precedence_Group inner_group = precedence_group_of(get_expression_type(inner));
+        return !std::is_lteq(compare_readably(outer_group, inner_group));
     }
 
     struct Visitor;
@@ -498,6 +593,7 @@ struct C_Cpp_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
+        constexpr auto outer_type = bms::Expression_Type::conversion;
         Scoped_Attempt attempt = self.start_attempt();
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -506,7 +602,8 @@ struct C_Cpp_Code_Generator::Visitor {
                 return r;
             }
         }
-        if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, conversion.get_expression_node());
+            !r) {
             return r;
         }
 
@@ -516,6 +613,7 @@ struct C_Cpp_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Expression& expression)
     {
+        constexpr auto outer_type = bms::Expression_Type::if_expression;
         Scoped_Attempt attempt = self.start_attempt();
 
         const Some_Node& parent = *expression.get_parent();
@@ -525,15 +623,15 @@ struct C_Cpp_Code_Generator::Visitor {
             self.m_out.append('(', Code_Span_Type::bracket);
         }
 
-        if (auto r = self.generate_code(expression.get_condition_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_condition_node()); !r) {
             return r;
         }
         self.write_infix_operator("?");
-        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
             return r;
         }
         self.write_infix_operator(":");
-        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
             return r;
         }
 
@@ -547,14 +645,16 @@ struct C_Cpp_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Binary_Expression& expression)
     {
+        const auto outer_type = expression.get_expression_type();
         Scoped_Attempt attempt = self.start_attempt();
 
-        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
             return r;
         }
 
         self.write_infix_operator(token_type_code_name(expression.get_op()));
-        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+
+        if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
             return r;
         }
 
@@ -564,8 +664,9 @@ struct C_Cpp_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
     {
+        const auto outer_type = expression.get_expression_type();
         self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
-        return self.generate_code(expression.get_expression_node());
+        return self.generate_subexpression(outer_type, expression.get_expression_node());
     }
 
     Result<void, Generator_Error> operator()(const Function_Call_Expression& call)
