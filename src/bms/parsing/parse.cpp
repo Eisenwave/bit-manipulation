@@ -541,25 +541,30 @@ private:
         return Rule_Error { Grammar_Rule::program_declaration, expected };
     }
 
-    Result<astp::Handle, Rule_Error> match_and_push_if(Rule_Result (Parser::*match)(),
-                                                       bool condition)
+    Result<std::optional<astp::Some_Node>, Rule_Error>
+    optionally_match(Rule_Result (Parser::*match)(), bool condition)
     {
+        BIT_MANIPULATION_ASSERT(match);
         if (!condition) {
-            return astp::Handle::null;
+            return std::optional<astp::Some_Node> {};
         }
         auto result = (this->*match)();
         if (!result) {
             return result.error();
         }
-        return m_program.push_node(std::move(*result));
+        return std::optional<astp::Some_Node> { std::move(*result) };
+    }
+
+    astp::Handle push_or_null(std::optional<astp::Some_Node>&& node)
+    {
+        return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
     }
 
     Rule_Result match_let_declaration()
     {
         const auto this_rule = Grammar_Rule::let_declaration;
 
-        auto attributes
-            = match_and_push_if(&Parser::match_attribute_sequence, peek(Token_Type::at));
+        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
         if (!attributes) {
             return attributes.error();
         }
@@ -597,16 +602,15 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Let { t->pos, name, *attributes, type_handle,
-                                             init_handle } };
+        return astp::Some_Node { astp::Let { t->pos, name, push_or_null(std::move(*attributes)),
+                                             type_handle, init_handle } };
     }
 
     Rule_Result match_const_declaration()
     {
         const auto this_rule = Grammar_Rule::const_declaration;
 
-        auto attributes
-            = match_and_push_if(&Parser::match_attribute_sequence, peek(Token_Type::at));
+        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
         if (!attributes) {
             return attributes.error();
         }
@@ -638,7 +642,8 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Const { t->pos, name, *attributes, type_handle,
+        return astp::Some_Node { astp::Const { t->pos, name, push_or_null(std::move(*attributes)),
+                                               type_handle,
                                                m_program.push_node(std::move(*init)) } };
     }
 
@@ -655,8 +660,7 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
 
-        auto attributes
-            = match_and_push_if(&Parser::match_attribute_sequence, peek(Token_Type::at));
+        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
         if (!attributes) {
             return attributes.error();
         }
@@ -713,8 +717,8 @@ private:
         }
         return astp::Some_Node { astp::Function {
             t->pos, m_program.extract(name->pos), //
-            *attributes, parameters, m_program.push_node(std::move(*ret)), requires_handle,
-            m_program.push_node(std::move(*body)) } };
+            push_or_null(std::move(*attributes)), parameters, m_program.push_node(std::move(*ret)),
+            requires_handle, m_program.push_node(std::move(*body)) } };
     }
 
     Rule_Result match_parameter_sequence()
@@ -936,8 +940,7 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
 
-        auto attributes
-            = match_and_push_if(&Parser::match_attribute_sequence, peek(Token_Type::at));
+        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
         if (!attributes) {
             return attributes.error();
         }
@@ -954,7 +957,7 @@ private:
             return e;
         }
         return astp::Some_Node { astp::Assignment { id->pos, m_program.extract(id->pos),
-                                                    *attributes,
+                                                    push_or_null(std::move(*attributes)),
                                                     m_program.push_node(std::move(*e)) } };
     }
 
