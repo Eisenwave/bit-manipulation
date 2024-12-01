@@ -158,15 +158,15 @@ to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Cpp_Dia
 
 using namespace bms::ast;
 
-struct Bms_Code_Generator final : Code_Generator_Base {
+struct C_Cpp_Code_Generator final : Code_Generator_Base {
 private:
     const C_Cpp_Dialect m_dialect;
 
 public:
-    Bms_Code_Generator(Code_String& out,
-                       const bms::Analyzed_Program& program,
-                       const Code_Options& options,
-                       C_Cpp_Dialect dialect)
+    C_Cpp_Code_Generator(Code_String& out,
+                         const bms::Analyzed_Program& program,
+                         const Code_Options& options,
+                         C_Cpp_Dialect dialect)
         : Code_Generator_Base(out, program, options)
         , m_dialect(dialect)
     {
@@ -186,11 +186,17 @@ private:
         return {};
     }
 
+    [[nodiscard]] bool needs_parentheses(bms::Expression_Type, const Some_Node&) const final
+    {
+        // TODO: implement
+        return false;
+    }
+
     struct Visitor;
 };
 
-struct Bms_Code_Generator::Visitor {
-    Bms_Code_Generator& self;
+struct C_Cpp_Code_Generator::Visitor {
+    C_Cpp_Code_Generator& self;
     const Some_Node* node;
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Program& program)
@@ -616,7 +622,7 @@ struct Bms_Code_Generator::Visitor {
     }
 };
 
-Result<void, Generator_Error> Bms_Code_Generator::generate_code(const Some_Node* node)
+Result<void, Generator_Error> C_Cpp_Code_Generator::generate_code(const Some_Node* node)
 {
     return visit(Visitor { *this, node }, *node);
 }
@@ -630,7 +636,7 @@ Result<void, Generator_Error> generate_c_cpp_code(Code_String& out,
     auto dialect = language == Code_Language::cpp ? C_Cpp_Dialect::cpp20
         : options.c_23                            ? C_Cpp_Dialect::c23
                                                   : C_Cpp_Dialect::c99;
-    return Bms_Code_Generator { out, program, options, dialect }();
+    return C_Cpp_Code_Generator { out, program, options, dialect }();
 }
 
 } // namespace

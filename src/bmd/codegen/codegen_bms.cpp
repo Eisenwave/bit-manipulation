@@ -102,6 +102,13 @@ private:
         Code_Generator_Base::write_infix_keyword(bms::token_type_code_name(op), type);
     }
 
+    [[nodiscard]] bool needs_parentheses(bms::Expression_Type outer_type,
+                                         const Some_Node& inner) const final
+    {
+        const bms::Expression_Type inner_type = bms::ast::get_expression_type(inner);
+        return !std::is_lt(bms::compare_precedence(outer_type, inner_type));
+    }
+
     struct Visitor;
 };
 
@@ -439,8 +446,10 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Conversion_Expression& conversion)
     {
+        constexpr auto outer_type = bms::Expression_Type::conversion;
         Scoped_Attempt attempt = self.start_attempt();
-        if (auto r = self.generate_code(conversion.get_expression_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, conversion.get_expression_node());
+            !r) {
             return r;
         }
         self.write_infix_operator(bms::Token_Type::keyword_as, Code_Span_Type::keyword);
@@ -455,29 +464,19 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Expression& expression)
     {
+        constexpr auto outer_type = bms::Expression_Type::if_expression;
         Scoped_Attempt attempt = self.start_attempt();
 
-        const Some_Node& parent = *expression.get_parent();
-        const bool parenthesize = is_expression(parent);
-
-        if (parenthesize) {
-            self.m_out.append('(', Code_Span_Type::bracket);
-        }
-
-        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
             return r;
         }
         self.write_infix_operator(bms::Token_Type::keyword_if, Code_Span_Type::keyword);
-        if (auto r = self.generate_code(expression.get_condition_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_condition_node()); !r) {
             return r;
         }
         self.write_infix_operator(bms::Token_Type::keyword_else, Code_Span_Type::keyword);
-        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
             return r;
-        }
-
-        if (!parenthesize) {
-            self.m_out.append(')', Code_Span_Type::bracket);
         }
 
         attempt.commit();
@@ -486,13 +485,14 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Binary_Expression& expression)
     {
+        const auto outer_type = expression.get_expression_type();
         Scoped_Attempt attempt = self.start_attempt();
 
-        if (auto r = self.generate_code(expression.get_left_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
             return r;
         }
         self.write_infix_operator(expression.get_op());
-        if (auto r = self.generate_code(expression.get_right_node()); !r) {
+        if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
             return r;
         }
 
@@ -502,8 +502,9 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
     {
+        const auto outer_type = expression.get_expression_type();
         self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
-        return self.generate_code(expression.get_expression_node());
+        return self.generate_subexpression(outer_type, expression.get_expression_node());
     }
 
     Result<void, Generator_Error> operator()(const Function_Call_Expression& call)

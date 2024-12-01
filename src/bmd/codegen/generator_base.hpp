@@ -13,13 +13,15 @@ namespace bit_manipulation::bmd {
 
 struct Scoped_Parenthesization {
 private:
-    Code_String& out;
+    Code_String* out;
 
 public:
-    explicit Scoped_Parenthesization(Code_String& out)
+    explicit Scoped_Parenthesization(Code_String* out)
         : out(out)
     {
-        out.append('(', Code_Span_Type::bracket);
+        if (out != nullptr) {
+            out->append('(', Code_Span_Type::bracket);
+        }
     }
 
     Scoped_Parenthesization(const Scoped_Parenthesization&) = delete;
@@ -27,7 +29,9 @@ public:
 
     ~Scoped_Parenthesization()
     {
-        out.append(')', Code_Span_Type::bracket);
+        if (out != nullptr) {
+            out->append(')', Code_Span_Type::bracket);
+        }
     }
 };
 
@@ -104,6 +108,30 @@ public:
 protected:
     [[nodiscard]] virtual Result<void, Generator_Error>
     generate_code(const bms::ast::Some_Node* node) = 0;
+
+    [[nodiscard]] virtual bool needs_parentheses(bms::Expression_Type outer_type,
+                                                 const bms::ast::Some_Node& inner) const
+        = 0;
+
+    [[nodiscard]] Result<void, Generator_Error>
+    generate_subexpression(bms::Expression_Type outer_type, const bms::ast::Some_Node* inner)
+    {
+        Scoped_Attempt attempt = start_attempt();
+
+        const bool parenthesize = needs_parentheses(outer_type, *inner);
+        if (parenthesize) {
+            m_out.append('(', Code_Span_Type::bracket);
+        }
+        if (auto r = generate_code(inner); !r) {
+            return r;
+        }
+        if (parenthesize) {
+            m_out.append(')', Code_Span_Type::bracket);
+        }
+
+        attempt.commit();
+        return {};
+    }
 
     void separate_after_function()
     {
@@ -190,19 +218,24 @@ protected:
         m_start_of_line = true;
     }
 
-    Scoped_Indentation push_indent()
+    [[nodiscard]] Scoped_Indentation push_indent()
     {
         return Scoped_Indentation { m_depth };
     }
 
-    Scoped_Attempt start_attempt()
+    [[nodiscard]] Scoped_Attempt start_attempt()
     {
         return Scoped_Attempt { m_out };
     }
 
-    Scoped_Parenthesization parenthesize()
+    [[nodiscard]] Scoped_Parenthesization parenthesize()
     {
-        return Scoped_Parenthesization { m_out };
+        return Scoped_Parenthesization { &m_out };
+    }
+
+    [[nodiscard]] Scoped_Parenthesization parenthesize_if(bool condition)
+    {
+        return Scoped_Parenthesization { condition ? &m_out : nullptr };
     }
 };
 
