@@ -11,6 +11,7 @@
 #include "bms/analysis_level.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/deduction.hpp"
+#include "bms/expression_type.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/value.hpp"
@@ -637,6 +638,11 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
                           const astp::Conversion_Expression& parsed,
                           std::string_view file);
 
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        return Expression_Type::conversion;
+    }
+
     Some_Node* get_expression_node()
     {
         return m_children[0];
@@ -665,6 +671,11 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr bool is_expression = true;
 
     If_Expression(Some_Node& parent, const astp::If_Expression& parsed, std::string_view file);
+
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        return Expression_Type::if_expression;
+    }
 
     Some_Node* get_left_node()
     {
@@ -708,6 +719,30 @@ public:
                       const astp::Binary_Expression& parsed,
                       std::string_view file);
 
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        switch (m_op) {
+        case Token_Type::logical_and: return Expression_Type::logical_and;
+        case Token_Type::logical_or: return Expression_Type::logical_or;
+        case Token_Type::equals: return Expression_Type::equals;
+        case Token_Type::not_equals: return Expression_Type::not_equals;
+        case Token_Type::less_than: return Expression_Type::less_than;
+        case Token_Type::greater_than: return Expression_Type::greater_than;
+        case Token_Type::less_or_equal: return Expression_Type::less_or_equal;
+        case Token_Type::plus: return Expression_Type::binary_plus;
+        case Token_Type::minus: return Expression_Type::binary_minus;
+        case Token_Type::multiplication: return Expression_Type::multiplication;
+        case Token_Type::division: return Expression_Type::division;
+        case Token_Type::remainder: return Expression_Type::remainder;
+        case Token_Type::shift_left: return Expression_Type::shift_left;
+        case Token_Type::shift_right: return Expression_Type::shift_right;
+        case Token_Type::bitwise_and: return Expression_Type::bitwise_and;
+        case Token_Type::bitwise_or: return Expression_Type::bitwise_or;
+        case Token_Type::bitwise_xor: return Expression_Type::bitwise_xor;
+        default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid m_op.");
+        }
+    }
+
     Token_Type get_op() const
     {
         return m_op;
@@ -745,6 +780,17 @@ public:
                       const astp::Prefix_Expression& parsed,
                       std::string_view file);
 
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        switch (m_op) {
+        case Token_Type::plus: return Expression_Type::unary_plus;
+        case Token_Type::minus: return Expression_Type::unary_minus;
+        case Token_Type::logical_not: return Expression_Type::logical_not;
+        case Token_Type::bitwise_not: return Expression_Type::bitwise_not;
+        default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid m_op.");
+        }
+    }
+
     Token_Type get_op() const
     {
         return m_op;
@@ -775,6 +821,11 @@ public:
                              const astp::Function_Call_Expression& parsed,
                              std::string_view file,
                              std::pmr::memory_resource* memory);
+
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        return Expression_Type::function_call;
+    }
 
     std::string_view get_name() const
     {
@@ -825,6 +876,11 @@ public:
 
     Id_Expression(Some_Node& parent, const astp::Id_Expression& parsed, std::string_view file);
 
+    [[nodiscard]] Expression_Type get_expression_type() const
+    {
+        return Expression_Type::id;
+    }
+
     std::string_view get_identifier() const
     {
         return m_identifier;
@@ -841,6 +897,11 @@ private:
 
 public:
     Literal(Some_Node& parent, const astp::Literal& parsed, std::string_view file);
+
+    Expression_Type get_expression_type() const
+    {
+        return Expression_Type::literal;
+    }
 
     Token_Type get_type() const
     {
@@ -1055,6 +1116,20 @@ inline Node_Base& to_node_base(Some_Node& node) noexcept
 inline bool is_expression(const Some_Node& node)
 {
     return visit([]<typename T>(const T&) { return T::is_expression; }, node);
+}
+
+inline Expression_Type get_expression_type(const Some_Node& node)
+{
+    return visit(
+        []<typename T>(const T& n) -> Expression_Type { //
+            if constexpr (T::is_expression) {
+                return n.get_expression_type();
+            }
+            else {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE();
+            }
+        },
+        node);
 }
 
 inline std::string_view get_node_name(const Some_Node& node)
