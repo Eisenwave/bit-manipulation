@@ -118,7 +118,8 @@ protected:
     {
         Scoped_Attempt attempt = start_attempt();
 
-        const bool parenthesize = needs_parentheses(outer_type, *inner);
+        const bool parenthesize
+            = m_options.always_parenthesize_subexpressions || needs_parentheses(outer_type, *inner);
         if (parenthesize) {
             m_out.append('(', Code_Span_Type::bracket);
         }

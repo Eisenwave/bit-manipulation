@@ -35,6 +35,10 @@ struct Code_Options {
     bool break_after_function = is_break_after_function(brace_style);
     /// @brief If `true`, breaks the line after the condition.
     bool break_after_if = is_break_after_if(brace_style);
+    /// @brief If `true`, subexpressions are always parenthesized, even if the language doesn't
+    /// strictly require this.
+    /// By default (`false`), a "readable" subset of necessary parenthesization is used.
+    bool always_parenthesize_subexpressions = false;
 
     /// @brief If `true`, prefer C23 features such as spelling `_Bool` as `bool`.
     bool c_23 = false;
