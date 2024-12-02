@@ -186,7 +186,7 @@ Return_Statement::Return_Statement(Some_Node& parent,
 
 Assignment::Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file)
     : detail::Node_Base(parent, parsed, file)
-    , name(parsed.name)
+    , m_name(parsed.name)
 {
 }
 
@@ -335,6 +335,95 @@ struct Analyzed_Program::Implementation {
             }
         });
     }
+
+    struct From_Parser_Node;
+};
+
+template <typename T, typename... Us>
+concept one_of = (... || std::same_as<T, Us>);
+
+struct Analyzed_Program::Implementation::From_Parser_Node {
+    Analyzed_Program::Implementation& self;
+    const Parsed_Program& parsed;
+    const astp::Handle handle;
+    ast::Some_Node* const parent;
+
+private:
+    ast::Some_Node* transform_recursively(ast::Some_Node* new_parent, astp::Handle h) const
+    {
+        return h == astp::Handle::null
+            ? nullptr
+            : visit(From_Parser_Node { self, parsed, h, new_parent }, parsed.get_node(h));
+    }
+
+    auto recursive_child_transform(ast::Some_Node* new_parent) const
+    {
+        return std::views::transform(
+            [&, new_parent](astp::Handle h) { return transform_recursively(new_parent, h); });
+    }
+
+    template <typename T>
+    ast::Some_Node* transform_all_children_recursively(ast::Some_Node* new_parent,
+                                                       std::span<const astp::Handle> children) const
+    {
+        get<T>(*new_parent).set_children(children | recursive_child_transform(new_parent));
+        return new_parent;
+    }
+
+public:
+    ast::Some_Node* operator()(const astp::Program& n) const
+    {
+        ast::Some_Node* result
+            = self.emplace<ast::Program>(n, self.m_file_name, &self.m_memory_resource);
+        return transform_all_children_recursively<ast::Program>(result, n.get_children());
+    }
+
+    template <one_of<astp::Parameter,
+                     astp::Type,
+                     astp::Static_Assert,
+                     astp::If_Statement,
+                     astp::While_Statement,
+                     astp::Break,
+                     astp::Continue,
+                     astp::Return_Statement,
+                     astp::Conversion_Expression,
+                     astp::If_Expression,
+                     astp::Binary_Expression,
+                     astp::Prefix_Expression,
+                     astp::Id_Expression,
+                     astp::Literal> T>
+    ast::Some_Node* operator()(const T& n) const
+    {
+        using Result = T::AST_Node;
+        ast::Some_Node* result = self.emplace<Result>(*parent, n, self.m_file_name);
+        return transform_all_children_recursively<Result>(result, n.get_children());
+    }
+
+    template <one_of<astp::Function, astp::Const, astp::Let, astp::Assignment> T>
+    ast::Some_Node* operator()(const T& n) const
+    {
+        // Parser AST nodes always have the attribute list as the first child.
+        // The actual translation from the parser attributes to whatever the Result needs happens
+        // in the individual constructors, so all we have to do is chop off one child at the start.
+        using Result = T::AST_Node;
+        ast::Some_Node* result = self.emplace<Result>(*parent, n, self.m_file_name);
+        return transform_all_children_recursively<Result>(result, n.get_children().subspan(1));
+    }
+
+    template <one_of<astp::Parameter_List, astp::Block_Statement, astp::Function_Call_Expression> T>
+    ast::Some_Node* operator()(const T& n) const
+    {
+        using Result = T::AST_Node;
+        ast::Some_Node* result
+            = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource);
+        return transform_all_children_recursively<Result>(result, n.get_children());
+    }
+
+    template <one_of<astp::Attribute, astp::Attribute_List, astp::Attribute_Argument> T>
+    ast::Some_Node* operator()(const T&) const
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Attributes should not be processed here.");
+    }
 };
 
 ast::Some_Node*
@@ -345,54 +434,7 @@ Analyzed_Program::Implementation::from_parser_node_recursively(ast::Some_Node* p
     if (handle == astp::Handle::null) {
         return nullptr;
     }
-
-    /**
-     * Constructs an AST node from a single parser AST node, but not recursively.
-     * Note that the various AST nodes have different forms of constructors,
-     * so we pick whichever one is appropriate by testing which pattern fits via
-     * requires-expression.
-     */
-    const auto parser_node_to_ast_node = [&]<typename T>(const T& n) -> ast::Some_Node* {
-        using Result = typename T::AST_Node;
-        if constexpr (requires { Result(n, m_file_name, &m_memory_resource); }) {
-            // Root node; everything else should have a parent
-            return emplace<Result>(n, m_file_name, &m_memory_resource);
-        }
-        else if constexpr (requires { Result(*parent, n, m_file_name, &m_memory_resource); }) {
-            BIT_MANIPULATION_ASSERT(parent != nullptr);
-            // Node which dynamically stores child nodes
-            return emplace<Result>(*parent, n, m_file_name, &m_memory_resource);
-        }
-        else {
-            BIT_MANIPULATION_ASSERT(parent != nullptr);
-            // Other nodes (static nodes, so to speak)
-            return emplace<Result>(*parent, n, m_file_name);
-        }
-    };
-
-    // Note that the current_parent will be re-assigned within the visitor.
-    // This way, we avoid defining the lambda below within another generic lambda,
-    // which drastically slows down the linter and probably impacts compilation speed
-    // quite negatively.
-    ast::Some_Node* current_parent = parent;
-
-    const auto recursive_child_transform = std::views::transform(
-        [&](astp::Handle h) { return from_parser_node_recursively(current_parent, h, parsed); });
-
-    return visit(
-        [&]<typename T>(const T& n) -> ast::Some_Node* {
-            if constexpr (requires { typename T::AST_Node; }) {
-                using Result = typename T::AST_Node;
-                ast::Some_Node* result = parser_node_to_ast_node(n);
-                current_parent = result;
-                get<Result>(*result).set_children(n.get_children() | recursive_child_transform);
-                return result;
-            }
-            else {
-                BIT_MANIPULATION_ASSERT_UNREACHABLE("No AST equivalent to this parser node.");
-            }
-        },
-        parsed.get_node(handle));
+    return visit(From_Parser_Node { *this, parsed, handle, parent }, parsed.get_node(handle));
 }
 
 Analyzed_Program::Analyzed_Program(const Parsed_Program& program,

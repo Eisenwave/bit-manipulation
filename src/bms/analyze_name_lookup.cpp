@@ -231,7 +231,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Assignment& node)
     {
-        if (std::optional<ast::Some_Node*> result = table.find(node.name)) {
+        if (std::optional<ast::Some_Node*> result = table.find(node.get_name())) {
             node.lookup_result = *result;
             return analyze_symbols_local(node.get_expression_node(), table);
         }

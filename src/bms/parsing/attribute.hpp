@@ -52,7 +52,7 @@ struct Attribute_Argument : Attribute_Argument_Variant {
 };
 
 struct Attribute {
-    std::string_view type;
+    Attribute_Type type;
     std::pmr::vector<Attribute_Argument> arguments;
 };
 

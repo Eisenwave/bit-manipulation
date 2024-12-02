@@ -13,10 +13,16 @@
 #include "bms/deduction.hpp"
 #include "bms/expression_type.hpp"
 #include "bms/fwd.hpp"
+#include "bms/parsing/attribute.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/value.hpp"
 
 namespace bit_manipulation::bms::ast {
+
+struct Attributes {
+    std::span<const astp::Handle> source;
+    std::pmr::vector<Attribute> values;
+};
 
 namespace detail {
 
@@ -200,6 +206,7 @@ public:
 
 private:
     std::string_view m_name;
+    Attributes m_attributes;
 
 public:
     std::pmr::vector<Instance> instances;
@@ -399,6 +406,7 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
+    Attributes m_attributes;
 
 public:
     Const(Some_Node& parent, const astp::Const& parsed, std::string_view file);
@@ -437,6 +445,7 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
+    Attributes m_attributes;
 
 public:
     Let(Some_Node& parent, const astp::Let& parsed, std::string_view file);
@@ -594,14 +603,18 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
 
-    std::string_view name;
+private:
+    std::string_view m_name;
+    Attributes m_attributes;
+
+public:
     Some_Node* lookup_result = nullptr;
 
     Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file);
 
     std::string_view get_name() const
     {
-        return name;
+        return m_name;
     }
 
     Some_Node* get_expression_node()
