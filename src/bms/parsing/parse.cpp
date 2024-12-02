@@ -476,31 +476,30 @@ private:
 
     using Rule_Result = Result<astp::Some_Node, Rule_Error>;
 
-    /// @brief Performs an arbitrary action `f` which may be advancing the parser position and
-    /// allocate nodes, and unconditionally reverts the state after performing this action.
-    /// For example, this can be used to match multiple rules just to "look ahead" for access.
-    /// @tparam F the type of action
-    /// @param f the action to perform; will be invoked with no arguments
-    /// @return the result of the action
-    template <typename F>
-    std::invoke_result_t<F&&> roll_back_after(F&& f)
-    {
-        auto restore = [&, pos = m_pos, node_count = m_program.get_node_count()] {
-            BIT_MANIPULATION_ASSERT(m_pos >= pos);
-            BIT_MANIPULATION_ASSERT(m_program.get_node_count() >= node_count);
-            m_pos = pos;
-            m_program.downsize_nodes(node_count);
-        };
-        // TODO: consider making a utility if we run into this pattern more often
-        struct On_Scope_Exit {
-            decltype(restore) r;
-            ~On_Scope_Exit()
-            {
-                r();
-            }
-        } guard { restore };
+    struct Scoped_Attempt {
+        Parser& self;
+        const Size pos;
+        const Size node_count;
 
-        return std::invoke(std::forward<F>(f));
+        explicit Scoped_Attempt(Parser& self)
+            : self(self)
+            , pos(self.m_pos)
+            , node_count(self.m_program.get_node_count())
+        {
+        }
+
+        ~Scoped_Attempt() noexcept(false)
+        {
+            BIT_MANIPULATION_ASSERT(self.m_pos >= pos);
+            BIT_MANIPULATION_ASSERT(self.m_program.get_node_count() >= node_count);
+            self.m_pos = pos;
+            self.m_program.downsize_nodes(node_count);
+        }
+    };
+
+    Scoped_Attempt start_attempt()
+    {
+        return Scoped_Attempt { *this };
     }
 
     Rule_Result match_program()
@@ -1094,9 +1093,10 @@ private:
 
     Rule_Result match_expression()
     {
-        bool is_conversion_expression = roll_back_after([&]() -> bool { //
+        bool is_conversion_expression = [&]() {
+            Scoped_Attempt always_roll_back = start_attempt();
             return match_prefix_expression() && peek(Token_Type::keyword_as);
-        });
+        }();
 
         return is_conversion_expression ? match_conversion_expression() //
                                         : match_if_expression();
