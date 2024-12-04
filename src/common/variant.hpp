@@ -7,6 +7,7 @@
 
 #include "common/assert.hpp"
 #include "common/fwd.hpp"
+#include "common/meta.hpp"
 #include "common/packs.hpp"
 
 namespace bit_manipulation {
@@ -43,9 +44,6 @@ constexpr auto&& forward_like(U&& x) noexcept
             return std::move(x);
     }
 }
-
-template <typename T, typename U>
-using const_like_t = std::conditional_t<std::is_const_v<U>, const T, T>;
 
 #undef BIT_MANIPULATION_VISIT_CASE // FIXME: remove once migrated away from fast_visit
 #define BIT_MANIPULATION_VISIT_CASE(...)                                                           \
@@ -309,6 +307,7 @@ constexpr decltype(auto) visit(F&& f, V&& v)
             BIT_MANIPULATION_VISIT_CASE(13);
             BIT_MANIPULATION_VISIT_CASE(14);
             BIT_MANIPULATION_VISIT_CASE(15);
+            BIT_MANIPULATION_VISIT_CASE(16);
             BIT_MANIPULATION_VISIT_CASE(17);
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
@@ -682,6 +681,24 @@ public:
         return m_index;
     }
 
+    [[nodiscard]] friend bool operator==(const Variant& x, const Variant& y)
+    {
+        return x.m_index == y.m_index
+            && visit(
+                   [&]<typename T>(const T& x) { //
+                       return x == *std::launder(reinterpret_cast<const T*>(y.m_storage));
+                   },
+                   x);
+    }
+
+    template <typename T>
+        requires has_alternative_v<Variant, T>
+    [[nodiscard]] friend bool operator==(const Variant& v, const T& value)
+    {
+        return v.m_index == alternative_index_v<Variant, T>
+            && *std::launder(reinterpret_cast<const T*>(v.m_storage)) == value;
+    }
+
 private:
     void destroy() noexcept
     {
@@ -729,10 +746,29 @@ public:
         return m_index;
     }
 
+    [[nodiscard]] friend bool operator==(const Variant& x, const Variant& y)
+    {
+        return x.m_index == y.m_index
+            && visit(
+                   [&]<typename T>(const T& value) { //
+                       return value == *std::launder(reinterpret_cast<const T*>(y.m_storage));
+                   },
+                   x);
+    }
+
+    template <typename T>
+        requires has_alternative_v<Variant, T>
+    [[nodiscard]] friend bool operator==(const Variant& v, const T& value)
+    {
+        return v.m_index == alternative_index_v<Variant, T>
+            && *std::launder(reinterpret_cast<const T*>(v.m_storage)) == value;
+    }
+
     friend struct detail::Variant_Get_Impl;
 };
 
 template <typename T, typename... Ts>
+    requires pack_contains_v<T, Ts...>
 [[nodiscard]] bool holds_alternative(const Variant<Ts...>& v) noexcept
 {
     constexpr Size i = pack_first_index_of_v<T, Ts...>;
@@ -761,6 +797,7 @@ template <Size I, typename... Ts>
 }
 
 template <typename T, typename... Ts>
+    requires pack_contains_v<T, Ts...>
 [[nodiscard]] static T* get_if(Variant<Ts...>* variant)
 {
     constexpr Size i = pack_first_index_of_v<T, Ts...>;
@@ -771,6 +808,7 @@ template <typename T, typename... Ts>
 }
 
 template <typename T, typename... Ts>
+    requires pack_contains_v<T, Ts...>
 [[nodiscard]] static const T* get_if(const Variant<Ts...>* variant)
 {
     constexpr Size i = pack_first_index_of_v<T, Ts...>;
