@@ -8,7 +8,7 @@
 namespace bit_manipulation::bms {
 
 /// @brief A rule in the formal (context-free) grammar of the BMS language.
-/// See grammar.ebnf.
+/// See `grammar.ebnf`.
 enum struct Grammar_Rule : Default_Underlying {
     program,
     program_declaration,
