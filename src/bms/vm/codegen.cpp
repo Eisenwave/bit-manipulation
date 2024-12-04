@@ -91,7 +91,9 @@ private:
 
         const bool returns_unconditionally = !body.is_empty() && [&]() -> bool {
             for (const ast::Some_Node* n : std::views::reverse(body.get_children())) {
-                if (holds_alternative<ast::Return_Statement>(*n)) {
+                if (const auto ret = get_if<ast::Control_Statement>(n)) {
+                    // break and continue at the top level should have failed analysis already
+                    BIT_MANIPULATION_ASSERT(ret->is_return());
                     return true;
                 }
             }
@@ -250,23 +252,22 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Break&)
-    {
-        out.push_back(ins::Break { { h } });
-        return {};
-    }
-
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Continue&)
-    {
-        out.push_back(ins::Continue { { h } });
-        return {};
-    }
-
     Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Return_Statement& node)
+                                               const ast::Control_Statement& node)
     {
         BIT_MANIPULATION_ASSERT(m_return_type);
         BIT_MANIPULATION_ASSERT(node.const_value());
+
+        if (node.is_break()) {
+            out.push_back(ins::Break { { h } });
+            return {};
+        }
+        if (node.is_continue()) {
+            out.push_back(ins::Continue { { h } });
+            return {};
+        }
+
+        BIT_MANIPULATION_ASSERT(node.is_return());
         BIT_MANIPULATION_ASSERT(node.const_value()->get_type() == *m_return_type);
 
         if (node.const_value()->is_known()) {

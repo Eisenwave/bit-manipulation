@@ -326,21 +326,21 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 };
 
 struct Break final : detail::Node_Base, detail::Parent<0> {
-    using AST_Node = ast::Break;
+    using AST_Node = ast::Control_Statement;
     static inline constexpr std::string_view self_name = "Break";
 
     Break(Local_Source_Span pos);
 };
 
 struct Continue final : detail::Node_Base, detail::Parent<0> {
-    using AST_Node = ast::Continue;
+    using AST_Node = ast::Control_Statement;
     static inline constexpr std::string_view self_name = "Continue";
 
     Continue(Local_Source_Span pos);
 };
 
 struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
-    using AST_Node = ast::Return_Statement;
+    using AST_Node = ast::Control_Statement;
     static inline constexpr std::string_view self_name = "Return_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
 

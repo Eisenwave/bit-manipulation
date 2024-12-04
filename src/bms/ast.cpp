@@ -167,20 +167,27 @@ While_Statement::While_Statement(Some_Node& parent,
 {
 }
 
-Break::Break(Some_Node& parent, const astp::Break& parsed, std::string_view file)
+Control_Statement::Control_Statement(Some_Node& parent,
+                                     const astp::Break& parsed,
+                                     std::string_view file)
     : detail::Node_Base(parent, parsed, file)
+    , m_type(Control_Statement_Type::break_)
 {
 }
 
-Continue::Continue(Some_Node& parent, const astp::Continue& parsed, std::string_view file)
+Control_Statement::Control_Statement(Some_Node& parent,
+                                     const astp::Continue& parsed,
+                                     std::string_view file)
     : detail::Node_Base(parent, parsed, file)
+    , m_type(Control_Statement_Type::continue_)
 {
 }
 
-Return_Statement::Return_Statement(Some_Node& parent,
-                                   const astp::Return_Statement& parsed,
-                                   std::string_view file)
+Control_Statement::Control_Statement(Some_Node& parent,
+                                     const astp::Return_Statement& parsed,
+                                     std::string_view file)
     : detail::Node_Base(parent, parsed, file)
+    , m_type(Control_Statement_Type::return_)
 {
 }
 
@@ -378,13 +385,17 @@ public:
         return transform_all_children_recursively<ast::Program>(result, n.get_children());
     }
 
+    template <one_of<astp::Break, astp::Continue> T>
+    ast::Some_Node* operator()(const T& n) const
+    {
+        return self.emplace<ast::Control_Statement>(*parent, n, self.m_file_name);
+    }
+
     template <one_of<astp::Parameter,
                      astp::Type,
                      astp::Static_Assert,
                      astp::If_Statement,
                      astp::While_Statement,
-                     astp::Break,
-                     astp::Continue,
                      astp::Return_Statement,
                      astp::Conversion_Expression,
                      astp::If_Expression,

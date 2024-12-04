@@ -54,6 +54,7 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
 
     case double_right_arrow: return Code_Span_Type::error;
 
+    case at:
     case dot:
     case colon:
     case comma:

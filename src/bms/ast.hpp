@@ -565,28 +565,65 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
     const Block_Statement& get_block() const;
 };
 
-struct Break final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Break";
-    static inline constexpr bool is_expression = false;
+enum struct Control_Statement_Type { return_, break_, continue_ };
 
-    Break(Some_Node& parent, const astp::Break& parsed, std::string_view file);
-};
+[[nodiscard]] constexpr std::string_view
+control_statement_type_code_name(Control_Statement_Type type)
+{
+    using enum Control_Statement_Type;
+    switch (type) {
+    case return_: return "return";
+    case break_: return "break";
+    case continue_: return "continue";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
+}
 
-struct Continue final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Continue";
-    static inline constexpr bool is_expression = false;
+[[nodiscard]] constexpr Token_Type control_statement_type_token(Control_Statement_Type type)
+{
+    using enum Control_Statement_Type;
+    switch (type) {
+    case return_: return Token_Type::keyword_return;
+    case break_: return Token_Type::keyword_break;
+    case continue_: return Token_Type::keyword_continue;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
+}
 
-    Continue(Some_Node& parent, const astp::Continue& parsed, std::string_view file);
-};
-
-struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Return_Statement";
+struct Control_Statement final : detail::Node_Base, detail::Parent<1> {
+    static inline constexpr std::string_view self_name = "Control_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
 
-    Return_Statement(Some_Node& parent,
-                     const astp::Return_Statement& parsed,
-                     std::string_view file);
+private:
+    Control_Statement_Type m_type;
+
+public:
+    Control_Statement(Some_Node& parent,
+                      const astp::Return_Statement& parsed,
+                      std::string_view file);
+
+    Control_Statement(Some_Node& parent, const astp::Break& parsed, std::string_view file);
+
+    Control_Statement(Some_Node& parent, const astp::Continue& parsed, std::string_view file);
+
+    [[nodiscard]] Control_Statement_Type get_type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] bool is_break() const
+    {
+        return m_type == Control_Statement_Type::break_;
+    }
+    [[nodiscard]] bool is_continue() const
+    {
+        return m_type == Control_Statement_Type::continue_;
+    }
+    [[nodiscard]] bool is_return() const
+    {
+        return m_type == Control_Statement_Type::return_;
+    }
 
     Some_Node* get_expression_node()
     {
@@ -930,9 +967,7 @@ using Some_Node_Variant = Variant<Program,
                                   Static_Assert,
                                   If_Statement,
                                   While_Statement,
-                                  Break,
-                                  Continue,
-                                  Return_Statement,
+                                  Control_Statement,
                                   Assignment,
                                   Block_Statement,
                                   Conversion_Expression,

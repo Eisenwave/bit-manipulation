@@ -376,8 +376,11 @@ std::string_view to_prose(IO_Error_Code e)
 
 bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
-    return error.code() == bms::Analysis_Error_Code::incompatible_types
-        && holds_alternative<bms::ast::Return_Statement>(*error.fail);
+    if (error.code() != bms::Analysis_Error_Code::incompatible_types) {
+        return false;
+    }
+    const auto* ret = get_if<bms::ast::Control_Statement>(error.fail);
+    return ret && ret->is_return();
 }
 
 [[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,

@@ -515,28 +515,12 @@ struct C_Cpp_Code_Generator::Visitor {
         return {};
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Break&)
-    {
-        self.write_indent();
-        self.m_out.append("break", Code_Span_Type::keyword);
-        self.m_out.append(';', Code_Span_Type::punctuation);
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Continue&)
-    {
-        self.write_indent();
-        self.m_out.append("continue", Code_Span_Type::keyword);
-        self.m_out.append(';', Code_Span_Type::punctuation);
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Return_Statement& statement)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Control_Statement& statement)
     {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append("return", Code_Span_Type::keyword);
+        self.write_keyword(control_statement_type_code_name(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
             self.m_out.append(' ');
@@ -545,7 +529,7 @@ struct C_Cpp_Code_Generator::Visitor {
             }
         }
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};

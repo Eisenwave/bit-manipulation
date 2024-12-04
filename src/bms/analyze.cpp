@@ -457,34 +457,26 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node* handle, ast::Break& node, Analysis_Level, Expression_Context)
-    {
-        if (!get_surrounding<ast::While_Statement>(*handle)) {
-            return Analysis_Error { Analysis_Error_Code::break_outside_loop, handle };
-        }
-        node.const_value() = Value::Void;
-        return {};
-    }
-
-    Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node* handle, ast::Continue& node, Analysis_Level, Expression_Context)
-    {
-        if (!get_surrounding<ast::While_Statement>(*handle)) {
-            return Analysis_Error { Analysis_Error_Code::continue_outside_loop, handle };
-        }
-        node.const_value() = Value::Void;
-        return {};
-    }
-
     Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
-                                               ast::Return_Statement& node,
+                                               ast::Control_Statement& node,
                                                Analysis_Level level,
                                                Expression_Context)
     {
-        BIT_MANIPULATION_ASSERT(&get<ast::Return_Statement>(*handle) == &node);
+        BIT_MANIPULATION_ASSERT(&get<ast::Control_Statement>(*handle) == &node);
         const auto* function = get_surrounding<ast::Function>(node);
         BIT_MANIPULATION_ASSERT(function);
+
+        if (node.is_break() || node.is_continue()) {
+            if (!get_surrounding<ast::While_Statement>(*handle)) {
+                const auto error_code = node.is_break()
+                    ? Analysis_Error_Code::break_outside_loop
+                    : Analysis_Error_Code::continue_outside_loop;
+                return Analysis_Error { error_code, handle };
+            }
+            node.const_value() = Value::Void;
+            return {};
+        }
+        BIT_MANIPULATION_ASSERT(node.is_return());
 
         const Concrete_Type return_type = function->get_return_type().concrete_type().value();
 

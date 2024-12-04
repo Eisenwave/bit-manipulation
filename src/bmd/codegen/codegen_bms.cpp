@@ -368,28 +368,12 @@ struct Bms_Code_Generator::Visitor {
         return {};
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Break&)
-    {
-        self.write_indent();
-        self.write_keyword(bms::Token_Type::keyword_break);
-        self.m_out.append(';', Code_Span_Type::punctuation);
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Continue&)
-    {
-        self.write_indent();
-        self.write_keyword(bms::Token_Type::keyword_continue);
-        self.m_out.append(';', Code_Span_Type::punctuation);
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Return_Statement& statement)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Control_Statement& statement)
     {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.write_keyword(bms::Token_Type::keyword_return);
+        self.write_keyword(control_statement_type_token(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
             self.m_out.append(' ');
