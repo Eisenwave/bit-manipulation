@@ -494,8 +494,10 @@ private:
 
             if (!called->was_analyzed()
                 || called->vm_address == ast::Function::invalid_vm_address) {
-                return Analysis_Error { Analysis_Error_Code::codegen_call_to_unanalyzed, h,
-                                        node.lookup_result };
+                return Analysis_Error_Builder { Analysis_Error_Code::codegen_call_to_unanalyzed }
+                    .fail(h)
+                    .cause(node.lookup_result)
+                    .build();
             }
             out.push_back(ins::Call { { h }, called->vm_address });
         }

@@ -4,6 +4,8 @@
 #include <optional>
 #include <string_view>
 
+#include "common/source_position.hpp"
+
 #include "bms/comparison_failure.hpp"
 #include "bms/evaluation/evaluation_error.hpp"
 #include "bms/fwd.hpp"
@@ -114,66 +116,146 @@ enum struct Analysis_Error_Code : Default_Underlying {
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code);
 
-/// @brief A high-level error that occurred during program analysis.
-/// No matter the cause (name lookup, type checking, execution errors, failed assertions, etc.),
-/// everything turns into an `Analysis_Error` at some point.
-struct Analysis_Error {
-private:
-    Analysis_Error_Code m_code {};
+namespace detail {
+
+struct Analysis_Error_Detailed_Code {
+    Analysis_Error_Code code;
     union {
-        Evaluation_Error_Code m_evaluation_error;
-        Execution_Error_Code m_execution_error;
+        Evaluation_Error_Code evaluation;
+        Execution_Error_Code execution;
     };
 
-public:
+    constexpr Analysis_Error_Detailed_Code() noexcept
+        : code {}
+        , evaluation {}
+    {
+    }
+
+    constexpr Analysis_Error_Detailed_Code(Analysis_Error_Code code)
+        : code { code }
+    {
+    }
+
+    constexpr Analysis_Error_Detailed_Code(Evaluation_Error_Code code)
+        : code { Analysis_Error_Code::evaluation_error }
+        , evaluation { code }
+    {
+    }
+
+    constexpr Analysis_Error_Detailed_Code(Execution_Error_Code code)
+        : code { Analysis_Error_Code::execution_error }
+        , execution { code }
+    {
+    }
+};
+
+struct Analysis_Error_Data {
+    Analysis_Error_Detailed_Code m_code {};
     /// @brief An optional comparison failure.
     /// This can be added onto errors such as failed `static_assert` or failed calls to `assert`
     /// during constant evaluation, in order to provide detail about the inputs.
-    std::optional<Comparison_Failure> comparison_failure;
+    std::optional<Comparison_Failure> m_comparison_failure {};
     /// @brief The node at which the failure took place.
-    const ast::Some_Node* fail = nullptr;
+    const ast::Some_Node* m_fail {};
     /// @brief The node which is considered to be a cause for the failure,
     /// but not the location of the failure.
     /// For example, if we attempt `x = 0` where `x` is `const`,
     /// the assignment node would be considered the `fail`,
     /// and the constant declaration of `x` would be considered the cause.
-    const ast::Some_Node* cause = nullptr;
+    const ast::Some_Node* m_cause {};
+    std::optional<Source_Position> m_fail_pos {};
+    std::optional<Source_Position> m_cause_pos {};
+};
 
+static_assert(std::is_trivially_copyable_v<Analysis_Error_Data>);
+
+} // namespace detail
+
+/// @brief A high-level error that occurred during program analysis.
+/// No matter the cause (name lookup, type checking, execution errors, failed assertions, etc.),
+/// everything turns into an `Analysis_Error` at some point.
+struct Analysis_Error : private detail::Analysis_Error_Data {
+public:
+    using Builder = Analysis_Error_Builder;
+
+private:
+    using Data = detail::Analysis_Error_Data;
+
+    [[nodiscard]] constexpr Analysis_Error(Data&& data)
+        : Data(std::move(data))
+    {
+    }
+
+public:
+    [[nodiscard]] constexpr Analysis_Error_Code code() const
+    {
+        return m_code.code;
+    }
+
+    [[nodiscard]] constexpr Evaluation_Error_Code evaluation_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code.code == Analysis_Error_Code::evaluation_error);
+        return m_code.evaluation;
+    }
+
+    [[nodiscard]] constexpr Execution_Error_Code execution_error() const
+    {
+        BIT_MANIPULATION_ASSERT(m_code.code == Analysis_Error_Code::execution_error);
+        return m_code.execution;
+    }
+
+    [[nodiscard]] constexpr const ast::Some_Node* fail() const
+    {
+        return m_fail;
+    }
+
+    [[nodiscard]] constexpr const ast::Some_Node* cause() const
+    {
+        return m_cause;
+    }
+
+    [[nodiscard]] constexpr std::optional<Source_Position> fail_pos() const
+    {
+        return m_fail_pos;
+    }
+
+    [[nodiscard]] constexpr std::optional<Source_Position> cause_pos() const
+    {
+        return m_cause_pos;
+    }
+
+    [[nodiscard]] constexpr std::optional<Comparison_Failure> comparison_failure() const
+    {
+        return m_comparison_failure;
+    }
+
+    friend Builder;
+};
+
+struct Analysis_Error_Builder : private detail::Analysis_Error_Data {
+private:
+    using Data = detail::Analysis_Error_Data;
+
+public:
     /// @brief Constructs an error with an `Analysis_Error_Code`.
     /// This constructor should only be used for errors when none of the specialized constructors
     /// below apply.
     /// @param code the error code, which shall be none of `type_error`, `evaluation_error`,
     /// `execution_error`, or `conversion_error`
-    /// @param fail the fail node
-    /// @param cause the cause node
-    [[nodiscard]] constexpr Analysis_Error(Analysis_Error_Code code,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : m_code(code)
-        , fail(fail)
-        , cause(cause)
+    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Analysis_Error_Code code)
+        : Data { .m_code = code }
     {
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::evaluation_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::execution_error);
     }
 
-    [[nodiscard]] constexpr Analysis_Error(Evaluation_Error_Code code,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : m_code(Analysis_Error_Code::evaluation_error)
-        , m_evaluation_error(code)
-        , fail(fail)
-        , cause(cause)
+    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Evaluation_Error_Code code)
+        : Data { .m_code = code }
     {
     }
 
-    [[nodiscard]] constexpr Analysis_Error(Execution_Error_Code code,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : m_code(Analysis_Error_Code::execution_error)
-        , m_execution_error(code)
-        , fail(fail)
-        , cause(cause)
+    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Execution_Error_Code code)
+        : Data { .m_code = code }
     {
     }
 
@@ -184,38 +266,44 @@ public:
     /// For example, if execution runs into `x / 0` (division by zero),
     /// the analysis error is then an `Evaluation_Error_Code::division_by_zero`,
     /// not just some generic `Analysis_Error_Code::execution_error`.
-    [[nodiscard]] constexpr Analysis_Error(const Execution_Error& error,
-                                           const ast::Some_Node* fail,
-                                           const ast::Some_Node* cause = {})
-        : comparison_failure(error.comparison_failure)
-        , fail(fail)
-        , cause(cause)
+    [[nodiscard]] constexpr Analysis_Error_Builder(const Execution_Error& error)
+        : Data { .m_comparison_failure = error.comparison_failure }
 
     {
         if (error.code == Execution_Error_Code::evaluation) {
             m_code = Analysis_Error_Code::evaluation_error;
-            m_evaluation_error = error.evaluation_error;
+            m_code.evaluation = error.evaluation_error;
         }
         else {
             m_code = Analysis_Error_Code::execution_error;
         }
     }
 
-    [[nodiscard]] constexpr Analysis_Error_Code code() const
+    [[nodiscard]] Analysis_Error build()
     {
-        return m_code;
+        return Analysis_Error { std::move(*this) };
     }
 
-    [[nodiscard]] constexpr Evaluation_Error_Code evaluation_error() const
+    Analysis_Error_Builder& comparison_failure(const Comparison_Failure& failure)
     {
-        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::evaluation_error);
-        return m_evaluation_error;
+        m_comparison_failure = failure;
+        return *this;
     }
 
-    [[nodiscard]] constexpr Execution_Error_Code execution_error() const
+    Analysis_Error_Builder& fail(const ast::Some_Node* node);
+
+    Analysis_Error_Builder& fail_pos(const Source_Position& pos)
     {
-        BIT_MANIPULATION_ASSERT(m_code == Analysis_Error_Code::execution_error);
-        return m_execution_error;
+        m_fail_pos = pos;
+        return *this;
+    }
+
+    Analysis_Error_Builder& cause(const ast::Some_Node* node);
+
+    Analysis_Error_Builder& cause_pos(const Source_Position& pos)
+    {
+        m_cause_pos = pos;
+        return *this;
     }
 };
 

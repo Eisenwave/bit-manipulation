@@ -570,4 +570,20 @@ std::pmr::polymorphic_allocator<> Analyzed_Program::allocator() const
     return std::pmr::polymorphic_allocator<>(m_memory);
 }
 
+Analysis_Error_Builder& Analysis_Error_Builder::fail(const ast::Some_Node* node)
+{
+    BIT_MANIPULATION_ASSERT(node != nullptr);
+    m_fail = node;
+    m_fail_pos = get_source_position(*node);
+    return *this;
+}
+
+Analysis_Error_Builder& Analysis_Error_Builder::cause(const ast::Some_Node* node)
+{
+    BIT_MANIPULATION_ASSERT(node != nullptr);
+    m_cause = node;
+    m_cause_pos = get_source_position(*node);
+    return *this;
+}
+
 } // namespace bit_manipulation::bms

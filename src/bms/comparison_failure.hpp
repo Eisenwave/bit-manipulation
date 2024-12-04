@@ -14,6 +14,8 @@ struct Comparison_Failure {
     Expression_Type op;
 };
 
+static_assert(std::is_trivially_copyable_v<Comparison_Failure>);
+
 } // namespace bit_manipulation::bms
 
 #endif

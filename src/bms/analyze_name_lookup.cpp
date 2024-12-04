@@ -77,8 +77,10 @@ private:
             BIT_MANIPULATION_ASSERT(handle != nullptr);
             auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
             if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-                return Analysis_Error { Analysis_Error_Code::failed_to_define_global_const, handle,
-                                        *old };
+                return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_global_const }
+                    .fail(handle)
+                    .cause(*old)
+                    .build();
             }
             return {};
         }
@@ -88,8 +90,10 @@ private:
             BIT_MANIPULATION_ASSERT(handle != nullptr);
             auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
             if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-                return Analysis_Error { Analysis_Error_Code::failed_to_define_function, handle,
-                                        *old };
+                return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_function }
+                    .fail(handle)
+                    .cause(*old)
+                    .build();
             }
             return {};
         }
@@ -172,7 +176,10 @@ private:
     {
         auto it_or_handle = table.emplace(node.get_name(), handle, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_parameter, handle, *old };
+            return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_parameter }
+                .fail(handle)
+                .cause(*old)
+                .build();
         }
         ast::Some_Node* g = node.get_type().get_width_node();
         if (g == nullptr) {
@@ -207,7 +214,10 @@ private:
     {
         auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
+            return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_variable }
+                .fail(h)
+                .cause(*old)
+                .build();
         }
         return analyze_all_symbols_local(node.get_children(), table);
     }
@@ -217,7 +227,10 @@ private:
     {
         auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
         if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
-            return Analysis_Error { Analysis_Error_Code::failed_to_define_variable, h, *old };
+            return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_variable }
+                .fail(h)
+                .cause(*old)
+                .build();
         }
         return analyze_all_symbols_local(node.get_children(), table);
     }
@@ -235,7 +248,9 @@ private:
             node.lookup_result = *result;
             return analyze_symbols_local(node.get_expression_node(), table);
         }
-        return Analysis_Error { Analysis_Error_Code::assignment_of_undefined_variable, h };
+        return Analysis_Error_Builder { Analysis_Error_Code::assignment_of_undefined_variable }
+            .fail(h)
+            .build();
     }
 
     Result<void, Analysis_Error> analyze_symbols_local(ast::Some_Node* h,
@@ -246,7 +261,9 @@ private:
             node.lookup_result = *result;
             return analyze_all_symbols_local(node.get_children(), table);
         }
-        return Analysis_Error { Analysis_Error_Code::call_to_undefined_function, h };
+        return Analysis_Error_Builder { Analysis_Error_Code::call_to_undefined_function }
+            .fail(h)
+            .build();
     }
 
     Result<void, Analysis_Error>
@@ -256,7 +273,9 @@ private:
             node.lookup_result = *result;
             return {};
         }
-        return Analysis_Error { Analysis_Error_Code::reference_to_undefined_variable, h };
+        return Analysis_Error_Builder { Analysis_Error_Code::reference_to_undefined_variable }
+            .fail(h)
+            .build();
     }
 };
 

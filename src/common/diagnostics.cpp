@@ -379,7 +379,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     if (error.code() != bms::Analysis_Error_Code::incompatible_types) {
         return false;
     }
-    const auto* ret = get_if<bms::ast::Control_Statement>(error.fail);
+    const auto* ret = get_if<bms::ast::Control_Statement>(error.fail());
     return ret && ret->is_return();
 }
 
@@ -388,47 +388,38 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     Printable_Error result { program.get_source() };
 
-    BIT_MANIPULATION_ASSERT(error.fail);
-    const auto fail_pos = get_source_position(*error.fail);
-    const auto cause_pos = [&]() -> std::optional<Source_Position> {
-        if (error.cause) {
-            if (auto result = get_source_position(*error.cause)) {
-                return *result;
-            }
-        }
-        return {};
-    }();
+    BIT_MANIPULATION_ASSERT(error.fail());
 
     if (is_incompatible_return_type_error(error)) {
-        BIT_MANIPULATION_ASSERT(error.cause);
-        const bool is_void = get<bms::ast::Type>(*error.cause).get_type() == bms::Type_Type::Void;
+        BIT_MANIPULATION_ASSERT(error.cause());
+        const bool is_void = get<bms::ast::Type>(*error.cause()).get_type() == bms::Type_Type::Void;
 
         result.lines.push_back(
-            { Error_Line_Type::error, fail_pos,
+            { Error_Line_Type::error, error.fail_pos(),
               is_void ? "Cannot have non-empty return statement in a function returning Void."
                       : "Invalid conversion between return statement and return type." });
         result.lines.push_back(
-            { Error_Line_Type::note, cause_pos,
+            { Error_Line_Type::note, error.cause_pos(),
               is_void ? "Did you mean to 'return;' or declare the return type 'Void'?"
                       : "Return type is declared here:" });
         return result;
     }
     if (error.code() == bms::Analysis_Error_Code::width_invalid) {
-        const std::optional<bms::Value>& width_value = get_const_value(*error.fail);
+        const std::optional<bms::Value>& width_value = get_const_value(*error.fail());
         // if width_invalid got raised during analysis, it means we have to know the width
         BIT_MANIPULATION_ASSERT(width_value);
         const Big_Int width = width_value->as_int();
         std::string prefix = "The width evaluated to " + to_string(width);
         if (width < 0) {
-            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
                                      std::move(prefix) + ", but widths must be positive." });
         }
         else if (width == 0) {
-            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
                                      std::move(prefix) + ", but widths shall not be zero." });
         }
         else if (width > uint_max_width) {
-            result.lines.push_back({ Error_Line_Type::error, fail_pos,
+            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
                                      std::move(prefix) + ", but the maximum allowed is "
                                          + std::to_string(uint_max_width) + '.' });
         }
@@ -440,34 +431,35 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 
     const std::string_view error_prose = to_prose(error.code());
 
-    result.lines.push_back({ Error_Line_Type::error, fail_pos, std::string(error_prose) });
+    result.lines.push_back({ Error_Line_Type::error, error.fail_pos(), std::string(error_prose) });
 
     if (error.code() == bms::Analysis_Error_Code::execution_error) {
-        result.lines.push_back(
-            { Error_Line_Type::note, fail_pos, std::string(to_prose(error.execution_error())) });
+        result.lines.push_back({ Error_Line_Type::note, error.fail_pos(),
+                                 std::string(to_prose(error.execution_error())) });
     }
 
-    if (error.comparison_failure) {
+    if (const auto comp_fail = error.comparison_failure()) {
         result.lines.push_back(
-            { Error_Line_Type::note, cause_pos, "Comparison evaluated to ",
-              Printable_Comparison { value_to_string(error.comparison_failure->left),
-                                     value_to_string(error.comparison_failure->right),
-                                     expression_type_code_name(error.comparison_failure->op) } });
+            { Error_Line_Type::note, error.cause_pos(), "Comparison evaluated to ",
+              Printable_Comparison { value_to_string(comp_fail->left),
+                                     value_to_string(comp_fail->right),
+                                     expression_type_code_name(comp_fail->op) } });
     }
-    else if (error.cause != nullptr) {
+    else if (error.cause() != nullptr) {
         if (error.code() == bms::Analysis_Error_Code::evaluation_error) {
             auto message = "Caused by: " + std::string(to_prose(error.evaluation_error()));
-            result.lines.push_back({ Error_Line_Type::note, cause_pos, std::move(message) });
+            result.lines.push_back(
+                { Error_Line_Type::note, error.cause_pos(), std::move(message) });
         }
         else {
-            result.lines.push_back(
-                { Error_Line_Type::note, cause_pos, std::string(cause_to_prose(error.code())) });
+            result.lines.push_back({ Error_Line_Type::note, error.cause_pos(),
+                                     std::string(cause_to_prose(error.code())) });
         }
     }
 
     if (error.code() == bms::Analysis_Error_Code::let_variable_in_constant_expression
         || error.code() == bms::Analysis_Error_Code::parameter_in_constant_expression) {
-        const auto* type = get_surrounding<bms::ast::Type>(*error.fail);
+        const auto* type = get_surrounding<bms::ast::Type>(*error.fail());
         if (type) {
             result.lines.push_back({ Error_Line_Type::note, type->get_position(),
                                      "The width of Uint must be a constant expression." });

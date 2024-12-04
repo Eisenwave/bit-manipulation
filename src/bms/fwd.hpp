@@ -117,6 +117,8 @@ struct Parse_Error;
 struct Analysis_Error;
 struct Execution_Error;
 
+struct Analysis_Error_Builder;
+
 struct Parsed_Program;
 struct Analyzed_Program;
 
