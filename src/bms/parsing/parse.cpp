@@ -502,6 +502,34 @@ private:
         return Scoped_Attempt { *this };
     }
 
+    [[maybe_unused]] Result<std::optional<astp::Some_Node>, Rule_Error>
+    optionally_match(Rule_Result (Parser::*match)(), bool condition)
+    {
+        BIT_MANIPULATION_ASSERT(match);
+        if (!condition) {
+            return std::optional<astp::Some_Node> {};
+        }
+        auto result = (this->*match)();
+        if (!result) {
+            return result.error();
+        }
+        return std::optional<astp::Some_Node> { std::move(*result) };
+    }
+
+    /// @brief Pushes the node and returns the corresponding handle if the node has a value,
+    /// otherwise returns `null`.
+    [[maybe_unused]] [[nodiscard]] astp::Handle push_or_null(std::optional<astp::Some_Node>&& node)
+    {
+        return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
+    }
+
+    /// @brief Pushes the node and returns the corresponding handle if the node is not null,
+    /// otherwise returns `null`.
+    [[nodiscard]] astp::Handle push_or_null(astp::Some_Node* node)
+    {
+        return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
+    }
+
     Rule_Result match_program()
     {
         auto first = match_program_declaration();
@@ -524,50 +552,52 @@ private:
 
     Rule_Result match_program_declaration()
     {
+        constexpr auto this_rule = Grammar_Rule::program_declaration;
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_const, Token_Type::keyword_function,
-                Token_Type::keyword_static_assert };
+                Token_Type::keyword_static_assert, Token_Type::at };
+
+        const Token* next = peek();
+        if (!next) {
+            return Rule_Error { this_rule, expected };
+        }
+
+        if (next->type == Token_Type::at) {
+            auto annotations = match_annotation_sequence();
+            if (!annotations) {
+                return annotations;
+            }
+            return match_annotated_program_declaration(*annotations);
+        }
+
+        switch (next->type) {
+        case Token_Type::keyword_const: return match_const_declaration();
+        case Token_Type::keyword_function: return match_function_declaration();
+        case Token_Type::keyword_static_assert: return match_static_assertion();
+        default: break;
+        }
+
+        return Rule_Error { this_rule, expected };
+    }
+
+    Rule_Result match_annotated_program_declaration(astp::Some_Node& annotations)
+    {
+        constexpr auto this_rule = Grammar_Rule::program_declaration;
+        static constexpr Token_Type expected[]
+            = { Token_Type::keyword_const, Token_Type::keyword_function };
 
         if (peek(Token_Type::keyword_const)) {
-            return match_const_declaration();
+            return match_const_declaration(&annotations);
         }
         if (peek(Token_Type::keyword_function)) {
-            return match_function_declaration();
+            return match_function_declaration(&annotations);
         }
-        if (peek(Token_Type::keyword_static_assert)) {
-            return match_static_assertion();
-        }
-        return Rule_Error { Grammar_Rule::program_declaration, expected };
+        return Rule_Error { this_rule, expected };
     }
 
-    Result<std::optional<astp::Some_Node>, Rule_Error>
-    optionally_match(Rule_Result (Parser::*match)(), bool condition)
-    {
-        BIT_MANIPULATION_ASSERT(match);
-        if (!condition) {
-            return std::optional<astp::Some_Node> {};
-        }
-        auto result = (this->*match)();
-        if (!result) {
-            return result.error();
-        }
-        return std::optional<astp::Some_Node> { std::move(*result) };
-    }
-
-    astp::Handle push_or_null(std::optional<astp::Some_Node>&& node)
-    {
-        return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
-    }
-
-    Rule_Result match_let_declaration()
+    Rule_Result match_let_declaration(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::let_declaration;
-
-        auto annotations
-            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
-        if (!annotations) {
-            return annotations.error();
-        }
 
         const Token* t = expect(Token_Type::keyword_let);
         if (!t) {
@@ -602,19 +632,13 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Let { t->pos, name, push_or_null(std::move(*annotations)),
-                                             type_handle, init_handle } };
+        return astp::Some_Node { astp::Let { t->pos, name, push_or_null(annotations), type_handle,
+                                             init_handle } };
     }
 
-    Rule_Result match_const_declaration()
+    Rule_Result match_const_declaration(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::const_declaration;
-
-        auto annotations
-            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
-        if (!annotations) {
-            return annotations.error();
-        }
 
         const Token* t = expect(Token_Type::keyword_const);
         if (!t) {
@@ -643,8 +667,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Const { t->pos, name, push_or_null(std::move(*annotations)),
-                                               type_handle,
+        return astp::Some_Node { astp::Const { t->pos, name, push_or_null(annotations), type_handle,
                                                m_program.push_node(std::move(*init)) } };
     }
 
@@ -657,15 +680,9 @@ private:
         return match_expression();
     }
 
-    Rule_Result match_function_declaration()
+    Rule_Result match_function_declaration(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
-
-        auto annotations
-            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
-        if (!annotations) {
-            return annotations.error();
-        }
 
         const Token* t = expect(Token_Type::keyword_function);
         if (!t) {
@@ -719,7 +736,7 @@ private:
         }
         return astp::Some_Node { astp::Function {
             t->pos, m_program.extract(name->pos), //
-            push_or_null(std::move(*annotations)), parameters, m_program.push_node(std::move(*ret)),
+            push_or_null(annotations), parameters, m_program.push_node(std::move(*ret)),
             requires_handle, m_program.push_node(std::move(*body)) } };
     }
 
@@ -813,7 +830,7 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::annotation;
         const Token* at = expect(Token_Type::at);
-        if (!expect(Token_Type::at)) {
+        if (!at) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::at> };
         }
         const Token* id = expect(Token_Type::identifier);
@@ -880,31 +897,68 @@ private:
                                                          Token_Type::keyword_if,
                                                          Token_Type::keyword_while,
                                                          Token_Type::left_brace,
+                                                         Token_Type::at,
                                                          Token_Type::identifier };
 
-        if (const Token* t = peek()) {
-            switch (t->type) {
-            case Token_Type::keyword_let: return match_let_declaration();
-            case Token_Type::keyword_const: return match_const_declaration();
-            case Token_Type::keyword_static_assert: return match_static_assertion();
-            case Token_Type::keyword_break: return match_break_statement();
-            case Token_Type::keyword_continue: return match_continue_statement();
-            case Token_Type::keyword_return: return match_return_statement();
-            case Token_Type::keyword_if: return match_if_statement();
-            case Token_Type::keyword_while: return match_while_statement();
-            case Token_Type::left_brace: return match_block_statement();
-            case Token_Type::identifier: {
-                if (const Token* lookahead = peek_n(1);
-                    lookahead && lookahead->type == Token_Type::assign) {
-                    return match_assignment_statement();
-                }
-                auto r = match_function_call_statement();
-                if (!r) {
-                    return r;
-                }
-                get<astp::Function_Call_Expression>(*r).is_statement = true;
-                return r;
+        const Token* next = peek();
+        if (!next) {
+            return Rule_Error { this_rule, possible_types };
+        }
+
+        if (next->type == Token_Type::at) {
+            auto annotations = match_annotation_sequence();
+            if (!annotations) {
+                return annotations;
             }
+            return match_annotated_statement(*annotations);
+        }
+
+        switch (next->type) {
+        case Token_Type::keyword_let: return match_let_declaration();
+        case Token_Type::keyword_const: return match_const_declaration();
+        case Token_Type::keyword_static_assert: return match_static_assertion();
+        case Token_Type::keyword_break: return match_break_statement();
+        case Token_Type::keyword_continue: return match_continue_statement();
+        case Token_Type::keyword_return: return match_return_statement();
+        case Token_Type::keyword_if: return match_if_statement();
+        case Token_Type::keyword_while: return match_while_statement();
+        case Token_Type::left_brace: return match_block_statement();
+        case Token_Type::identifier: return match_assignment_or_function_call_statement();
+        default: break;
+        }
+
+        return Rule_Error { this_rule, possible_types };
+    }
+
+    Rule_Result match_assignment_or_function_call_statement()
+    {
+        constexpr auto this_rule = Grammar_Rule::statement;
+        if (const Token* t = peek(); !t || t->type != Token_Type::identifier) {
+            return Rule_Error { this_rule, const_array_one_v<Token_Type::identifier> };
+        }
+
+        if (const Token* lookahead = peek_n(1);
+            lookahead && lookahead->type == Token_Type::assign) {
+            return match_assignment_statement();
+        }
+        auto r = match_function_call_statement();
+        if (r) {
+            get<astp::Function_Call_Expression>(*r).is_statement = true;
+        }
+        return r;
+    }
+
+    Rule_Result match_annotated_statement(astp::Some_Node& annotations)
+    {
+        constexpr auto this_rule = Grammar_Rule::statement;
+        static constexpr Token_Type possible_types[]
+            = { Token_Type::keyword_let, Token_Type::keyword_const, Token_Type::identifier };
+
+        if (const Token* next = peek()) {
+            switch (next->type) {
+            case Token_Type::keyword_const: return match_const_declaration(&annotations);
+            case Token_Type::keyword_let: return match_let_declaration(&annotations);
+            case Token_Type::identifier: return match_assignment_statement(&annotations);
             default: break;
             }
         }
@@ -912,10 +966,10 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Rule_Result match_assignment_statement()
+    Rule_Result match_assignment_statement(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::assignment_statement;
-        auto a = match_assignment();
+        auto a = match_assignment(annotations);
         if (!a) {
             return a;
         }
@@ -938,15 +992,9 @@ private:
         return call;
     }
 
-    Rule_Result match_assignment()
+    Rule_Result match_assignment(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
-
-        auto annotations
-            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
-        if (!annotations) {
-            return annotations.error();
-        }
 
         const Token* id = expect(Token_Type::identifier);
         if (!id) {
@@ -960,7 +1008,7 @@ private:
             return e;
         }
         return astp::Some_Node { astp::Assignment { id->pos, m_program.extract(id->pos),
-                                                    push_or_null(std::move(*annotations)),
+                                                    push_or_null(annotations),
                                                     m_program.push_node(std::move(*e)) } };
     }
 
