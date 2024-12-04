@@ -4,6 +4,7 @@
 #include <optional>
 
 #include "bms/comparison_failure.hpp"
+#include "bms/debug_info.hpp"
 #include "bms/fwd.hpp"
 
 namespace bit_manipulation::bms {
@@ -38,27 +39,26 @@ constexpr std::string_view execution_error_code_name(Execution_Error_Code code)
 }
 
 struct Execution_Error {
-    /// @brief The pointer to the AST node which has emitted the failed instruction.
-    const ast::Some_Node* handle;
     /// @brief The error code.
     Execution_Error_Code code;
     /// @brief The evaluation error. Only set to a meaningful value when `code` is `evaluation`.
     Evaluation_Error_Code evaluation_error = {};
+    /// @brief Debug info.
+    Debug_Info debug_info;
     /// @brief An optional comparison failure.
     /// This would be present when e.g. an `assert(1 == 0)` is executed.
     std::optional<Comparison_Failure> comparison_failure;
 
-    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle, Execution_Error_Code code)
-        : handle(handle)
-        , code(code)
+    [[nodiscard]] constexpr Execution_Error(Execution_Error_Code code, Debug_Info debug_info)
+        : code(code)
+        , debug_info(debug_info)
     {
     }
 
-    [[nodiscard]] constexpr Execution_Error(const ast::Some_Node* handle,
-                                            Evaluation_Error_Code code)
-        : handle(handle)
-        , code(Execution_Error_Code::evaluation)
+    [[nodiscard]] constexpr Execution_Error(Evaluation_Error_Code code, Debug_Info debug_info)
+        : code(Execution_Error_Code::evaluation)
         , evaluation_error(code)
+        , debug_info(debug_info)
     {
     }
 };

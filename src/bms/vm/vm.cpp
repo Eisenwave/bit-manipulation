@@ -21,7 +21,7 @@ struct Cycle_Impl {
     {
         auto pos = self.m_function_frame_stack.find(load.source);
         if (pos == nullptr) {
-            return Execution_Error { load.debug_info, Execution_Error_Code::load_uninitialized };
+            return Execution_Error { Execution_Error_Code::load_uninitialized, load.debug_info };
         }
         self.m_stack.push_back(pos->value);
         ++self.m_instruction_counter;
@@ -31,7 +31,7 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Store& store)
     {
         if (self.m_stack.empty()) {
-            return Execution_Error { store.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, store.debug_info };
         }
         Concrete_Value value = self.m_stack.back();
         self.m_stack.pop_back();
@@ -50,7 +50,7 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Pop& pop)
     {
         if (self.m_stack.empty()) {
-            return Execution_Error { pop.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, pop.debug_info };
         }
         self.m_stack.pop_back();
         ++self.m_instruction_counter;
@@ -61,7 +61,7 @@ struct Cycle_Impl {
     {
         if (Signed_Size(self.m_instruction_counter) + jump.offset + 1
             >= Signed_Size(self.m_instructions.size())) {
-            return Execution_Error { jump.debug_info, Execution_Error_Code::jump_out_of_program };
+            return Execution_Error { Execution_Error_Code::jump_out_of_program, jump.debug_info };
         }
         self.m_instruction_counter
             = Size(Signed_Size(self.m_instruction_counter) + jump.offset + 1);
@@ -71,17 +71,17 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Relative_Jump_If& jump_if)
     {
         if (self.m_stack.empty()) {
-            return Execution_Error { jump_if.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, jump_if.debug_info };
         }
         Concrete_Value actual = self.m_stack.back();
         self.m_stack.pop_back();
         if (actual.type != Concrete_Type::Bool) {
-            return Execution_Error { jump_if.debug_info, Execution_Error_Code::jump_if_not_bool };
+            return Execution_Error { Execution_Error_Code::jump_if_not_bool, jump_if.debug_info };
         }
         if (Signed_Size(self.m_instruction_counter) + jump_if.offset + 1
             >= Signed_Size(self.m_instructions.size())) {
-            return Execution_Error { jump_if.debug_info,
-                                     Execution_Error_Code::jump_out_of_program };
+            return Execution_Error { Execution_Error_Code::jump_out_of_program,
+                                     jump_if.debug_info };
         }
         self.m_instruction_counter
             = Size(Signed_Size(self.m_instruction_counter + 1)
@@ -93,7 +93,7 @@ struct Cycle_Impl {
     {
         std::optional<Concrete_Value> return_address = self.m_function_frame_stack.pop_frame();
         if (!return_address) {
-            return Execution_Error { ret.debug_info, Execution_Error_Code::pop_call };
+            return Execution_Error { Execution_Error_Code::pop_call, ret.debug_info };
         }
         self.m_instruction_counter = static_cast<Size>(return_address->int_value);
         return {};
@@ -102,14 +102,14 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Convert& convert)
     {
         if (self.m_stack.empty()) {
-            return Execution_Error { convert.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, convert.debug_info };
         }
         const Concrete_Value operand = self.m_stack.back();
         self.m_stack.pop_back();
         const Result<Concrete_Value, Evaluation_Error_Code> result
             = evaluate_conversion(operand, convert.type);
         if (!result) {
-            return Execution_Error { convert.debug_info, result.error() };
+            return Execution_Error { result.error(), convert.debug_info };
         }
         self.m_stack.push_back(*result);
         ++self.m_instruction_counter;
@@ -119,14 +119,14 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Unary_Operate& unary_operate)
     {
         if (self.m_stack.empty()) {
-            return Execution_Error { unary_operate.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, unary_operate.debug_info };
         }
         const Concrete_Value operand = self.m_stack.back();
         self.m_stack.pop_back();
         const Result<Concrete_Value, Evaluation_Error_Code> result
             = evaluate_unary_operator(unary_operate.op, operand);
         if (!result) {
-            return Execution_Error { unary_operate.debug_info, result.error() };
+            return Execution_Error { result.error(), unary_operate.debug_info };
         }
         self.m_stack.push_back(*result);
         ++self.m_instruction_counter;
@@ -136,7 +136,7 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Binary_Operate& binary_operate)
     {
         if (self.m_stack.size() < 2) {
-            return Execution_Error { binary_operate.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, binary_operate.debug_info };
         }
         const Concrete_Value rhs = self.m_stack.back();
         self.m_stack.pop_back();
@@ -145,7 +145,7 @@ struct Cycle_Impl {
         const Result<Concrete_Value, Evaluation_Error_Code> result
             = evaluate_binary_operator(lhs, binary_operate.op, rhs);
         if (!result) {
-            return Execution_Error { binary_operate.debug_info, result.error() };
+            return Execution_Error { result.error(), binary_operate.debug_info };
         }
         if (self.m_instruction_counter + 1 < self.m_instructions.size()) {
             const auto* next_builtin_call
@@ -163,7 +163,7 @@ struct Cycle_Impl {
     Result<void, Execution_Error> operator()(const ins::Call& call)
     {
         if (call.address > self.m_instructions.size()) {
-            return Execution_Error { call.debug_info, Execution_Error_Code::call_out_of_program };
+            return Execution_Error { Execution_Error_Code::call_out_of_program, call.debug_info };
         }
         const auto return_address = Concrete_Value::Int(Big_Int(self.m_instruction_counter + 1));
         self.m_function_frame_stack.push_frame(return_address);
@@ -175,12 +175,12 @@ struct Cycle_Impl {
     {
         const Size params = builtin_parameter_count(call.function);
         if (params > self.m_stack.size()) {
-            return Execution_Error { call.debug_info, Execution_Error_Code::pop };
+            return Execution_Error { Execution_Error_Code::pop, call.debug_info };
         }
         const Result<Concrete_Value, Evaluation_Error_Code> result = evaluate_builtin_function(
             call.function, std::span { self.m_stack.end() - int(params), self.m_stack.end() });
         if (!result) {
-            Execution_Error error { call.debug_info, result.error() };
+            Execution_Error error { result.error(), call.debug_info };
             if (call.function != bms::Builtin_Function::assert
                 || !self.m_comparison_failure_for_assert) {
                 return error;
@@ -196,12 +196,12 @@ struct Cycle_Impl {
 
     Result<void, Execution_Error> operator()(const ins::Break& i)
     {
-        return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };
+        return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
     }
 
     Result<void, Execution_Error> operator()(const ins::Continue& i)
     {
-        return Execution_Error { i.debug_info, Execution_Error_Code::symbolic_jump };
+        return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
     }
 };
 
@@ -214,7 +214,7 @@ Result<void, Execution_Error> Virtual_Machine::cycle()
         return result;
     }
     if (counter == m_instruction_counter) {
-        return Execution_Error { get_debug_info(next), Execution_Error_Code::infinite_loop };
+        return Execution_Error { Execution_Error_Code::infinite_loop, get_debug_info(next) };
     }
     return result;
 }

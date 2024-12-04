@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "bms/concrete_value.hpp"
+#include "bms/debug_info.hpp"
 #include "bms/fwd.hpp"
 #include "bms/tokenization/token_type.hpp"
 
@@ -12,19 +13,18 @@ namespace ins {
 
 namespace detail {
 struct Base {
-    /// @brief The AST node which emitted this instruction.
-    const ast::Some_Node* debug_info;
+    Debug_Info debug_info;
 };
 } // namespace detail
 
 /// @brief Loads a value from `source` and pushes it onto the stack.
 struct Load : detail::Base {
-    const ast::Some_Node* source;
+    const void* source;
 };
 
 /// @brief Pops a value off the stack and stores it in `target`.
 struct Store : detail::Base {
-    const ast::Some_Node* target;
+    const void* target;
 };
 
 /// @brief Pushes `value` onto the stack.
@@ -115,7 +115,7 @@ inline const ins::detail::Base& to_base(const Instruction& i)
 
 } // namespace detail
 
-inline const ast::Some_Node* get_debug_info(const Instruction& i)
+inline Debug_Info get_debug_info(const Instruction& i)
 {
     return detail::to_base(i).debug_info;
 }
