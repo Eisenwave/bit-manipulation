@@ -8,18 +8,21 @@
 #include "common/variant.hpp"
 
 #include "bms/ast.hpp"
+#include "bms/lookup_result.hpp"
 
 namespace bit_manipulation::bms {
 
 /// @brief A hierarchical associative container which maps non-owning keys (`std::string_view`) onto
-/// AST nodes (`ast::Some_Node*`).
+/// AST nodes (`Lookup_Result`).
 /// A symbol table can be created with a parent symbol table (see `From_Parent_Tag`),
 /// in which case, if lookup fails in this table, lookup will also continue in the parent table.
 /// This mirrors the lookup behavior in a hierarchy of scopes.
 struct Symbol_Table {
 public:
     struct From_Parent_Tag { };
-    using map_type = std::pmr::unordered_map<std::string_view, ast::Some_Node*>;
+    using key_type = std::string_view;
+    using value_type = Lookup_Result;
+    using map_type = std::pmr::unordered_map<key_type, value_type>;
 
 private:
     map_type m_symbols;
@@ -59,14 +62,12 @@ public:
     /// @param node the node to which the symbol refers
     /// @param shadow if `true`, permits placing a symbol, even if one in the parent table conflicts
     /// (duplicates at the same level are not possible though)
-    /// @return an iterator to the emplaced pair upon success, or a pointer to the existing node
-    /// with the given name upon failure
-    Variant<map_type::iterator, ast::Some_Node*>
-    emplace(std::string_view symbol, ast::Some_Node* node, bool shadow)
+    /// @return an iterator to the emplaced pair upon success, or a lookup result to the existing
+    /// node with the given name upon failure
+    Variant<map_type::iterator, value_type> emplace(key_type symbol, value_type node, bool shadow)
     {
-        BIT_MANIPULATION_ASSERT(node != nullptr);
         if (!shadow && m_parent != nullptr) {
-            if (std::optional<ast::Some_Node*> old = m_parent->find(symbol)) {
+            if (Optional_Lookup_Result old = m_parent->find(symbol)) {
                 return *old;
             }
         }
@@ -79,7 +80,7 @@ public:
         }
     }
 
-    std::optional<ast::Some_Node*> find(std::string_view symbol) const
+    Optional_Lookup_Result find(key_type symbol) const
     {
         if (m_parent != nullptr) {
             if (auto parent_result = m_parent->find(symbol)) {
@@ -89,7 +90,7 @@ public:
         if (auto iter = m_symbols.find(symbol); iter != m_symbols.end()) {
             return iter->second;
         }
-        return std::nullopt;
+        return {};
     }
 };
 
