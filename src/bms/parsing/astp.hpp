@@ -114,7 +114,6 @@ struct Function final : detail::Node_Base, detail::Parent<5> {
 };
 
 struct Parameter_List final : detail::Node_Base {
-    using AST_Node = ast::Parameter_List;
     static inline constexpr std::string_view self_name = "Parameter_List";
 
     std::pmr::vector<Handle> parameters;
@@ -135,7 +134,6 @@ struct Parameter_List final : detail::Node_Base {
 };
 
 struct Parameter final : detail::Node_Base, detail::Parent<1> {
-    using AST_Node = ast::Parameter;
     static inline constexpr std::string_view self_name = "Parameter";
     static inline constexpr std::string_view child_names[] = { "type" };
 

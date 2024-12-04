@@ -12,22 +12,34 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-Concrete_Type get_parameter_type(const ast::Some_Node& some_function, Size i)
+Concrete_Type get_parameter_type(Lookup_Result some_function, Size i)
 {
-    if (const auto* f = get_if<ast::Function>(&some_function)) {
-        const ast::Parameter_List& parameter_list = f->get_parameters();
-        BIT_MANIPULATION_ASSERT(i < parameter_list.get_parameter_count());
-        const std::optional<Value>& value = parameter_list.get_parameter(i).const_value();
-        BIT_MANIPULATION_ASSERT(value);
-        return value->get_type();
+    if (const auto* node = get_if<ast::Some_Node*>(&some_function)) {
+        if (const auto* f = get_if<ast::Function>(*node)) {
+            BIT_MANIPULATION_ASSERT(i < f->get_parameter_count());
+            const std::optional<Value>& value = f->get_parameters()[i].get_type().const_value();
+            BIT_MANIPULATION_ASSERT(value);
+            return value->get_type();
+        }
     }
-    if (const auto* f = get_if<ast::Builtin_Function>(&some_function)) {
-        const std::span<const Concrete_Type> parameters
-            = builtin_parameter_types(f->get_function());
+
+    if (const auto* f = get_if<Builtin_Function>(&some_function)) {
+        const std::span<const Concrete_Type> parameters = builtin_parameter_types(*f);
         BIT_MANIPULATION_ASSERT(i < parameters.size());
         return parameters[i];
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
+}
+
+const void* to_load_target(const Lookup_Result& result)
+{
+    if (const auto* const* node = get_if<ast::Some_Node*>(&result)) {
+        return *node;
+    }
+    if (const auto* const* node = get_if<ast::Parameter*>(&result)) {
+        return *node;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Loads must happen from AST nodes or parameters.");
 }
 
 struct Virtual_Code_Generator {
@@ -64,11 +76,12 @@ private:
     {
         const auto restore_size = out.size();
 
-        if (function.get_parameters_node() != nullptr) {
-            auto param_result = generate_code(function.get_parameters_node());
-            if (!param_result) {
-                return param_result;
-            }
+        std::span<const ast::Parameter> parameters = function.get_parameters();
+        for (Size i = parameters.size(); i-- != 0;) {
+            // We use left-to-right push order, so storing the parameters in variables upon
+            // function entry happens in reverse order.
+            Debug_Info info { Construct::parameter, parameters[i].get_position() };
+            out.push_back(ins::Store { info, &parameters[i] });
         }
 
         const ast::Type& return_type = function.get_return_type();
@@ -105,31 +118,6 @@ private:
             out.push_back(ins::Return { { h } });
         }
 
-        return {};
-    }
-
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
-                                               const ast::Parameter_List& node)
-    {
-        BIT_MANIPULATION_ASSERT(node.const_value());
-        const auto initial_size = out.size();
-        for (Size i = node.get_parameter_count(); i-- != 0;) {
-            // We use left-to-right push order, so storing the parameters in variables upon
-            // function entry happens in reverse order.
-            auto r = generate_code(node.get_parameter_node(i), node.get_parameter(i));
-            if (!r) {
-                BIT_MANIPULATION_ASSERT(initial_size <= out.size());
-                out.resize(initial_size);
-                return r;
-            }
-        }
-        return {};
-    }
-
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Parameter& node)
-    {
-        BIT_MANIPULATION_ASSERT(node.const_value());
-        out.push_back(ins::Store { { h }, h });
         return {};
     }
 
@@ -301,7 +289,7 @@ private:
         if (!result) {
             return result;
         }
-        out.push_back(ins::Store { { h }, node.lookup_result });
+        out.push_back(ins::Store { { h }, h });
         return {};
     }
 
@@ -474,8 +462,6 @@ private:
         const Size restore_size = out.size();
         const std::span<const ast::Some_Node* const> arguments = node.get_children();
 
-        const ast::Some_Node* const function_node = node.lookup_result;
-
         for (Size i = 0; i < arguments.size(); ++i) {
             auto arg_code = generate_code(arguments[i]);
             if (!arg_code) {
@@ -484,26 +470,31 @@ private:
                 return arg_code;
             }
             const Concrete_Type argument_type = get_const_value(*arguments[i]).value().get_type();
-            const Concrete_Type parameter_type = get_parameter_type(*function_node, i);
+            const Concrete_Type parameter_type = get_parameter_type(node.lookup_result.value(), i);
             if (argument_type != parameter_type) {
                 out.push_back(ins::Convert { { h }, parameter_type });
             }
         }
 
-        if (const auto* const called = get_if<ast::Function>(node.lookup_result)) {
-
-            if (!called->was_analyzed()
-                || called->vm_address == ast::Function::invalid_vm_address) {
-                return Analysis_Error_Builder { Analysis_Error_Code::codegen_call_to_unanalyzed }
-                    .fail(h)
-                    .cause(node.lookup_result)
-                    .build();
+        if (const auto* const* called_node = get_if<ast::Some_Node*>(&node.lookup_result)) {
+            if (const auto* const called = get_if<ast::Function>(*called_node)) {
+                if (!called->was_analyzed()
+                    || called->vm_address == ast::Function::invalid_vm_address) {
+                    return Analysis_Error_Builder {
+                        Analysis_Error_Code::codegen_call_to_unanalyzed
+                    }
+                        .fail(h)
+                        .cause(node.lookup_result.value())
+                        .build();
+                }
+                out.push_back(ins::Call { { h }, called->vm_address });
             }
-            out.push_back(ins::Call { { h }, called->vm_address });
         }
-        if (const auto* const called = get_if<ast::Builtin_Function>(node.lookup_result)) {
-            BIT_MANIPULATION_ASSERT(called->was_analyzed());
-            out.push_back(ins::Builtin_Call { { h }, called->get_function() });
+        else if (const auto* const builtin = get_if<Builtin_Function>(&node.lookup_result)) {
+            out.push_back(ins::Builtin_Call { { h }, *builtin });
+        }
+        else {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible call.");
         }
 
         if (node.is_statement()) {
@@ -518,7 +509,7 @@ private:
         BIT_MANIPULATION_ASSERT(node.was_analyzed());
         auto instruction = node.const_value()->is_known()
             ? Instruction { ins::Push { { h }, node.const_value()->concrete_value() } }
-            : Instruction { ins::Load { { h }, node.lookup_result } };
+            : Instruction { ins::Load { { h }, to_load_target(node.lookup_result.value()) } };
         out.push_back(instruction);
         return {};
     }
@@ -529,13 +520,6 @@ private:
         BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
 
         out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
-        return {};
-    }
-
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Builtin_Function&)
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE(
-            "codegen should not attempt to generate builtin function code");
         return {};
     }
 };

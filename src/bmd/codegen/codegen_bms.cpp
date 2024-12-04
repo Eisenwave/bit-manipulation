@@ -153,9 +153,17 @@ struct Bms_Code_Generator::Visitor {
         {
             Scoped_Parenthesization p = self.parenthesize();
 
-            if (const Some_Node* params_node = function.get_parameters_node()) {
-                Visitor v { self, function.get_parameters_node() };
-                if (auto r = v(get<Parameter_List>(*params_node)); !r) {
+            bool first = true;
+            for (const Parameter& parameter : function.get_parameters()) {
+                if (!first) {
+                    self.write_separating_comma();
+                }
+                first = false;
+                self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+                self.m_out.append(':', Code_Span_Type::punctuation);
+                self.m_out.append(' ');
+                auto v = Visitor { self, parameter.get_type_node() };
+                if (auto r = v(parameter.get_type()); !r) {
                     return r;
                 }
             }
@@ -168,41 +176,6 @@ struct Bms_Code_Generator::Visitor {
 
         self.separate_after_function();
         if (auto r = Visitor { self, function.get_body_node() }(function.get_body()); !r) {
-            return r;
-        }
-
-        attempt.commit();
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter_List& parameters)
-    {
-        Scoped_Attempt attempt = self.start_attempt();
-
-        const Size n = parameters.get_parameter_count();
-        for (Size i = 0; i < n; ++i) {
-            if (i != 0) {
-                self.write_separating_comma();
-            }
-            Visitor v { self, parameters.get_parameter_node(i) };
-            if (auto r = v(parameters.get_parameter(i)); !r) {
-                return r;
-            }
-        }
-
-        attempt.commit();
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter& parameter)
-    {
-        Scoped_Attempt attempt = self.start_attempt();
-
-        self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
-        self.m_out.append(':');
-        self.m_out.append(' ');
-        auto v = Visitor { self, parameter.get_type_node() };
-        if (auto r = v(parameter.get_type()); !r) {
             return r;
         }
 
@@ -527,12 +500,6 @@ struct Bms_Code_Generator::Visitor {
     {
         self.m_out.append(literal.get_literal(), Code_Span_Type::number);
         return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Builtin_Function&)
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE(
-            "builtin functions can be looked up, but are not children in the AST");
     }
 };
 

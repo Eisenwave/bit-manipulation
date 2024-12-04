@@ -134,11 +134,15 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.instances.empty());
 
-        if (auto r = analyze_types(node.get_parameters_node(), level, Expression_Context::normal);
-            !r) {
-            return r;
+        for (ast::Parameter& parameter : node.get_parameters()) {
+            auto r = analyze_types(parameter.get_type_node(), parameter.get_type(), level,
+                                   Expression_Context::normal);
+            if (!r) {
+                return r;
+            }
         }
-        if (auto r = analyze_types(node.get_return_type_node(), level, Expression_Context::normal);
+        if (auto r = analyze_types(node.get_return_type_node(), node.get_return_type(), level,
+                                   Expression_Context::normal);
             !r) {
             return r;
         }
@@ -197,37 +201,6 @@ private:
         BIT_MANIPULATION_ASSERT(!node.is_generic);
         node.const_value() = get_const_value(*node.get_return_type_node());
         node.analysis_so_far = level;
-        return {};
-    }
-
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
-                                                                      ast::Parameter_List& node,
-                                                                      Analysis_Level level,
-                                                                      Expression_Context)
-    {
-        BIT_MANIPULATION_ASSERT(&get<ast::Parameter_List>(*handle) == &node);
-        if (node.const_value()) {
-            return {};
-        }
-        return analyze_child_types(node, level, Expression_Context::normal);
-    }
-
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
-                                                                      ast::Parameter& node,
-                                                                      Analysis_Level level,
-                                                                      Expression_Context)
-    {
-        BIT_MANIPULATION_ASSERT(&get<ast::Parameter>(*handle) == &node);
-        if (node.const_value()) {
-            return {};
-        }
-        ast::Type& type = node.get_type();
-        auto r = analyze_types(node.get_type_node(), type, level, Expression_Context::normal);
-        if (!r) {
-            return r;
-        }
-        BIT_MANIPULATION_ASSERT(type.const_value());
-        node.const_value() = type.const_value();
         return {};
     }
 
@@ -540,31 +513,30 @@ private:
                                                Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(&get<ast::Assignment>(*handle) == &node);
-        BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
+        BIT_MANIPULATION_ASSERT(node.lookup_result);
 
-        ast::Some_Node& looked_up_node = *node.lookup_result;
-        if (holds_alternative<ast::Parameter>(looked_up_node)) {
+        if (holds_alternative<ast::Parameter*>(node.lookup_result)) {
             return Analysis_Error_Builder { Analysis_Error_Code::assigning_parameter }
                 .fail(handle)
-                .cause(node.lookup_result)
+                .cause(*node.lookup_result)
                 .build();
         }
-        if (holds_alternative<ast::Function>(looked_up_node)) {
+        ast::Some_Node* looked_up_node = get<ast::Some_Node*>(node.lookup_result);
+        if (holds_alternative<ast::Function>(*looked_up_node)) {
             return Analysis_Error_Builder { Analysis_Error_Code::assigning_function }
                 .fail(handle)
-                .cause(node.lookup_result)
+                .cause(looked_up_node)
                 .build();
         }
 
-        if (holds_alternative<ast::Const>(looked_up_node)) {
+        if (holds_alternative<ast::Const>(*looked_up_node)) {
             return Analysis_Error_Builder { Analysis_Error_Code::assigning_const }
                 .fail(handle)
-                .cause(node.lookup_result)
+                .cause(looked_up_node)
                 .build();
         }
 
-        auto& looked_up_var = get<ast::Let>(looked_up_node);
-
+        auto& looked_up_var = get<ast::Let>(*looked_up_node);
         if (auto r = analyze_types(node.get_expression_node(), level, Expression_Context::normal);
             !r) {
             return r;
@@ -780,7 +752,7 @@ private:
                                                Expression_Context context)
     {
         BIT_MANIPULATION_ASSERT(&get<ast::Function_Call_Expression>(*handle) == &node);
-        BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
+        BIT_MANIPULATION_ASSERT(node.lookup_result);
 
         // 1. Evaluate arguments.
 
@@ -797,19 +769,19 @@ private:
 
         // 2.1. If the function is builtin, evaluate right away.
 
-        if (auto* const builtin = get_if<ast::Builtin_Function>(node.lookup_result)) {
-            auto type_result = check_builtin_function(builtin->get_function(), arg_values);
+        if (Builtin_Function* builtin = get_if<Builtin_Function>(&node.lookup_result)) {
+            auto type_result = check_builtin_function(*builtin, arg_values);
             if (!type_result) {
                 return Analysis_Error_Builder { type_result.error() }
                     .fail(handle)
-                    .cause(node.lookup_result)
+                    .cause(*builtin)
                     .build();
             }
-            auto eval_result = evaluate_builtin_function(builtin->get_function(), arg_values);
+            auto eval_result = evaluate_builtin_function(*builtin, arg_values);
             if (!eval_result) {
                 return Analysis_Error_Builder { eval_result.error() }
                     .fail(handle)
-                    .cause(node.lookup_result)
+                    .cause(*builtin)
                     .build();
             }
             BIT_MANIPULATION_ASSERT(context != Expression_Context::constant
@@ -820,11 +792,13 @@ private:
 
         // 2.2. Otherwise, verify that we call a function.
 
-        auto* function = get_if<ast::Function>(node.lookup_result);
+        auto** looked_up_node = get_if<ast::Some_Node*>(&node.lookup_result);
+        auto* function
+            = looked_up_node == nullptr ? nullptr : get_if<ast::Function>(*looked_up_node);
         if (!function) {
             return Analysis_Error_Builder { Analysis_Error_Code::call_non_function }
                 .fail(handle)
-                .cause(node.lookup_result)
+                .cause(*looked_up_node)
                 .build();
         }
 
@@ -833,20 +807,13 @@ private:
         //    number of arguments is an error before and after instantiating generic functions.
         //    There is no function overloading.
 
-        const ast::Parameter_List* possibly_generic_params = nullptr;
-        if (function->get_parameters_node() != nullptr) {
-            possibly_generic_params = &function->get_parameters();
-            if (possibly_generic_params->get_parameter_count() != node.get_argument_count()) {
-                return Analysis_Error_Builder { Analysis_Error_Code::wrong_number_of_arguments }
-                    .fail(handle)
-                    .cause(function->get_parameters_node())
-                    .build();
-            }
-        }
-        else if (node.get_argument_count() != 0) {
+        std::span<const ast::Parameter> possibly_generic_params = function->get_parameters();
+        if (possibly_generic_params.size() != node.get_argument_count()) {
             return Analysis_Error_Builder { Analysis_Error_Code::wrong_number_of_arguments }
                 .fail(handle)
-                .cause(node.lookup_result)
+                // TODO: use a cause location that is that of the parameter list, but that would
+                // require storing extra source positions in ast::Function
+                .cause(*looked_up_node)
                 .build();
         }
 
@@ -855,10 +822,10 @@ private:
         //    the generic function anymore.
         if (function->is_generic) {
             // Functions with no parameters cannot be generic.
-            BIT_MANIPULATION_ASSERT(possibly_generic_params != nullptr);
+            BIT_MANIPULATION_ASSERT(!possibly_generic_params.empty());
             std::pmr::vector<int> deduced_widths(&temp_memory_resource);
             for (Size i = 0; i < node.get_argument_count(); ++i) {
-                const ast::Type& type = possibly_generic_params->get_parameter(i).get_type();
+                const ast::Type& type = possibly_generic_params[i].get_type();
                 // If this function is generic, parameter types wouldn't have undergone analysis.
                 BIT_MANIPULATION_ASSERT(!type.const_value());
                 if (type.concrete_width) {
@@ -880,7 +847,7 @@ private:
             }
 
             Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
-                = instantiate_function(m_program, &m_memory_resource, node.lookup_result, *function,
+                = instantiate_function(m_program, &m_memory_resource, *looked_up_node, *function,
                                        std::span<const int>(deduced_widths));
             if (!instantiation_result) {
                 return instantiation_result.error();
@@ -926,13 +893,13 @@ private:
                         Analysis_Error_Code::codegen_call_to_unanalyzed
                     }
                         .fail(handle)
-                        .cause(node.lookup_result)
+                        .cause(*looked_up_node)
                         .build();
                 }
             }
         }
 
-        auto r = analyze_types(node.lookup_result, *function, inner_level, context);
+        auto r = analyze_types(*looked_up_node, *function, inner_level, context);
         if (!r) {
             return r;
         }
@@ -943,8 +910,7 @@ private:
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        const ast::Parameter_List* params
-            = function->get_parameters_node() != nullptr ? &function->get_parameters() : nullptr;
+        const std::span<const ast::Parameter> params = function->get_parameters();
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
 
@@ -955,13 +921,11 @@ private:
         }
 
         for (Size i = 0; i < node.get_argument_count(); ++i) {
-            BIT_MANIPULATION_ASSERT(params != nullptr);
-            const ast::Parameter& param = params->get_parameter(i);
-            const Concrete_Type param_type = param.const_value().value().get_type();
+            const Concrete_Type param_type = params[i].get_type().concrete_type().value();
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                     .fail(handle)
-                    .cause(params->get_parameter_node(i))
+                    .cause_pos(params[i].get_position().value())
                     .build();
             }
 
@@ -971,7 +935,7 @@ private:
                 if (!conv_result) {
                     return Analysis_Error_Builder { conv_result.error() }
                         .fail(handle)
-                        .cause(params->get_parameter_node(i))
+                        .cause_pos(params[i].get_position().value())
                         .build();
                 }
                 constant_evaluation_machine.push(conv_result->concrete_value());
@@ -991,7 +955,7 @@ private:
             if (cycle_result.error().code != Execution_Error_Code::pop_call) {
                 return Analysis_Error_Builder { cycle_result.error() }
                     .fail(handle)
-                    .cause(cycle_result.error().handle)
+                    .cause(cycle_result.error().debug_info)
                     .build();
             }
             BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
@@ -1017,65 +981,79 @@ private:
             // Id-expressions never need to be analyzed twice.
             return {};
         }
-        BIT_MANIPULATION_ASSERT(node.lookup_result != nullptr);
+        BIT_MANIPULATION_ASSERT(node.lookup_result);
 
-        if (const auto* const looked_up_function = get_if<ast::Function>(node.lookup_result)) {
-            return Analysis_Error_Builder { Analysis_Error_Code::function_in_expression }
-                .fail(handle)
-                .cause(node.lookup_result)
-                .build();
-        }
-        if (const auto* const looked_up_var = get_if<ast::Let>(node.lookup_result)) {
-            if (context == Expression_Context::constant) {
-                return Analysis_Error_Builder {
-                    Analysis_Error_Code::let_variable_in_constant_expression
-                }
-                    .fail(handle)
-                    .cause(node.lookup_result)
-                    .build();
-            }
-            if (!looked_up_var->const_value()) {
-                return Analysis_Error_Builder { Analysis_Error_Code::use_of_undefined_variable }
-                    .fail(handle)
-                    .cause(node.lookup_result)
-                    .build();
-            }
-            node.const_value() = looked_up_var->const_value();
-            return {};
-        }
-        if (const auto* const looked_up_const = get_if<ast::Const>(node.lookup_result)) {
-            // TODO: consider analyzing it from here, or analyzing global constants
-            //       in a separate pass.
-            if (!looked_up_const->const_value()) {
-                return Analysis_Error_Builder { Analysis_Error_Code::use_of_undefined_constant }
-                    .fail(handle)
-                    .cause(node.lookup_result)
-                    .build();
-            }
-            node.const_value() = looked_up_const->const_value();
-            return {};
-        }
-        if (const auto* const looked_up_param = get_if<ast::Parameter>(node.lookup_result)) {
+        if (auto** parameter = get_if<ast::Parameter*>(&node.lookup_result)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error_Builder {
                     Analysis_Error_Code::parameter_in_constant_expression
                 }
                     .fail(handle)
-                    .cause(node.lookup_result)
+                    .cause(node.lookup_result.value())
                     .build();
             }
+
+            node.const_value() = (*parameter)->get_type().const_value();
+            return {};
+        }
+        auto looked_up_node = get<ast::Some_Node*>(node.lookup_result);
+        return analyze_types_for_id_looking_up_node(handle, node, looked_up_node, level, context);
+    }
+
+    Result<void, Analysis_Error>
+    analyze_types_for_id_looking_up_node(ast::Some_Node* handle,
+                                         ast::Id_Expression& node,
+                                         ast::Some_Node* looked_up_node,
+                                         Analysis_Level level,
+                                         Expression_Context context)
+    {
+        if (const auto* const looked_up_function = get_if<ast::Function>(looked_up_node)) {
+            return Analysis_Error_Builder { Analysis_Error_Code::function_in_expression }
+                .fail(handle)
+                .cause(looked_up_node)
+                .build();
+        }
+        if (const auto* const looked_up_var = get_if<ast::Let>(looked_up_node)) {
+            if (context == Expression_Context::constant) {
+                return Analysis_Error_Builder {
+                    Analysis_Error_Code::let_variable_in_constant_expression
+                }
+                    .fail(handle)
+                    .cause(looked_up_node)
+                    .build();
+            }
+            if (!looked_up_var->const_value()) {
+                return Analysis_Error_Builder { Analysis_Error_Code::use_of_undefined_variable }
+                    .fail(handle)
+                    .cause(looked_up_node)
+                    .build();
+            }
+            node.const_value() = looked_up_var->const_value();
+            return {};
+        }
+        if (const auto* const looked_up_const = get_if<ast::Const>(looked_up_node)) {
+            // TODO: consider analyzing it from here, or analyzing global constants
+            //       in a separate pass.
+            if (!looked_up_const->const_value()) {
+                return Analysis_Error_Builder { Analysis_Error_Code::use_of_undefined_constant }
+                    .fail(handle)
+                    .cause(looked_up_node)
+                    .build();
+            }
+            node.const_value() = looked_up_const->const_value();
+            return {};
         }
 
         // TODO: is this actually necessary?
-        if (auto r = analyze_types(node.lookup_result, level, context); !r) {
+        if (auto r = analyze_types(looked_up_node, level, context); !r) {
             return r;
         }
-        const auto lookup_value = get_const_value(*node.lookup_result);
+        const auto lookup_value = get_const_value(*looked_up_node);
         BIT_MANIPULATION_ASSERT(lookup_value.has_value());
         if (context == Expression_Context::constant && lookup_value->is_unknown()) {
             return Analysis_Error_Builder { Analysis_Error_Code::expected_constant_expression }
                 .fail(handle)
-                .cause(node.lookup_result)
+                .cause(looked_up_node)
                 .build();
         }
         node.const_value() = lookup_value;
@@ -1116,13 +1094,6 @@ private:
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE("Given token type does not form a valid literal");
         }
-    }
-
-    [[gnu::always_inline]] Result<void, Analysis_Error>
-    analyze_types(ast::Some_Node*, ast::Builtin_Function& node, Analysis_Level, Expression_Context)
-    {
-        BIT_MANIPULATION_ASSERT(node.const_value());
-        return {};
     }
 };
 

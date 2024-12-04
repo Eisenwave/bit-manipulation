@@ -4,6 +4,7 @@
 
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
+#include "bms/debug_info.hpp"
 #include "bms/parsing/astp.hpp"
 #include "bms/parsing/parse.hpp"
 
@@ -91,18 +92,25 @@ Program::Program(const astp::Program& parsed,
 {
 }
 
-Function::Function(Some_Node& parent, const astp::Function& parsed, std::string_view file)
+Function::Function(Some_Node& parent,
+                   const astp::Function& parsed,
+                   std::string_view file,
+                   std::pmr::memory_resource* memory)
     : detail::Node_Base(parent, parsed, file)
     , m_name(parsed.name)
+    , m_parameters(memory)
 {
 }
 
 Function::Function(const Function& other, Copy_for_Instantiation_Tag)
     : detail::Node_Base(other)
-    , detail::Parent<4>(other)
     , m_name(other.m_name)
+    , m_annotations(other.m_annotations)
+    , m_parameters(other.m_parameters)
+    , m_return_type(other.m_return_type)
+    , m_requires_clause(other.m_requires_clause)
+    , m_body(other.m_body)
 {
-    set_children(other.m_children);
 }
 
 Function::Instance::Instance(std::pmr::vector<int>&& widths, Some_Node* handle)
@@ -113,18 +121,9 @@ Function::Instance::Instance(std::pmr::vector<int>&& widths, Some_Node* handle)
     BIT_MANIPULATION_ASSERT(holds_alternative<Function>(*handle));
 }
 
-Parameter_List::Parameter_List(Some_Node& parent,
-                               const astp::Parameter_List& parsed,
-                               std::string_view file,
-                               std::pmr::memory_resource* memory)
-    : detail::Node_Base(parent, parsed, file)
-    , detail::Dynamic_Parent(memory)
-{
-}
-
-Parameter::Parameter(Some_Node& parent, const astp::Parameter& parsed, std::string_view file)
-    : detail::Node_Base(parent, parsed, file)
-    , m_name(parsed.name)
+Parameter::Parameter(const astp::Parameter& parsed, std::string_view file)
+    : m_name(parsed.name)
+    , m_position(Source_Span { parsed.pos, file })
 {
 }
 
@@ -264,12 +263,6 @@ Literal::Literal(Some_Node& parent, const astp::Literal& parsed, std::string_vie
 {
 }
 
-Builtin_Function::Builtin_Function(bms::Builtin_Function function)
-    : detail::Node_Base(detail::Node_Base::make_builtin())
-    , m_function(function)
-{
-}
-
 } // namespace ast
 
 struct Analyzed_Program::Implementation {
@@ -391,8 +384,43 @@ public:
         return self.emplace<ast::Control_Statement>(*parent, n, self.m_file_name);
     }
 
-    template <one_of<astp::Parameter,
-                     astp::Type,
+    ast::Some_Node* operator()(const astp::Function& n) const
+    {
+        using Result = ast::Function;
+        ast::Some_Node* result
+            = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource);
+
+        auto& function = get<Result>(*result);
+
+        std::pmr::vector<ast::Parameter>& parameters = function.get_parameters();
+        BIT_MANIPULATION_ASSERT(parameters.empty());
+
+        if (n.get_parameters() != astp::Handle::null) {
+            const auto& parsed_parameters
+                = get<astp::Parameter_List>(parsed.get_node(n.get_parameters()));
+            parameters.reserve(parsed_parameters.get_children().size());
+
+            for (const astp::Handle p : parsed_parameters.get_children()) {
+                auto& parameter = get<astp::Parameter>(parsed.get_node(p));
+                ast::Some_Node* type = transform_recursively(result, parameter.get_type());
+                auto& node
+                    = parameters.emplace_back(ast::Parameter { parameter, self.m_file_name });
+                node.set_type_node(type);
+            }
+        }
+
+        ast::Some_Node* return_type = transform_recursively(result, n.get_return_type());
+        ast::Some_Node* requires_clause = transform_recursively(result, n.get_requires_clause());
+        ast::Some_Node* body = transform_recursively(result, n.get_body());
+
+        function.set_return_type_node(return_type);
+        function.set_requires_clause_node(requires_clause);
+        function.set_body_node(body);
+
+        return result;
+    }
+
+    template <one_of<astp::Type,
                      astp::Static_Assert,
                      astp::If_Statement,
                      astp::While_Statement,
@@ -410,7 +438,7 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children());
     }
 
-    template <one_of<astp::Function, astp::Const, astp::Let, astp::Assignment> T>
+    template <one_of<astp::Const, astp::Let, astp::Assignment> T>
     ast::Some_Node* operator()(const T& n) const
     {
         // Parser AST nodes always have the annotation list as the first child.
@@ -421,7 +449,7 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children().subspan(1));
     }
 
-    template <one_of<astp::Parameter_List, astp::Block_Statement, astp::Function_Call_Expression> T>
+    template <one_of<astp::Block_Statement, astp::Function_Call_Expression> T>
     ast::Some_Node* operator()(const T& n) const
     {
         using Result = T::AST_Node;
@@ -430,7 +458,11 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children());
     }
 
-    template <one_of<astp::Annotation, astp::Annotation_List, astp::Annotation_Argument> T>
+    template <one_of<astp::Parameter_List,
+                     astp::Parameter,
+                     astp::Annotation,
+                     astp::Annotation_List,
+                     astp::Annotation_Argument> T>
     ast::Some_Node* operator()(const T&) const
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Attributes should not be processed here.");
@@ -570,6 +602,12 @@ std::pmr::polymorphic_allocator<> Analyzed_Program::allocator() const
     return std::pmr::polymorphic_allocator<>(m_memory);
 }
 
+Analysis_Error_Builder& Analysis_Error_Builder::fail(const Debug_Info& info)
+{
+    // TODO: implement
+    return *this;
+}
+
 Analysis_Error_Builder& Analysis_Error_Builder::fail(const ast::Some_Node* node)
 {
     BIT_MANIPULATION_ASSERT(node != nullptr);
@@ -584,6 +622,35 @@ Analysis_Error_Builder& Analysis_Error_Builder::cause(const ast::Some_Node* node
     m_cause = node;
     m_cause_pos = get_source_position(*node);
     return *this;
+}
+
+Analysis_Error_Builder& Analysis_Error_Builder::cause(const Debug_Info& info)
+{
+    // TODO: implement
+    return *this;
+}
+
+Analysis_Error_Builder& Analysis_Error_Builder::cause(const Lookup_Result& result)
+{
+    visit(
+        [&]<typename T>(const T& r) {
+            if constexpr (std::is_same_v<ast::Some_Node*, T>) {
+                cause(r);
+            }
+            else if constexpr (std::is_same_v<Builtin_Function, T>) {
+                // TODO: implement builtin function causes
+            }
+            else {
+                m_cause_pos = r->get_position();
+            }
+        },
+        result);
+    return *this;
+}
+
+Debug_Info::Debug_Info(const ast::Some_Node* node)
+    : Debug_Info(bms::ast::get_debug_info(*node))
+{
 }
 
 } // namespace bit_manipulation::bms

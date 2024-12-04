@@ -9,6 +9,7 @@
 #include "bms/comparison_failure.hpp"
 #include "bms/evaluation/evaluation_error.hpp"
 #include "bms/fwd.hpp"
+#include "bms/lookup_result.hpp"
 #include "bms/vm/execution_error.hpp"
 
 namespace bit_manipulation::bms {
@@ -290,6 +291,8 @@ public:
         return *this;
     }
 
+    Analysis_Error_Builder& fail(const Debug_Info&);
+
     Analysis_Error_Builder& fail(const ast::Some_Node* node);
 
     Analysis_Error_Builder& fail_pos(const Source_Position& pos)
@@ -298,7 +301,11 @@ public:
         return *this;
     }
 
+    Analysis_Error_Builder& cause(const Debug_Info& node);
+
     Analysis_Error_Builder& cause(const ast::Some_Node* node);
+
+    Analysis_Error_Builder& cause(const Lookup_Result& node);
 
     Analysis_Error_Builder& cause_pos(const Source_Position& pos)
     {

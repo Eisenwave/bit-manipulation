@@ -10,7 +10,7 @@ namespace {
 
 template <typename T>
 concept Lookup_Performing_Node = requires(T& t) {
-    { t.lookup_result } -> std::same_as<ast::Some_Node*&>;
+    { t.lookup_result } -> std::same_as<Optional_Lookup_Result&>;
 };
 
 static_assert(Lookup_Performing_Node<ast::Id_Expression>);
@@ -26,12 +26,14 @@ private:
     Analyzed_Program& m_program;
     std::pmr::monotonic_buffer_resource m_memory_resource;
     std::pmr::unordered_map<const ast::Some_Node*, ast::Some_Node*> m_remap;
+    std::pmr::unordered_map<const ast::Parameter*, ast::Parameter*> m_parameter_remap;
 
 public:
     Instantiator(Analyzed_Program& program, std::pmr::memory_resource* memory)
         : m_program(program)
         , m_memory_resource(memory)
         , m_remap(&m_memory_resource)
+        , m_parameter_remap(&m_memory_resource)
     {
     }
 
@@ -80,8 +82,8 @@ private:
             return result;
         };
 
-        for (ast::Some_Node* p : instance.get_parameter_nodes()) {
-            ast::Type& type_node = get<ast::Parameter>(*p).get_type();
+        for (ast::Parameter& p : instance.get_parameters()) {
+            ast::Type& type_node = p.get_type();
             if (type_node.get_width_node() == nullptr) {
                 continue;
             }
@@ -118,53 +120,116 @@ private:
 
     ast::Some_Node* deep_copy_for_instantiation(const ast::Some_Node* h)
     {
-        BIT_MANIPULATION_ASSERT(h != nullptr);
-        ast::Some_Node* const result = copy_single_node_for_instantiation(h);
-        m_remap.emplace(h, result);
+        if (h == nullptr) {
+            return nullptr;
+        }
 
-        for (ast::Some_Node*& child : get_children(*result)) {
-            if (child != nullptr) {
-                child = deep_copy_for_instantiation(child);
-                set_parent(*child, *result);
+        if (const auto* old_function = get_if<ast::Function>(h)) {
+            ast::Some_Node* result = m_program.insert(old_function->copy_for_instantiation());
+            m_remap.emplace(h, result);
+
+            auto& instance = get<ast::Function>(*result);
+            deep_copy_parameters(*old_function, instance, result);
+
+            ast::Some_Node* return_type
+                = deep_copy_for_instantiation(old_function->get_return_type_node());
+            instance.set_return_type_node(return_type);
+
+            ast::Some_Node* requires_clause
+                = deep_copy_for_instantiation(old_function->get_requires_clause_node());
+            instance.set_requires_clause_node(requires_clause);
+
+            ast::Some_Node* body = deep_copy_for_instantiation(old_function->get_body_node());
+            instance.set_body_node(body);
+
+            for (auto* child : { return_type, requires_clause, body }) {
+                if (child) {
+                    set_parent(*child, *result);
+                }
             }
+            return result;
+        }
+
+        ast::Some_Node* result = m_program.insert(*h);
+        m_remap.emplace(h, result);
+        for (ast::Some_Node*& child : get_children(*result)) {
+            child = deep_copy_for_instantiation(child);
+            set_parent(*child, *result);
         }
         return result;
     }
 
-    ast::Some_Node* copy_single_node_for_instantiation(const ast::Some_Node* h)
+    void
+    deep_copy_parameters(const ast::Function& from, ast::Function& instance, ast::Some_Node* parent)
     {
-        BIT_MANIPULATION_ASSERT(h != nullptr);
-        return visit(
-            [this]<typename T>(const T& n) {
-                if constexpr (requires { n.copy_for_instantiation(); }) {
-                    return m_program.insert(n.copy_for_instantiation());
-                }
-                else {
-                    return m_program.insert(n);
-                }
-            },
-            *h);
+        const Size n = from.get_parameter_count();
+        BIT_MANIPULATION_ASSERT(instance.get_parameter_count() == n);
+
+        std::span<const ast::Parameter> old_parameters = from.get_parameters();
+        std::span<ast::Parameter> new_parameters = instance.get_parameters();
+
+        for (Size i = 0; i < n; ++i) {
+            auto [_, success]
+                = m_parameter_remap.try_emplace(&old_parameters[i], &new_parameters[i]);
+            BIT_MANIPULATION_ASSERT(success);
+            ast::Some_Node* type = deep_copy_for_instantiation(old_parameters[i].get_type_node());
+            new_parameters[i].set_type_node(type);
+            set_parent(*type, *parent);
+        }
     }
+
+    struct Remap_Lookup_Result {
+        Instantiator& self;
+        Optional_Lookup_Result& target;
+
+        void operator()(Monostate) const { }
+
+        void operator()(Builtin_Function) const { }
+
+        void operator()(const ast::Some_Node* looked_up_node)
+        {
+            target = self.m_remap.at(looked_up_node);
+        }
+
+        void operator()(const ast::Parameter* looked_up_parameter)
+        {
+            target = self.m_parameter_remap.at(looked_up_parameter);
+        }
+    };
+
+    struct Update_Name_Lookup {
+        Instantiator& self;
+
+        void operator()(ast::Id_Expression& n) const
+        {
+            BIT_MANIPULATION_ASSERT(n.bit_generic || n.lookup_result);
+        }
+        template <Lookup_Performing_Node T>
+        void operator()(T& n)
+        {
+            visit(Remap_Lookup_Result { self, n.lookup_result }, n.lookup_result);
+        }
+        void operator()(Ignore) const { }
+    };
 
     void deep_update_name_lookup(ast::Some_Node* h)
     {
         if (h == nullptr) {
             return;
         }
-        visit(
-            [&]<typename T>(T& n) {
-                if constexpr (std::is_same_v<T, ast::Id_Expression>) {
-                    BIT_MANIPULATION_ASSERT(n.bit_generic || n.lookup_result != nullptr);
-                }
-                if constexpr (Lookup_Performing_Node<T>) {
-                    if (n.lookup_result != nullptr) {
-                        n.lookup_result = m_remap.at(n.lookup_result);
-                    }
-                }
-            },
-            *h);
-        for (ast::Some_Node* const child : get_children(*h)) {
-            deep_update_name_lookup(child);
+        visit(Update_Name_Lookup { *this }, *h);
+        if (auto* function = get_if<ast::Function>(h)) {
+            for (ast::Parameter& parameter : function->get_parameters()) {
+                deep_update_name_lookup(parameter.get_type_node());
+            }
+            deep_update_name_lookup(function->get_return_type_node());
+            deep_update_name_lookup(function->get_requires_clause_node());
+            deep_update_name_lookup(function->get_body_node());
+        }
+        else {
+            for (ast::Some_Node* const child : get_children(*h)) {
+                deep_update_name_lookup(child);
+            }
         }
     }
 };

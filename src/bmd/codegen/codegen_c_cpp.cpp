@@ -8,6 +8,7 @@
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/concrete_value.hpp"
+#include "bms/lookup_result.hpp"
 
 #include "bmd/codegen/code_language.hpp"
 #include "bmd/codegen/code_span_type.hpp"
@@ -334,14 +335,22 @@ struct C_Cpp_Code_Generator::Visitor {
         {
             Scoped_Parenthesization p = self.parenthesize();
 
-            if (const Some_Node* params_node = function.get_parameters_node()) {
-                Visitor v { self, function.get_parameters_node() };
-                if (auto r = v(get<Parameter_List>(*params_node)); !r) {
+            bool first = true;
+            for (const Parameter& parameter : function.get_parameters()) {
+                if (!first) {
+                    self.write_separating_comma();
+                }
+                first = false;
+                self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+                self.m_out.append(':', Code_Span_Type::punctuation);
+                self.m_out.append(' ');
+                auto v = Visitor { self, parameter.get_type_node() };
+                if (auto r = v(parameter.get_type()); !r) {
                     return r;
                 }
             }
-            else {
-                self.m_out.append("void", Code_Span_Type::keyword);
+            if (first) {
+                self.write_keyword("void");
             }
         }
 
@@ -351,40 +360,6 @@ struct C_Cpp_Code_Generator::Visitor {
         }
 
         attempt.commit();
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter_List& parameters)
-    {
-        const Size n = parameters.get_parameter_count();
-        if (n == 0) {
-            self.m_out.append("void", Code_Span_Type::keyword);
-            return {};
-        }
-
-        Scoped_Attempt attempt = self.start_attempt();
-        for (Size i = 0; i < n; ++i) {
-            if (i != 0) {
-                self.write_separating_comma();
-            }
-            Visitor v { self, parameters.get_parameter_node(i) };
-            if (auto r = v(parameters.get_parameter(i)); !r) {
-                return r;
-            }
-        }
-
-        attempt.commit();
-        return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Parameter& parameter)
-    {
-
-        if (auto r = Visitor { self, parameter.get_type_node() }(parameter.get_type()); !r) {
-            return r;
-        }
-        self.m_out.append(' ');
-        self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
         return {};
     }
 
@@ -681,14 +656,17 @@ struct C_Cpp_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Id_Expression& id)
     {
-        if (const auto* constant = get_if<Const>(id.lookup_result)) {
-            // Only C23 supports constexpr; there are no "true constants" prior to that.
-            // Therefore, we are forced to inline these whenever used.
-            if (!self.m_options.c_23) {
-                append_value(self.m_out, constant->const_value()->concrete_value());
+        if (const auto* const* looked_up_node = get_if<Some_Node*>(&id.lookup_result)) {
+            if (const auto* constant = get_if<Const>(*looked_up_node)) {
+                // Only C23 supports constexpr; there are no "true constants" prior to that.
+                // Therefore, we are forced to inline these whenever used.
+                if (!self.m_options.c_23) {
+                    append_value(self.m_out, constant->const_value()->concrete_value());
+                }
+                return {};
             }
-            return {};
         }
+
         self.m_out.append(id.get_identifier(), Code_Span_Type::identifier);
         return {};
     }
@@ -698,12 +676,6 @@ struct C_Cpp_Code_Generator::Visitor {
         // TODO: preserve original style (hex vs. decimal literal etc.)
         append_value(self.m_out, literal.const_value()->concrete_value());
         return {};
-    }
-
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Builtin_Function&)
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE(
-            "builtin functions can be looked up, but are not children in the AST");
     }
 };
 

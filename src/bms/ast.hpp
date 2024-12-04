@@ -10,9 +10,11 @@
 #include "bms/analysis_error.hpp"
 #include "bms/analysis_level.hpp"
 #include "bms/concrete_type.hpp"
+#include "bms/debug_info.hpp"
 #include "bms/deduction.hpp"
 #include "bms/expression_type.hpp"
 #include "bms/fwd.hpp"
+#include "bms/lookup_result.hpp"
 #include "bms/parsing/attribute.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/value.hpp"
@@ -173,9 +175,55 @@ struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr bool is_expression = false;
 
     Program(const astp::Program& parsed, std::string_view file, std::pmr::memory_resource* memory);
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::program, get_position() };
+    }
 };
 
-struct Function final : detail::Node_Base, detail::Parent<4> {
+struct Parameter final {
+private:
+    std::string_view m_name;
+    std::optional<Source_Span> m_position;
+    Some_Node* m_type;
+
+public:
+    Parameter(const astp::Parameter& parsed, std::string_view file);
+
+    std::string_view get_name() const
+    {
+        return m_name;
+    }
+
+    std::optional<Source_Span> get_position() const
+    {
+        return m_position;
+    }
+
+    Some_Node* get_type_node()
+    {
+        return m_type;
+    }
+    const Some_Node* get_type_node() const
+    {
+        return m_type;
+    }
+    void set_type_node(Some_Node* node)
+    {
+        m_type = node;
+    }
+
+    Type& get_type();
+    const Type& get_type() const;
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::parameter, get_position() };
+    }
+};
+
+struct Function final : detail::Node_Base {
 private:
     struct Copy_for_Instantiation_Tag { };
 
@@ -207,6 +255,10 @@ public:
 private:
     std::string_view m_name;
     Annotations m_annotations;
+    std::pmr::vector<Parameter> m_parameters;
+    Some_Node* m_return_type = nullptr;
+    Some_Node* m_requires_clause = nullptr;
+    Some_Node* m_body = nullptr;
 
 public:
     std::pmr::vector<Instance> instances;
@@ -218,56 +270,70 @@ private:
     Function(const Function& other, Copy_for_Instantiation_Tag);
 
 public:
-    Function(Some_Node& parent, const astp::Function& parsed, std::string_view file);
+    Function(Some_Node& parent,
+             const astp::Function& parsed,
+             std::string_view file,
+             std::pmr::memory_resource* memory);
 
     std::string_view get_name() const
     {
         return m_name;
     }
 
-    Size get_parameter_count() const
+    [[nodiscard]] Size get_parameter_count() const
     {
-        return get_parameter_nodes().size();
+        return get_parameters().size();
     }
 
-    std::span<Some_Node*> get_parameter_nodes();
-    std::span<const Some_Node* const> get_parameter_nodes() const;
-
-    Some_Node* get_parameters_node()
+    std::pmr::vector<Parameter>& get_parameters()
     {
-        return m_children[0];
+        return m_parameters;
     }
-    const Some_Node* get_parameters_node() const
+    std::span<const Parameter> get_parameters() const
     {
-        return m_children[0];
+        return m_parameters;
     }
-    Parameter_List& get_parameters();
-    const Parameter_List& get_parameters() const;
 
     Some_Node* get_return_type_node()
     {
-        return m_children[1];
+        return m_return_type;
     }
     const Some_Node* get_return_type_node() const
     {
-        return m_children[1];
+        return m_return_type;
+    }
+    void set_return_type_node(Some_Node* node)
+    {
+        m_return_type = node;
     }
 
     Type& get_return_type();
     const Type& get_return_type() const;
 
-    Some_Node* get_requires_clause_node() const
+    Some_Node* get_requires_clause_node()
     {
-        return m_children[2];
+        return m_requires_clause;
+    }
+    const Some_Node* get_requires_clause_node() const
+    {
+        return m_requires_clause;
+    }
+    void set_requires_clause_node(Some_Node* node)
+    {
+        m_requires_clause = node;
     }
 
     Some_Node* get_body_node()
     {
-        return m_children[3];
+        return m_body;
     }
     const Some_Node* get_body_node() const
     {
-        return m_children[3];
+        return m_body;
+    }
+    void set_body_node(Some_Node* node)
+    {
+        m_body = node;
     }
 
     Block_Statement& get_body();
@@ -288,69 +354,11 @@ public:
         }
         return nullptr;
     }
-};
 
-// It is weird to have a dedicated type just for a `Parameter_List`, but there are a few design
-// choices that have led to this.
-// Most importantly, any node is able to expose its list of children as a `std::span`.
-// Since a `Function` already has other nodes such as a return type, it would be tricky to make
-// a function hold a parameter list followed by the other types, but not impossible.
-struct Parameter_List final : detail::Node_Base, detail::Dynamic_Parent {
-    static inline constexpr std::string_view self_name = "Parameter_List";
-    static inline constexpr bool is_expression = false;
-
-    Parameter_List(Some_Node& parent,
-                   const astp::Parameter_List& parsed,
-                   std::string_view file,
-                   std::pmr::memory_resource* memory);
-
-    Size get_parameter_count() const
+    [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return m_children.size();
+        return { Construct::function, get_position() };
     }
-
-    Some_Node* get_parameter_node(Size i)
-    {
-        BIT_MANIPULATION_ASSERT(i < m_children.size());
-        return m_children[i];
-    }
-    const Some_Node* get_parameter_node(Size i) const
-    {
-        BIT_MANIPULATION_ASSERT(i < m_children.size());
-        return m_children[i];
-    }
-
-    Parameter& get_parameter(Size i);
-    const Parameter& get_parameter(Size i) const;
-};
-
-struct Parameter final : detail::Node_Base, detail::Parent<1> {
-    static inline constexpr std::string_view self_name = "Parameter";
-    static inline constexpr std::string_view child_names[] = { "type" };
-    static inline constexpr bool is_expression = false;
-
-private:
-    std::string_view m_name;
-
-public:
-    Parameter(Some_Node& parent, const astp::Parameter& parsed, std::string_view file);
-
-    std::string_view get_name() const
-    {
-        return m_name;
-    }
-
-    Some_Node* get_type_node()
-    {
-        return m_children[0];
-    }
-    const Some_Node* get_type_node() const
-    {
-        return m_children[0];
-    }
-
-    Type& get_type();
-    const Type& get_type() const;
 };
 
 struct Type final : detail::Node_Base, detail::Parent<1> {
@@ -397,6 +405,11 @@ public:
         BIT_MANIPULATION_ASSERT(!concrete_width);
         return Concrete_Type { m_type };
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::type, get_position() };
+    }
 };
 
 struct Const final : detail::Node_Base, detail::Parent<2> {
@@ -435,6 +448,11 @@ public:
     const Some_Node* get_initializer_node() const
     {
         return m_children[1];
+    }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::constant, get_position() };
     }
 };
 
@@ -475,6 +493,11 @@ public:
     {
         return m_children[1];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::variable, get_position() };
+    }
 };
 
 struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
@@ -491,6 +514,11 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     const Some_Node* get_expression_node() const
     {
         return m_children[0];
+    }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::static_assertion, get_position() };
     }
 };
 
@@ -534,6 +562,11 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
     {
         return m_children[2];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::if_statement, get_position() };
+    }
 };
 
 struct While_Statement final : detail::Node_Base, detail::Parent<2> {
@@ -563,6 +596,11 @@ struct While_Statement final : detail::Node_Base, detail::Parent<2> {
 
     Block_Statement& get_block();
     const Block_Statement& get_block() const;
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::while_statement, get_position() };
+    }
 };
 
 enum struct Control_Statement_Type { return_, break_, continue_ };
@@ -586,6 +624,17 @@ control_statement_type_code_name(Control_Statement_Type type)
     case return_: return Token_Type::keyword_return;
     case break_: return Token_Type::keyword_break;
     case continue_: return Token_Type::keyword_continue;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
+}
+
+[[nodiscard]] constexpr Construct control_statement_type_construct(Control_Statement_Type type)
+{
+    using enum Control_Statement_Type;
+    switch (type) {
+    case return_: return Construct::return_statement;
+    case break_: return Construct::break_statement;
+    case continue_: return Construct::continue_statement;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
 }
@@ -633,6 +682,11 @@ public:
     {
         return m_children[0];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { control_statement_type_construct(get_type()), get_position() };
+    }
 };
 
 struct Assignment final : detail::Node_Base, detail::Parent<1> {
@@ -645,7 +699,7 @@ private:
     Annotations m_annotations;
 
 public:
-    Some_Node* lookup_result = nullptr;
+    Optional_Lookup_Result lookup_result {};
 
     Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file);
 
@@ -662,6 +716,11 @@ public:
     {
         return m_children[0];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::assignment, get_position() };
+    }
 };
 
 struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
@@ -676,6 +735,11 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     bool is_empty() const
     {
         return m_children.empty();
+    }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::block_statement, get_position() };
     }
 };
 
@@ -713,6 +777,11 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
 
     Type& get_target_type();
     const Type& get_target_type() const;
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::conversion_expression, get_position() };
+    }
 };
 
 struct If_Expression final : detail::Node_Base, detail::Parent<3> {
@@ -753,6 +822,11 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     const Some_Node* get_right_node() const
     {
         return m_children[2];
+    }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::if_expression, get_position() };
     }
 };
 
@@ -797,6 +871,11 @@ public:
     {
         return m_children[1];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::binary_expression, get_position() };
+    }
 };
 
 struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
@@ -831,6 +910,11 @@ public:
     {
         return m_children[0];
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::prefix_expression, get_position() };
+    }
 };
 
 struct Function_Call_Expression final : detail::Node_Base, detail::Dynamic_Parent {
@@ -842,7 +926,7 @@ private:
     bool m_is_statement;
 
 public:
-    Some_Node* lookup_result = nullptr;
+    Optional_Lookup_Result lookup_result {};
 
     Function_Call_Expression(Some_Node& parent,
                              const astp::Function_Call_Expression& parsed,
@@ -888,6 +972,11 @@ public:
     {
         return m_is_statement;
     }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::function_call_expression, get_position() };
+    }
 };
 
 struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
@@ -898,7 +987,7 @@ private:
     std::string_view m_identifier;
 
 public:
-    Some_Node* lookup_result = nullptr;
+    Optional_Lookup_Result lookup_result {};
     bool bit_generic = false;
 
     Id_Expression(Some_Node& parent, const astp::Id_Expression& parsed, std::string_view file);
@@ -911,6 +1000,11 @@ public:
     std::string_view get_identifier() const
     {
         return m_identifier;
+    }
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::id_expression, get_position() };
     }
 };
 
@@ -939,28 +1033,15 @@ public:
     {
         return m_literal;
     }
-};
 
-struct Builtin_Function final : detail::Node_Base, detail::Parent<0> {
-public:
-    static inline constexpr std::string_view self_name = "Builtin_Function";
-    static inline constexpr bool is_expression = false;
-
-    bms::Builtin_Function m_function;
-
-public:
-    Builtin_Function(bms::Builtin_Function function);
-
-    bms::Builtin_Function get_function() const
+    [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return m_function;
+        return { Construct::literal, get_position() };
     }
 };
 
 using Some_Node_Variant = Variant<Program,
                                   Function,
-                                  Parameter_List,
-                                  Parameter,
                                   Type,
                                   Const,
                                   Let,
@@ -976,32 +1057,11 @@ using Some_Node_Variant = Variant<Program,
                                   Prefix_Expression,
                                   Function_Call_Expression,
                                   Id_Expression,
-                                  Literal,
-                                  Builtin_Function>;
+                                  Literal>;
 
 struct Some_Node : Some_Node_Variant {
     using Variant::Variant;
 };
-
-inline Parameter_List& Function::get_parameters()
-{
-    BIT_MANIPULATION_ASSERT(get_parameters_node());
-    return get<Parameter_List>(*get_parameters_node());
-}
-inline const Parameter_List& Function::get_parameters() const
-{
-    BIT_MANIPULATION_ASSERT(get_parameters_node());
-    return get<Parameter_List>(*get_parameters_node());
-}
-
-inline std::span<Some_Node*> Function::get_parameter_nodes()
-{
-    return get_parameters().get_children();
-}
-inline std::span<const Some_Node* const> Function::get_parameter_nodes() const
-{
-    return get_parameters().get_children();
-}
 
 inline Type& Function::get_return_type()
 {
@@ -1023,17 +1083,6 @@ inline const Block_Statement& Function::get_body() const
 {
     BIT_MANIPULATION_ASSERT(get_body_node());
     return get<Block_Statement>(*get_body_node());
-}
-
-inline Parameter& Parameter_List::get_parameter(Size i)
-{
-    BIT_MANIPULATION_ASSERT(i < get_parameter_count());
-    return get<Parameter>(*m_children[i]);
-}
-inline const Parameter& Parameter_List::get_parameter(Size i) const
-{
-    BIT_MANIPULATION_ASSERT(i < get_parameter_count());
-    return get<Parameter>(*m_children[i]);
 }
 
 inline Type& Parameter::get_type()
@@ -1157,6 +1206,11 @@ inline Expression_Type get_expression_type(const Some_Node& node)
         node);
 }
 
+inline Debug_Info get_debug_info(const Some_Node& node)
+{
+    return visit([]<typename T>(const T& n) { return n.get_debug_info(); }, node);
+}
+
 inline std::string_view get_node_name(const Some_Node& node)
 {
     return visit([]<typename T>(const T&) { return T::self_name; }, node);
@@ -1192,14 +1246,31 @@ inline const std::optional<Value>& get_const_value(const Some_Node& node)
     return detail::to_node_base(node).const_value();
 }
 
+namespace detail {
+
+inline constexpr struct {
+    template <typename T>
+    std::span<const_like_t<const_like_t<Some_Node, T>*, T>> operator()(T& n) const
+    {
+        if constexpr (requires { n.get_children(); }) {
+            return n.get_children();
+        }
+        else {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Node does not support child access.");
+        }
+    }
+} do_get_children;
+
+} // namespace detail
+
 inline std::span<Some_Node*> get_children(Some_Node& node)
 {
-    return visit([](auto& n) { return n.get_children(); }, node);
+    return visit(detail::do_get_children, node);
 }
 
 inline std::span<const Some_Node* const> get_children(const Some_Node& node)
 {
-    return visit([](auto& n) { return n.get_children(); }, node);
+    return visit(detail::do_get_children, node);
 }
 
 template <alternative_of<ast::Some_Node_Variant> T>

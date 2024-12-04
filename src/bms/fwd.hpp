@@ -55,7 +55,6 @@ namespace ast {
 
 struct Program;
 struct Function;
-struct Parameter_List;
 struct Parameter;
 struct Type;
 struct Const;
@@ -73,7 +72,6 @@ struct Prefix_Expression;
 struct Function_Call_Expression;
 struct Id_Expression;
 struct Literal;
-struct Builtin_Function;
 
 struct Some_Node;
 
@@ -111,6 +109,12 @@ enum struct Tokenize_Error_Code : Default_Underlying;
 
 enum struct Type_Type : Default_Underlying;
 enum struct Builtin_Function : Default_Underlying;
+enum struct Construct : Default_Underlying;
+
+struct Debug_Info;
+
+struct Lookup_Result;
+struct Optional_Lookup_Result;
 
 struct Tokenize_Error;
 struct Parse_Error;

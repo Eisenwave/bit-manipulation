@@ -14,11 +14,7 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-template <Builtin_Function F>
-ast::Some_Node builtin_function_node = ast::Builtin_Function(F);
-
-const Symbol_Table builtin_symbols { { "assert",
-                                       &builtin_function_node<Builtin_Function::assert> } };
+const Symbol_Table builtin_symbols { { "assert", { Builtin_Function::assert } } };
 
 constexpr bool shadowing = false;
 
@@ -72,11 +68,11 @@ private:
         Name_Lookup_Analyzer& self;
         ast::Some_Node* handle;
 
-        Result<void, Analysis_Error> operator()(const ast::Const& n)
+        Result<void, Analysis_Error> operator()(ast::Const& n)
         {
             BIT_MANIPULATION_ASSERT(handle != nullptr);
             auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
-            if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+            if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_global_const }
                     .fail(handle)
                     .cause(*old)
@@ -85,11 +81,11 @@ private:
             return {};
         }
 
-        Result<void, Analysis_Error> operator()(const ast::Function& n)
+        Result<void, Analysis_Error> operator()(ast::Function& n)
         {
             BIT_MANIPULATION_ASSERT(handle != nullptr);
             auto it_or_handle = self.m_symbols.emplace(n.get_name(), handle, shadowing);
-            if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+            if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_function }
                     .fail(handle)
                     .cause(*old)
@@ -98,7 +94,7 @@ private:
             return {};
         }
 
-        Result<void, Analysis_Error> operator()(const ast::Static_Assert&)
+        Result<void, Analysis_Error> operator()(ast::Static_Assert&)
         {
             BIT_MANIPULATION_ASSERT(handle != nullptr);
             return {};
@@ -116,14 +112,14 @@ private:
 
         Result<void, Analysis_Error> operator()(ast::Const& n)
         {
-            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()).value() == handle);
+            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()) == handle);
 
             return self.analyze_all_symbols_local(n.get_children(), self.m_symbols);
         }
 
         Result<void, Analysis_Error> operator()(ast::Function& n)
         {
-            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()).value() == handle);
+            BIT_MANIPULATION_ASSERT(self.m_symbols.find(n.get_name()) == handle);
 
             self.m_current_function = &n;
             Symbol_Table local_symbols { Symbol_Table::From_Parent_Tag {}, self.m_symbols };
@@ -172,24 +168,47 @@ private:
     }
 
     Result<void, Analysis_Error>
-    analyze_symbols_local(ast::Some_Node* handle, Symbol_Table& table, ast::Parameter& node)
+    analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Function& node)
     {
-        auto it_or_handle = table.emplace(node.get_name(), handle, shadowing);
-        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+        for (ast::Parameter& parameter : node.get_parameters()) {
+            if (auto r = analyze_parameter(table, parameter); !r) {
+                return r;
+            }
+        }
+        if (auto r
+            = analyze_symbols_local(node.get_return_type_node(), table, node.get_return_type());
+            !r) {
+            return r;
+        }
+        if (auto r = analyze_symbols_local(node.get_requires_clause_node(), table); !r) {
+            return r;
+        }
+        if (auto r = analyze_symbols_local(node.get_body_node(), table, node.get_body()); !r) {
+            return r;
+        }
+        return {};
+    }
+
+    Result<void, Analysis_Error> analyze_parameter(Symbol_Table& table, ast::Parameter& parameter)
+    {
+        auto it_or_handle = table.emplace(parameter.get_name(), &parameter, shadowing);
+        if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
             return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_parameter }
-                .fail(handle)
+                .fail_pos(parameter.get_position().value())
                 .cause(*old)
                 .build();
         }
-        ast::Some_Node* g = node.get_type().get_width_node();
+        ast::Some_Node* g = parameter.get_type().get_width_node();
         if (g == nullptr) {
             return {};
         }
         if (auto r = analyze_symbols_local(g, table); !r) {
-            const auto error = r.error();
-            BIT_MANIPULATION_ASSERT(error.code()
+            BIT_MANIPULATION_ASSERT(r.error().code()
                                     == Analysis_Error_Code::reference_to_undefined_variable);
             if (auto* id = get_if<ast::Id_Expression>(g)) {
+                // TODO: now that lookup results can be more than just an AST node,
+                //       we can get rid of this dirty hack and properly emplace a lookup result
+                //       which represents a bit-generic parameter or something
                 table.emplace(id->get_identifier(), g, shadowing);
                 id->bit_generic = true;
                 BIT_MANIPULATION_ASSERT(m_current_function != nullptr);
@@ -213,7 +232,7 @@ private:
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Const& node)
     {
         auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
-        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
             return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_variable }
                 .fail(h)
                 .cause(*old)
@@ -226,7 +245,7 @@ private:
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Let& node)
     {
         auto it_or_handle = table.emplace(node.get_name(), h, shadowing);
-        if (auto* old = get_if<ast::Some_Node*>(&it_or_handle)) {
+        if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
             return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_variable }
                 .fail(h)
                 .cause(*old)
@@ -244,7 +263,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Assignment& node)
     {
-        if (std::optional<ast::Some_Node*> result = table.find(node.get_name())) {
+        if (Optional_Lookup_Result result = table.find(node.get_name())) {
             node.lookup_result = *result;
             return analyze_symbols_local(node.get_expression_node(), table);
         }
@@ -257,7 +276,7 @@ private:
                                                        Symbol_Table& table,
                                                        ast::Function_Call_Expression& node)
     {
-        if (std::optional<ast::Some_Node*> result = table.find(node.get_name())) {
+        if (Optional_Lookup_Result result = table.find(node.get_name())) {
             node.lookup_result = *result;
             return analyze_all_symbols_local(node.get_children(), table);
         }
@@ -269,7 +288,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node* h, Symbol_Table& table, ast::Id_Expression& node)
     {
-        if (std::optional<ast::Some_Node*> result = table.find(node.get_identifier())) {
+        if (Optional_Lookup_Result result = table.find(node.get_identifier())) {
             node.lookup_result = *result;
             return {};
         }
