@@ -6,14 +6,14 @@ program_declaration
     | function_declaration
     | static_assertion;
 const_declaration
-    = [attribute_sequence], "const", identifier, [":", type], initializer;
+    = [annotation_sequence], "const", identifier, [":", type], initializer;
 let_declaration
-    = [attribute_sequence], "let", identifier, ":", type, ";"
-    | [attribute_sequence], "let", identifier, [":", type], initializer, ";";
+    = [annotation_sequence], "let", identifier, ":", type, ";"
+    | [annotation_sequence], "let", identifier, [":", type], initializer, ";";
 initializer
     = "=", expression;
 function_declaration
-    = [attribute_sequence], "function", identifier, function_header, block_statement;
+    = [annotation_sequence], "function", identifier, function_header, block_statement;
 function_header
     = "(", [parameter_sequence], ")", "->", type, [requires_clause];
 requires_clause
@@ -24,13 +24,13 @@ parameter
     = identifier, ":", type;
 static_assertion
     = "static_assert", parenthesized_expression, ";";
-attribute_sequence
-    = attribute, { attribute };
-attribute
-    = "@", identifier, ["(", [attribute_argument_sequence], ")"];
-attribute_argument_sequence
-    = attribute_argument { ",", attribute_argument };
-attribute_argument
+annotation_sequence
+    = annotation, { annotation };
+annotation
+    = "@", identifier, ["(", [annotation_argument_sequence], ")"];
+annotation_argument_sequence
+    = annotation_argument { ",", annotation_argument };
+annotation_argument
     = integer_literal;
 
 statement
@@ -50,7 +50,7 @@ assignment_statement
 function_call_statement
     = function_call_expression, ";";
 assignment
-    = [attribute_sequence], identifier, "=", expression;
+    = [annotation_sequence], identifier, "=", expression;
 break_statement
     = "break", ";";
 continue_statement
