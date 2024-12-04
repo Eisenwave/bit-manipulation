@@ -1,0 +1,8 @@
+function awoo() -> Void {
+    @loop_variable
+    let i = 0;
+    while i < 5 {
+        @loop_increment
+        i = i + 1;
+    }
+}

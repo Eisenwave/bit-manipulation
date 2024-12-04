@@ -19,19 +19,24 @@
 namespace bit_manipulation {
 namespace {
 
+TEST(BMS_Syntax, annotated_loop)
+{
+    EXPECT_TRUE(test_for_success("syntax/annotated_loop.bms", Testing_Stage::parse));
+}
+
 TEST(BMS_Syntax, empty_function_void)
 {
-    EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms"));
+    EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms", Testing_Stage::parse));
 }
 
 TEST(BMS_Syntax, function_return_zero)
 {
-    EXPECT_TRUE(test_for_success("syntax/function_return_zero.bms"));
+    EXPECT_TRUE(test_for_success("syntax/function_return_zero.bms", Testing_Stage::parse));
 }
 
 TEST(BMS_Syntax, global_const)
 {
-    EXPECT_TRUE(test_for_success("syntax/global_const.bms"));
+    EXPECT_TRUE(test_for_success("syntax/global_const.bms", Testing_Stage::parse));
 }
 
 TEST(Valid_BMS, assert)

@@ -410,6 +410,7 @@ bool test_validity(std::string_view file,
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
     }
+    policy.source = *source;
 
     std::pmr::vector<bms::Token> tokens(&memory);
     if (!bms::tokenize(tokens, *source, diagnostics)) {
