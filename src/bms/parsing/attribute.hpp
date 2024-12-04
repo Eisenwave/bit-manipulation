@@ -51,7 +51,7 @@ struct Attribute_Argument : Attribute_Argument_Variant {
     using Variant::Variant;
 };
 
-struct Attribute {
+struct Annotation {
     Attribute_Type type;
     std::pmr::vector<Attribute_Argument> arguments;
 };

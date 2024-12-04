@@ -299,7 +299,7 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     case invalid_architecture: //
         return "This architecture is not valid.";
     case number_attribute_not_allowed: //
-        return "This attribute cannot have a numeric value; only strings can be provided.";
+        return "This annotation cannot have a numeric value; only strings can be provided.";
     case code_tokenization_failure: //
         return "Syntax highlighting for this code snipped failed. Is it ill-formed? Consider using "
                "'text' language or '\\tt' (teletype), not '\\c'.";

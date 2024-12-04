@@ -19,9 +19,9 @@
 
 namespace bit_manipulation::bms::ast {
 
-struct Attributes {
+struct Annotations {
     std::span<const astp::Handle> source;
-    std::pmr::vector<Attribute> values;
+    std::pmr::vector<Annotation> values;
 };
 
 namespace detail {
@@ -206,7 +206,7 @@ public:
 
 private:
     std::string_view m_name;
-    Attributes m_attributes;
+    Annotations m_annotations;
 
 public:
     std::pmr::vector<Instance> instances;
@@ -406,7 +406,7 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
-    Attributes m_attributes;
+    Annotations m_annotations;
 
 public:
     Const(Some_Node& parent, const astp::Const& parsed, std::string_view file);
@@ -445,7 +445,7 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
-    Attributes m_attributes;
+    Annotations m_annotations;
 
 public:
     Let(Some_Node& parent, const astp::Let& parsed, std::string_view file);
@@ -605,7 +605,7 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 
 private:
     std::string_view m_name;
-    Attributes m_attributes;
+    Annotations m_annotations;
 
 public:
     Some_Node* lookup_result = nullptr;

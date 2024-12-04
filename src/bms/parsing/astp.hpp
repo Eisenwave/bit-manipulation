@@ -79,13 +79,13 @@ struct Function final : detail::Node_Base, detail::Parent<5> {
     using AST_Node = ast::Function;
     static inline constexpr std::string_view self_name = "Function";
     static inline constexpr std::string_view child_names[]
-        = { "attributes", "parameters", "return_type", "requires_clause", "body" };
+        = { "annotations", "parameters", "return_type", "requires_clause", "body" };
 
     std::string_view name;
 
     Function(Local_Source_Span pos,
              std::string_view name,
-             Handle attributes,
+             Handle annotations,
              Handle parameters,
              Handle return_type,
              Handle requires_clause,
@@ -168,13 +168,13 @@ struct Const final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::Const;
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[]
-        = { "attributes", "type", "initializer" };
+        = { "annotations", "type", "initializer" };
 
     std::string_view name;
 
     Const(Local_Source_Span pos,
           std::string_view name,
-          Handle attributes,
+          Handle annotations,
           Handle type,
           Handle initializer);
 
@@ -196,13 +196,13 @@ struct Let final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::Let;
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[]
-        = { "attributes", "type", "initializer" };
+        = { "annotations", "type", "initializer" };
 
     std::string_view name;
 
     Let(Local_Source_Span pos,
         std::string_view name,
-        Handle attributes,
+        Handle annotations,
         Handle type,
         Handle initializer);
 
@@ -233,37 +233,37 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct Attribute_List final : detail::Node_Base {
+struct Annotation_List final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Attribute_List";
 
-    std::pmr::vector<Handle> attributes;
+    std::pmr::vector<Handle> annotations;
 
-    Attribute_List(Local_Source_Span pos, std::pmr::vector<Handle>&& parameters);
+    Annotation_List(Local_Source_Span pos, std::pmr::vector<Handle>&& parameters);
 
-    Attribute_List(Attribute_List&&) noexcept = default;
-    Attribute_List& operator=(Attribute_List&&) noexcept = default;
+    Annotation_List(Annotation_List&&) noexcept = default;
+    Annotation_List& operator=(Annotation_List&&) noexcept = default;
 
     std::span<Handle> get_children()
     {
-        return attributes;
+        return annotations;
     }
     std::span<const Handle> get_children() const
     {
-        return attributes;
+        return annotations;
     }
 };
 
-struct Attribute final : detail::Node_Base {
+struct Annotation final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Attribute";
     static inline constexpr std::string_view child_names[] = { "type" };
 
     std::string_view name;
     std::pmr::vector<Handle> arguments;
 
-    Attribute(Local_Source_Span pos, std::string_view name, std::pmr::vector<Handle>&& arguments);
+    Annotation(Local_Source_Span pos, std::string_view name, std::pmr::vector<Handle>&& arguments);
 
-    Attribute(Attribute&&) noexcept = default;
-    Attribute& operator=(Attribute&&) noexcept = default;
+    Annotation(Annotation&&) noexcept = default;
+    Annotation& operator=(Annotation&&) noexcept = default;
 
     std::span<Handle> get_children()
     {
@@ -355,11 +355,11 @@ struct Return_Statement final : detail::Node_Base, detail::Parent<1> {
 struct Assignment final : detail::Node_Base, detail::Parent<2> {
     using AST_Node = ast::Assignment;
     static inline constexpr std::string_view self_name = "Assignment";
-    static inline constexpr std::string_view child_names[] = { "attributes", "expression" };
+    static inline constexpr std::string_view child_names[] = { "annotations", "expression" };
 
     std::string_view name;
 
-    Assignment(Local_Source_Span pos, std::string_view name, Handle attributes, Handle expression);
+    Assignment(Local_Source_Span pos, std::string_view name, Handle annotations, Handle expression);
 
     Handle get_attributes() const
     {
@@ -517,8 +517,8 @@ using Some_Node_Variant = Variant<Program,
                                   Const,
                                   Let,
                                   Static_Assert,
-                                  Attribute_List,
-                                  Attribute,
+                                  Annotation_List,
+                                  Annotation,
                                   Attribute_Argument,
                                   If_Statement,
                                   While_Statement,

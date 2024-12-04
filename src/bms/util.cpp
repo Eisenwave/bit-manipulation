@@ -459,10 +459,10 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter_sequence);
         BIT_MANIPULATION_ENUM_STRING_CASE(parameter);
         BIT_MANIPULATION_ENUM_STRING_CASE(static_assertion);
-        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_sequence);
-        BIT_MANIPULATION_ENUM_STRING_CASE(attribute);
-        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_argument_sequence);
-        BIT_MANIPULATION_ENUM_STRING_CASE(attribute_argument);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_sequence);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_argument_sequence);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_argument);
         BIT_MANIPULATION_ENUM_STRING_CASE(statement);
         BIT_MANIPULATION_ENUM_STRING_CASE(assignment_statement);
         BIT_MANIPULATION_ENUM_STRING_CASE(function_call_statement);
@@ -509,7 +509,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(loop_increment);
         BIT_MANIPULATION_ENUM_STRING_CASE(instantiate);
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid attribute type.");
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid annotation type.");
 }
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code)

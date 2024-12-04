@@ -402,8 +402,8 @@ public:
     template <one_of<astp::Function, astp::Const, astp::Let, astp::Assignment> T>
     ast::Some_Node* operator()(const T& n) const
     {
-        // Parser AST nodes always have the attribute list as the first child.
-        // The actual translation from the parser attributes to whatever the Result needs happens
+        // Parser AST nodes always have the annotation list as the first child.
+        // The actual translation from the parser annotations to whatever the Result needs happens
         // in the individual constructors, so all we have to do is chop off one child at the start.
         using Result = T::AST_Node;
         ast::Some_Node* result = self.emplace<Result>(*parent, n, self.m_file_name);
@@ -419,7 +419,7 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children());
     }
 
-    template <one_of<astp::Attribute, astp::Attribute_List, astp::Attribute_Argument> T>
+    template <one_of<astp::Annotation, astp::Annotation_List, astp::Attribute_Argument> T>
     ast::Some_Node* operator()(const T&) const
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Attributes should not be processed here.");

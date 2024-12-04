@@ -146,13 +146,13 @@ Program::Program(Local_Source_Span pos, std::pmr::vector<astp::Handle>&& declara
 
 Function::Function(Local_Source_Span pos,
                    std::string_view name,
-                   Handle attributes,
+                   Handle annotations,
                    Handle parameters,
                    Handle return_type,
                    Handle requires_clause,
                    Handle body)
     : Node_Base { pos }
-    , Parent<5> { attributes, parameters, return_type, requires_clause, body }
+    , Parent<5> { annotations, parameters, return_type, requires_clause, body }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(return_type != astp::Handle::null);
@@ -186,11 +186,11 @@ Type::Type(Local_Source_Span pos, Type_Type type, Handle width)
 
 Const::Const(Local_Source_Span pos,
              std::string_view name,
-             Handle attributes,
+             Handle annotations,
              Handle type,
              Handle initializer)
     : Node_Base { pos }
-    , Parent<3> { attributes, type, initializer }
+    , Parent<3> { annotations, type, initializer }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(initializer != astp::Handle::null);
@@ -198,11 +198,11 @@ Const::Const(Local_Source_Span pos,
 
 Let::Let(Local_Source_Span pos,
          std::string_view name,
-         Handle attributes,
+         Handle annotations,
          Handle type,
          Handle initializer)
     : Node_Base { pos }
-    , Parent<3> { attributes, type, initializer }
+    , Parent<3> { annotations, type, initializer }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(type != astp::Handle::null || initializer != astp::Handle::null);
@@ -215,15 +215,15 @@ Static_Assert::Static_Assert(Local_Source_Span pos, Handle expression)
     BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
 }
 
-Attribute_List::Attribute_List(Local_Source_Span pos, std::pmr::vector<Handle>&& attributes)
+Annotation_List::Annotation_List(Local_Source_Span pos, std::pmr::vector<Handle>&& annotations)
     : Node_Base { pos }
-    , attributes(std::move(attributes))
+    , annotations(std::move(annotations))
 {
 }
 
-Attribute::Attribute(Local_Source_Span pos,
-                     std::string_view name,
-                     std::pmr::vector<Handle>&& arguments)
+Annotation::Annotation(Local_Source_Span pos,
+                       std::string_view name,
+                       std::pmr::vector<Handle>&& arguments)
     : Node_Base { pos }
     , name { name }
     , arguments(std::move(arguments))
@@ -273,10 +273,10 @@ Return_Statement::Return_Statement(Local_Source_Span pos, Handle expression)
 
 Assignment::Assignment(Local_Source_Span pos,
                        std::string_view name,
-                       Handle attributes,
+                       Handle annotations,
                        Handle expression)
     : Node_Base { pos }
-    , Parent<2> { attributes, expression }
+    , Parent<2> { annotations, expression }
     , name(name)
 {
     BIT_MANIPULATION_ASSERT(expression != astp::Handle::null);
@@ -563,9 +563,10 @@ private:
     {
         const auto this_rule = Grammar_Rule::let_declaration;
 
-        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
-        if (!attributes) {
-            return attributes.error();
+        auto annotations
+            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
+        if (!annotations) {
+            return annotations.error();
         }
 
         const Token* t = expect(Token_Type::keyword_let);
@@ -601,7 +602,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Let { t->pos, name, push_or_null(std::move(*attributes)),
+        return astp::Some_Node { astp::Let { t->pos, name, push_or_null(std::move(*annotations)),
                                              type_handle, init_handle } };
     }
 
@@ -609,9 +610,10 @@ private:
     {
         const auto this_rule = Grammar_Rule::const_declaration;
 
-        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
-        if (!attributes) {
-            return attributes.error();
+        auto annotations
+            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
+        if (!annotations) {
+            return annotations.error();
         }
 
         const Token* t = expect(Token_Type::keyword_const);
@@ -641,7 +643,7 @@ private:
         if (!expect(Token_Type::semicolon)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::semicolon> };
         }
-        return astp::Some_Node { astp::Const { t->pos, name, push_or_null(std::move(*attributes)),
+        return astp::Some_Node { astp::Const { t->pos, name, push_or_null(std::move(*annotations)),
                                                type_handle,
                                                m_program.push_node(std::move(*init)) } };
     }
@@ -659,9 +661,10 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
 
-        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
-        if (!attributes) {
-            return attributes.error();
+        auto annotations
+            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
+        if (!annotations) {
+            return annotations.error();
         }
 
         const Token* t = expect(Token_Type::keyword_function);
@@ -716,7 +719,7 @@ private:
         }
         return astp::Some_Node { astp::Function {
             t->pos, m_program.extract(name->pos), //
-            push_or_null(std::move(*attributes)), parameters, m_program.push_node(std::move(*ret)),
+            push_or_null(std::move(*annotations)), parameters, m_program.push_node(std::move(*ret)),
             requires_handle, m_program.push_node(std::move(*body)) } };
     }
 
@@ -786,29 +789,29 @@ private:
         return match_expression();
     }
 
-    Rule_Result match_attribute_sequence()
+    Rule_Result match_annotation_sequence()
     {
         Local_Source_Span first_pos;
-        std::pmr::vector<astp::Handle> attributes(m_program.get_memory());
+        std::pmr::vector<astp::Handle> annotations(m_program.get_memory());
         while (true) {
-            auto attribute = match_attribute();
-            if (!attribute) {
-                return attribute;
+            auto annotation = match_annotation();
+            if (!annotation) {
+                return annotation;
             }
-            first_pos = get<astp::Attribute>(*attribute).pos;
-            attributes.push_back(m_program.push_node(std::move(*attribute)));
+            first_pos = get<astp::Annotation>(*annotation).pos;
+            annotations.push_back(m_program.push_node(std::move(*annotation)));
             if (!peek(Token_Type::at)) {
                 break;
             }
         }
-        BIT_MANIPULATION_ASSERT(!attributes.empty());
+        BIT_MANIPULATION_ASSERT(!annotations.empty());
 
-        return astp::Some_Node { astp::Attribute_List { first_pos, std::move(attributes) } };
+        return astp::Some_Node { astp::Annotation_List { first_pos, std::move(annotations) } };
     }
 
-    Rule_Result match_attribute()
+    Rule_Result match_annotation()
     {
-        constexpr auto this_rule = Grammar_Rule::attribute;
+        constexpr auto this_rule = Grammar_Rule::annotation;
         const Token* at = expect(Token_Type::at);
         if (!expect(Token_Type::at)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::at> };
@@ -822,21 +825,21 @@ private:
             if (!expect(Token_Type::left_parenthesis) || expect(Token_Type::right_parenthesis)) {
                 return std::pmr::vector<astp::Handle>(m_program.get_memory());
             }
-            auto r = match_attribute_argument_sequence();
+            auto r = match_annotation_argument_sequence();
             if (r && !expect(Token_Type::right_parenthesis)) {
                 return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
             }
             return r;
         }();
-        return astp::Some_Node { astp::Attribute { at->pos, m_program.extract(id->pos),
-                                                   std::move(*arguments) } };
+        return astp::Some_Node { astp::Annotation { at->pos, m_program.extract(id->pos),
+                                                    std::move(*arguments) } };
     }
 
-    Result<std::pmr::vector<astp::Handle>, Rule_Error> match_attribute_argument_sequence()
+    Result<std::pmr::vector<astp::Handle>, Rule_Error> match_annotation_argument_sequence()
     {
         std::pmr::vector<astp::Handle> arguments(m_program.get_memory());
         while (true) {
-            auto argument = match_attribute_argument();
+            auto argument = match_annotation_argument();
             if (!argument) {
                 return argument.error();
             }
@@ -850,9 +853,9 @@ private:
         return arguments;
     }
 
-    Rule_Result match_attribute_argument()
+    Rule_Result match_annotation_argument()
     {
-        constexpr auto this_rule = Grammar_Rule::attribute_argument;
+        constexpr auto this_rule = Grammar_Rule::annotation_argument;
         static constexpr Token_Type expected[]
             = { Token_Type::binary_literal, Token_Type::octal_literal, Token_Type::decimal_literal,
                 Token_Type::hexadecimal_literal };
@@ -939,9 +942,10 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
 
-        auto attributes = optionally_match(&Parser::match_attribute_sequence, peek(Token_Type::at));
-        if (!attributes) {
-            return attributes.error();
+        auto annotations
+            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
+        if (!annotations) {
+            return annotations.error();
         }
 
         const Token* id = expect(Token_Type::identifier);
@@ -956,7 +960,7 @@ private:
             return e;
         }
         return astp::Some_Node { astp::Assignment { id->pos, m_program.extract(id->pos),
-                                                    push_or_null(std::move(*attributes)),
+                                                    push_or_null(std::move(*annotations)),
                                                     m_program.push_node(std::move(*e)) } };
     }
 
