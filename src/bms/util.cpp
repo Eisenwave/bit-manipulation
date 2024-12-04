@@ -500,9 +500,9 @@ namespace bit_manipulation::bms {
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid grammar rule.");
 }
 
-[[nodiscard]] constexpr std::string_view attribute_type_name(Attribute_Type type)
+[[nodiscard]] constexpr std::string_view annotation_type_name(Annotation_Type type)
 {
-    using enum Attribute_Type;
+    using enum Annotation_Type;
     switch (type) {
         BIT_MANIPULATION_ENUM_STRING_CASE(immutable);
         BIT_MANIPULATION_ENUM_STRING_CASE(loop_variable);

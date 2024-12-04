@@ -419,7 +419,7 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children());
     }
 
-    template <one_of<astp::Annotation, astp::Annotation_List, astp::Attribute_Argument> T>
+    template <one_of<astp::Annotation, astp::Annotation_List, astp::Annotation_Argument> T>
     ast::Some_Node* operator()(const T&) const
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Attributes should not be processed here.");

@@ -275,12 +275,12 @@ struct Annotation final : detail::Node_Base {
     }
 };
 
-struct Attribute_Argument final : detail::Node_Base, detail::Parent<0> {
-    static inline constexpr std::string_view self_name = "Attribute_Argument";
+struct Annotation_Argument final : detail::Node_Base, detail::Parent<0> {
+    static inline constexpr std::string_view self_name = "Annotation_Argument";
 
     std::string_view value;
 
-    Attribute_Argument(Local_Source_Span pos, std::string_view value);
+    Annotation_Argument(Local_Source_Span pos, std::string_view value);
 };
 
 struct If_Statement final : detail::Node_Base, detail::Parent<3> {
@@ -519,7 +519,7 @@ using Some_Node_Variant = Variant<Program,
                                   Static_Assert,
                                   Annotation_List,
                                   Annotation,
-                                  Attribute_Argument,
+                                  Annotation_Argument,
                                   If_Statement,
                                   While_Statement,
                                   Break,

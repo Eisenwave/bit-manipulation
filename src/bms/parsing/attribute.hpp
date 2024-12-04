@@ -12,7 +12,7 @@
 
 namespace bit_manipulation::bms {
 
-enum struct Attribute_Type : Default_Underlying {
+enum struct Annotation_Type : Default_Underlying {
     /// @brief Applied to a `let` declaration.
     /// Requires that the variable is never modified.
     ///
@@ -41,19 +41,19 @@ enum struct Attribute_Type : Default_Underlying {
     instantiate,
 };
 
-[[nodiscard]] constexpr std::string_view attribute_type_name(Attribute_Type type);
+[[nodiscard]] constexpr std::string_view annotation_type_name(Annotation_Type type);
 
-[[nodiscard]] std::optional<Attribute_Type> attribute_type_by_name(std::string_view name);
+[[nodiscard]] std::optional<Annotation_Type> annotation_type_by_name(std::string_view name);
 
-using Attribute_Argument_Variant = Variant<std::string_view>;
+using Annotation_Argument_Variant = Variant<std::string_view>;
 
-struct Attribute_Argument : Attribute_Argument_Variant {
+struct Annotation_Argument : Annotation_Argument_Variant {
     using Variant::Variant;
 };
 
 struct Annotation {
-    Attribute_Type type;
-    std::pmr::vector<Attribute_Argument> arguments;
+    Annotation_Type type;
+    std::pmr::vector<Annotation_Argument> arguments;
 };
 
 } // namespace bit_manipulation::bms

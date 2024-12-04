@@ -230,7 +230,7 @@ Annotation::Annotation(Local_Source_Span pos,
 {
 }
 
-Attribute_Argument::Attribute_Argument(Local_Source_Span pos, std::string_view value)
+Annotation_Argument::Annotation_Argument(Local_Source_Span pos, std::string_view value)
     : Node_Base { pos }
     , value { value }
 {
@@ -864,7 +864,7 @@ private:
         if (t) {
             return Rule_Error { this_rule, expected };
         }
-        return astp::Some_Node { astp::Attribute_Argument { t->pos, m_program.extract(t->pos) } };
+        return astp::Some_Node { astp::Annotation_Argument { t->pos, m_program.extract(t->pos) } };
     }
 
     Rule_Result match_statement()
