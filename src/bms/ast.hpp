@@ -219,7 +219,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::parameter, get_position() };
+        return { Construct::parameter, get_position(), get_name() };
     }
 };
 
@@ -357,7 +357,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::function, get_position() };
+        return { Construct::function, get_position(), get_name() };
     }
 };
 
@@ -452,7 +452,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::constant, get_position() };
+        return { Construct::constant, get_position(), get_name() };
     }
 };
 
@@ -496,7 +496,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::variable, get_position() };
+        return { Construct::variable, get_position(), get_name() };
     }
 };
 
@@ -719,7 +719,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::assignment, get_position() };
+        return { Construct::assignment, get_position(), get_name() };
     }
 };
 
@@ -975,7 +975,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::function_call_expression, get_position() };
+        return { Construct::function_call_expression, get_position(), get_name() };
     }
 };
 
@@ -1004,7 +1004,7 @@ public:
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
-        return { Construct::id_expression, get_position() };
+        return { Construct::id_expression, get_position(), get_identifier() };
     }
 };
 
