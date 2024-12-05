@@ -86,28 +86,20 @@ private:
             *handle);
     }
 
-    template <typename T>
-        requires(!std::is_const_v<T>)
-    Result<void, Analysis_Error>
-    analyze_child_types(T& node, Analysis_Level level, Expression_Context context)
-    {
-        for (ast::Some_Node* h : node.get_children()) {
-            auto r = analyze_types(h, level, context);
-            if (!r) {
-                return r;
-            }
-        }
-        node.const_value() = Value::Void;
-        return {};
-    }
-
     [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
                                                                       ast::Program& node,
                                                                       Analysis_Level level,
                                                                       Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(&get<ast::Program>(*handle) == &node);
-        return analyze_child_types(node, level, Expression_Context::normal);
+        for (ast::Some_Node* h : node.get_children()) {
+            auto r = analyze_types(h, level, Expression_Context::normal);
+            if (!r) {
+                return r;
+            }
+        }
+        node.const_value() = Value::Void;
+        return {};
     }
 
     Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
@@ -567,13 +559,20 @@ private:
         return {};
     }
 
-    [[gnu::always_inline]] Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
-                                                                      ast::Block_Statement& node,
-                                                                      Analysis_Level level,
-                                                                      Expression_Context)
+    Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
+                                               ast::Block_Statement& node,
+                                               Analysis_Level level,
+                                               Expression_Context)
     {
         BIT_MANIPULATION_ASSERT(&get<ast::Block_Statement>(*handle) == &node);
-        return analyze_child_types(node, level, Expression_Context::normal);
+        for (ast::Some_Node* h : node.get_children()) {
+            auto r = analyze_types(h, level, Expression_Context::normal);
+            if (!r) {
+                return r;
+            }
+        }
+        node.const_value() = Value::Void;
+        return {};
     }
 
     Result<void, Analysis_Error> analyze_types(ast::Some_Node* handle,
