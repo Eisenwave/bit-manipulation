@@ -1,6 +1,6 @@
 #include "bms/analysis_error.hpp"
+#include "bms/annotation.hpp"
 #include "bms/expression_type.hpp"
-#include "bms/parsing/attribute.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/tokenization/token_type.hpp"
 

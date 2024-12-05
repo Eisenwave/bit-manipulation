@@ -55,7 +55,6 @@ namespace ast {
 
 struct Program;
 struct Function;
-struct Parameter;
 struct Type;
 struct Const;
 struct Let;
@@ -128,7 +127,7 @@ struct Parsed_Program;
 struct Analyzed_Program;
 
 struct Token;
-
+struct Parameter;
 struct Diagnostic_Consumer;
 
 } // namespace bit_manipulation::bms

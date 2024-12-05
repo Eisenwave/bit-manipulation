@@ -9,7 +9,6 @@
 #include "common/variant.hpp"
 
 #include "bms/fwd.hpp"
-#include "bms/parsing/attribute.hpp"
 #include "bms/tokenization/token.hpp"
 
 /// @brief Namespace containing all the abstract syntax tree (AST) nodes used during parsing.
@@ -91,7 +90,7 @@ struct Function final : detail::Node_Base, detail::Parent<5> {
              Handle requires_clause,
              Handle body);
 
-    Handle get_attributes() const
+    Handle get_annotations() const
     {
         return children[0];
     }
@@ -176,7 +175,7 @@ struct Const final : detail::Node_Base, detail::Parent<3> {
           Handle type,
           Handle initializer);
 
-    Handle get_attributes() const
+    Handle get_annotations() const
     {
         return children[0];
     }
@@ -204,7 +203,7 @@ struct Let final : detail::Node_Base, detail::Parent<3> {
         Handle type,
         Handle initializer);
 
-    Handle get_attributes() const
+    Handle get_annotations() const
     {
         return children[0];
     }
@@ -359,7 +358,7 @@ struct Assignment final : detail::Node_Base, detail::Parent<2> {
 
     Assignment(Local_Source_Span pos, std::string_view name, Handle annotations, Handle expression);
 
-    Handle get_attributes() const
+    Handle get_annotations() const
     {
         return children[0];
     }

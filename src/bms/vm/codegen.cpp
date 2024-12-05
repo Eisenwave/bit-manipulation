@@ -36,7 +36,7 @@ const void* to_target(const Lookup_Result& result)
     if (const auto* const* node = get_if<ast::Some_Node*>(&result)) {
         return *node;
     }
-    if (const auto* const* node = get_if<ast::Parameter*>(&result)) {
+    if (const auto* const* node = get_if<Parameter*>(&result)) {
         return *node;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Loads must happen from AST nodes or parameters.");
@@ -76,7 +76,7 @@ private:
     {
         const auto restore_size = out.size();
 
-        std::span<const ast::Parameter> parameters = function.get_parameters();
+        std::span<const Parameter> parameters = function.get_parameters();
         for (Size i = parameters.size(); i-- != 0;) {
             // We use left-to-right push order, so storing the parameters in variables upon
             // function entry happens in reverse order.

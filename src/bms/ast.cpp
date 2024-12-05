@@ -53,6 +53,12 @@ namespace {
 
 } // namespace
 
+Parameter::Parameter(const astp::Parameter& parsed, std::string_view file)
+    : m_name(parsed.name)
+    , m_position(Source_Span { parsed.pos, file })
+{
+}
+
 namespace ast {
 
 namespace detail {
@@ -97,9 +103,11 @@ Program::Program(const astp::Program& parsed,
 Function::Function(Some_Node& parent,
                    const astp::Function& parsed,
                    std::string_view file,
-                   std::pmr::memory_resource* memory)
+                   std::pmr::memory_resource* memory,
+                   std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
     , m_name(parsed.name)
+    , m_annotations(annotations)
     , m_parameters(memory)
 {
 }
@@ -123,27 +131,29 @@ Function::Instance::Instance(std::pmr::vector<int>&& widths, Some_Node* handle)
     BIT_MANIPULATION_ASSERT(holds_alternative<Function>(*handle));
 }
 
-Parameter::Parameter(const astp::Parameter& parsed, std::string_view file)
-    : m_name(parsed.name)
-    , m_position(Source_Span { parsed.pos, file })
-{
-}
-
 Type::Type(Some_Node& parent, const astp::Type& parsed, std::string_view file)
     : detail::Node_Base(parent, parsed, file)
     , m_type(parsed.type)
 {
 }
 
-Const::Const(Some_Node& parent, const astp::Const& parsed, std::string_view file)
+Const::Const(Some_Node& parent,
+             const astp::Const& parsed,
+             std::string_view file,
+             std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
     , m_name(parsed.name)
+    , m_annotations(annotations)
 {
 }
 
-Let::Let(Some_Node& parent, const astp::Let& parsed, std::string_view file)
+Let::Let(Some_Node& parent,
+         const astp::Let& parsed,
+         std::string_view file,
+         std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
     , m_name(parsed.name)
+    , m_annotations(annotations)
 {
 }
 
@@ -192,9 +202,13 @@ Control_Statement::Control_Statement(Some_Node& parent,
 {
 }
 
-Assignment::Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file)
+Assignment::Assignment(Some_Node& parent,
+                       const astp::Assignment& parsed,
+                       std::string_view file,
+                       std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
     , m_name(parsed.name)
+    , m_annotations(annotations)
 {
 }
 
@@ -297,6 +311,7 @@ struct Analyzed_Program::Implementation {
     }
 
     template <typename T, typename... Args>
+        requires requires(Args&&... args) { ast::Some_Node(T(std::forward<Args>(args)...)); }
     [[nodiscard]] ast::Some_Node* emplace(Args&&... args)
     {
         void* storage = m_memory_resource.allocate(sizeof(ast::Some_Node), alignof(ast::Some_Node));
@@ -374,6 +389,14 @@ private:
         return new_parent;
     }
 
+    std::span<const astp::Handle> get_annotations(astp::Handle list_handle) const
+    {
+        if (list_handle == astp::Handle::null) {
+            return {};
+        }
+        return get<astp::Annotation_List>(parsed.get_node(list_handle)).get_children();
+    }
+
 public:
     ast::Some_Node* operator()(const astp::Program& n) const
     {
@@ -392,11 +415,12 @@ public:
     {
         using Result = ast::Function;
         ast::Some_Node* result
-            = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource);
+            = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource,
+                                   get_annotations(n.get_annotations()));
 
         auto& function = get<Result>(*result);
 
-        std::pmr::vector<ast::Parameter>& parameters = function.get_parameters();
+        std::pmr::vector<Parameter>& parameters = function.get_parameters();
         BIT_MANIPULATION_ASSERT(parameters.empty());
 
         if (n.get_parameters() != astp::Handle::null) {
@@ -407,8 +431,7 @@ public:
             for (const astp::Handle p : parsed_parameters.get_children()) {
                 auto& parameter = get<astp::Parameter>(parsed.get_node(p));
                 ast::Some_Node* type = transform_recursively(result, parameter.get_type());
-                auto& node
-                    = parameters.emplace_back(ast::Parameter { parameter, self.m_file_name });
+                auto& node = parameters.emplace_back(Parameter { parameter, self.m_file_name });
                 node.set_type_node(type);
             }
         }
@@ -449,7 +472,8 @@ public:
         // The actual translation from the parser annotations to whatever the Result needs happens
         // in the individual constructors, so all we have to do is chop off one child at the start.
         using Result = T::AST_Node;
-        ast::Some_Node* result = self.emplace<Result>(*parent, n, self.m_file_name);
+        ast::Some_Node* result = self.emplace<Result>(*parent, n, self.m_file_name,
+                                                      get_annotations(n.get_annotations()));
         return transform_all_children_recursively<Result>(result, n.get_children().subspan(1));
     }
 
@@ -620,7 +644,7 @@ struct Lookup_Result_Debug_Info {
         return Debug_Info { node };
     }
 
-    Debug_Info operator()(const ast::Parameter* parameter) const
+    Debug_Info operator()(const Parameter* parameter) const
     {
         return parameter->get_debug_info();
     }
@@ -633,7 +657,7 @@ struct Lookup_Result_Debug_Info {
 
 } // namespace
 
-Debug_Info Analysis_Error_Builder::debug_info_from_parameter(const ast::Parameter& parameter)
+Debug_Info Analysis_Error_Builder::debug_info_from_parameter(const Parameter& parameter)
 {
     return parameter.get_debug_info();
 }

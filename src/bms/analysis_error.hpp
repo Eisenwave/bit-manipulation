@@ -340,7 +340,7 @@ public:
         return *this;
     }
 
-    Analysis_Error_Builder& fail(const ast::Parameter& parameter)
+    Analysis_Error_Builder& fail(const Parameter& parameter)
     {
         m_fail = debug_info_from_parameter(parameter);
         m_fail_exists = true;
@@ -368,7 +368,7 @@ public:
         return *this;
     }
 
-    Analysis_Error_Builder& cause(const ast::Parameter& parameter)
+    Analysis_Error_Builder& cause(const Parameter& parameter)
     {
         m_cause = debug_info_from_parameter(parameter);
         return *this;
@@ -388,7 +388,7 @@ public:
     }
 
 private:
-    [[nodiscard]] static Debug_Info debug_info_from_parameter(const ast::Parameter&);
+    [[nodiscard]] static Debug_Info debug_info_from_parameter(const Parameter&);
 
     [[nodiscard]] static Debug_Info debug_info_from_lookup_result(const Lookup_Result&);
 };

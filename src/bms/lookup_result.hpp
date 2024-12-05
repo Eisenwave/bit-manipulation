@@ -9,7 +9,7 @@
 
 namespace bit_manipulation::bms {
 
-using Lookup_Result_Variant = Variant<ast::Some_Node*, ast::Parameter*, Builtin_Function>;
+using Lookup_Result_Variant = Variant<ast::Some_Node*, Parameter*, Builtin_Function>;
 
 struct Lookup_Result : Lookup_Result_Variant {
     using Variant::Variant;
@@ -18,7 +18,7 @@ struct Lookup_Result : Lookup_Result_Variant {
 };
 
 using Optional_Lookup_Result_Variant
-    = Variant<Monostate, ast::Some_Node*, ast::Parameter*, Builtin_Function>;
+    = Variant<Monostate, ast::Some_Node*, Parameter*, Builtin_Function>;
 
 struct Optional_Lookup_Result : Optional_Lookup_Result_Variant {
     using Variant::Variant;

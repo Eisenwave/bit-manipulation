@@ -170,7 +170,7 @@ private:
     Result<void, Analysis_Error>
     analyze_symbols_local(ast::Some_Node*, Symbol_Table& table, ast::Function& node)
     {
-        for (ast::Parameter& parameter : node.get_parameters()) {
+        for (Parameter& parameter : node.get_parameters()) {
             if (auto r = analyze_parameter(table, parameter); !r) {
                 return r;
             }
@@ -189,7 +189,7 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> analyze_parameter(Symbol_Table& table, ast::Parameter& parameter)
+    Result<void, Analysis_Error> analyze_parameter(Symbol_Table& table, Parameter& parameter)
     {
         auto it_or_handle = table.emplace(parameter.get_name(), &parameter, shadowing);
         if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {

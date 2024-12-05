@@ -127,7 +127,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.instances.empty());
 
-        for (ast::Parameter& parameter : node.get_parameters()) {
+        for (Parameter& parameter : node.get_parameters()) {
             auto r = analyze_types(parameter.get_type_node(), parameter.get_type(), level,
                                    Expression_Context::normal);
             if (!r) {
@@ -513,7 +513,7 @@ private:
         BIT_MANIPULATION_ASSERT(&get<ast::Assignment>(*handle) == &node);
         BIT_MANIPULATION_ASSERT(node.lookup_result);
 
-        if (holds_alternative<ast::Parameter*>(node.lookup_result)) {
+        if (holds_alternative<Parameter*>(node.lookup_result)) {
             return Analysis_Error_Builder { Analysis_Error_Code::assigning_parameter }
                 .fail(handle)
                 .cause(*node.lookup_result)
@@ -812,7 +812,7 @@ private:
         //    number of arguments is an error before and after instantiating generic functions.
         //    There is no function overloading.
 
-        std::span<const ast::Parameter> possibly_generic_params = function->get_parameters();
+        std::span<const Parameter> possibly_generic_params = function->get_parameters();
         if (possibly_generic_params.size() != node.get_argument_count()) {
             return Analysis_Error_Builder { Analysis_Error_Code::wrong_number_of_arguments }
                 .fail(handle)
@@ -915,7 +915,7 @@ private:
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
 
-        const std::span<const ast::Parameter> params = function->get_parameters();
+        const std::span<const Parameter> params = function->get_parameters();
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
 
@@ -989,7 +989,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.lookup_result);
 
-        if (auto** parameter = get_if<ast::Parameter*>(&node.lookup_result)) {
+        if (auto** parameter = get_if<Parameter*>(&node.lookup_result)) {
             if (context == Expression_Context::constant) {
                 return Analysis_Error_Builder {
                     Analysis_Error_Code::parameter_in_constant_expression

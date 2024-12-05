@@ -9,24 +9,78 @@
 
 #include "bms/analysis_error.hpp"
 #include "bms/analysis_level.hpp"
+#include "bms/annotation.hpp"
 #include "bms/concrete_type.hpp"
 #include "bms/debug_info.hpp"
 #include "bms/deduction.hpp"
 #include "bms/expression_type.hpp"
 #include "bms/fwd.hpp"
 #include "bms/lookup_result.hpp"
-#include "bms/parsing/attribute.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/value.hpp"
 
-namespace bit_manipulation::bms::ast {
+namespace bit_manipulation::bms {
 
-struct Annotations {
-    std::span<const astp::Handle> source;
-    std::pmr::vector<Annotation> values;
+struct Parameter {
+private:
+    std::string_view m_name;
+    std::optional<Source_Span> m_position;
+    ast::Some_Node* m_type;
+
+public:
+    Parameter(const astp::Parameter& parsed, std::string_view file);
+
+    std::string_view get_name() const
+    {
+        return m_name;
+    }
+
+    std::optional<Source_Span> get_position() const
+    {
+        return m_position;
+    }
+
+    ast::Some_Node* get_type_node()
+    {
+        return m_type;
+    }
+    const ast::Some_Node* get_type_node() const
+    {
+        return m_type;
+    }
+    void set_type_node(ast::Some_Node* node)
+    {
+        m_type = node;
+    }
+
+    ast::Type& get_type();
+    const ast::Type& get_type() const;
+
+    [[nodiscard]] Debug_Info get_debug_info() const
+    {
+        return { Construct::parameter, get_position(), get_name() };
+    }
 };
 
+namespace ast {
 namespace detail {
+
+struct Annotations {
+private:
+    std::span<const astp::Handle> m_parsed;
+    std::pmr::vector<Annotation> m_concrete {};
+
+public:
+    [[nodiscard]] explicit Annotations(std::span<const astp::Handle> parsed)
+        : m_parsed(parsed)
+    {
+    }
+
+    [[nodiscard]] bool were_analyzed() const
+    {
+        return m_parsed.size() == m_concrete.size();
+    }
+};
 
 struct Node_Base {
 public:
@@ -182,47 +236,6 @@ struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     }
 };
 
-struct Parameter final {
-private:
-    std::string_view m_name;
-    std::optional<Source_Span> m_position;
-    Some_Node* m_type;
-
-public:
-    Parameter(const astp::Parameter& parsed, std::string_view file);
-
-    std::string_view get_name() const
-    {
-        return m_name;
-    }
-
-    std::optional<Source_Span> get_position() const
-    {
-        return m_position;
-    }
-
-    Some_Node* get_type_node()
-    {
-        return m_type;
-    }
-    const Some_Node* get_type_node() const
-    {
-        return m_type;
-    }
-    void set_type_node(Some_Node* node)
-    {
-        m_type = node;
-    }
-
-    Type& get_type();
-    const Type& get_type() const;
-
-    [[nodiscard]] Debug_Info get_debug_info() const
-    {
-        return { Construct::parameter, get_position(), get_name() };
-    }
-};
-
 struct Function final : detail::Node_Base {
 private:
     struct Copy_for_Instantiation_Tag { };
@@ -254,7 +267,7 @@ public:
 
 private:
     std::string_view m_name;
-    Annotations m_annotations;
+    detail::Annotations m_annotations;
     std::pmr::vector<Parameter> m_parameters;
     Some_Node* m_return_type = nullptr;
     Some_Node* m_requires_clause = nullptr;
@@ -273,7 +286,8 @@ public:
     Function(Some_Node& parent,
              const astp::Function& parsed,
              std::string_view file,
-             std::pmr::memory_resource* memory);
+             std::pmr::memory_resource* memory,
+             std::span<const astp::Handle> annotations);
 
     std::string_view get_name() const
     {
@@ -419,10 +433,13 @@ struct Const final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
-    Annotations m_annotations;
+    detail::Annotations m_annotations;
 
 public:
-    Const(Some_Node& parent, const astp::Const& parsed, std::string_view file);
+    Const(Some_Node& parent,
+          const astp::Const& parsed,
+          std::string_view file,
+          std::span<const astp::Handle> annotations);
 
     std::string_view get_name() const
     {
@@ -463,10 +480,13 @@ struct Let final : detail::Node_Base, detail::Parent<2> {
 
 private:
     std::string_view m_name;
-    Annotations m_annotations;
+    detail::Annotations m_annotations;
 
 public:
-    Let(Some_Node& parent, const astp::Let& parsed, std::string_view file);
+    Let(Some_Node& parent,
+        const astp::Let& parsed,
+        std::string_view file,
+        std::span<const astp::Handle> annotations);
 
     std::string_view get_name() const
     {
@@ -696,12 +716,15 @@ struct Assignment final : detail::Node_Base, detail::Parent<1> {
 
 private:
     std::string_view m_name;
-    Annotations m_annotations;
+    detail::Annotations m_annotations;
 
 public:
     Optional_Lookup_Result lookup_result {};
 
-    Assignment(Some_Node& parent, const astp::Assignment& parsed, std::string_view file);
+    Assignment(Some_Node& parent,
+               const astp::Assignment& parsed,
+               std::string_view file,
+               std::span<const astp::Handle> annotations);
 
     std::string_view get_name() const
     {
@@ -1085,17 +1108,6 @@ inline const Block_Statement& Function::get_body() const
     return get<Block_Statement>(*get_body_node());
 }
 
-inline Type& Parameter::get_type()
-{
-    BIT_MANIPULATION_ASSERT(get_type_node());
-    return get<Type>(*get_type_node());
-}
-inline const Type& Parameter::get_type() const
-{
-    BIT_MANIPULATION_ASSERT(get_type_node());
-    return get<Type>(*get_type_node());
-}
-
 inline Type& Let::get_type()
 {
     BIT_MANIPULATION_ASSERT(get_type_node());
@@ -1290,6 +1302,19 @@ T* get_surrounding(Some_Node& node) noexcept
     return const_cast<T*>(get_surrounding<T>(std::as_const(node)));
 }
 
-} // namespace bit_manipulation::bms::ast
+} // namespace ast
+
+inline ast::Type& Parameter::get_type()
+{
+    BIT_MANIPULATION_ASSERT(get_type_node());
+    return get<ast::Type>(*get_type_node());
+}
+inline const ast::Type& Parameter::get_type() const
+{
+    BIT_MANIPULATION_ASSERT(get_type_node());
+    return get<ast::Type>(*get_type_node());
+}
+
+} // namespace bit_manipulation::bms
 
 #endif

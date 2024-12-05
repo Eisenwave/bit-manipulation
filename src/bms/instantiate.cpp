@@ -26,7 +26,7 @@ private:
     Analyzed_Program& m_program;
     std::pmr::monotonic_buffer_resource m_memory_resource;
     std::pmr::unordered_map<const ast::Some_Node*, ast::Some_Node*> m_remap;
-    std::pmr::unordered_map<const ast::Parameter*, ast::Parameter*> m_parameter_remap;
+    std::pmr::unordered_map<const Parameter*, Parameter*> m_parameter_remap;
 
 public:
     Instantiator(Analyzed_Program& program, std::pmr::memory_resource* memory)
@@ -82,7 +82,7 @@ private:
             return result;
         };
 
-        for (ast::Parameter& p : instance.get_parameters()) {
+        for (Parameter& p : instance.get_parameters()) {
             ast::Type& type_node = p.get_type();
             if (type_node.get_width_node() == nullptr) {
                 continue;
@@ -165,8 +165,8 @@ private:
         const Size n = from.get_parameter_count();
         BIT_MANIPULATION_ASSERT(instance.get_parameter_count() == n);
 
-        std::span<const ast::Parameter> old_parameters = from.get_parameters();
-        std::span<ast::Parameter> new_parameters = instance.get_parameters();
+        std::span<const Parameter> old_parameters = from.get_parameters();
+        std::span<Parameter> new_parameters = instance.get_parameters();
 
         for (Size i = 0; i < n; ++i) {
             auto [_, success]
@@ -191,7 +191,7 @@ private:
             target = self.m_remap.at(looked_up_node);
         }
 
-        void operator()(const ast::Parameter* looked_up_parameter)
+        void operator()(const Parameter* looked_up_parameter)
         {
             target = self.m_parameter_remap.at(looked_up_parameter);
         }
@@ -219,7 +219,7 @@ private:
         }
         visit(Update_Name_Lookup { *this }, *h);
         if (auto* function = get_if<ast::Function>(h)) {
-            for (ast::Parameter& parameter : function->get_parameters()) {
+            for (Parameter& parameter : function->get_parameters()) {
                 deep_update_name_lookup(parameter.get_type_node());
             }
             deep_update_name_lookup(function->get_return_type_node());

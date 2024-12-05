@@ -154,7 +154,7 @@ struct Bms_Code_Generator::Visitor {
             Scoped_Parenthesization p = self.parenthesize();
 
             bool first = true;
-            for (const Parameter& parameter : function.get_parameters()) {
+            for (const bms::Parameter& parameter : function.get_parameters()) {
                 if (!first) {
                     self.write_separating_comma();
                 }
