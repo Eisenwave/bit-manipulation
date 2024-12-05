@@ -109,6 +109,7 @@ add_library(bm STATIC ${HEADERS}
     src/bms/parsing/parse.cpp
     src/bms/tokenization/tokenize.cpp
     src/bms/vm/codegen.cpp
+    src/bms/vm/instructions.cpp
     src/bms/vm/vm.cpp
 
     src/common/diagnostics.cpp
