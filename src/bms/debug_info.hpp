@@ -47,7 +47,7 @@ struct Debug_Info {
 
     constexpr Debug_Info(Construct construct,
                          std::optional<Source_Position> pos,
-                         std::string_view name = "")
+                         std::string_view name = {})
         : construct(construct)
         , pos(pos)
         , name(name)
