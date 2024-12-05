@@ -1,4 +1,4 @@
-#include <iostream> // FIXME: remove, for print debugging only
+#include <iostream>
 #include <unordered_map>
 
 #include "common/parse.hpp"
@@ -17,6 +17,8 @@
 namespace bit_manipulation::bms {
 
 namespace {
+
+constexpr bool debug_dump_generated_programs = false;
 
 [[nodiscard]] Concrete_Value concrete_value_of(const ast::Some_Node& node)
 {
@@ -197,7 +199,9 @@ private:
                 return instructions.error();
             }
             node.vm_address = vm_address;
-            dump_program(std::cout, constant_evaluation_machine.instructions());
+            if constexpr (debug_dump_generated_programs) {
+                dump_program(std::cout, constant_evaluation_machine.instructions());
+            }
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
         node.const_value() = get_const_value(*node.get_return_type_node());
