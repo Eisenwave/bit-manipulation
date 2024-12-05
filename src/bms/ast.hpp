@@ -372,18 +372,18 @@ private:
 public:
     std::optional<int> concrete_width;
 
-    Type(Some_Node& parent, const astp::Type& parsed, std::string_view file);
+    [[nodiscard]] Type(Some_Node& parent, const astp::Type& parsed, std::string_view file);
 
-    Type_Type get_type() const
+    [[nodiscard]] Type_Type get_type() const
     {
         return m_type;
     }
 
-    Some_Node* get_width_node()
+    [[nodiscard]] Some_Node* get_width_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_width_node() const
+    [[nodiscard]] const Some_Node* get_width_node() const
     {
         return m_children[0];
     }
@@ -393,7 +393,7 @@ public:
     /// Namely, if the type is `Uint`, a concrete width must be known, otherwise this function
     /// always succeeds.
     /// @return A concrete type, or `std::nullopt`.
-    std::optional<Concrete_Type> concrete_type() const
+    [[nodiscard]] std::optional<Concrete_Type> concrete_type() const
     {
         if (m_type == Type_Type::Uint) {
             if (concrete_width) {

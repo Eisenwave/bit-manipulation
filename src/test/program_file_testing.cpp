@@ -328,12 +328,6 @@ public:
                 return false;
             }
             if (m_expectations.fail_line) {
-                if (!e.fail()) {
-                    std::cout << color(ansi::red) << "Expected analysis have failed on line "
-                              << *m_expectations.fail_line //
-                              << " but it has not failed on any specific AST node:\n";
-                    return false;
-                }
                 auto pos = e.fail_pos();
                 BIT_MANIPULATION_ASSERT(pos);
                 if (pos->line != Size(*m_expectations.fail_line - 1)) {

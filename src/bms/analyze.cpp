@@ -229,6 +229,7 @@ private:
         if (folded_width <= 0 || folded_width > uint_max_width) {
             return Analysis_Error_Builder { Analysis_Error_Code::width_invalid }
                 .fail(node.get_width_node())
+                .value(Concrete_Value::Int(folded_width))
                 .build();
         }
         node.concrete_width = static_cast<int>(folded_width);
@@ -930,7 +931,7 @@ private:
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                     .fail(handle)
-                    .cause_pos(params[i].get_position().value())
+                    .cause(params[i].get_debug_info())
                     .build();
             }
 
@@ -940,7 +941,7 @@ private:
                 if (!conv_result) {
                     return Analysis_Error_Builder { conv_result.error() }
                         .fail(handle)
-                        .cause_pos(params[i].get_position().value())
+                        .cause(params[i].get_debug_info())
                         .build();
                 }
                 constant_evaluation_machine.push(conv_result->concrete_value());

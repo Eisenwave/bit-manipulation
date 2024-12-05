@@ -5,6 +5,7 @@
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/debug_info.hpp"
+#include "bms/evaluation/builtin_function.hpp"
 #include "bms/parsing/astp.hpp"
 #include "bms/parsing/parse.hpp"
 #include "bms/vm/vm.hpp"
@@ -610,50 +611,36 @@ std::pmr::polymorphic_allocator<> Analyzed_Program::allocator() const
     return std::pmr::polymorphic_allocator<>(m_memory);
 }
 
-Analysis_Error_Builder& Analysis_Error_Builder::fail(const Debug_Info& info)
+namespace {
+
+struct Lookup_Result_Debug_Info {
+
+    Debug_Info operator()(const ast::Some_Node* node) const
+    {
+        return Debug_Info { node };
+    }
+
+    Debug_Info operator()(const ast::Parameter* parameter) const
+    {
+        return parameter->get_debug_info();
+    }
+
+    Debug_Info operator()(Builtin_Function builtin) const
+    {
+        return Debug_Info { Construct::builtin_function, {}, builtin_function_name(builtin) };
+    }
+};
+
+} // namespace
+
+Debug_Info Analysis_Error_Builder::debug_info_from_parameter(const ast::Parameter& parameter)
 {
-    // TODO: implement
-    return *this;
+    return parameter.get_debug_info();
 }
 
-Analysis_Error_Builder& Analysis_Error_Builder::fail(const ast::Some_Node* node)
+Debug_Info Analysis_Error_Builder::debug_info_from_lookup_result(const Lookup_Result& result)
 {
-    BIT_MANIPULATION_ASSERT(node != nullptr);
-    m_fail = node;
-    m_fail_pos = get_source_position(*node);
-    return *this;
-}
-
-Analysis_Error_Builder& Analysis_Error_Builder::cause(const ast::Some_Node* node)
-{
-    BIT_MANIPULATION_ASSERT(node != nullptr);
-    m_cause = node;
-    m_cause_pos = get_source_position(*node);
-    return *this;
-}
-
-Analysis_Error_Builder& Analysis_Error_Builder::cause(const Debug_Info& info)
-{
-    // TODO: implement
-    return *this;
-}
-
-Analysis_Error_Builder& Analysis_Error_Builder::cause(const Lookup_Result& result)
-{
-    visit(
-        [&]<typename T>(const T& r) {
-            if constexpr (std::is_same_v<ast::Some_Node*, T>) {
-                cause(r);
-            }
-            else if constexpr (std::is_same_v<Builtin_Function, T>) {
-                // TODO: implement builtin function causes
-            }
-            else {
-                m_cause_pos = r->get_position();
-            }
-        },
-        result);
-    return *this;
+    return visit(Lookup_Result_Debug_Info {}, result);
 }
 
 Debug_Info::Debug_Info(const ast::Some_Node* node)

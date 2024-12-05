@@ -194,7 +194,7 @@ private:
         auto it_or_handle = table.emplace(parameter.get_name(), &parameter, shadowing);
         if (auto* old = get_if<Lookup_Result>(&it_or_handle)) {
             return Analysis_Error_Builder { Analysis_Error_Code::failed_to_define_parameter }
-                .fail_pos(parameter.get_position().value())
+                .fail(parameter)
                 .cause(*old)
                 .build();
         }

@@ -157,15 +157,15 @@ struct Analysis_Error_Data {
     /// during constant evaluation, in order to provide detail about the inputs.
     std::optional<Comparison_Failure> m_comparison_failure {};
     /// @brief The node at which the failure took place.
-    const ast::Some_Node* m_fail {};
+    Debug_Info m_fail {};
     /// @brief The node which is considered to be a cause for the failure,
     /// but not the location of the failure.
     /// For example, if we attempt `x = 0` where `x` is `const`,
     /// the assignment node would be considered the `fail`,
     /// and the constant declaration of `x` would be considered the cause.
-    const ast::Some_Node* m_cause {};
-    std::optional<Source_Position> m_fail_pos {};
-    std::optional<Source_Position> m_cause_pos {};
+    std::optional<Debug_Info> m_cause {};
+    std::optional<Value> m_value {};
+    std::optional<Concrete_Type> m_type {};
 };
 
 static_assert(std::is_trivially_copyable_v<Analysis_Error_Data>);
@@ -205,29 +205,49 @@ public:
         return m_code.execution;
     }
 
-    [[nodiscard]] constexpr const ast::Some_Node* fail() const
+    [[nodiscard]] constexpr Debug_Info fail() const
     {
         return m_fail;
     }
 
-    [[nodiscard]] constexpr const ast::Some_Node* cause() const
+    [[nodiscard]] constexpr std::optional<Debug_Info> cause() const
     {
         return m_cause;
     }
 
+    [[nodiscard]] constexpr Construct fail_construct() const
+    {
+        return m_fail.construct;
+    }
+
+    [[nodiscard]] constexpr std::optional<Construct> cause_construct() const
+    {
+        return m_cause ? m_cause->construct : std::optional<Construct> {};
+    }
+
     [[nodiscard]] constexpr std::optional<Source_Position> fail_pos() const
     {
-        return m_fail_pos;
+        return m_fail.pos;
     }
 
     [[nodiscard]] constexpr std::optional<Source_Position> cause_pos() const
     {
-        return m_cause_pos;
+        return m_cause ? m_cause->pos : std::optional<Source_Position> {};
     }
 
     [[nodiscard]] constexpr std::optional<Comparison_Failure> comparison_failure() const
     {
         return m_comparison_failure;
+    }
+
+    [[nodiscard]] constexpr const std::optional<Concrete_Type> type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] constexpr const std::optional<Value> value() const
+    {
+        return m_value;
     }
 
     friend Builder;
@@ -236,6 +256,7 @@ public:
 struct Analysis_Error_Builder : private detail::Analysis_Error_Data {
 private:
     using Data = detail::Analysis_Error_Data;
+    bool m_fail_exists = false;
 
 public:
     /// @brief Constructs an error with an `Analysis_Error_Code`.
@@ -282,6 +303,7 @@ public:
 
     [[nodiscard]] Analysis_Error build()
     {
+        BIT_MANIPULATION_ASSERT(m_fail_exists);
         return Analysis_Error { std::move(*this) };
     }
 
@@ -291,27 +313,84 @@ public:
         return *this;
     }
 
-    Analysis_Error_Builder& fail(const Debug_Info&);
-
-    Analysis_Error_Builder& fail(const ast::Some_Node* node);
-
-    Analysis_Error_Builder& fail_pos(const Source_Position& pos)
+    Analysis_Error_Builder& value(const Value& value)
     {
-        m_fail_pos = pos;
+        m_value = value;
         return *this;
     }
 
-    Analysis_Error_Builder& cause(const Debug_Info& node);
-
-    Analysis_Error_Builder& cause(const ast::Some_Node* node);
-
-    Analysis_Error_Builder& cause(const Lookup_Result& node);
-
-    Analysis_Error_Builder& cause_pos(const Source_Position& pos)
+    Analysis_Error_Builder& type(const Concrete_Type& type)
     {
-        m_cause_pos = pos;
+        m_type = type;
         return *this;
     }
+
+    Analysis_Error_Builder&
+    fail(Construct construct, std::optional<Source_Position> pos = {}, std::string_view name = "")
+    {
+        m_fail = Debug_Info { construct, pos, name };
+        m_fail_exists = true;
+        return *this;
+    }
+
+    Analysis_Error_Builder& fail(const Debug_Info& info)
+    {
+        m_fail = info;
+        m_fail_exists = true;
+        return *this;
+    }
+
+    Analysis_Error_Builder& fail(const ast::Parameter& parameter)
+    {
+        m_fail = debug_info_from_parameter(parameter);
+        m_fail_exists = true;
+        return *this;
+    }
+
+    Analysis_Error_Builder& fail(const ast::Some_Node* node)
+    {
+        BIT_MANIPULATION_ASSERT(node != nullptr);
+        m_fail = Debug_Info { node };
+        m_fail_exists = true;
+        return *this;
+    }
+
+    Analysis_Error_Builder&
+    cause(Construct construct, std::optional<Source_Position> pos = {}, std::string_view name = "")
+    {
+        m_cause = Debug_Info { construct, pos, name };
+        return *this;
+    }
+
+    Analysis_Error_Builder& cause(const Debug_Info& info)
+    {
+        m_cause = info;
+        return *this;
+    }
+
+    Analysis_Error_Builder& cause(const ast::Parameter& parameter)
+    {
+        m_cause = debug_info_from_parameter(parameter);
+        return *this;
+    }
+
+    Analysis_Error_Builder& cause(const ast::Some_Node* node)
+    {
+        BIT_MANIPULATION_ASSERT(node != nullptr);
+        m_cause = Debug_Info { node };
+        return *this;
+    }
+
+    Analysis_Error_Builder& cause(const Lookup_Result& node)
+    {
+        m_cause = debug_info_from_lookup_result(node);
+        return *this;
+    }
+
+private:
+    [[nodiscard]] static Debug_Info debug_info_from_parameter(const ast::Parameter&);
+
+    [[nodiscard]] static Debug_Info debug_info_from_lookup_result(const Lookup_Result&);
 };
 
 } // namespace bit_manipulation::bms
