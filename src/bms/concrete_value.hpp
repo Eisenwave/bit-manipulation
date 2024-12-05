@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_CONCRETE_VALUE_HPP
 #define BIT_MANIPULATION_CONCRETE_VALUE_HPP
 
+#include <iosfwd>
+
 #include "common/result.hpp"
 
 #include "bms/concrete_type.hpp"
@@ -68,6 +70,8 @@ public:
 inline constexpr Concrete_Value Concrete_Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Concrete_Value Concrete_Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Concrete_Value Concrete_Value::False { Concrete_Type::Bool, 0 };
+
+std::ostream& operator<<(std::ostream&, const Concrete_Value&);
 
 } // namespace bit_manipulation::bms
 

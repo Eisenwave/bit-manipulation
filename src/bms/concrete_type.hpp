@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_CONCRETE_TYPE_HPP
 #define BIT_MANIPULATION_CONCRETE_TYPE_HPP
 
+#include <iosfwd>
 #include <string_view>
 
 #include "common/assert.hpp"
@@ -125,6 +126,8 @@ public:
 inline constexpr Concrete_Type Concrete_Type::Void { Type_Type::Void, 0 };
 inline constexpr Concrete_Type Concrete_Type::Bool { Type_Type::Bool, 0 };
 inline constexpr Concrete_Type Concrete_Type::Int { Type_Type::Int, 0 };
+
+std::ostream& operator<<(std::ostream&, const Concrete_Type&);
 
 } // namespace bit_manipulation::bms
 
