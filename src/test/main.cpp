@@ -100,6 +100,11 @@ TEST(Valid_BMS, loop)
     EXPECT_TRUE(test_for_success("loop.bms"));
 }
 
+TEST(Valid_BMS, return_variable)
+{
+    EXPECT_TRUE(test_for_success("return_variable.bms"));
+}
+
 TEST(Valid_BMS, static_assert)
 {
     EXPECT_TRUE(test_for_success("static_assert.bms"));

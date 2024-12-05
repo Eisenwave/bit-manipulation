@@ -1,0 +1,6 @@
+function test() -> Int {
+    let i = 0;
+    return i;
+}
+
+static_assert(test() == 0);
