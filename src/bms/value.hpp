@@ -171,6 +171,8 @@ inline constexpr Value Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Value Value::False { Concrete_Type::Bool, 0 };
 
+static_assert(std::is_trivially_copyable_v<Value>);
+
 } // namespace bit_manipulation::bms
 
 #endif
