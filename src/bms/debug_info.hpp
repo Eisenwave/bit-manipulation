@@ -36,16 +36,21 @@ enum struct Construct : Default_Underlying {
 struct Debug_Info {
     Construct construct;
     std::optional<Source_Position> pos;
+    std::string_view name;
 
     constexpr Debug_Info() noexcept
         : construct {}
         , pos {}
+        , name {}
     {
     }
 
-    constexpr Debug_Info(Construct construct, std::optional<Source_Position> pos)
+    constexpr Debug_Info(Construct construct,
+                         std::optional<Source_Position> pos,
+                         std::string_view name = "")
         : construct(construct)
         , pos(pos)
+        , name(name)
     {
     }
 
