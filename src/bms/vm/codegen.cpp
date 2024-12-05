@@ -31,7 +31,7 @@ Concrete_Type get_parameter_type(Lookup_Result some_function, Size i)
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
 
-const void* to_load_target(const Lookup_Result& result)
+const void* to_target(const Lookup_Result& result)
 {
     if (const auto* const* node = get_if<ast::Some_Node*>(&result)) {
         return *node;
@@ -80,7 +80,8 @@ private:
         for (Size i = parameters.size(); i-- != 0;) {
             // We use left-to-right push order, so storing the parameters in variables upon
             // function entry happens in reverse order.
-            Debug_Info info { Construct::parameter, parameters[i].get_position() };
+            Debug_Info info { Construct::parameter, parameters[i].get_position(),
+                              parameters[i].get_name() };
             out.push_back(ins::Store { info, &parameters[i] });
         }
 
@@ -289,7 +290,7 @@ private:
         if (!result) {
             return result;
         }
-        out.push_back(ins::Store { { h }, h });
+        out.push_back(ins::Store { { h }, to_target(node.lookup_result.value()) });
         return {};
     }
 
@@ -509,7 +510,7 @@ private:
         BIT_MANIPULATION_ASSERT(node.was_analyzed());
         auto instruction = node.const_value()->is_known()
             ? Instruction { ins::Push { { h }, node.const_value()->concrete_value() } }
-            : Instruction { ins::Load { { h }, to_load_target(node.lookup_result.value()) } };
+            : Instruction { ins::Load { { h }, to_target(node.lookup_result.value()) } };
         out.push_back(instruction);
         return {};
     }
