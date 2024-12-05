@@ -48,6 +48,8 @@ public:
 
     ~Analyzed_Program();
 
+    [[nodiscard]] Virtual_Machine& get_vm();
+
     [[nodiscard]] std::string_view get_source() const;
 
     [[nodiscard]] std::string_view get_file_name() const;

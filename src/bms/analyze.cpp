@@ -1,3 +1,4 @@
+#include <iostream> // FIXME: remove, for print debugging only
 #include <unordered_map>
 
 #include "common/parse.hpp"
@@ -40,7 +41,6 @@ struct Type_Analyzer {
 private:
     Analyzed_Program& m_program;
     std::pmr::unsynchronized_pool_resource m_memory_resource;
-    Virtual_Machine constant_evaluation_machine;
     std::vector<ast::Function*> m_function_stack;
 
     struct Function_Stack_Scope {
@@ -61,7 +61,6 @@ public:
     Type_Analyzer(Analyzed_Program& program, std::pmr::memory_resource* memory)
         : m_program(program)
         , m_memory_resource(memory)
-        , constant_evaluation_machine(&m_memory_resource)
     {
     }
 
@@ -190,6 +189,7 @@ private:
             }
         }
         if (level >= Analysis_Level::for_constant_evaluation) {
+            auto& constant_evaluation_machine = m_program.get_vm();
             const Size vm_address = constant_evaluation_machine.instruction_count();
             Result<void, Analysis_Error> instructions
                 = generate_code(constant_evaluation_machine.instructions(), handle, node);
@@ -197,6 +197,7 @@ private:
                 return instructions.error();
             }
             node.vm_address = vm_address;
+            dump_program(std::cout, constant_evaluation_machine.instructions());
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
         node.const_value() = get_const_value(*node.get_return_type_node());
@@ -914,6 +915,7 @@ private:
 
         // 6.1. Make sure that function calls during constant evaluation have been compiled to VM.
 
+        auto& constant_evaluation_machine = m_program.get_vm();
         if (context == Expression_Context::constant) {
             BIT_MANIPULATION_ASSERT(function->vm_address != ast::Function::invalid_vm_address);
             constant_evaluation_machine.reset();

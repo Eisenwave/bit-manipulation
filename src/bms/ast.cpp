@@ -7,6 +7,7 @@
 #include "bms/debug_info.hpp"
 #include "bms/parsing/astp.hpp"
 #include "bms/parsing/parse.hpp"
+#include "bms/vm/vm.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -270,7 +271,9 @@ struct Analyzed_Program::Implementation {
     std::string_view m_file_name;
     std::string_view m_source;
     std::pmr::monotonic_buffer_resource m_memory_resource;
-    std::pmr::vector<ast::Some_Node*> m_nodes;
+    std::pmr::vector<ast::Some_Node*> m_nodes { &m_memory_resource };
+    Virtual_Machine m_vm { &m_memory_resource };
+
     ast::Some_Node* m_root = nullptr;
 
     Implementation(const Parsed_Program& program,
@@ -528,6 +531,11 @@ ast::Some_Node* Analyzed_Program::get_root() const
 std::pmr::memory_resource* Analyzed_Program::get_memory_resource() const
 {
     return &m_impl->m_memory_resource;
+}
+
+Virtual_Machine& Analyzed_Program::get_vm()
+{
+    return m_impl->m_vm;
 }
 
 ast::Some_Node* Analyzed_Program::insert(const ast::Some_Node& node)
