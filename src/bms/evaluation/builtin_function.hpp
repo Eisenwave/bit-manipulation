@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_BUILTIN_FUNCTION_HPP
 
 #include <span>
+#include <string_view>
 
 #include "bms/concrete_type.hpp"
 
@@ -11,6 +12,11 @@ enum struct Builtin_Function : Default_Underlying {
     // `fn assert(cond: Bool) -> Void`
     assert
 };
+
+[[nodiscard]] constexpr std::string_view builtin_function_name(Builtin_Function)
+{
+    return "assert";
+}
 
 [[nodiscard]] constexpr Size builtin_parameter_count(Builtin_Function f)
 {
