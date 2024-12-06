@@ -20,8 +20,8 @@ struct Assertion_Error {
 #define BIT_MANIPULATION_ASSERT(...)                                                               \
     ((__VA_ARGS__) ? void()                                                                        \
                    : throw ::bit_manipulation::Assertion_Error {                                   \
-                       ::bit_manipulation::Assertion_Error_Type::expression, (#__VA_ARGS__),       \
-                       ::std::source_location::current() })
+                         ::bit_manipulation::Assertion_Error_Type::expression, (#__VA_ARGS__),     \
+                         ::std::source_location::current() })
 
 /// Expects a string literal.
 /// Unconditionally throws `Assertion_Error` of type `unreachable`.
@@ -31,11 +31,11 @@ struct Assertion_Error {
         ::std::source_location::current() })
 
 #if __has_cpp_attribute(assume)
-#define M3DP_ASSUME(...) [[assume(__VA_ARGS__)]]
+#define BIT_MANIPULATION_ASSUME(...) [[assume(__VA_ARGS__)]]
 #elif defined(__clang__)
-#define M3DP_ASSUME(...) __builtin_assume(__VA_ARGS__)
+#define BIT_MANIPULATION_ASSUME(...) __builtin_assume(__VA_ARGS__)
 #else
-#define M3DP_ASSUME(...)
+#define BIT_MANIPULATION_ASSUME(...)
 #endif
 
 #define M3DP_DEBUG_ASSERT(...)                                                                     \
