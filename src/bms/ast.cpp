@@ -106,16 +106,16 @@ Function::Function(Some_Node& parent,
                    std::pmr::memory_resource* memory,
                    std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
     , m_name(parsed.name)
-    , m_annotations(annotations)
     , m_parameters(memory)
 {
 }
 
 Function::Function(const Function& other, Copy_for_Instantiation_Tag)
     : detail::Node_Base(other)
+    , detail::Annotated(other)
     , m_name(other.m_name)
-    , m_annotations(other.m_annotations)
     , m_parameters(other.m_parameters)
     , m_return_type(other.m_return_type)
     , m_requires_clause(other.m_requires_clause)
@@ -142,8 +142,8 @@ Const::Const(Some_Node& parent,
              std::string_view file,
              std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
     , m_name(parsed.name)
-    , m_annotations(annotations)
 {
 }
 
@@ -152,8 +152,8 @@ Let::Let(Some_Node& parent,
          std::string_view file,
          std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
     , m_name(parsed.name)
-    , m_annotations(annotations)
 {
 }
 
@@ -207,8 +207,8 @@ Assignment::Assignment(Some_Node& parent,
                        std::string_view file,
                        std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
     , m_name(parsed.name)
-    , m_annotations(annotations)
 {
 }
 

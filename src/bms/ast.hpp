@@ -222,6 +222,18 @@ public:
     }
 };
 
+struct Annotated {
+protected:
+    detail::Annotations m_annotations;
+
+    explicit Annotated(detail::Annotations&& annotations)
+        : m_annotations { std::move(annotations) }
+    {
+    }
+
+    friend Resolve_Annotations;
+};
+
 } // namespace detail
 
 struct Program final : detail::Node_Base, detail::Dynamic_Parent {
@@ -236,7 +248,7 @@ struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     }
 };
 
-struct Function final : detail::Node_Base {
+struct Function final : detail::Node_Base, detail::Annotated {
 private:
     struct Copy_for_Instantiation_Tag { };
 
@@ -267,7 +279,6 @@ public:
 
 private:
     std::string_view m_name;
-    detail::Annotations m_annotations;
     std::pmr::vector<Parameter> m_parameters;
     Some_Node* m_return_type = nullptr;
     Some_Node* m_requires_clause = nullptr;
@@ -426,14 +437,13 @@ public:
     }
 };
 
-struct Const final : detail::Node_Base, detail::Parent<2> {
+struct Const final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
     static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
-    detail::Annotations m_annotations;
 
 public:
     Const(Some_Node& parent,
@@ -473,14 +483,13 @@ public:
     }
 };
 
-struct Let final : detail::Node_Base, detail::Parent<2> {
+struct Let final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
     static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
-    detail::Annotations m_annotations;
 
 public:
     Let(Some_Node& parent,
@@ -709,14 +718,13 @@ public:
     }
 };
 
-struct Assignment final : detail::Node_Base, detail::Parent<1> {
+struct Assignment final : detail::Node_Base, detail::Annotated, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Assignment";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
 
 private:
     std::string_view m_name;
-    detail::Annotations m_annotations;
 
 public:
     Optional_Lookup_Result lookup_result {};
