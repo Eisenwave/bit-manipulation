@@ -244,41 +244,73 @@ Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s)
     BIT_MANIPULATION_ASSERT(!s.empty());
     BIT_MANIPULATION_ASSERT(!is_space(s[0]));
 
-    if (const std::optional<Comment_Match> m = match_line_comment(s)) {
-        return Tokenize_Result { m->length, line_comment };
-    }
+    switch (s[0]) {
 
-    if (const std::optional<Comment_Match> m = match_block_comment(s)) {
-        if (!m->is_terminated) {
-            return Tokenize_Error { Tokenize_Error_Code::unterminated_comment, pos };
+    case '/': {
+        if (const std::optional<Text_Match> m = match_line_comment(s)) {
+            return Tokenize_Result { m->length, line_comment };
         }
-        return Tokenize_Result { m->length, block_comment };
-    }
-
-    if (const Size length = match_identifier(s)) {
-        if (const std::optional<Token_Type> keyword = keyword_by_name(s.substr(0, length))) {
-            return Tokenize_Result { length, *keyword };
+        if (const std::optional<Text_Match> m = match_block_comment(s)) {
+            if (!m->is_terminated) {
+                return Tokenize_Error { Tokenize_Error_Code::unterminated_comment, pos };
+            }
+            return Tokenize_Result { m->length, block_comment };
         }
-        return Tokenize_Result { length, identifier };
-    }
-
-    if (const std::optional<Token_Type> type = match_fixed_length_token(s)) {
-        return Tokenize_Result { token_type_length(*type), *type };
-    }
-
-    const Literal_Match_Result literal_match = match_integer_literal(s);
-    if (literal_match) {
-        const Size digits = literal_match.length;
-        const bool attempted_integer_suffix = s.length() > digits
-            && identifier_characters.find(s[digits]) != std::string_view::npos;
-        if (attempted_integer_suffix) {
-            return Tokenize_Error { Tokenize_Error_Code::integer_suffix, pos.to_right(digits) };
+        if (const std::optional<Token_Type> type = match_fixed_length_token(s)) {
+            return Tokenize_Result { token_type_length(*type), *type };
         }
-        return Tokenize_Result { digits, token_type_of(literal_match.type) };
+        break;
     }
-    if (literal_match.status == Literal_Match_Status::no_digits_following_prefix) {
-        return Tokenize_Error { Tokenize_Error_Code::no_digits_following_integer_prefix,
-                                pos.to_right(2) };
+
+    case '"': {
+        if (const std::optional<Text_Match> m = match_string_literal(s)) {
+            if (!m->is_terminated) {
+                return Tokenize_Error { Tokenize_Error_Code::unterminated_string, pos };
+            }
+            return Tokenize_Result { m->length, string_literal };
+        }
+        break;
+    }
+
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9': {
+        const Literal_Match_Result literal_match = match_integer_literal(s);
+        if (literal_match) {
+            const Size digits = literal_match.length;
+            const bool attempted_integer_suffix = s.length() > digits
+                && identifier_characters.find(s[digits]) != std::string_view::npos;
+            if (attempted_integer_suffix) {
+                return Tokenize_Error { Tokenize_Error_Code::integer_suffix, pos.to_right(digits) };
+            }
+            return Tokenize_Result { digits, token_type_of(literal_match.type) };
+        }
+        if (literal_match.status == Literal_Match_Status::no_digits_following_prefix) {
+            return Tokenize_Error { Tokenize_Error_Code::no_digits_following_integer_prefix,
+                                    pos.to_right(2) };
+        }
+        break;
+    }
+
+    default: {
+        if (const std::optional<Token_Type> type = match_fixed_length_token(s)) {
+            return Tokenize_Result { token_type_length(*type), *type };
+        }
+        if (const Size length = match_identifier(s)) {
+            if (const std::optional<Token_Type> keyword = keyword_by_name(s.substr(0, length))) {
+                return Tokenize_Result { length, *keyword };
+            }
+            return Tokenize_Result { length, identifier };
+        }
+        break;
+    }
     }
 
     return Tokenize_Error { Tokenize_Error_Code::illegal_character, pos };

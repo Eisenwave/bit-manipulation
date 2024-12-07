@@ -17,16 +17,19 @@ enum struct Tokenize_Error_Code : Default_Underlying {
     integer_suffix,
     /// @brief An opening block comment has no closing asterisk and slash.
     unterminated_comment,
+    /// @brief A string literal has an opening but no closing quote.
+    unterminated_string,
 };
 
-constexpr std::string_view name_of(Tokenize_Error_Code e)
+[[nodiscard]] constexpr std::string_view name_of(Tokenize_Error_Code e)
 {
     using enum Tokenize_Error_Code;
     switch (e) {
-    case illegal_character: return "illegal_character";
-    case no_digits_following_integer_prefix: return "no_digits_following_integer_prefix";
-    case integer_suffix: return "integer_suffix";
-    case unterminated_comment: return "unterminated_comment";
+        BIT_MANIPULATION_ENUM_STRING_CASE(illegal_character);
+        BIT_MANIPULATION_ENUM_STRING_CASE(no_digits_following_integer_prefix);
+        BIT_MANIPULATION_ENUM_STRING_CASE(integer_suffix);
+        BIT_MANIPULATION_ENUM_STRING_CASE(unterminated_comment);
+        BIT_MANIPULATION_ENUM_STRING_CASE(unterminated_string);
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
