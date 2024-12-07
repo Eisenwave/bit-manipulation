@@ -230,9 +230,14 @@ Annotation::Annotation(Local_Source_Span pos,
 {
 }
 
-Annotation_Argument::Annotation_Argument(Local_Source_Span pos, std::string_view value)
+Annotation_Argument::Annotation_Argument(Local_Source_Span pos,
+                                         std::string_view key,
+                                         std::string_view value,
+                                         Token_Type value_type)
     : Node_Base { pos }
+    , key { key }
     , value { value }
+    , value_type { value_type }
 {
 }
 
@@ -469,7 +474,7 @@ private:
         return peek_or_expect([=](Token_Type t) { return t == type; }, true);
     }
 
-    const Token* expect(bool (&predicate)(Token_Type)) noexcept
+    const Token* expect(bool predicate(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, true);
     }
@@ -874,14 +879,29 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::annotation_argument;
         static constexpr Token_Type expected[]
-            = { Token_Type::binary_literal, Token_Type::octal_literal, Token_Type::decimal_literal,
-                Token_Type::hexadecimal_literal };
+            = { Token_Type::identifier,          Token_Type::binary_literal,
+                Token_Type::octal_literal,       Token_Type::decimal_literal,
+                Token_Type::hexadecimal_literal, Token_Type::string_literal,
+                Token_Type::keyword_true,        Token_Type::keyword_false };
+        static constexpr auto expected_after_key = std::span { expected }.subspan(1);
 
-        const Token* t = expect(is_integer_literal);
-        if (t) {
-            return Rule_Error { this_rule, expected };
+        const Token* key = expect(Token_Type::identifier);
+        if (key) {
+            if (!expect(Token_Type::assign)) {
+                return Rule_Error { this_rule, const_array_one_v<Token_Type::assign> };
+            }
         }
-        return astp::Some_Node { astp::Annotation_Argument { t->pos, m_program.extract(t->pos) } };
+        const std::string_view key_string = key ? m_program.extract(key->pos) : "";
+
+        const Token* value = expect(is_literal);
+        if (!value) {
+            return Rule_Error { this_rule, key ? expected_after_key : expected };
+        }
+        const Local_Source_Span pos = key ? key->pos : value->pos;
+        const std::string_view value_string = m_program.extract(value->pos);
+
+        return astp::Some_Node { astp::Annotation_Argument { pos, key_string, value_string,
+                                                             value->type } };
     }
 
     Rule_Result match_statement()
@@ -1411,6 +1431,7 @@ private:
 
     Rule_Result match_primary_expression()
     {
+        // FIXME: boolean literals don't appear to be supported, but should be matched here
         constexpr auto this_rule = Grammar_Rule::primary_expression;
         static constexpr Token_Type expected[]
             = { Token_Type::binary_literal,  Token_Type::octal_literal,

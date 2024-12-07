@@ -275,9 +275,14 @@ struct Annotation final : detail::Node_Base {
 struct Annotation_Argument final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Annotation_Argument";
 
+    std::string_view key;
     std::string_view value;
+    Token_Type value_type;
 
-    Annotation_Argument(Local_Source_Span pos, std::string_view value);
+    Annotation_Argument(Local_Source_Span pos,
+                        std::string_view key,
+                        std::string_view value,
+                        Token_Type value_type);
 };
 
 struct If_Statement final : detail::Node_Base, detail::Parent<3> {

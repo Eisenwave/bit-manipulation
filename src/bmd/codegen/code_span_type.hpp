@@ -17,6 +17,7 @@ enum struct Code_Span_Type : Default_Underlying {
     type_name,
     bracket,
     number,
+    string,
     comment,
     operation,
     punctuation,
@@ -34,6 +35,7 @@ constexpr std::string_view code_span_type_tag(Code_Span_Type type)
     case type_name: return "c-typ";
     case bracket: return "c-bra";
     case number: return "c-int";
+    case string: return "c-str";
     case comment: return "c-com";
     case operation: return "c-opr";
     case punctuation: return "c-pun";

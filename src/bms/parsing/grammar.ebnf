@@ -31,7 +31,7 @@ annotation
 annotation_argument_sequence
     = annotation_argument { ",", annotation_argument };
 annotation_argument
-    = integer_literal;
+    = [ identifier, "=" ], literal;
 
 statement
     = let_declaration
@@ -94,21 +94,28 @@ expression_sequence
     = expression, {",", expression};
 primary_expression
     = integer_literal
+    | boolean_literal
     | identifier
     | parenthesized_expression;
 parenthesized_expression
     = "(", expression, ")";
+literal
+    = integer_literal
+    | string_literal
+    | boolean_literal;
 integer_literal
     = decimal_literal
     | hexadecimal_literal
     | binary_literal
     | octal_literal;
+boolean_literal
+    = "true" | "false"
+
 binary_operator
     = binary_arithmetic_operator
     | binary_comparison_operator
     | binary_logical_operator
     | binary_bitwise_operator;
-
 binary_arithmetic_operator
     = "+" | "-" | "*" | "/" | "%";
 binary_comparison_operator

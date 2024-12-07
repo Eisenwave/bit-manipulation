@@ -18,6 +18,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(octal_literal);
         BIT_MANIPULATION_ENUM_STRING_CASE(hexadecimal_literal);
         BIT_MANIPULATION_ENUM_STRING_CASE(binary_literal);
+        BIT_MANIPULATION_ENUM_STRING_CASE(string_literal);
         BIT_MANIPULATION_ENUM_STRING_CASE(left_brace);
         BIT_MANIPULATION_ENUM_STRING_CASE(right_brace);
         BIT_MANIPULATION_ENUM_STRING_CASE(block_comment);
@@ -84,6 +85,7 @@ namespace bit_manipulation::bms {
     case octal_literal: return "octal literal";
     case hexadecimal_literal: return "hexadecimal literal";
     case binary_literal: return "binary literal";
+    case string_literal: return "string_literal";
     case left_brace: return "'{'";
     case right_brace: return "'}'";
     case block_comment: return "'/*'";
@@ -206,6 +208,7 @@ namespace bit_manipulation::bms {
     case octal_literal:
     case decimal_literal:
     case hexadecimal_literal:
+    case string_literal:
     case block_comment:
     case line_comment: return 0;
 
@@ -296,7 +299,8 @@ namespace bit_manipulation::bms {
     case decimal_literal:
     case hexadecimal_literal:
     case keyword_true:
-    case keyword_false: return true;
+    case keyword_false:
+    case string_literal: return true;
     default: return false;
     }
 }
@@ -505,11 +509,28 @@ namespace bit_manipulation::bms {
     using enum Annotation_Type;
     switch (type) {
         BIT_MANIPULATION_ENUM_STRING_CASE(immutable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(inline_);
         BIT_MANIPULATION_ENUM_STRING_CASE(loop_variable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(loop_increment);
+        BIT_MANIPULATION_ENUM_STRING_CASE(loop_step);
+        BIT_MANIPULATION_ENUM_STRING_CASE(unroll);
+        BIT_MANIPULATION_ENUM_STRING_CASE(c_equivalent);
+        BIT_MANIPULATION_ENUM_STRING_CASE(java_equivalent);
         BIT_MANIPULATION_ENUM_STRING_CASE(instantiate);
+        BIT_MANIPULATION_ENUM_STRING_CASE(false_if_unknown);
+        BIT_MANIPULATION_ENUM_STRING_CASE(remove_if_unused);
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid annotation type.");
+}
+
+[[nodiscard]] std::optional<Annotation_Type> annotation_type_by_name(std::string_view name)
+{
+    constexpr auto limit = Default_Underlying(Annotation_Type::remove_if_unused);
+    for (Default_Underlying i = 0; i <= limit; ++i) {
+        if (annotation_type_name(Annotation_Type(i)) == name) {
+            return Annotation_Type(i);
+        }
+    }
+    return {};
 }
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code)
@@ -561,6 +582,8 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(wrong_argument_type);
         BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_not_applicable);
     };
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid analysis error code.");
 }

@@ -23,6 +23,8 @@ enum struct Token_Type : Default_Underlying {
     hexadecimal_literal,
     // 0b1010
     binary_literal,
+    // "awoo"
+    string_literal,
     // {
     left_brace,
     // }

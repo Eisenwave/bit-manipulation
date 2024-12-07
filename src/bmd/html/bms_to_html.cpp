@@ -27,6 +27,8 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
     case decimal_literal:
     case hexadecimal_literal: return Code_Span_Type::number;
 
+    case string_literal: return Code_Span_Type::string;
+
     case block_comment:
     case line_comment: return Code_Span_Type::comment;
 
