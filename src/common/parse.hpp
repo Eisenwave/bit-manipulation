@@ -54,7 +54,7 @@ struct Comment_Match {
 /// @brief Returns `true` if the given character is a decimal digit (`0` through `9`).
 /// @param c the character
 /// @return `true` if `c` is a decimal digit, `false` otherwise.
-constexpr bool is_decimal_digit(char c)
+[[nodiscard]] constexpr bool is_decimal_digit(char c)
 {
     return c >= '0' && c <= '9';
 }
@@ -62,7 +62,7 @@ constexpr bool is_decimal_digit(char c)
 /// @brief Returns true if the given character is whitespace.
 /// @param c the character
 /// @return `true` if `c` is whitespace, `false` otherwise.
-constexpr bool is_space(char c)
+[[nodiscard]] constexpr bool is_space(char c)
 {
     return c == ' ' || c == '\n' || c == '\t' || c == '\r';
 }
@@ -70,24 +70,24 @@ constexpr bool is_space(char c)
 /// @brief Matches a C99-style line-comment.
 /// @param str the string
 /// @return The match or `std::nullopt`.
-std::optional<Comment_Match> match_line_comment(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Comment_Match> match_line_comment(std::string_view str) noexcept;
 
 /// @brief Matches a C89-style block comment.
 /// @param str the string
 /// @return The match or `std::nullopt`.
-std::optional<Comment_Match> match_block_comment(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Comment_Match> match_block_comment(std::string_view str) noexcept;
 
 /// @brief Matches as many digits as possible, in a base of choice.
 /// For bases above 10, lower and upper case characters are permitted.
 /// @param str the string with digits at the beginning
 /// @param base in range [2, 16]
 /// @return The number of digits that belong to a numeric literal of the given base.
-Size match_digits(std::string_view str, int base);
+[[nodiscard]] Size match_digits(std::string_view str, int base);
 
 /// @brief Matches leading whitespace.
 /// @param str the string
 /// @return The number of leading whitespace characters.
-inline Size match_whitespace(std::string_view str) noexcept
+[[nodiscard]] inline Size match_whitespace(std::string_view str) noexcept
 {
     return std::min(str.find_first_not_of(" \t\r\n"), str.length());
 }
@@ -105,11 +105,11 @@ inline constexpr std::string_view identifier_characters
 /// This function matches the regex /[_a-zA-Z][_a-zA-Z0-9]*/
 /// @param str the string, possibly containing an identifier at the start
 /// @return The length of the identifier if it could be matched, zero otherwise.
-Size match_identifier(std::string_view str) noexcept;
+[[nodiscard]] Size match_identifier(std::string_view str) noexcept;
 
 namespace detail {
 
-inline bool is_identifier(std::string_view str, std::string_view characters) noexcept
+[[nodiscard]] inline bool is_identifier(std::string_view str, std::string_view characters) noexcept
 {
     return !str.empty() //
         && !is_decimal_digit(str[0]) //
@@ -120,14 +120,14 @@ inline bool is_identifier(std::string_view str, std::string_view characters) noe
 
 /// @brief Returns `true` if `str` is an identifier in the BMD and BMS languages, `false` otherwise.
 /// @param str the string to test
-inline bool is_identifier(std::string_view str) noexcept
+[[nodiscard]] inline bool is_identifier(std::string_view str) noexcept
 {
     return detail::is_identifier(str, identifier_characters);
 }
 
 /// @brief Returns `true` if `str` is an HTML identifier, `false` otherwise.
 /// @param str the string to test
-inline bool is_html_identifier(std::string_view str) noexcept
+[[nodiscard]] inline bool is_html_identifier(std::string_view str) noexcept
 {
     return detail::is_identifier(str, html_identifier_characters);
 }
@@ -136,13 +136,13 @@ inline bool is_html_identifier(std::string_view str) noexcept
 /// This includes any prefix such as `0x`, `0b`, or `0` and all the following digits.
 /// @param str the string which may contain a literal at the start
 /// @return The match or an error.
-Literal_Match_Result match_integer_literal(std::string_view str) noexcept;
+[[nodiscard]] Literal_Match_Result match_integer_literal(std::string_view str) noexcept;
 
 /// @brief Like `parse_integer_literal`, but does not permit negative numbers and results
 /// in an unsigned integer.
 /// @param str the string containing the prefix and literal digits
 /// @return The parsed number.
-std::optional<Big_Uint> parse_uinteger_literal(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Big_Uint> parse_uinteger_literal(std::string_view str) noexcept;
 
 /// @brief Converts a literal string to an signed integer.
 /// The sign of the integer is based on a leading `-` character.
@@ -153,7 +153,7 @@ std::optional<Big_Uint> parse_uinteger_literal(std::string_view str) noexcept;
 /// - otherwise decimal
 /// @param str the string containing the prefix and literal digits
 /// @return The parsed number.
-std::optional<Big_Int> parse_integer_literal(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Big_Int> parse_integer_literal(std::string_view str) noexcept;
 
 } // namespace bit_manipulation
 
