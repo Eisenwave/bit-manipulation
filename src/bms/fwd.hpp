@@ -112,6 +112,7 @@ enum struct Construct : Default_Underlying;
 
 struct Virtual_Machine;
 struct Debug_Info;
+struct Resolve_Annotations;
 
 struct Lookup_Result;
 struct Optional_Lookup_Result;

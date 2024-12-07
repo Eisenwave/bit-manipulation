@@ -570,7 +570,7 @@ ast::Some_Node* Analyzed_Program::insert(const ast::Some_Node& node)
 
 ast::Some_Node* Analyzed_Program::insert(ast::Some_Node&& node)
 {
-    return m_impl->emplace<ast::Some_Node>(node);
+    return m_impl->emplace<ast::Some_Node>(std::move(node));
 }
 
 [[nodiscard]] Result<const ast::Some_Node*, Introspection_Error_Code>

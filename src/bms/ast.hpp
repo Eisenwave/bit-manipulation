@@ -80,6 +80,8 @@ public:
     {
         return m_parsed.size() == m_concrete.size();
     }
+
+    friend Resolve_Annotations;
 };
 
 struct Node_Base {
@@ -1093,6 +1095,9 @@ using Some_Node_Variant = Variant<Program,
 struct Some_Node : Some_Node_Variant {
     using Variant::Variant;
 };
+
+static_assert(std::is_move_constructible_v<Some_Node>);
+static_assert(std::is_copy_constructible_v<Some_Node>);
 
 inline Type& Function::get_return_type()
 {
