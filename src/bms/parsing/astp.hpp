@@ -285,45 +285,59 @@ struct Annotation_Argument final : detail::Node_Base, detail::Parent<0> {
                         Token_Type value_type);
 };
 
-struct If_Statement final : detail::Node_Base, detail::Parent<3> {
+struct If_Statement final : detail::Node_Base, detail::Parent<4> {
     using AST_Node = ast::If_Statement;
     static inline constexpr std::string_view self_name = "If_Statement";
     static inline constexpr std::string_view child_names[] = {
+        "annotations",
         "condition",
         "if_block",
         "else_block",
     };
 
-    If_Statement(Local_Source_Span pos, Handle condition, Handle if_block, Handle else_block);
+    If_Statement(Local_Source_Span pos,
+                 Handle annotations,
+                 Handle condition,
+                 Handle if_block,
+                 Handle else_block);
 
-    Handle get_condition() const
+    Handle get_annotations() const
     {
         return children[0];
+    }
+    Handle get_condition() const
+    {
+        return children[1];
     }
     Handle get_if_block() const
     {
-        return children[1];
+        return children[2];
     }
     Handle get_else_block() const
     {
-        return children[2];
+        return children[3];
     }
 };
 
-struct While_Statement final : detail::Node_Base, detail::Parent<2> {
+struct While_Statement final : detail::Node_Base, detail::Parent<3> {
     using AST_Node = ast::While_Statement;
     static inline constexpr std::string_view self_name = "While_Statement";
-    static inline constexpr std::string_view child_names[] = { "condition", "block" };
+    static inline constexpr std::string_view child_names[]
+        = { "annotations", "condition", "block" };
 
-    While_Statement(Local_Source_Span pos, Handle condition, Handle block);
+    While_Statement(Local_Source_Span pos, Handle annotations, Handle condition, Handle block);
 
-    Handle get_condition() const
+    Handle get_annotations() const
     {
         return children[0];
     }
-    Handle get_block() const
+    Handle get_condition() const
     {
         return children[1];
+    }
+    Handle get_block() const
+    {
+        return children[2];
     }
 };
 
@@ -471,24 +485,39 @@ struct Function_Call_Expression final : detail::Node_Base {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
 
     std::string_view function;
-    std::pmr::vector<Handle> arguments;
+    std::pmr::vector<Handle> arguments_and_annotations;
     bool is_statement;
 
     Function_Call_Expression(Local_Source_Span pos,
                              std::string_view function,
                              std::pmr::vector<Handle>&& arguments,
+                             Handle annotations,
                              bool is_statement = false);
 
     Function_Call_Expression(Function_Call_Expression&&) noexcept = default;
     Function_Call_Expression& operator=(Function_Call_Expression&&) noexcept = default;
 
+    Handle get_annotations() const
+    {
+        return arguments_and_annotations.back();
+    }
+    std::span<Handle> get_arguments()
+    {
+        return std::span { arguments_and_annotations }.subspan(
+            0, arguments_and_annotations.size() - 1);
+    }
+    std::span<const Handle> get_arguments() const
+    {
+        return std::span { arguments_and_annotations }.subspan(
+            0, arguments_and_annotations.size() - 1);
+    }
     std::span<Handle> get_children()
     {
-        return arguments;
+        return arguments_and_annotations;
     }
     std::span<const Handle> get_children() const
     {
-        return arguments;
+        return arguments_and_annotations;
     }
 };
 

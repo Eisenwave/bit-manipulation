@@ -242,19 +242,23 @@ Annotation_Argument::Annotation_Argument(Local_Source_Span pos,
 }
 
 If_Statement::If_Statement(Local_Source_Span pos,
+                           Handle annotations,
                            Handle condition,
                            Handle if_block,
                            Handle else_block)
     : Node_Base { pos }
-    , Parent<3> { condition, if_block, else_block }
+    , Parent<4> { annotations, condition, if_block, else_block }
 {
     BIT_MANIPULATION_ASSERT(condition != astp::Handle::null);
     BIT_MANIPULATION_ASSERT(if_block != astp::Handle::null);
 }
 
-While_Statement::While_Statement(Local_Source_Span pos, Handle condition, Handle block)
+While_Statement::While_Statement(Local_Source_Span pos,
+                                 Handle annotations,
+                                 Handle condition,
+                                 Handle block)
     : Node_Base { pos }
-    , Parent<2> { condition, block }
+    , Parent<3> { annotations, condition, block }
 {
     BIT_MANIPULATION_ASSERT(condition != astp::Handle::null);
     BIT_MANIPULATION_ASSERT(block != astp::Handle::null);
@@ -335,12 +339,14 @@ Prefix_Expression::Prefix_Expression(Local_Source_Span pos, Token_Type op, Handl
 Function_Call_Expression::Function_Call_Expression(Local_Source_Span pos,
                                                    std::string_view function,
                                                    std::pmr::vector<astp::Handle>&& arguments,
+                                                   Handle annotations,
                                                    bool is_statement)
     : Node_Base { pos }
     , function(function)
-    , arguments(std::move(arguments))
+    , arguments_and_annotations(std::move(arguments))
     , is_statement(is_statement)
 {
+    arguments_and_annotations.push_back(annotations);
 }
 
 Id_Expression::Id_Expression(Local_Source_Span pos, std::string_view identifier)
@@ -972,12 +978,15 @@ private:
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         static constexpr Token_Type possible_types[]
-            = { Token_Type::keyword_let, Token_Type::keyword_const, Token_Type::identifier };
+            = { Token_Type::keyword_let, Token_Type::keyword_const, Token_Type::keyword_if,
+                Token_Type::keyword_while, Token_Type::identifier };
 
         if (const Token* next = peek()) {
             switch (next->type) {
             case Token_Type::keyword_const: return match_const_declaration(&annotations);
             case Token_Type::keyword_let: return match_let_declaration(&annotations);
+            case Token_Type::keyword_if: return match_if_statement(&annotations);
+            case Token_Type::keyword_while: return match_while_statement(&annotations);
             case Token_Type::identifier: return match_assignment_statement(&annotations);
             default: break;
             }
@@ -1079,7 +1088,7 @@ private:
         return astp::Some_Node { astp::Continue { t->pos } };
     }
 
-    Rule_Result match_if_statement()
+    Rule_Result match_if_statement(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::if_statement;
 
@@ -1104,7 +1113,7 @@ private:
             else_handle = m_program.push_node(std::move(*r));
         }
         return astp::Some_Node { astp::If_Statement {
-            first->pos, m_program.push_node(std::move(*condition)),
+            first->pos, push_or_null(annotations), m_program.push_node(std::move(*condition)),
             m_program.push_node(std::move(*block)), else_handle } };
     }
 
@@ -1119,7 +1128,7 @@ private:
         return peek(Token_Type::keyword_if) ? match_if_statement() : match_block_statement();
     }
 
-    Rule_Result match_while_statement()
+    Rule_Result match_while_statement(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::while_statement;
 
@@ -1135,7 +1144,7 @@ private:
         if (!block) {
             return block;
         }
-        return astp::Some_Node { astp::While_Statement { first->pos,
+        return astp::Some_Node { astp::While_Statement { first->pos, push_or_null(annotations),
                                                          m_program.push_node(std::move(*condition)),
                                                          m_program.push_node(std::move(*block)) } };
     }
@@ -1425,8 +1434,16 @@ private:
             arguments.push_back(m_program.push_node(std::move(*arg)));
             demand_expression = expect(Token_Type::comma);
         }
+
+        auto annotations
+            = optionally_match(&Parser::match_annotation_sequence, peek(Token_Type::at));
+        if (!annotations) {
+            return annotations.error();
+        }
+
         return astp::Some_Node { astp::Function_Call_Expression {
-            id->pos, m_program.extract(id->pos), std::move(arguments) } };
+            id->pos, m_program.extract(id->pos), std::move(arguments),
+            push_or_null(std::move(*annotations)) } };
     }
 
     Rule_Result match_primary_expression()

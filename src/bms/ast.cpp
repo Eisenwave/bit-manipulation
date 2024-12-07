@@ -166,15 +166,19 @@ Static_Assert::Static_Assert(Some_Node& parent,
 
 If_Statement::If_Statement(Some_Node& parent,
                            const astp::If_Statement& parsed,
-                           std::string_view file)
+                           std::string_view file,
+                           std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
 {
 }
 
 While_Statement::While_Statement(Some_Node& parent,
                                  const astp::While_Statement& parsed,
-                                 std::string_view file)
+                                 std::string_view file,
+                                 std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
 {
 }
 
@@ -256,8 +260,10 @@ Prefix_Expression::Prefix_Expression(Some_Node& parent,
 Function_Call_Expression::Function_Call_Expression(Some_Node& parent,
                                                    const astp::Function_Call_Expression& parsed,
                                                    std::string_view file,
-                                                   std::pmr::memory_resource* memory)
+                                                   std::pmr::memory_resource* memory,
+                                                   std::span<const astp::Handle> annotations)
     : detail::Node_Base(parent, parsed, file)
+    , detail::Annotated(detail::Annotations(annotations))
     , detail::Dynamic_Parent(memory)
     , m_name(parsed.function)
     , m_is_statement(parsed.is_statement)
@@ -449,8 +455,6 @@ public:
 
     template <one_of<astp::Type,
                      astp::Static_Assert,
-                     astp::If_Statement,
-                     astp::While_Statement,
                      astp::Return_Statement,
                      astp::Conversion_Expression,
                      astp::If_Expression,
@@ -465,7 +469,9 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children());
     }
 
-    template <one_of<astp::Const, astp::Let, astp::Assignment> T>
+    template <
+        one_of<astp::Const, astp::Let, astp::If_Statement, astp::While_Statement, astp::Assignment>
+            T>
     ast::Some_Node* operator()(const T& n) const
     {
         // Parser AST nodes always have the annotation list as the first child.
@@ -477,13 +483,21 @@ public:
         return transform_all_children_recursively<Result>(result, n.get_children().subspan(1));
     }
 
-    template <one_of<astp::Block_Statement, astp::Function_Call_Expression> T>
-    ast::Some_Node* operator()(const T& n) const
+    ast::Some_Node* operator()(const astp::Block_Statement& n) const
     {
-        using Result = T::AST_Node;
+        using Result = ast::Block_Statement;
         ast::Some_Node* result
             = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource);
         return transform_all_children_recursively<Result>(result, n.get_children());
+    }
+
+    ast::Some_Node* operator()(const astp::Function_Call_Expression& n) const
+    {
+        using Result = ast::Function_Call_Expression;
+        ast::Some_Node* result
+            = self.emplace<Result>(*parent, n, self.m_file_name, &self.m_memory_resource,
+                                   get_annotations(n.get_annotations()));
+        return transform_all_children_recursively<Result>(result, n.get_arguments());
     }
 
     template <one_of<astp::Parameter_List,

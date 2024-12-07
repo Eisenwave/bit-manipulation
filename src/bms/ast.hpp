@@ -553,7 +553,7 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct If_Statement final : detail::Node_Base, detail::Parent<3> {
+struct If_Statement final : detail::Node_Base, detail::Annotated, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Statement";
     static inline constexpr std::string_view child_names[] = {
         "condition",
@@ -562,7 +562,10 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
     };
     static inline constexpr bool is_expression = false;
 
-    If_Statement(Some_Node& parent, const astp::If_Statement& parsed, std::string_view file);
+    If_Statement(Some_Node& parent,
+                 const astp::If_Statement& parsed,
+                 std::string_view file,
+                 std::span<const astp::Handle> annotations);
 
     Some_Node* get_condition_node()
     {
@@ -600,12 +603,15 @@ struct If_Statement final : detail::Node_Base, detail::Parent<3> {
     }
 };
 
-struct While_Statement final : detail::Node_Base, detail::Parent<2> {
+struct While_Statement final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
     static inline constexpr bool is_expression = false;
 
-    While_Statement(Some_Node& parent, const astp::While_Statement& parsed, std::string_view file);
+    While_Statement(Some_Node& parent,
+                    const astp::While_Statement& parsed,
+                    std::string_view file,
+                    std::span<const astp::Handle> annotations);
 
     Some_Node* get_condition_node()
     {
@@ -950,7 +956,9 @@ public:
     }
 };
 
-struct Function_Call_Expression final : detail::Node_Base, detail::Dynamic_Parent {
+struct Function_Call_Expression final : detail::Node_Base,
+                                        detail::Annotated,
+                                        detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
     static inline constexpr bool is_expression = true;
 
@@ -964,7 +972,8 @@ public:
     Function_Call_Expression(Some_Node& parent,
                              const astp::Function_Call_Expression& parsed,
                              std::string_view file,
-                             std::pmr::memory_resource* memory);
+                             std::pmr::memory_resource* memory,
+                             std::span<const astp::Handle> annotations);
 
     [[nodiscard]] Expression_Type get_expression_type() const
     {

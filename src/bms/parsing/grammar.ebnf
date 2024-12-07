@@ -58,11 +58,11 @@ continue_statement
 return_statement
     = "return", [expression], ";";
 if_statement
-    = "if", expression, block_statement, [else_statement];
+    = [annotation_sequence], "if", expression, block_statement, [else_statement];
 else_statement
     = "else", (if_statement | block_statement);
 while_statement
-    = "while", expression, block_statement;
+    = [annotation_sequence], "while", expression, block_statement;
 init_clause
     = let_declaration
     | assignment;
@@ -89,7 +89,7 @@ postfix_expression
     = function_call_expression
     | primary_expression;
 function_call_expression
-    = identifier, "(", [expression_sequence], ")";
+    = identifier, "(", [expression_sequence], ")", [annotation_sequence];
 expression_sequence
     = expression, {",", expression};
 primary_expression
