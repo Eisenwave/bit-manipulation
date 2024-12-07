@@ -11,8 +11,9 @@ private:
     signed char underlying;
 
     explicit constexpr Tribool(int x) noexcept
-        : underlying(x)
+        : underlying(static_cast<signed char>(x))
     {
+        BIT_MANIPULATION_ASSUME(x >= -1 && x <= 1);
     }
 
 public:
@@ -23,7 +24,6 @@ public:
     constexpr Tribool(bool x) noexcept
         : underlying(-int(x))
     {
-        BIT_MANIPULATION_ASSUME(x >= -1 && x <= 1);
     }
 
     [[nodiscard]] [[gnu::always_inline]] friend constexpr bool operator==(const Tribool&,
