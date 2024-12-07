@@ -201,6 +201,10 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "This break statement is not inside of a loop.";
     case continue_outside_loop: //
         return "This continue statement is not inside of a loop.";
+    case annotation_unknown: //
+        return "Unknown annotation.";
+    case annotation_not_applicable: //
+        return "Annotation cannot be applied to the following construct.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }

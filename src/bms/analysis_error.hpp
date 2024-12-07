@@ -113,6 +113,11 @@ enum struct Analysis_Error_Code : Default_Underlying {
     break_outside_loop,
     /// @brief A continue statement appeared outside of a loop.
     continue_outside_loop,
+
+    /// @brief An unknown annotation was used (e.g. `@gibberish`).
+    annotation_unknown,
+    /// @brief An annotation cannot be applied to the chosen target (e.g. `@unroll` on a variable).
+    annotation_not_applicable
 };
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code);
