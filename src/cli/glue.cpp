@@ -48,6 +48,8 @@ std::string_view highlight_color_of(bmd::Code_Span_Type type)
 
     case number: return ansi::h_cyan;
 
+    case string: return ansi::h_green;
+
     case comment:
     case operation: return ansi::h_black;
 
