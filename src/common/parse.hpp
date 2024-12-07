@@ -46,7 +46,7 @@ struct Literal_Match_Result {
     }
 };
 
-struct Comment_Match {
+struct Text_Match {
     Size length;
     bool is_terminated;
 };
@@ -70,12 +70,20 @@ struct Comment_Match {
 /// @brief Matches a C99-style line-comment.
 /// @param str the string
 /// @return The match or `std::nullopt`.
-[[nodiscard]] std::optional<Comment_Match> match_line_comment(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Text_Match> match_line_comment(std::string_view str) noexcept;
 
 /// @brief Matches a C89-style block comment.
 /// @param str the string
 /// @return The match or `std::nullopt`.
-[[nodiscard]] std::optional<Comment_Match> match_block_comment(std::string_view str) noexcept;
+[[nodiscard]] std::optional<Text_Match> match_block_comment(std::string_view str) noexcept;
+
+/// @brief Matches a simple string literal, which is a sequence of characters beginning and ending
+/// with `"`.
+/// However, "escaped" `\"`, i.e. quotes preceded by a backslash do not end the string,
+/// and `\\` correspond to a literal backwards slash within the string.
+/// @param str the string
+/// @return The match or `std::nullopt`.
+[[nodiscard]] std::optional<Text_Match> match_string_literal(std::string_view str) noexcept;
 
 /// @brief Matches as many digits as possible, in a base of choice.
 /// For bases above 10, lower and upper case characters are permitted.

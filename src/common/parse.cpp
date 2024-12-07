@@ -88,29 +88,49 @@ static_assert(*parse_uinteger_digits("ff", 16) == 255);
 
 } // namespace
 
-std::optional<Comment_Match> match_line_comment(std::string_view s) noexcept
+std::optional<Text_Match> match_line_comment(std::string_view s) noexcept
 {
     if (!s.starts_with("//")) {
-        return std::nullopt;
+        return {};
     }
     const Size end = s.find('\n', 2);
     if (end == std::string_view::npos) {
-        return Comment_Match { .length = s.length(), .is_terminated = false };
+        return Text_Match { .length = s.length(), .is_terminated = false };
     }
-    return Comment_Match { .length = end, .is_terminated = true };
+    return Text_Match { .length = end, .is_terminated = true };
 }
 
-std::optional<Comment_Match> match_block_comment(std::string_view s) noexcept
+std::optional<Text_Match> match_block_comment(std::string_view s) noexcept
 {
     if (!s.starts_with("/*")) {
-        return std::nullopt;
+        return {};
     }
     // naive: nesting disallowed, but line comments can be nested in block comments
     const Size end = s.find("*/", 2);
     if (end == std::string_view::npos) {
-        return Comment_Match { .length = s.length(), .is_terminated = false };
+        return Text_Match { .length = s.length(), .is_terminated = false };
     }
-    return Comment_Match { .length = end + 2, .is_terminated = true };
+    return Text_Match { .length = end + 2, .is_terminated = true };
+}
+
+[[nodiscard]] std::optional<Text_Match> match_string_literal(std::string_view s) noexcept
+{
+    if (!s.starts_with('"')) {
+        return {};
+    }
+    bool escaped = false;
+    for (Size i = 1; i < s.size(); ++i) {
+        if (escaped) {
+            escaped = false;
+        }
+        else if (s[i] == '\\') {
+            escaped = true;
+        }
+        else if (s[i] == '"') {
+            return Text_Match { .length = i + 1, .is_terminated = true };
+        }
+    }
+    return Text_Match { .length = s.length(), .is_terminated = false };
 }
 
 Size match_digits(std::string_view str, int base)
