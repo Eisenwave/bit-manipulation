@@ -1,0 +1,40 @@
+document
+    = [blank | paragraph_break], [content];
+content
+    = paragraph, { paragraph_break, [paragraph] };
+paragraph
+    = { (directive | text), [blank] };
+text
+    = (* longest sequence of characters that does not include a "\" (other than for escape sequences) or paragraph_break *);
+directive
+    = "\", identifier, [arguments], [block];
+arguments
+    = "[", { [blank], argument, [blank], [","] }, [blank], "]";
+block
+    = "{", raw_content | ([blank | paragraph_break], content), "}";
+raw_content
+    = (* longest brace-balanced sequence, including whitespace and comments *);
+argument
+    = identifier, [blank], "=", [blank], value;
+
+value
+    = binary_literal
+    | octal_literal
+    | decimal_literal
+    | hexadecimal_literal
+    | identifier;
+binary_literal
+    = /0b[01]+/;
+octal_literal
+    = /0[0-7]*/;
+decimal_literal
+    = /[1-9][0-9]*/;
+hexadecimal_literal
+    = /0x[0-9a-fA-F]+/;
+identifier
+    = /[_a-zA-Z][_a-zA-Z0-9]*/;
+
+blank
+    = (* C89-style comment, C99-style comment, or whitespace sequence *);
+paragraph_break
+     = (* whitespace/comment sequence containing a whitespace line outside comments *);

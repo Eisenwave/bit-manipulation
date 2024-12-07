@@ -11,26 +11,25 @@ namespace bit_manipulation::bmd {
 // DISCLAIMER: THIS GRAMMAR IS OUT-OF-DATE
 
 // clang-format off
+/// @see grammar.ebnf
 enum struct Grammar_Rule : Default_Underlying {
-    document, // = [blank | paragraph_break], [content];
-    content, // = paragraph, { paragraph_break, [paragraph] };
-    paragraph, // = { (directive | text), [blank] };
-    paragraph_break, // = (* whitespace/comment sequence containing a whitespace line outside
-                     // comments *);
-    text, // = (* longest sequence of characters that does not include a "\\" (other than for escape
-          // sequences) or paragraph_break *);
-    directive, // = "\\", identifier, [arguments], [block];
-    arguments, // = "[", { [blank], argument, [blank], [","] }, [blank] "]";
-    block, // = "{", raw_content | ([blank | paragraph_break], content), "}";
-    raw_content, // = (* longest brace-balanced sequence, including whitespace and comments *)
-    argument, // = identifier, [blank], "=", [blank], value;
-    value, // = binary_literal | octal_literal | decimal_literal | hexadecimal_literal | identifier;
-    binary_literal, // = "0b", ("0" | "1"), {"0" | "1"};
-    octal_literal, // = "0", (* octal digit *), {(* octal digit *)};
-    decimal_literal, // = (* decimal digit *), {(* decimal digit *)};
-    hexadecimal_literal, // "0x", (* hexadecimal digit *), {(* hexadecimal digit *)};
-    identifier, // /[_a-zA-Z][_a-zA-Z0-9]*/;
-    blank, // = (* C89-style comment, C99-style comment, or whitespace sequence *)
+    document,
+    content,
+    paragraph,
+    paragraph_break,
+    text,
+    directive,
+    arguments,
+    block,
+    raw_content,
+    argument,
+    value,
+    binary_literal,
+    octal_literal,
+    decimal_literal,
+    hexadecimal_literal,
+    identifier,
+    blank,
 };
 // clang-format on
 
