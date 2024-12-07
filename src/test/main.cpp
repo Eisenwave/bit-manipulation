@@ -19,6 +19,16 @@
 namespace bit_manipulation {
 namespace {
 
+TEST(BMS_Syntax, annotated_everything)
+{
+    EXPECT_TRUE(test_for_success("syntax/annotated_everything.bms", Testing_Stage::parse));
+}
+
+TEST(BMS_Syntax, annotated_function_calls)
+{
+    EXPECT_TRUE(test_for_success("syntax/annotated_function_calls.bms", Testing_Stage::parse));
+}
+
 TEST(BMS_Syntax, annotated_loop)
 {
     EXPECT_TRUE(test_for_success("syntax/annotated_loop.bms", Testing_Stage::parse));
@@ -46,7 +56,7 @@ TEST(BMS_Syntax, global_const)
 
 TEST(Valid_BMS, assert)
 {
-    EXPECT_TRUE(test_for_success("assert.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/assert.bms"));
 }
 
 TEST(Valid_BMS, consteval_return_conversion)
@@ -77,47 +87,48 @@ TEST(Valid_BMS, consteval_return_conversion)
 
         return true;
     };
-    EXPECT_TRUE(test_for_success_then_introspect("consteval_return_conversion.bms", introspect));
+    EXPECT_TRUE(
+        test_for_success_then_introspect("valid_bms/consteval_return_conversion.bms", introspect));
 }
 
 TEST(Valid_BMS, deduction)
 {
-    EXPECT_TRUE(test_for_success("deduction.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/deduction.bms"));
 }
 
 TEST(Valid_BMS, dependent_static_assert)
 {
-    EXPECT_TRUE(test_for_success("dependent_static_assert.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/dependent_static_assert.bms"));
 }
 
 TEST(Valid_BMS, identity)
 {
-    EXPECT_TRUE(test_for_success("identity.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/identity.bms"));
 }
 
 TEST(Valid_BMS, if_expression)
 {
-    EXPECT_TRUE(test_for_success("if_expression.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/if_expression.bms"));
 }
 
 TEST(Valid_BMS, loop)
 {
-    EXPECT_TRUE(test_for_success("loop.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/loop.bms"));
 }
 
 TEST(Valid_BMS, return_variable)
 {
-    EXPECT_TRUE(test_for_success("return_variable.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/return_variable.bms"));
 }
 
 TEST(Valid_BMS, static_assert)
 {
-    EXPECT_TRUE(test_for_success("static_assert.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/static_assert.bms"));
 }
 
 TEST(Valid_BMS, void)
 {
-    EXPECT_TRUE(test_for_success("void.bms"));
+    EXPECT_TRUE(test_for_success("valid_bms/void.bms"));
 }
 
 TEST(BMS_Tokenize_Error, illegal_character)

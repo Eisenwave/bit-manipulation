@@ -1,0 +1,6 @@
+function awoo() -> Int {
+    awoo();
+    awoo() @inline;
+    awoo() @a @b @c @d@e @f;
+    return 0;
+}

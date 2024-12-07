@@ -1,0 +1,15 @@
+@a
+const i = 0;
+
+@b
+function awoo() -> Void {
+    @c
+    let j = 0;
+    @d
+    if true { }
+    @e
+    while true { }
+    @f
+    j = 1;
+    awoo() @g;
+}
