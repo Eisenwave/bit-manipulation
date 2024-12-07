@@ -1,0 +1,11 @@
+@annotation("string", 123, true, false, 0x00)
+const x = 0;
+
+@annotation(a="string", b=123, c=true, d=false, e=0x00)
+const y = 0;
+
+@annotation(a = "string", b = 123, c = true, d = false, e = 0x00)
+const z = 0;
+
+@annotation(a = "string", 123, c = true, false, e = 0x00)
+const u = 0;

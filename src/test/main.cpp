@@ -24,6 +24,11 @@ TEST(BMS_Syntax, annotated_loop)
     EXPECT_TRUE(test_for_success("syntax/annotated_loop.bms", Testing_Stage::parse));
 }
 
+TEST(BMS_Syntax, annotation_with_arguments)
+{
+    EXPECT_TRUE(test_for_success("syntax/annotation_with_arguments.bms", Testing_Stage::parse));
+}
+
 TEST(BMS_Syntax, empty_function_void)
 {
     EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms", Testing_Stage::parse));
