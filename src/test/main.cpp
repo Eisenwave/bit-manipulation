@@ -580,5 +580,67 @@ TEST(BMS_Analysis_Error, continue_outside_loop)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/continue_outside_loop.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, annotation_unknown)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_unknown, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/annotation/unknown.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_not_applicable)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_not_applicable, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/annotation/not_applicable.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_too_many_arguments)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_too_many_arguments, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/too_many_arguments.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_unknown_parameter)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_unknown_parameter, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/unknown_parameter.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_argument_duplicate)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_argument_duplicate, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/argument_duplicate.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_argument_wrong_type)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_argument_wrong_type, .fail_line = 1 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/argument_wrong_type.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_argument_wrong_value)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_argument_wrong_value, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/argument_wrong_value.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, annotation_missing_argument)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_missing_argument, .fail_line = 2 };
+    EXPECT_TRUE(
+        test_for_diagnostic("analysis_error/annotation/missing_argument.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation

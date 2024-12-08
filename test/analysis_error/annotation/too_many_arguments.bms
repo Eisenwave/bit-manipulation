@@ -1,0 +1,4 @@
+function awoo() -> Void {
+    @immutable(1, 2, 3)
+    let x = 0;
+}

@@ -1,0 +1,4 @@
+function awoo() -> Void {
+    @unroll(limit = 1000000000)
+    while true { }
+}

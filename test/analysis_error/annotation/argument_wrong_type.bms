@@ -1,0 +1,2 @@
+@java_equivalent(method = 100)
+function awoo() -> Void { }
