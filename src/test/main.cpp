@@ -613,7 +613,7 @@ TEST(BMS_Analysis_Error, annotation_unknown_parameter)
 TEST(BMS_Analysis_Error, annotation_argument_duplicate)
 {
     static const Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::annotation_argument_duplicate, .fail_line = 2 };
+        { .code = bms::Analysis_Error_Code::annotation_argument_duplicate, .fail_line = 1 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/annotation/argument_duplicate.bms", expectations));
 }
