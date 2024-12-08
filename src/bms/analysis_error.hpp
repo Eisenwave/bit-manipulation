@@ -123,10 +123,12 @@ enum struct Analysis_Error_Code : Default_Underlying {
     /// @brief The annotation has no parameter with the specified name (e.g. `@immutable(x = 1)`).
     annotation_unknown_parameter,
     /// @brief The same argument was specified twice (e.g. `@unroll(10, limit=10)`).
-    annotation_duplicate_argument,
+    annotation_argument_duplicate,
     /// @brief Mismatch between an annotation parameter type and argument type
     /// (e.g. `@unroll("s")`).
-    annotation_wrong_argument_type,
+    annotation_argument_wrong_type,
+    /// @brief An annotation argument with a bad value was provided (e.g. `@unroll(limit = -1)`).
+    annotation_argument_wrong_value,
     /// @brief A required argument was not provided for an annotation (e.g. `@instantiate()`).
     annotation_missing_argument,
 };
@@ -134,9 +136,16 @@ enum struct Analysis_Error_Code : Default_Underlying {
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code);
 
 struct Annotation_Parameter_Wrong_Argument {
+    /// @brief The name of the parameter/argument involved in the error.
     std::string_view name;
+    /// @brief The expected (parameter) type.
     Annotation_Parameter_Type expected;
+    /// @brief The actual (argument) type.
     Annotation_Parameter_Type actual;
+    /// @brief Contains on the value which the parameter has, or an empty string.
+    /// This text should be worded so it fits after `must be ...`.
+    /// For example, `value_constraints` could be `"positive integer"`.
+    std::string_view value_constraints {};
 };
 
 namespace detail {

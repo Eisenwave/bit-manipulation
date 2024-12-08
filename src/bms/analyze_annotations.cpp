@@ -13,13 +13,6 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-struct Annotation_Parameter {
-    Annotation_Parameter_Type type;
-    std::string_view name;
-    bool variadic : 1 = false;
-    bool optional : 1 = false;
-};
-
 [[nodiscard]] constexpr Annotation_Parameter_Type parameter_type_of(Token_Type type)
 {
     using enum Token_Type;
@@ -38,11 +31,63 @@ struct Annotation_Parameter {
     }
 }
 
-[[nodiscard]] constexpr bool parameter_accepts(Annotation_Parameter_Type parameter,
-                                               Token_Type argument)
-{
-    return parameter_type_of(argument) == parameter;
-}
+struct Argument_Validator {
+    const std::string_view constraints;
+    const Annotation_Parameter_Type type;
+
+    explicit constexpr Argument_Validator(Annotation_Parameter_Type type,
+                                          std::string_view constraints)
+        : constraints { constraints }
+        , type { type }
+    {
+    }
+
+private:
+    [[nodiscard]] bool operator()(const Annotation_Argument& arg) const
+    {
+        switch (type) {
+        // it would be nonsensical to have boolean parameters but only allow true or false,
+        // so this is an automatic pass
+        case Annotation_Parameter_Type::boolean: return true;
+        case Annotation_Parameter_Type::integer: return validate(get<Big_Int>(arg));
+        case Annotation_Parameter_Type::string: return validate(get<std::string_view>(arg));
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Storing invalid type in this validator.");
+    }
+
+protected:
+    virtual bool validate(Big_Int) const
+    {
+        return true;
+    }
+    virtual bool validate(std::string_view) const
+    {
+        return true;
+    }
+};
+
+struct Annotation_Parameter {
+    std::string_view name;
+    bool variadic : 1 = false;
+    bool optional : 1 = false;
+    const Argument_Validator& validator;
+
+    [[nodiscard]] Annotation_Parameter_Type type() const
+    {
+        return validator.type;
+    }
+
+    [[nodiscard]] bool accepts_argument(const Annotation_Argument& arg) const
+    {
+        return validator(arg);
+    }
+
+    [[nodiscard]] Annotation_Parameter_Wrong_Argument
+    get_wrong_argument_info(Annotation_Parameter_Type argument_type) const
+    {
+        return { .name = name, .expected = type(), .actual = argument_type };
+    }
+};
 
 [[nodiscard]] constexpr bool annotation_type_applicable_to(Annotation_Type type,
                                                            Construct construct)
@@ -74,22 +119,76 @@ struct Annotation_Parameter {
     return false;
 }
 
+constexpr struct Non_Empty_String_Validator final : Argument_Validator {
+    constexpr Non_Empty_String_Validator()
+        : Argument_Validator(Annotation_Parameter_Type::string, "non-empty")
+    {
+    }
+    bool validate(std::string_view arg) const final
+    {
+        return !arg.empty();
+    }
+} non_empty_string_validator {};
+
+constexpr struct C_Version_Validator final : Argument_Validator {
+    constexpr C_Version_Validator()
+        : Argument_Validator(Annotation_Parameter_Type::integer,
+                             "valid C version number (89, 90, ...)")
+    {
+    }
+    bool validate(Big_Int value) const final
+    {
+        switch (value) {
+        case 89:
+        case 90:
+        case 99:
+        case 11:
+        case 17:
+        case 23:
+        case 29: return true;
+        default: return false;
+        }
+    }
+} c_version_validator {};
+
+constexpr struct Unroll_Limit_Validator final : Argument_Validator {
+    constexpr Unroll_Limit_Validator()
+        : Argument_Validator(Annotation_Parameter_Type::integer, "in range 1..128")
+    {
+    }
+    bool validate(Big_Int value) const final
+    {
+        return value > 0 && value <= 128;
+    }
+} unroll_limit_validator {};
+
+constexpr struct Instantiation_Width_Validator final : Argument_Validator {
+    constexpr Instantiation_Width_Validator()
+        : Argument_Validator(Annotation_Parameter_Type::integer, "in range 1..128")
+    {
+    }
+    bool validate(Big_Int value) const final
+    {
+        return value > 0 && value <= 128;
+    }
+} instantiation_width_validator {};
+
 constexpr Annotation_Parameter unroll_parameters[] = {
-    { .type = Annotation_Parameter_Type::integer, .name = "limit" },
+    { .name = "limit", .validator = unroll_limit_validator },
 };
 
 constexpr Annotation_Parameter c_equivalent_parameters[] = {
-    { .type = Annotation_Parameter_Type::string, .name = "function" },
-    { .type = Annotation_Parameter_Type::string, .name = "include", .optional = true },
-    { .type = Annotation_Parameter_Type::integer, .name = "since", .optional = true },
+    { .name = "function", .validator = non_empty_string_validator },
+    { .name = "include", .optional = true, .validator = non_empty_string_validator },
+    { .name = "since", .optional = true, .validator = c_version_validator },
 };
 
 constexpr Annotation_Parameter java_equivalent_parameters[] = {
-    { .type = Annotation_Parameter_Type::string, .name = "method" },
+    { .name = "method", .validator = non_empty_string_validator },
 };
 
 constexpr Annotation_Parameter instantiate_parameters[] = {
-    { .type = Annotation_Parameter_Type::integer, .name = "n" },
+    { .name = "n", .validator = instantiation_width_validator },
 };
 
 [[nodiscard]] std::span<const Annotation_Parameter> parameters_of(Annotation_Type type)
@@ -203,7 +302,7 @@ private:
                 continue;
             }
             if (parameters_covered[i]) {
-                return error(Analysis_Error_Code::annotation_duplicate_argument, argument);
+                return error(Analysis_Error_Code::annotation_argument_duplicate, argument);
             }
             parameters_covered.set(i);
             return parameters[i];
@@ -362,13 +461,14 @@ private:
             if (!parameter) {
                 return parameter.error();
             }
-            if (!parameter_accepts(parameter->type, argument.value_type)) {
+            const Annotation_Parameter_Type argument_type = parameter_type_of(argument.value_type);
+
+            if (parameter->type() != argument_type) {
                 return Analysis_Error_Builder {
-                    Analysis_Error_Code::annotation_wrong_argument_type
+                    Analysis_Error_Code::annotation_argument_wrong_type
                 }
                     .fail(argument_debug_info(argument, file_name))
-                    .wrong_argument({ parameter->name, parameter->type,
-                                      parameter_type_of(argument.value_type) })
+                    .wrong_argument(parameter->get_wrong_argument_info(argument_type))
                     .cause(annotation_info)
                     .build();
             }
@@ -377,6 +477,15 @@ private:
                 = parse_argument(argument, file_name);
             if (!parsed) {
                 return parsed.error();
+            }
+            if (!parameter->accepts_argument(*parsed)) {
+                return Analysis_Error_Builder {
+                    Analysis_Error_Code::annotation_argument_wrong_value
+                }
+                    .fail(argument_debug_info(argument, file_name))
+                    .wrong_argument(parameter->get_wrong_argument_info(argument_type))
+                    .cause(annotation_info)
+                    .build();
             }
             result.push_back(std::move(*parsed));
         }
