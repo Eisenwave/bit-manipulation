@@ -418,6 +418,39 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
 }
 
+[[nodiscard]] std::string_view diagnosis_name_of(bms::Construct construct)
+{
+    using enum bms::Construct;
+    switch (construct) {
+    case program: return "program";
+    case function: return "function";
+    case parameter: return "function parameter";
+    case type: return "type";
+    case constant: return "constant";
+    case variable: return "variable";
+    case static_assertion: return "static assertion";
+    case if_statement: return "if-statement";
+    case while_statement: return "while-statement";
+    case break_statement: return "break-statement";
+    case continue_statement: return "continue-statement";
+    case return_statement: return "return-statement";
+    case assignment: return "assignment";
+    case block_statement: return "block statement";
+    case conversion_expression: return "conversion expression";
+    case if_expression: return "if expression";
+    case binary_expression: return "binary expression";
+    case prefix_expression: return "prefix unary expression";
+    case function_call_expression: return "function call expression";
+    case id_expression: return "id-expression";
+    case literal: return "literal";
+    case builtin_function: return "builtin function";
+    case annotation: return "annotation";
+    case annotation_argument: return "annotation argument";
+    case annotation_parameter: return "annotation parameter";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid construct.");
+}
+
 [[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
                                                    const bms::Analysis_Error& error)
 {
@@ -500,14 +533,20 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
                                      expression_type_code_name(comp_fail->op) } });
     }
     else if (auto cause = error.cause()) {
-        if (error.code() == bms::Analysis_Error_Code::evaluation_error) {
-            auto message = "Caused by: " + std::string(to_prose(error.evaluation_error()));
-            result.lines.push_back({ Error_Line_Type::note, cause->pos, std::move(message) });
+        std::string message = error.code() == bms::Analysis_Error_Code::evaluation_error
+            ? "Caused by: " + std::string(to_prose(error.evaluation_error()))
+            : std::string(cause_to_prose(error.code()));
+        if (!cause->pos) {
+            message += " (";
+            message += diagnosis_name_of(cause->construct);
+            if (!cause->name.empty()) {
+                message += " '";
+                message += cause->name;
+                message += '\'';
+            }
+            message += ')';
         }
-        else {
-            result.lines.push_back({ Error_Line_Type::note, error.cause_pos(),
-                                     std::string(cause_to_prose(error.code())) });
-        }
+        result.lines.push_back({ Error_Line_Type::note, cause->pos, std::move(message) });
     }
 
     result.is_internal = is_internal(error);
