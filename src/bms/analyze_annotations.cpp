@@ -241,7 +241,9 @@ parse_argument(const astp::Annotation_Argument& argument, std::string_view file_
     }
 
     case string_literal: {
-        BIT_MANIPULATION_ASSERT(!argument.value.starts_with('"') && !argument.value.ends_with('"'));
+        // Can't do the same for ends_with because \" is possible at the end, and we do not process
+        // these escapes yet.
+        BIT_MANIPULATION_ASSERT(!argument.value.starts_with('"'));
         return Annotation_Argument { argument.value };
     }
 
