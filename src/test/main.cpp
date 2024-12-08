@@ -637,7 +637,7 @@ TEST(BMS_Analysis_Error, annotation_argument_wrong_value)
 TEST(BMS_Analysis_Error, annotation_missing_argument)
 {
     static const Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::annotation_missing_argument, .fail_line = 2 };
+        { .code = bms::Analysis_Error_Code::annotation_missing_argument, .fail_line = 1 };
     EXPECT_TRUE(
         test_for_diagnostic("analysis_error/annotation/missing_argument.bms", expectations));
 }
