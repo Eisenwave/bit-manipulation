@@ -428,7 +428,7 @@ bool test_validity(std::string_view file,
     }
 
     bms::Analyzed_Program analyzed(parsed, full_path, &memory);
-    if (!bms::analyze(analyzed, &memory, diagnostics)) {
+    if (!bms::analyze(analyzed, parsed, &memory, diagnostics)) {
         return policy.error(diagnostics.analysis_errors.back()) == Policy_Action::SUCCESS;
     }
     switch (policy.done(Testing_Stage::analyze)) {

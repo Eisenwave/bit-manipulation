@@ -43,13 +43,12 @@ Result<void, Analysis_Error> process_annotations(Analyzed_Program& program,
 ///
 /// Analysis generally consists of multiple stages which are run in sequence:
 /// `resolve_annotations`, `analyze_name_lookup`, `analyze_semantics`.
-/// @param program the program to analyze
-/// @param memory_resource memory resource for allocations during analysis
-/// @return the analysis result
 Result<void, Analysis_Error> analyze(Analyzed_Program& program,
+                                     const Parsed_Program& parsed,
                                      std::pmr::memory_resource* memory_resource);
 
 bool analyze(Analyzed_Program& program,
+             const Parsed_Program& parsed,
              std::pmr::memory_resource* memory_resource,
              Diagnostic_Consumer& diagnostics);
 

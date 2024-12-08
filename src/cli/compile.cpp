@@ -70,7 +70,7 @@ bms::Analyzed_Program analyze_parsed(const bms::Parsed_Program& parsed,
 {
     bms::Analyzed_Program analyzed { parsed, file_name, memory };
 
-    if (Result<void, bms::Analysis_Error> result = bms::analyze(analyzed, memory)) {
+    if (Result<void, bms::Analysis_Error> result = bms::analyze(analyzed, parsed, memory)) {
         return analyzed;
     }
     else {

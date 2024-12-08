@@ -1112,9 +1112,13 @@ Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
     return analyzer();
 }
 
-Result<void, Analysis_Error> analyze(Analyzed_Program& program, std::pmr::memory_resource* memory)
+Result<void, Analysis_Error>
+analyze(Analyzed_Program& program, const Parsed_Program& parsed, std::pmr::memory_resource* memory)
 {
     std::pmr::unsynchronized_pool_resource local_memory(memory);
+    if (auto r = resolve_annotations(program, parsed); !r) {
+        return r;
+    }
     if (auto r = analyze_name_lookup(program, &local_memory); !r) {
         return r;
     }
@@ -1123,10 +1127,11 @@ Result<void, Analysis_Error> analyze(Analyzed_Program& program, std::pmr::memory
 }
 
 bool analyze(Analyzed_Program& program,
+             const Parsed_Program& parsed,
              std::pmr::memory_resource* memory_resource,
              Diagnostic_Consumer& diagnostics)
 {
-    if (auto result = analyze(program, memory_resource)) {
+    if (auto result = analyze(program, parsed, memory_resource)) {
         return true;
     }
     else {
