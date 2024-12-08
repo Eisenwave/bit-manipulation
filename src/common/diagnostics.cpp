@@ -585,7 +585,6 @@ std::ostream& print_tokenize_error(std::ostream& out,
     print_file_position(out, file, e.pos, colors);
     out << ": " << error_prefix << to_prose(e.code) << '\n';
     print_affected_line(out, source, e.pos, colors);
-    std::exit(1);
     return out;
 }
 
