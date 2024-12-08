@@ -63,9 +63,10 @@ struct Printable_Comparison {
 
 struct Error_Line {
     Error_Line_Type type;
-    std::optional<Source_Position> pos;
+    std::optional<Source_Position> pos {};
     std::string message;
     std::optional<Printable_Comparison> comp {};
+    bool omit_affected_line = false;
 };
 
 struct Printable_Error {
@@ -205,6 +206,18 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Unknown annotation.";
     case annotation_not_applicable: //
         return "Annotation cannot be applied to the following construct.";
+    case annotation_too_many_arguments: //
+        return "Too many arguments for provided for this annotation.";
+    case annotation_unknown_parameter: //
+        return "This argument does not match any annotation parameter.";
+    case annotation_argument_duplicate: //
+        return "This argument was provided twice for the same parameter.";
+    case annotation_argument_wrong_type: //
+        return "The argument type is invalid for the parameter.";
+    case annotation_argument_wrong_value: //
+        return "This argument value is not allowed.";
+    case annotation_missing_argument: //
+        return "The annotation is missing a required argument.";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
@@ -359,6 +372,16 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The following constant is undefined before its first use:";
     case empty_return_in_non_void_function: //
         return "The function's return type is not declared Void:";
+    case annotation_unknown: //
+        return "When applying annotation here:";
+    case annotation_not_applicable: //
+        return "Annotation cannot be applied here:";
+    case annotation_too_many_arguments:
+    case annotation_unknown_parameter:
+    case annotation_argument_duplicate:
+    case annotation_argument_wrong_type:
+    case annotation_argument_wrong_value: //
+        return "In this annotation:";
     default: //
         return "Caused by:";
     }
@@ -382,6 +405,17 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     return error.code() == bms::Analysis_Error_Code::incompatible_types
         && error.fail().construct == bms::Construct::return_statement;
+}
+
+[[nodiscard]] std::string_view diagnosis_name_of(bms::Annotation_Parameter_Type type)
+{
+    using enum bms::Annotation_Parameter_Type;
+    switch (type) {
+    case boolean: return "boolean (true/false)";
+    case integer: return "an integer (1, 0x1, ...)";
+    case string: return "a string (\"...\")";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
 }
 
 [[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
@@ -436,6 +470,26 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     if (error.code() == bms::Analysis_Error_Code::execution_error) {
         result.lines.push_back({ Error_Line_Type::note, error.fail_pos(),
                                  std::string(to_prose(error.execution_error())) });
+    }
+
+    if (const auto wrong_argument = error.wrong_argument()) {
+        std::string message = "Parameter '";
+        message += wrong_argument->name;
+        message += "' must be ";
+        switch (error.code()) {
+        case bms::Analysis_Error_Code::annotation_argument_wrong_type:
+            message += diagnosis_name_of(wrong_argument->expected);
+            break;
+        case bms::Analysis_Error_Code::annotation_argument_wrong_value:
+            message += wrong_argument->value_constraints;
+            break;
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Don't know what to do with wrong_argument().");
+        }
+        result.lines.push_back({ .type = Error_Line_Type::note,
+                                 .pos = error.fail_pos(),
+                                 .message = std::move(message),
+                                 .omit_affected_line = true });
     }
 
     if (const auto comp_fail = error.comparison_failure()) {
@@ -494,7 +548,7 @@ std::ostream& print_printable_error(std::ostream& out, const Printable_Error& er
         }
 
         out << '\n';
-        if (line.pos) {
+        if (line.pos && !line.omit_affected_line) {
             print_affected_line(out, error.source, *line.pos, colors);
         }
     }
