@@ -904,7 +904,11 @@ private:
             return Rule_Error { this_rule, key ? expected_after_key : expected };
         }
         const Local_Source_Span pos = key ? key->pos : value->pos;
-        const std::string_view value_string = m_program.extract(value->pos);
+        std::string_view value_string = m_program.extract(value->pos);
+        if (value->type == Token_Type::string_literal) {
+            BIT_MANIPULATION_ASSERT(value_string.size() >= 2); // because of quotes
+            value_string = value_string.substr(1, value_string.size() - 2);
+        }
 
         return astp::Some_Node { astp::Annotation_Argument { pos, key_string, value_string,
                                                              value->type } };
