@@ -584,6 +584,12 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_not_applicable);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_too_many_arguments);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown_parameter);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_argument_duplicate);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_argument_wrong_type);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_argument_wrong_value);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_missing_argument);
     };
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid analysis error code.");
 }

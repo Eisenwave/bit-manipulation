@@ -339,7 +339,7 @@ struct Resolve_Annotations {
 
 public:
     template <typename T>
-    Result<void, Analysis_Error> operator()(T& n)
+    [[nodiscard]] Result<void, Analysis_Error> operator()(T& n)
     {
         static_assert(!std::is_base_of_v<ast::detail::Annotated, T>);
         return resolve_all(n.get_children());
@@ -351,13 +351,15 @@ public:
                      ast::If_Statement,
                      ast::Assignment,
                      ast::Function_Call_Expression> T>
-    Result<void, Analysis_Error> operator()(T& n)
+    [[nodiscard]] Result<void, Analysis_Error> operator()(T& n)
     {
-        do_resolve(m_node, n.m_annotations);
+        if (auto r = do_resolve(m_node, n.m_annotations); !r) {
+            return r;
+        }
         return resolve_all(n.get_children());
     }
 
-    Result<void, Analysis_Error> operator()(ast::Function& n)
+    [[nodiscard]] Result<void, Analysis_Error> operator()(ast::Function& n)
     {
         if (auto r = do_resolve(m_node, n.m_annotations); !r) {
             return r;
@@ -380,7 +382,7 @@ public:
     }
 
 private:
-    Result<void, Analysis_Error> resolve(ast::Some_Node* node)
+    [[nodiscard]] Result<void, Analysis_Error> resolve(ast::Some_Node* node)
     {
         if (node == nullptr) {
             return {};
@@ -388,7 +390,7 @@ private:
         return visit(Resolve_Annotations { m_parsed, m_program, node }, *node);
     }
 
-    Result<void, Analysis_Error> resolve_all(std::span<ast::Some_Node* const> nodes)
+    [[nodiscard]] Result<void, Analysis_Error> resolve_all(std::span<ast::Some_Node* const> nodes)
     {
         for (ast::Some_Node* child : nodes) {
             auto r = resolve(child);
@@ -399,8 +401,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> do_resolve(const Debug_Info& applied_to_info,
-                                            ast::detail::Annotations& annotations)
+    [[nodiscard]] Result<void, Analysis_Error> do_resolve(const Debug_Info& applied_to_info,
+                                                          ast::detail::Annotations& annotations)
     {
         // FIXME: this not robust against synthetic AST nodes
         const std::string_view file_name = applied_to_info.pos->file_name;
@@ -442,7 +444,7 @@ private:
         return {};
     }
 
-    Result<std::pmr::vector<Annotation_Argument>, Analysis_Error>
+    [[nodiscard]] Result<std::pmr::vector<Annotation_Argument>, Analysis_Error>
     process_arguments(const Debug_Info& annotation_info,
                       Annotation_Type type,
                       std::span<const astp::Handle> arguments)
