@@ -102,6 +102,7 @@ add_library(bm STATIC ${HEADERS}
     src/bmd/html/html_writer.cpp
     src/bmd/parsing/parse.cpp
 
+    src/bms/analyze_annotations.cpp
     src/bms/analyze_name_lookup.cpp
     src/bms/analyze.cpp
     src/bms/ast.cpp
