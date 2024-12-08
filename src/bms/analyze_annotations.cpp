@@ -3,6 +3,7 @@
 #include "common/packs.hpp"
 #include "common/parse.hpp"
 
+#include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
 #include "bms/annotation.hpp"
 #include "bms/ast.hpp"
@@ -42,7 +43,6 @@ struct Argument_Validator {
     {
     }
 
-private:
     [[nodiscard]] bool operator()(const Annotation_Argument& arg) const
     {
         switch (type) {
@@ -313,7 +313,7 @@ private:
     [[nodiscard]] Analysis_Error error(Analysis_Error_Code code,
                                        const astp::Annotation_Argument& argument) const
     {
-        return Analysis_Error_Builder { Analysis_Error_Code::annotation_unknown_parameter }
+        return Analysis_Error_Builder { code }
             .fail(make_debug_info(argument))
             .cause(annotation_info)
             .build();
@@ -345,9 +345,13 @@ public:
         return resolve_all(n.get_children());
     }
 
-    // TODO: a lot of these implementations could be merged if we has bms::ast::get_construct
-    template <one_of<ast::Const, ast::Let, ast::While_Statement, ast::If_Statement> T>
-    Result<void, Analysis_Error> operator()(ast::Const& n)
+    template <one_of<ast::Const,
+                     ast::Let,
+                     ast::While_Statement,
+                     ast::If_Statement,
+                     ast::Assignment,
+                     ast::Function_Call_Expression> T>
+    Result<void, Analysis_Error> operator()(T& n)
     {
         do_resolve(m_node, n.m_annotations);
         return resolve_all(n.get_children());
@@ -419,7 +423,7 @@ private:
                     .build();
             }
 
-            if (annotation_type_applicable_to(*type, applied_to_info.construct)) {
+            if (!annotation_type_applicable_to(*type, applied_to_info.construct)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::annotation_not_applicable }
                     .fail(info)
                     .cause(applied_to_info)
