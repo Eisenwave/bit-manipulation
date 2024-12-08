@@ -364,9 +364,6 @@ struct Analyzed_Program::Implementation {
     struct From_Parser_Node;
 };
 
-template <typename T, typename... Us>
-concept one_of = (... || std::same_as<T, Us>);
-
 struct Analyzed_Program::Implementation::From_Parser_Node {
     Analyzed_Program::Implementation& self;
     const Parsed_Program& parsed;

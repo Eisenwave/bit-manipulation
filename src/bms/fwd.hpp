@@ -109,6 +109,7 @@ enum struct Tokenize_Error_Code : Default_Underlying;
 enum struct Type_Type : Default_Underlying;
 enum struct Builtin_Function : Default_Underlying;
 enum struct Construct : Default_Underlying;
+enum struct Annotation_Parameter_Type : Default_Underlying;
 
 struct Virtual_Machine;
 struct Debug_Info;

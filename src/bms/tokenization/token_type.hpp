@@ -165,6 +165,11 @@ enum struct Token_Type : Default_Underlying {
 
 [[nodiscard]] bool is_relational_comparison_operator(Token_Type type);
 
+[[nodiscard]] inline bool is_boolean_literal(Token_Type type)
+{
+    return type == Token_Type::keyword_true || type == Token_Type::keyword_false;
+}
+
 [[nodiscard]] bool is_integer_literal(Token_Type type);
 
 [[nodiscard]] bool is_literal(Token_Type type);

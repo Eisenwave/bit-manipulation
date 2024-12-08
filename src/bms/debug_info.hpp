@@ -30,7 +30,9 @@ enum struct Construct : Default_Underlying {
     id_expression,
     literal,
     builtin_function,
-    annotation
+    annotation,
+    annotation_argument,
+    annotation_parameter
 };
 
 struct Debug_Info {

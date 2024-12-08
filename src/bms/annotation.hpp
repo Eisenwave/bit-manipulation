@@ -27,45 +27,19 @@ enum struct Annotation_Type : Default_Underlying {
     remove_if_unused
 };
 
-[[nodiscard]] constexpr bool annotation_type_applicable_to(Annotation_Type type,
-                                                           Construct construct)
-{
-    using enum Annotation_Type;
-
-    switch (type) {
-    case immutable: //
-        return construct == Construct::variable;
-    case inline_:
-        return construct == Construct::variable || construct == Construct::function_call_expression;
-    case loop_variable: //
-        return construct == Construct::variable;
-    case loop_step: //
-        return construct == Construct::assignment;
-    case unroll: //
-        return construct == Construct::while_statement;
-    case c_equivalent: //
-        return construct == Construct::function;
-    case java_equivalent: //
-        return construct == Construct::function;
-    case instantiate: //
-        return construct == Construct::function;
-    case false_if_unknown: //
-        return construct == Construct::if_statement;
-    case remove_if_unused: //
-        return construct == Construct::function;
-    }
-    return false;
-}
+enum struct Annotation_Parameter_Type : Default_Underlying { boolean, integer, string };
 
 [[nodiscard]] constexpr std::string_view annotation_type_name(Annotation_Type type);
 
 [[nodiscard]] std::optional<Annotation_Type> annotation_type_by_name(std::string_view name);
 
-using Annotation_Argument_Variant = Variant<Big_Int, std::string_view>;
+using Annotation_Argument_Variant = Variant<bool, Big_Int, std::string_view>;
 
 struct Annotation_Argument : Annotation_Argument_Variant {
     using Variant::Variant;
 };
+
+static_assert(std::is_trivially_copyable_v<Annotation_Argument>);
 
 struct Annotation {
     Annotation_Type type;

@@ -117,10 +117,27 @@ enum struct Analysis_Error_Code : Default_Underlying {
     /// @brief An unknown annotation was used (e.g. `@gibberish`).
     annotation_unknown,
     /// @brief An annotation cannot be applied to the chosen target (e.g. `@unroll` on a variable).
-    annotation_not_applicable
+    annotation_not_applicable,
+    /// @brief Too many arguments were provided to an annotation (e.g. `@immutable(1, 2, 3)`).
+    annotation_too_many_arguments,
+    /// @brief The annotation has no parameter with the specified name (e.g. `@immutable(x = 1)`).
+    annotation_unknown_parameter,
+    /// @brief The same argument was specified twice (e.g. `@unroll(10, limit=10)`).
+    annotation_duplicate_argument,
+    /// @brief Mismatch between an annotation parameter type and argument type
+    /// (e.g. `@unroll("s")`).
+    annotation_wrong_argument_type,
+    /// @brief A required argument was not provided for an annotation (e.g. `@instantiate()`).
+    annotation_missing_argument,
 };
 
 [[nodiscard]] std::string_view analysis_error_code_name(Analysis_Error_Code code);
+
+struct Annotation_Parameter_Wrong_Argument {
+    std::string_view name;
+    Annotation_Parameter_Type expected;
+    Annotation_Parameter_Type actual;
+};
 
 namespace detail {
 
@@ -157,10 +174,7 @@ struct Analysis_Error_Detailed_Code {
 
 struct Analysis_Error_Data {
     Analysis_Error_Detailed_Code m_code {};
-    /// @brief An optional comparison failure.
-    /// This can be added onto errors such as failed `static_assert` or failed calls to `assert`
-    /// during constant evaluation, in order to provide detail about the inputs.
-    std::optional<Comparison_Failure> m_comparison_failure {};
+    Variant<Monostate, Comparison_Failure, Annotation_Parameter_Wrong_Argument> m_extras {};
     /// @brief The node at which the failure took place.
     Debug_Info m_fail {};
     /// @brief The node which is considered to be a cause for the failure,
@@ -187,70 +201,77 @@ public:
 private:
     using Data = detail::Analysis_Error_Data;
 
-    [[nodiscard]] constexpr Analysis_Error(Data&& data)
+    [[nodiscard]] Analysis_Error(Data&& data)
         : Data(std::move(data))
     {
     }
 
 public:
-    [[nodiscard]] constexpr Analysis_Error_Code code() const
+    [[nodiscard]] Analysis_Error_Code code() const
     {
         return m_code.code;
     }
 
-    [[nodiscard]] constexpr Evaluation_Error_Code evaluation_error() const
+    [[nodiscard]] Evaluation_Error_Code evaluation_error() const
     {
         BIT_MANIPULATION_ASSERT(m_code.code == Analysis_Error_Code::evaluation_error);
         return m_code.evaluation;
     }
 
-    [[nodiscard]] constexpr Execution_Error_Code execution_error() const
+    [[nodiscard]] Execution_Error_Code execution_error() const
     {
         BIT_MANIPULATION_ASSERT(m_code.code == Analysis_Error_Code::execution_error);
         return m_code.execution;
     }
 
-    [[nodiscard]] constexpr Debug_Info fail() const
+    [[nodiscard]] Debug_Info fail() const
     {
         return m_fail;
     }
 
-    [[nodiscard]] constexpr std::optional<Debug_Info> cause() const
+    [[nodiscard]] std::optional<Debug_Info> cause() const
     {
         return m_cause;
     }
 
-    [[nodiscard]] constexpr Construct fail_construct() const
+    [[nodiscard]] Construct fail_construct() const
     {
         return m_fail.construct;
     }
 
-    [[nodiscard]] constexpr std::optional<Construct> cause_construct() const
+    [[nodiscard]] std::optional<Construct> cause_construct() const
     {
         return m_cause ? m_cause->construct : std::optional<Construct> {};
     }
 
-    [[nodiscard]] constexpr std::optional<Source_Position> fail_pos() const
+    [[nodiscard]] std::optional<Source_Position> fail_pos() const
     {
         return m_fail.pos;
     }
 
-    [[nodiscard]] constexpr std::optional<Source_Position> cause_pos() const
+    [[nodiscard]] std::optional<Source_Position> cause_pos() const
     {
         return m_cause ? m_cause->pos : std::optional<Source_Position> {};
     }
 
-    [[nodiscard]] constexpr std::optional<Comparison_Failure> comparison_failure() const
+    [[nodiscard]] std::optional<Comparison_Failure> comparison_failure() const
     {
-        return m_comparison_failure;
+        auto* result = get_if<Comparison_Failure>(&m_extras);
+        return result ? *result : std::optional<Comparison_Failure> {};
     }
 
-    [[nodiscard]] constexpr const std::optional<Concrete_Type> type() const
+    [[nodiscard]] std::optional<Annotation_Parameter_Wrong_Argument> wrong_argument() const
+    {
+        auto* result = get_if<Annotation_Parameter_Wrong_Argument>(&m_extras);
+        return result ? *result : std::optional<Annotation_Parameter_Wrong_Argument> {};
+    }
+
+    [[nodiscard]] const std::optional<Concrete_Type> type() const
     {
         return m_type;
     }
 
-    [[nodiscard]] constexpr const std::optional<Value> value() const
+    [[nodiscard]] const std::optional<Value> value() const
     {
         return m_value;
     }
@@ -269,19 +290,19 @@ public:
     /// below apply.
     /// @param code the error code, which shall be none of `type_error`, `evaluation_error`,
     /// `execution_error`, or `conversion_error`
-    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Analysis_Error_Code code)
+    [[nodiscard]] explicit Analysis_Error_Builder(Analysis_Error_Code code)
         : Data { .m_code = code }
     {
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::evaluation_error);
         BIT_MANIPULATION_ASSERT(code != bms::Analysis_Error_Code::execution_error);
     }
 
-    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Evaluation_Error_Code code)
+    [[nodiscard]] explicit Analysis_Error_Builder(Evaluation_Error_Code code)
         : Data { .m_code = code }
     {
     }
 
-    [[nodiscard]] constexpr explicit Analysis_Error_Builder(Execution_Error_Code code)
+    [[nodiscard]] explicit Analysis_Error_Builder(Execution_Error_Code code)
         : Data { .m_code = code }
     {
     }
@@ -293,8 +314,8 @@ public:
     /// For example, if execution runs into `x / 0` (division by zero),
     /// the analysis error is then an `Evaluation_Error_Code::division_by_zero`,
     /// not just some generic `Analysis_Error_Code::execution_error`.
-    [[nodiscard]] constexpr Analysis_Error_Builder(const Execution_Error& error)
-        : Data { .m_comparison_failure = error.comparison_failure }
+    [[nodiscard]] Analysis_Error_Builder(const Execution_Error& error)
+        : Data {}
 
     {
         if (error.code == Execution_Error_Code::evaluation) {
@@ -303,6 +324,9 @@ public:
         }
         else {
             m_code = Analysis_Error_Code::execution_error;
+        }
+        if (error.comparison_failure) {
+            m_extras = *error.comparison_failure;
         }
     }
 
@@ -314,7 +338,13 @@ public:
 
     Analysis_Error_Builder& comparison_failure(const Comparison_Failure& failure)
     {
-        m_comparison_failure = failure;
+        m_extras = failure;
+        return *this;
+    }
+
+    Analysis_Error_Builder& wrong_argument(const Annotation_Parameter_Wrong_Argument& failure)
+    {
+        m_extras = failure;
         return *this;
     }
 
