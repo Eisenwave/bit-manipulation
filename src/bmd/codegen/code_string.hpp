@@ -143,7 +143,8 @@ public:
 
     [[nodiscard]] value_type operator*() const
     {
-        return m_string->extract(m_string->m_spans[m_index]);
+        BIT_MANIPULATION_ASSERT(m_index >= 0);
+        return m_string->extract(m_string->m_spans[Size(m_index)]);
     }
 
     [[nodiscard]] value_type operator[](Difference d) const
