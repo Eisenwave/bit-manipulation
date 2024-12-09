@@ -587,6 +587,13 @@ TEST(BMS_Analysis_Error, annotation_unknown)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/annotation/unknown.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, annotation_duplicate)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::annotation_duplicate, .fail_line = 2, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/annotation/duplicate.bms", expectations));
+}
+
 TEST(BMS_Analysis_Error, annotation_not_applicable)
 {
     static const Analysis_Error_Expectations expectations //

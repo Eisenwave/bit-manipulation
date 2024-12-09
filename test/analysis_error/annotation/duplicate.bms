@@ -1,0 +1,3 @@
+@java_equivalent("x")
+@java_equivalent("x")
+function awoo() -> Void { }
