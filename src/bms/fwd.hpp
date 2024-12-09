@@ -21,7 +21,7 @@ struct Node_Base;
 /// massively reduce the amount of allocations necessary.
 enum struct Handle : Size {
     // The null handle, representing no node.
-    null = std::numeric_limits<Size>::max()
+    null = Size(-1)
 };
 
 struct Program;
