@@ -202,6 +202,8 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "This break statement is not inside of a loop.";
     case continue_outside_loop: //
         return "This continue statement is not inside of a loop.";
+    case execution_limit_exceeded: //
+        return "Evaluation of this constant expression took too long.";
     case annotation_unknown: //
         return "Unknown annotation.";
     case annotation_duplicate: //
@@ -374,6 +376,8 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The following constant is undefined before its first use:";
     case empty_return_in_non_void_function: //
         return "The function's return type is not declared Void:";
+    case execution_limit_exceeded:
+        return "Evaluation was abandoned here: (could this be an infinite loop?)";
     case annotation_unknown: //
         return "When applying annotation here:";
     case annotation_duplicate: //

@@ -113,6 +113,8 @@ enum struct Analysis_Error_Code : Default_Underlying {
     break_outside_loop,
     /// @brief A continue statement appeared outside of a loop.
     continue_outside_loop,
+    /// @brief Constant evaluation took too long (maybe because of an infinite loop).
+    execution_limit_exceeded,
 
     /// @brief An unknown annotation was used (e.g. `@gibberish`).
     annotation_unknown,

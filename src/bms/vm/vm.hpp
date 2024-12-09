@@ -45,6 +45,12 @@ public:
         return m_instructions;
     }
 
+    /// @brief Returns a copy of the next instruction to be executed if `cycle()` was called.
+    [[nodiscard]] Instruction next_instruction() const&
+    {
+        return m_instructions[m_instruction_counter];
+    }
+
     /// @brief Inserts the instructions into the virtual machine.
     /// @param instructions the instructions
     /// @return the address of the first instruction inserted.

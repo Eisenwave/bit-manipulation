@@ -931,7 +931,7 @@ private:
             if (!arg_values[i].get_type().is_convertible_to(param_type)) {
                 return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                     .fail(handle)
-                    .cause(params[i].get_debug_info())
+                    .cause(params[i])
                     .build();
             }
 
@@ -941,7 +941,7 @@ private:
                 if (!conv_result) {
                     return Analysis_Error_Builder { conv_result.error() }
                         .fail(handle)
-                        .cause(params[i].get_debug_info())
+                        .cause(params[i])
                         .build();
                 }
                 constant_evaluation_machine.push(conv_result->concrete_value());
@@ -951,8 +951,20 @@ private:
         // 7. Constant-evaluate the function call.
 
         if (context == Expression_Context::constant) {
+            constexpr Size instruction_limit = 1'000'000;
             Result<void, Execution_Error> cycle_result;
-            while ((cycle_result = constant_evaluation_machine.cycle())) { }
+            for (Size i = 0; i <= instruction_limit; ++i) {
+                if (i == instruction_limit) {
+                    return Analysis_Error_Builder { Analysis_Error_Code::execution_limit_exceeded }
+                        .fail(handle)
+                        .cause(get_debug_info(constant_evaluation_machine.next_instruction()))
+                        .build();
+                }
+                cycle_result = constant_evaluation_machine.cycle();
+                if (!cycle_result) {
+                    break;
+                }
+            }
             // Normally, the VM will push and pop function return addresses as frames
             // as part of execution function calls and returns.
             // However, we artificially jump directly to the start of the function without doing so,
