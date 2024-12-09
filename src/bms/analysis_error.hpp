@@ -116,6 +116,8 @@ enum struct Analysis_Error_Code : Default_Underlying {
 
     /// @brief An unknown annotation was used (e.g. `@gibberish`).
     annotation_unknown,
+    /// @brief An annotation was specified twice (e.g. `@abc @abc`).
+    annotation_duplicate,
     /// @brief An annotation cannot be applied to the chosen target (e.g. `@unroll` on a variable).
     annotation_not_applicable,
     /// @brief Too many arguments were provided to an annotation (e.g. `@immutable(1, 2, 3)`).

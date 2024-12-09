@@ -509,7 +509,8 @@ namespace bit_manipulation::bms {
     using enum Annotation_Type;
     switch (type) {
         BIT_MANIPULATION_ENUM_STRING_CASE(immutable);
-        BIT_MANIPULATION_ENUM_STRING_CASE(inline_);
+    case inline_:
+        return "inline";
         BIT_MANIPULATION_ENUM_STRING_CASE(loop_variable);
         BIT_MANIPULATION_ENUM_STRING_CASE(loop_step);
         BIT_MANIPULATION_ENUM_STRING_CASE(unroll);
@@ -583,6 +584,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown);
+        BIT_MANIPULATION_ENUM_STRING_CASE(annotation_duplicate);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_not_applicable);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_too_many_arguments);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown_parameter);

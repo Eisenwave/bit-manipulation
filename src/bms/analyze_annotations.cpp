@@ -332,6 +332,13 @@ private:
     }
 };
 
+[[nodiscard]] Debug_Info annotation_debug_info(const astp::Annotation& annotation,
+                                               std::string_view file_name)
+{
+    return { Construct::annotation, Source_Position { annotation.pos, file_name },
+             annotation.name };
+}
+
 } // namespace
 
 struct Resolve_Annotations {
@@ -416,15 +423,23 @@ private:
             const auto& annotation = get<astp::Annotation>(m_parsed.get_node(handle));
             std::optional<Annotation_Type> type = annotation_type_by_name(annotation.name);
 
-            const Debug_Info info { Construct::annotation,
-                                    Source_Position { annotation.pos, file_name },
-                                    annotation.name };
+            const Debug_Info info = annotation_debug_info(annotation, file_name);
 
             if (!type) {
                 return Analysis_Error_Builder { Analysis_Error_Code::annotation_unknown }
                     .fail(info)
                     .cause(applied_to_info)
                     .build();
+            }
+            for (Size i = 0; i < result.size(); ++i) {
+                if (result[i].type == *type) {
+                    const auto& previous
+                        = get<astp::Annotation>(m_parsed.get_node(annotations.m_parsed[i]));
+                    return Analysis_Error_Builder { Analysis_Error_Code::annotation_duplicate }
+                        .fail(info)
+                        .cause(annotation_debug_info(previous, file_name))
+                        .build();
+                }
             }
 
             if (!annotation_type_applicable_to(*type, applied_to_info.construct)) {

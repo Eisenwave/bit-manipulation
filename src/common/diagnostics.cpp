@@ -204,6 +204,8 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "This continue statement is not inside of a loop.";
     case annotation_unknown: //
         return "Unknown annotation.";
+    case annotation_duplicate: //
+        return "The same annotation cannot be applied twice.";
     case annotation_not_applicable: //
         return "Annotation cannot be applied to the following construct.";
     case annotation_too_many_arguments: //
@@ -374,6 +376,8 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The function's return type is not declared Void:";
     case annotation_unknown: //
         return "When applying annotation here:";
+    case annotation_duplicate: //
+        return "Annotation has been previously specified here:";
     case annotation_not_applicable: //
         return "Annotation cannot be applied here:";
     case annotation_too_many_arguments:
