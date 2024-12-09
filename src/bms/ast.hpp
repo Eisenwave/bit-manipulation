@@ -156,15 +156,9 @@ protected:
     Some_Node* m_children[N] {};
 
 public:
-    std::span<Some_Node*> get_children()
-    {
-        return m_children;
-    }
+    std::span<Some_Node*> get_children();
 
-    std::span<const Some_Node* const> get_children() const
-    {
-        return m_children;
-    }
+    std::span<const Some_Node* const> get_children() const;
 
     template <std::forward_iterator Forward_It, std::forward_iterator Sentinel>
     void set_children(Forward_It begin, Sentinel end);
@@ -1207,6 +1201,20 @@ inline std::span<Some_Node*> Dynamic_Parent::get_children()
 inline std::span<const Some_Node* const> Dynamic_Parent::get_children() const
 {
     return m_children;
+}
+
+template <int N>
+inline std::span<Some_Node*> Parent<N>::get_children()
+{
+    // not really sure why we can't just "return m_children", but clang doesn't accept that
+    // https://stackoverflow.com/q/79264902/5740428
+    return { m_children, std::size(m_children) };
+}
+
+template <int N>
+inline std::span<const Some_Node* const> Parent<N>::get_children() const
+{
+    return { m_children, std::size(m_children) };
 }
 
 inline const Node_Base& to_node_base(const Some_Node& node) noexcept
