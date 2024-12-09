@@ -130,6 +130,8 @@ enum struct C_Cpp_Dialect : Default_Underlying {
         < static_cast<Default_Underlying>(C_Cpp_Dialect::cpp20);
 }
 
+static_assert(is_c(C_Cpp_Dialect::c23));
+
 [[nodiscard]] constexpr bool is_cpp(C_Cpp_Dialect dialect)
 {
     return dialect == C_Cpp_Dialect::cpp20;
