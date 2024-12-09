@@ -1,17 +1,24 @@
 cmake_minimum_required(VERSION 3.22)
 project(bit-manipulation)
 
-find_package(GTest REQUIRED)
-enable_testing()
-
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+if(NOT DEFINED EMSCRIPTEN)
+    find_package(GTest REQUIRED)
+    enable_testing()
+endif()
+
+set(LLVM_WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wmissing-declarations -Wno-bit-int-extension)
+
+if(DEFINED EMSCRIPTEN)
+    set(WARNING_OPTIONS ${LLVM_WARNING_OPTIONS})
+    set(SANITIZER_OPTIONS)
+elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wmissing-declarations)
 #    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wmissing-declarations -Wno-bit-int-extension)
+    set(WARNING_OPTIONS ${LLVM_WARNING_OPTIONS})
 #    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(WARNING_OPTIONS -W4)
@@ -19,6 +26,7 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif()
 
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
+include_directories(${INCLUDE_DIRS})
 
 set(HEADERS
     src/bmd/directive_type.hpp
@@ -124,25 +132,27 @@ add_library(bm STATIC ${HEADERS}
 target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
 target_link_options(bm PUBLIC ${SANITIZER_OPTIONS})
 
-add_executable(bm-cli ${HEADERS}
-    src/cli/compile.cpp
-    src/cli/compile.hpp
-    src/cli/glue.cpp
-    src/cli/glue.hpp
-    src/cli/main.cpp
-)
+if(DEFINED EMSCRIPTEN)
+# TODO: add target
+else(NOT DEFINED EMSCRIPTEN)
+    add_executable(bm-cli ${HEADERS}
+        src/cli/compile.cpp
+        src/cli/compile.hpp
+        src/cli/glue.cpp
+        src/cli/glue.hpp
+        src/cli/main.cpp
+    )
 
-add_executable(bm-test ${HEADERS}
-    src/test/compilation_stage.hpp
-    src/test/diagnostic_policy.hpp
-    src/test/main.cpp
-    src/test/program_file_testing.cpp
-    src/test/tribool.cpp
-    src/test/variant.cpp
-)
+    add_executable(bm-test ${HEADERS}
+        src/test/compilation_stage.hpp
+        src/test/diagnostic_policy.hpp
+        src/test/main.cpp
+        src/test/program_file_testing.cpp
+        src/test/tribool.cpp
+        src/test/variant.cpp
+    )
 
-include_directories(${INCLUDE_DIRS})
-
-target_link_libraries(bm-cli bm)
-target_link_libraries(bm-test bm GTest::GTest GTest::Main)
-add_test(NAME MyTest COMMAND bm-test)
+    target_link_libraries(bm-cli bm)
+    target_link_libraries(bm-test bm GTest::GTest GTest::Main)
+    add_test(NAME MyTest COMMAND bm-test)
+endif()
