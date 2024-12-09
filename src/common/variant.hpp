@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "common/assert.hpp"
+#include "common/config.hpp"
 #include "common/fwd.hpp"
 #include "common/meta.hpp"
 #include "common/packs.hpp"
@@ -50,6 +51,11 @@ constexpr auto&& forward_like(U&& x) noexcept
         if constexpr (__VA_ARGS__ < alternatives) {                                                \
             return static_cast<F&&>(f)(get<__VA_ARGS__>(static_cast<V&&>(v)));                     \
         }
+
+#ifdef BIT_MANIPULATION_CLANG
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#endif
 
 template <typename F, typename V>
     requires(std::remove_reference_t<V>::alternatives <= 25)
@@ -128,6 +134,10 @@ constexpr decltype(auto) visit(F&& f, V&& v)
         BIT_MANIPULATION_ASSERT_UNREACHABLE("impossible variant index");
     }
 }
+
+#ifdef BIT_MANIPULATION_CLANG
+#pragma clang diagnostic pop
+#endif
 
 #undef BIT_MANIPULATION_VISIT_CASE
 
