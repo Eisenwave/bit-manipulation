@@ -201,7 +201,7 @@ TEST(BMS_Analysis_Error, failed_to_define_global_const)
           .fail_line = 2,
           .cause_line = 1 };
     EXPECT_TRUE(
-        test_for_diagnostic("analysis_error/failed_to_define_global_const.bms", expectations));
+        test_for_diagnostic("analysis_error/failed_to_define/global_const.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, failed_to_define_function)
@@ -210,7 +210,7 @@ TEST(BMS_Analysis_Error, failed_to_define_function)
         { .code = bms::Analysis_Error_Code::failed_to_define_function,
           .fail_line = 2,
           .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_function.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define/function.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, failed_to_define_parameter)
@@ -219,7 +219,7 @@ TEST(BMS_Analysis_Error, failed_to_define_parameter)
         { .code = bms::Analysis_Error_Code::failed_to_define_parameter,
           .fail_line = 2,
           .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_parameter.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define/parameter.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, failed_to_define_variable)
@@ -228,7 +228,7 @@ TEST(BMS_Analysis_Error, failed_to_define_variable)
         { .code = bms::Analysis_Error_Code::failed_to_define_variable,
           .fail_line = 4,
           .cause_line = 3 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define_variable.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/failed_to_define/variable.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, reference_to_undefined_variable)
@@ -340,21 +340,21 @@ TEST(BMS_Analysis_Error, assigning_parameter)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_parameter, .fail_line = 2, .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_parameter.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning/parameter.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, assigning_function)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_function, .fail_line = 2, .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_function.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning/function.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, assigning_const)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::assigning_const, .fail_line = 3, .cause_line = 2 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning_const.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/assigning/const.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, call_non_function)
