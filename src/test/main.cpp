@@ -483,10 +483,6 @@ TEST(BMS_Analysis_Error, empty_return_in_non_void_function)
         test_for_diagnostic("analysis_error/empty_return_in_non_void_function.bms", expectations));
 }
 
-// TODO: test for continue outside loop
-
-// TODO: test for break outside loop
-
 TEST(BMS_Analysis_Error, void_operation)
 {
     static const Analysis_Error_Expectations expectations //
