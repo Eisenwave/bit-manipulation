@@ -80,7 +80,7 @@ private:
         for (Size i = parameters.size(); i-- != 0;) {
             // We use left-to-right push order, so storing the parameters in variables upon
             // function entry happens in reverse order.
-            out.push_back(ins::Store { parameters[i].get_debug_info(), &parameters[i] });
+            out.push_back(ins::Store { { parameters[i].get_debug_info() }, &parameters[i] });
         }
 
         const ast::Type& return_type = function.get_return_type();
