@@ -1,0 +1,6 @@
+function loop_forever() -> Int {
+    while true { }
+    return 0;
+}
+
+const x = loop_forever();

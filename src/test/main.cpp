@@ -576,6 +576,15 @@ TEST(BMS_Analysis_Error, continue_outside_loop)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/continue_outside_loop.bms", expectations));
 }
 
+TEST(BMS_Analysis_Error, execution_limit_exceeded)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::execution_limit_exceeded,
+          .fail_line = 6,
+          .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/execution_limit_exceeded.bms", expectations));
+}
+
 TEST(BMS_Analysis_Error, annotation_unknown)
 {
     static const Analysis_Error_Expectations expectations //
