@@ -127,7 +127,8 @@ pre {
 }
 
 pre,
-code {
+code,
+textarea {
     font-family: 'JetBrainsMono';
     font-variant-ligatures: no-contextual;
     font-weight: normal;

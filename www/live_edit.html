@@ -6,10 +6,33 @@
     <title>BMS Live Edit</title>
     <link rel=stylesheet href="/css/code.css" />
     <link rel=stylesheet href="/css/main.css" />
+    <link rel=stylesheet href="/css/live_edit.css" />
 </head>
 
 <body>
-    <script src="/js/live_edit.js" async></script>
+    <!-- bug workaround https://stackoverflow.com/a/57888310/5740428 -->
+    <script>0</script>
+
+    <script src="/js/live_edit_core.js" type="module"></script>
+    <script src="/js/live_edit.js" type="module" async></script>
+
+    <div id="split-buttons">
+        <picture>
+            <source srcset="/img/split_horizontal_light.svg" media="(prefers-color-scheme: light)">
+            <img id="button-split-horizontal" src="/img/split_horizontal_dark.svg" />
+        </picture>
+        <picture>
+            <source srcset="/img/split_vertical_light.svg" media="(prefers-color-scheme: light)">
+            <img id="button-split-vertical" src="/img/split_vertical_dark.svg" />
+        </picture>
+    </div>
+
+    <main id="container">
+        <textarea id="code-input" autocomplete="off" autocorrect="off" autocapitalize="off"
+            spellcheck="false"></textarea>
+        <div id="separator"></div>
+        <div id="output"></div>
+    </main>
 </body>
 
 </html>

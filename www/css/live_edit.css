@@ -1,0 +1,83 @@
+:root {
+    --separator-width: 0.5em;
+}
+
+html,
+body,
+main {
+    margin: 0;
+    height: 100%;
+}
+
+main {
+    box-sizing: border-box;
+    padding: 1em;
+
+    display: grid;
+}
+
+body:not(.vertical) main {
+    grid-template-columns: 1fr var(--separator-width) 1fr;
+}
+
+body.vertical main {
+    grid-template-rows: 1fr var(--separator-width) 1fr;
+}
+
+textarea {
+    resize: none;
+    outline: none;
+    white-space: pre;
+}
+
+textarea,
+#output {
+    width: 100%;
+    height: 100%;
+
+    box-sizing: border-box;
+    padding: 0.25em;
+    margin: 0;
+
+    color: inherit;
+    font-size: 11pt;
+
+    background: var(--deep-background);
+    border: 0.5em solid var(--deep-background);
+    border-radius: 0.5em;
+}
+
+#output {
+    font-family: 'JetBrainsMono';
+    font-variant-ligatures: no-contextual;
+    font-weight: normal;
+}
+
+body:not(.vertical) #separator,
+body:not(.vertical).while-dragging,
+body:not(.vertical).while-dragging * {
+    cursor: ew-resize !important;
+}
+
+body.vertical #separator,
+body.vertical.while-dragging,
+body.vertical.while-dragging * {
+    cursor: ns-resize !important;
+}
+
+#split-buttons {
+    position: absolute;
+    top: 1.5em;
+    right: 1.5em;
+}
+
+#split-buttons img {
+    width: 1.5em;
+    height: 1.5em;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+#split-buttons img:hover {
+    opacity: 1;
+}
