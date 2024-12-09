@@ -133,7 +133,30 @@ target_compile_options(bm PUBLIC ${WARNING_OPTIONS} ${SANITIZER_OPTIONS})
 target_link_options(bm PUBLIC ${SANITIZER_OPTIONS})
 
 if(DEFINED EMSCRIPTEN)
-# TODO: add target
+    # https://stunlock.gg/posts/emscripten_with_cmake/
+    add_executable(bm-wasm ${HEADERS}
+        src/wasm/bm.cpp
+        src/wasm/bm.hpp
+    )
+    target_link_libraries(bm-wasm bm)
+    set_target_properties(bm-wasm PROPERTIES
+        OUTPUT_NAME "bm"
+        SUFFIX ".wasm"
+    )
+    target_compile_options(bm-wasm PRIVATE
+        # the SHELL option group prevents de-duplication
+        # https://cmake.org/cmake/help/latest/prop_tgt/COMPILE_OPTIONS.html#option-de-duplication
+        "SHELL:-s SIDE_MODULE=2"
+    )
+    target_link_options(bm-wasm PRIVATE
+        "SHELL:-s WASM=1"
+        "SHELL:-s SIDE_MODULE=2"
+        "SHELL:-s STANDALONE_WASM=1"
+        "SHELL:-s \"EXPORTED_FUNCTIONS=['_plus']\""
+        "SHELL:-s \"EXPORTED_RUNTIME_METHODS=[]\""
+        "--no-entry"
+    )
+
 else(NOT DEFINED EMSCRIPTEN)
     add_executable(bm-cli ${HEADERS}
         src/cli/compile.cpp

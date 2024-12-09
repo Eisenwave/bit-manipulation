@@ -7,7 +7,7 @@
 #include <emscripten.h>
 
 extern "C" {
-//
+int plus(int, int);
 }
 
 #endif
