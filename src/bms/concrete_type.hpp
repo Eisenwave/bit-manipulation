@@ -2,6 +2,7 @@
 #define BIT_MANIPULATION_CONCRETE_TYPE_HPP
 
 #include <iosfwd>
+#include <limits>
 #include <string_view>
 
 #include "common/assert.hpp"
