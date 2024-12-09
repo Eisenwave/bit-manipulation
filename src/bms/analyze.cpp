@@ -1025,7 +1025,7 @@ private:
                                          Analysis_Level level,
                                          Expression_Context context)
     {
-        if (const auto* const looked_up_function = get_if<ast::Function>(looked_up_node)) {
+        if (holds_alternative<ast::Function>(*looked_up_node)) {
             return Analysis_Error_Builder { Analysis_Error_Code::function_in_expression }
                 .fail(handle)
                 .cause(looked_up_node)
