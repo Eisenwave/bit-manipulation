@@ -30,7 +30,6 @@ export function isEditorVertical() {
 }
 
 export function setEditorVertical(vertical, persist = false) {
-    console.log(vertical, typeof vertical);
     if (vertical) {
         document.body.classList.add('vertical');
     } else {
@@ -52,7 +51,6 @@ if (initialFraction !== null) {
 }
 
 const initialIsVertical = localStorage.getItem(editorIsVerticalItem);
-console.log(initialIsVertical)
 if (initialIsVertical !== null) {
     setEditorVertical(initialIsVertical === 'true');
 }

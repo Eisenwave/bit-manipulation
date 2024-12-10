@@ -146,13 +146,20 @@ if(DEFINED EMSCRIPTEN)
     target_compile_options(bm-wasm PRIVATE
         # the SHELL option group prevents de-duplication
         # https://cmake.org/cmake/help/latest/prop_tgt/COMPILE_OPTIONS.html#option-de-duplication
-        "SHELL:-s SIDE_MODULE=2"
+        "SHELL:-s SIDE_MODULE=0"
+        "-stdlib=libc++"
+        "-Os"
     )
     target_link_options(bm-wasm PRIVATE
+        "-Os"
+        "-static-libc++"
+        "-stdlib=libc++"
         "SHELL:-s WASM=1"
-        "SHELL:-s SIDE_MODULE=2"
+        "SHELL:-s ENVIRONMENT=web"
+        "SHELL:-s AUTO_JS_LIBRARIES=0"
+        "SHELL:-s SIDE_MODULE=0"
         "SHELL:-s STANDALONE_WASM=1"
-        "SHELL:-s \"EXPORTED_FUNCTIONS=['_plus']\""
+        "SHELL:-s \"EXPORTED_FUNCTIONS=['_bm_foreign_alloc','_bm_foreign_free','_bm_plus','_bm_length_as_string','_bm_length_as_string_result']\""
         "SHELL:-s \"EXPORTED_RUNTIME_METHODS=[]\""
         "--no-entry"
     )
