@@ -5,12 +5,23 @@ const whileDraggingClass = 'while-dragging';
 const separator = document.getElementById('separator');
 const splitVerticalButton = document.getElementById('button-split-vertical');
 const splitHorizontalButton = document.getElementById('button-split-horizontal');
-
+const codeInput = document.getElementById('code-input');
+const inputLineNumbers = document.getElementById('input-line-numbers');
 
 let isDragging = false;
 
 Number.prototype.clamp = function (min, max) {
     return Math.min(Math.max(this, min), max);
+};
+
+String.prototype.count = function (x) {
+    let n = 0;
+    for (const c of this) {
+        if (x === c) {
+            ++n;
+        }
+    }
+    return n;
 };
 
 const importObject = {
@@ -88,4 +99,23 @@ splitVerticalButton.addEventListener('click', (e) => {
 splitHorizontalButton.addEventListener('click', (e) => {
     e.preventDefault();
     setEditorVertical(false, persistOrientationChanges);
+});
+
+let currentLineNumbers = 1;
+
+function setVisibleLineNumbers(n) {
+    if (currentLineNumbers === n) {
+        return;
+    }
+    const arr = Array.from({ length: n }, (_, i) => i + 1);
+    inputLineNumbers.innerText = arr.join('\n');
+    currentLineNumbers = n;
+}
+
+codeInput.addEventListener('input', () => {
+    setVisibleLineNumbers(codeInput.value.count('\n') + 1);
+});
+
+codeInput.addEventListener('scroll', () => {
+    inputLineNumbers.scrollTo({ top: codeInput.scrollTop });
 });

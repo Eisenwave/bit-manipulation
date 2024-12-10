@@ -31,10 +31,12 @@ textarea {
 
     color: inherit;
     font-size: inherit;
+    background: var(--deep-background);
 
     width: 100%;
     height: 100%;
-    background: var(--deep-background);
+    margin: 0;
+    padding: 0;
     border: none;
 }
 
@@ -42,6 +44,7 @@ textarea {
 #output {
     width: 100%;
     height: 100%;
+    overflow-y: hidden;
 
     box-sizing: border-box;
     padding: 0.25em;
@@ -55,10 +58,37 @@ textarea {
     border-radius: 0.5em;
 }
 
-#output {
+#output,
+#code-input-container {
     font-family: 'JetBrainsMono';
     font-variant-ligatures: no-contextual;
     font-weight: normal;
+}
+
+#code-input-container {
+    display: grid;
+    grid-template-columns: auto 1fr;
+}
+
+textarea,
+.line-numbers {
+    font: inherit;
+    font-size: inherit;
+}
+
+.line-numbers {
+    margin: 0;
+    opacity: 0.5;
+    padding-right: 1em;
+    /* to fix syncing issues when scroll bars would make the textarea longer,
+       and the line numbers can't "keep up" */
+    padding-bottom: 2em;
+    min-width: 3ch;
+
+    user-select: none;
+    text-align: right;
+
+    overflow: hidden;
 }
 
 body:not(.vertical) #separator,

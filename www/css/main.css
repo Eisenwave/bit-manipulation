@@ -117,7 +117,7 @@ body {
     font-size: 12pt;
 }
 
-pre {
+.codeblock {
     background: var(--deep-background);
     padding: 0.25em;
     border: 0.5em solid var(--deep-background);
@@ -126,7 +126,7 @@ pre {
     font-size: 11pt;
 }
 
-pre,
+.codeblock,
 code,
 textarea {
     font-family: 'JetBrainsMono';
