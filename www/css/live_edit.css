@@ -65,6 +65,10 @@ textarea {
     font-weight: normal;
 }
 
+#output {
+    white-space: pre;
+}
+
 #code-input-container {
     display: grid;
     grid-template-columns: auto 1fr;
