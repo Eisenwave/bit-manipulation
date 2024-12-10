@@ -1,5 +1,4 @@
 #include <iomanip>
-#include <iostream>
 #include <span>
 
 #include "common/diagnostics.hpp"
@@ -805,7 +804,7 @@ std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& er
 std::ostream&
 print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error, bool colors)
 {
-    print_location_of_file(std::cout, file, colors) << ": " << to_prose(error) << '\n';
+    print_location_of_file(out, file, colors) << ": " << to_prose(error) << '\n';
     return out;
 }
 
