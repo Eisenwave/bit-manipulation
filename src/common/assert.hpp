@@ -14,19 +14,25 @@ struct Assertion_Error {
     std::source_location location;
 };
 
+#ifdef __EXCEPTIONS
+#define BIT_MANIPULATION_RAISE_ASSERTION_ERROR(...) (throw __VA_ARGS__)
+#else
+#define BIT_MANIPULATION_RAISE_ASSERTION_ERROR(...) ::std::exit(3)
+#endif
+
 // Expects an expression.
 // If this expression (after contextual conversion to `bool`) is `false`,
 // throws an `Assertion_Error` of type `expression`.
 #define BIT_MANIPULATION_ASSERT(...)                                                               \
     ((__VA_ARGS__) ? void()                                                                        \
-                   : throw ::bit_manipulation::Assertion_Error {                                   \
+                   : BIT_MANIPULATION_RAISE_ASSERTION_ERROR(::bit_manipulation::Assertion_Error {  \
                          ::bit_manipulation::Assertion_Error_Type::expression, (#__VA_ARGS__),     \
-                         ::std::source_location::current() })
+                         ::std::source_location::current() }))
 
 /// Expects a string literal.
 /// Unconditionally throws `Assertion_Error` of type `unreachable`.
 #define BIT_MANIPULATION_ASSERT_UNREACHABLE(...)                                                   \
-    (throw ::bit_manipulation::Assertion_Error {                                                   \
+    BIT_MANIPULATION_RAISE_ASSERTION_ERROR(::bit_manipulation::Assertion_Error {                   \
         ::bit_manipulation::Assertion_Error_Type::unreachable, ::std::string_view(__VA_ARGS__),    \
         ::std::source_location::current() })
 
