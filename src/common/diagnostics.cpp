@@ -86,8 +86,13 @@ struct Printable_Error {
             && error.evaluation_error() == bms::Evaluation_Error_Code::type_error);
 }
 
-const std::string error_prefix = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
-const std::string note_prefix = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
+constexpr std::string_view error_prefix = "error: ";
+constexpr std::string_view note_prefix = "note: ";
+
+const std::string colored_error_prefix
+    = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
+const std::string colored_note_prefix
+    = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
 
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
@@ -581,8 +586,8 @@ std::ostream& print_printable_error(std::ostream& out, const Printable_Error& er
     for (const Error_Line& line : error.lines) {
         print_source_position(out, line.pos, colors) << ": ";
         switch (line.type) {
-        case Error_Line_Type::error: out << error_prefix; break;
-        case Error_Line_Type::note: out << note_prefix; break;
+        case Error_Line_Type::error: out << (colors ? colored_error_prefix : error_prefix); break;
+        case Error_Line_Type::note: out << (colors ? colored_note_prefix : note_prefix); break;
         }
         out << line.message;
 
@@ -683,7 +688,7 @@ std::ostream& print_tokenize_error(std::ostream& out,
                                    bool colors)
 {
     print_file_position(out, file, e.pos, colors);
-    out << ": " << error_prefix << to_prose(e.code) << '\n';
+    out << ": " << (colors ? colored_error_prefix : error_prefix) << to_prose(e.code) << '\n';
     print_affected_line(out, source, e.pos, colors);
     return out;
 }
@@ -694,12 +699,13 @@ std::ostream& print_parse_error(std::ostream& out,
                                 const bms::Parse_Error& error,
                                 bool colors)
 {
-    print_file_position(out, file, error.fail_token.pos, colors) << ": " << error_prefix;
+    print_file_position(out, file, error.fail_token.pos, colors)
+        << ": " << (colors ? colored_error_prefix : error_prefix);
     out << "unexpected token " << token_type_readable_name(error.fail_token.type)
         << " while matching '" << grammar_rule_name(error.fail_rule) << "'\n";
 
-    print_file_position(out, file, error.fail_token.pos, colors)
-        << ": " << note_prefix << "expected ";
+    print_file_position(out, file, error.fail_token.pos, colors) << ": " << //
+        (colors ? colored_note_prefix : note_prefix) << "expected ";
 
     const std::span<const bms::Token_Type> expected = error.expected_tokens;
     if (expected.size() == 0) {
@@ -725,7 +731,8 @@ std::ostream& print_parse_error(std::ostream& out,
                                 const bmd::Parse_Error& error,
                                 bool colors)
 {
-    print_file_position(out, file, error.pos, colors) << ": " << error_prefix;
+    print_file_position(out, file, error.pos, colors)
+        << ": " << (colors ? colored_error_prefix : error_prefix);
 
     if (error.code == bmd::Parse_Error_Code::unexpected_character) {
         out << "unexpected character '" << source[error.pos.begin] << "' while matching '"
@@ -759,7 +766,7 @@ std::ostream& print_document_error(std::ostream& out,
                                    bool colors)
 {
     print_file_position(out, file, error.pos, colors)
-        << ": " << error_prefix << to_prose(error.code) << '\n';
+        << ": " << (colors ? colored_error_prefix : error_prefix) << to_prose(error.code) << '\n';
 
     print_affected_line(out, source, error.pos, colors);
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
