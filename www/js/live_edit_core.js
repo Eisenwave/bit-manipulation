@@ -30,13 +30,14 @@ export function isEditorVertical() {
 }
 
 export function setEditorVertical(vertical, persist = false) {
-    if (isVertical == vertical) {
-        return;
-    }
+    console.log(vertical, typeof vertical);
     if (vertical) {
         document.body.classList.add('vertical');
     } else {
         document.body.classList.remove('vertical');
+    }
+    if (isVertical == vertical) {
+        return;
     }
     swapGridTemplateRowsColumns(container.style);
     isVertical = vertical;
@@ -47,10 +48,11 @@ export function setEditorVertical(vertical, persist = false) {
 
 const initialFraction = localStorage.getItem(editorFractionItem);
 if (initialFraction !== null) {
-    resizeContainerToFraction(initialFraction);
+    resizeContainerToFraction(Number(initialFraction));
 }
 
 const initialIsVertical = localStorage.getItem(editorIsVerticalItem);
+console.log(initialIsVertical)
 if (initialIsVertical !== null) {
-    setEditorVertical(initialIsVertical);
+    setEditorVertical(initialIsVertical === 'true');
 }

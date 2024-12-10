@@ -80,10 +80,12 @@ document.addEventListener('mouseup', () => {
 
 const persistOrientationChanges = true;
 
-splitVerticalButton.addEventListener('click', () => {
+splitVerticalButton.addEventListener('click', (e) => {
+    e.preventDefault();
     setEditorVertical(true, persistOrientationChanges);
 });
 
-splitHorizontalButton.addEventListener('click', () => {
+splitHorizontalButton.addEventListener('click', (e) => {
+    e.preventDefault();
     setEditorVertical(false, persistOrientationChanges);
 });
