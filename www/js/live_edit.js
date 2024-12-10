@@ -113,7 +113,7 @@ function setVisibleLineNumbers(n) {
         return;
     }
     const arr = Array.from({ length: n }, (_, i) => i + 1);
-    inputLineNumbers.innerText = arr.join('\n');
+    inputLineNumbers.textContent = arr.join('\n');
     currentLineNumbers = n;
 }
 
@@ -240,7 +240,7 @@ function bmTranslateCode(str, lang) {
 codeInput.addEventListener('input', () => {
     const result = bmTranslateCode(codeInput.value, 'c');
     try {
-        output.innerText = bmUtf8ToString(result);
+        output.textContent = bmUtf8ToString(result);
     } finally {
         bmFree(result);
     }
