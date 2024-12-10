@@ -7,6 +7,7 @@ const splitVerticalButton = document.getElementById('button-split-vertical');
 const splitHorizontalButton = document.getElementById('button-split-horizontal');
 const codeInput = document.getElementById('code-input');
 const inputLineNumbers = document.getElementById('input-line-numbers');
+const output = document.getElementById('output');
 
 let isDragging = false;
 
@@ -25,8 +26,23 @@ String.prototype.count = function (x) {
 };
 
 async function loadWasm() {
-    const imports = {};
-    const result = await WebAssembly.instantiateStreaming(fetch('/bm.wasm'), imports);
+    // The implementations of these functions we provide don't actually match the WASI
+    // requirements (https://wasix.org/docs/api-reference).
+    // This is actually okay because we don't expect these functions to ever be called;
+    // they are simply stuff that dead code elimination missed.
+    const importObject = {
+        wasi_snapshot_preview1: {
+            proc_exit: (ctx, code) => {
+                if (code != 0) {
+                    console.error(`WASM process exited with code ${code}`);
+                }
+            },
+            fd_close: (ctx, fd) => { },
+            environ_sizes_get: (ctx, environ_count, environ_buf_size) => { },
+            environ_get: (ctx, environ, environ_buf) => { }
+        }
+    };
+    const result = await WebAssembly.instantiateStreaming(fetch('/bm.wasm'), importObject);
 
     if (result.instance.exports._initialize) {
         result.instance.exports._initialize();
@@ -168,20 +184,6 @@ function bmDecodeAllocationAt(address) {
 }
 
 /**
- * Measures the length of the string and returns the result as an allocation.
- * @param {string} str 
- * @returns {{memory: number, size: number}}
- */
-function bmLengthAsUtf8(str) {
-    const input = bmStringToUtf8(str + '\0');
-    wasm.instance.exports.bm_length_as_string(input.memory);
-    bmFree(input);
-
-    const resultAddress = wasm.instance.exports.bm_length_as_string_result.value;
-    return bmDecodeAllocationAt(resultAddress);
-}
-
-/**
  * Converts allocated UTF-8 data in WASM to a `string`.
  * @param {{memory: number, size: number}} param0 
  * @returns {string}
@@ -193,10 +195,55 @@ function bmUtf8ToString({ memory, size }) {
     return decoder.decode(utf8Bytes);
 }
 
+/**
+ * Measures the length of the string and returns the result as an allocation.
+ * @param {string} str 
+ * @returns {{memory: number, size: number}}
+ */
+function bmLengthAsUtf8(str) {
+    const input = bmStringToUtf8(str + '\0');
+    try {
+        wasm.instance.exports.bm_length_as_string(input.memory);
+    } finally {
+        bmFree(input);
+    }
+
+    const resultAddress = wasm.instance.exports.bm_length_as_string_result.value;
+    return bmDecodeAllocationAt(resultAddress);
+}
+
+const codeLanguages = ['bms', 'c', 'cpp', 'rust', 'java', 'kotlin', 'javascript', 'typescript'];
+
+/**
+ * 
+ * @param {string} str 
+ * @param {string} lang one of `codeLanguages`
+ * @returns {{memory: number, size: number}}
+ */
+function bmTranslateCode(str, lang) {
+    const langIndex = codeLanguages.indexOf(lang);
+    if (langIndex < 0) {
+        throw `Language ${lang} is invalid.`;
+    }
+
+    const input = bmStringToUtf8(str);
+    try {
+        wasm.instance.exports.bm_translate_code(input.memory, input.size, langIndex);
+    } finally {
+        bmFree(input);
+    }
+
+    const resultAddress = wasm.instance.exports.bm_translate_code_result.value;
+    return bmDecodeAllocationAt(resultAddress);
+}
+
 codeInput.addEventListener('input', () => {
-    const result = bmLengthAsUtf8(codeInput.value);
-    console.log(codeInput.value.length, bmUtf8ToString(result));
-    bmFree(result);
+    const result = bmTranslateCode(codeInput.value, 'c');
+    try {
+        output.innerText = bmUtf8ToString(result);
+    } finally {
+        bmFree(result);
+    }
 });
 
 function debugStuff() {

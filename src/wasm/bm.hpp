@@ -39,9 +39,19 @@ void bm_foreign_free(void* p, bit_manipulation::Uint32 n);
 
 int bm_plus(int, int);
 
-bm_allocation bm_length_as_string_result;
+extern bm_allocation bm_length_as_string_result;
 
 void bm_length_as_string(const char* str);
+
+extern bm_allocation bm_translate_code_result;
+
+/// @brief Translates BMS code in the string to the specified target language.
+/// @param source the BMS source code
+/// @param source_length the length of the source code
+/// @param lang the language to convert to, matching the values in `bmd::Code_Language`
+void bm_translate_code(const char* source,
+                       bit_manipulation::Uint32 source_length,
+                       bit_manipulation::Uint8 lang);
 
 //
 }
