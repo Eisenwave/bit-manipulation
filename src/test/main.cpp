@@ -590,13 +590,18 @@ TEST(BMS_Analysis_Error, execution_limit_exceeded)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/execution_limit_exceeded.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, flow_off_end)
+TEST(BMS_Analysis_Error, no_return)
 {
     static const Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::execution_limit_exceeded,
-          .fail_line = 6,
-          .cause_line = 2 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/flow_off_end.bms", expectations));
+        { .code = bms::Analysis_Error_Code::no_return, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/no_return.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, unreachable_code)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::unreachable_code, .fail_line = 3, .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/unreachable_code.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, annotation_unknown)
