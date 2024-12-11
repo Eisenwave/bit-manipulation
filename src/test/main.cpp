@@ -101,6 +101,11 @@ TEST(Valid_BMS, dependent_static_assert)
     EXPECT_TRUE(test_for_success("valid_bms/dependent_static_assert.bms"));
 }
 
+TEST(Valid_BMS, empty)
+{
+    EXPECT_TRUE(test_for_success("valid_bms/empty.bms"));
+}
+
 TEST(Valid_BMS, identity)
 {
     EXPECT_TRUE(test_for_success("valid_bms/identity.bms"));
@@ -583,6 +588,15 @@ TEST(BMS_Analysis_Error, execution_limit_exceeded)
           .fail_line = 6,
           .cause_line = 2 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/execution_limit_exceeded.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, flow_off_end)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::execution_limit_exceeded,
+          .fail_line = 6,
+          .cause_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/flow_off_end.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, annotation_unknown)

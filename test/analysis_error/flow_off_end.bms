@@ -1,0 +1,5 @@
+function awoo() -> Int {
+    while true { }
+}
+
+const x = awoo();
