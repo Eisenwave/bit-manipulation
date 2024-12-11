@@ -22,7 +22,7 @@ public:
     static const Tribool maybe;
 
     constexpr Tribool(bool x) noexcept
-        : underlying(-int(x))
+        : underlying(static_cast<signed char>(-int(x)))
     {
     }
 
