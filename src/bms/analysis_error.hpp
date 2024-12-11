@@ -115,6 +115,10 @@ enum struct Analysis_Error_Code : Default_Underlying {
     continue_outside_loop,
     /// @brief Constant evaluation took too long (maybe because of an infinite loop).
     execution_limit_exceeded,
+    /// @brief A non-`Void` function is missing a `return` statement.
+    no_return,
+    /// @brief Code follows a `return` statement.
+    unreachable_code,
 
     /// @brief An unknown annotation was used (e.g. `@gibberish`).
     annotation_unknown,

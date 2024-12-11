@@ -7,8 +7,6 @@
 
 namespace bit_manipulation {
 
-// TODO: this doesn't really belong here, or the header should be renamed
-
 /// @brief The level of analysis to perform on an AST node that represents a definable entity,
 /// such as a function.
 /// @see ast::Function::analysis_so_far

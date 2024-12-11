@@ -5,6 +5,7 @@
 #include <span>
 #include <vector>
 
+#include "common/tribool.hpp"
 #include "common/variant.hpp"
 
 #include "bms/analysis_error.hpp"
@@ -285,6 +286,7 @@ public:
     bool is_generic = false;
     Size vm_address = invalid_vm_address;
     Analysis_Level analysis_so_far = Analysis_Level::unanalyzed;
+    Tribool definitely_returns = Tribool::maybe;
 
 private:
     Function(const Function& other, Copy_for_Instantiation_Tag);

@@ -113,6 +113,7 @@ add_library(bm STATIC ${HEADERS}
 
     src/bms/analyze_annotations.cpp
     src/bms/analyze_name_lookup.cpp
+    src/bms/analyze_return.cpp
     src/bms/analyze.cpp
     src/bms/ast.cpp
     src/bms/instantiate.cpp

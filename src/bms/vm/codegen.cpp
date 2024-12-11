@@ -97,24 +97,12 @@ private:
             return body_result;
         }
 
-        if (return_type.get_type() != Type_Type::Void) {
-            return {};
-        }
-
-        const bool returns_unconditionally = !body.is_empty() && [&]() -> bool {
-            for (const ast::Some_Node* n : std::views::reverse(body.get_children())) {
-                if (const auto ret = get_if<ast::Control_Statement>(n)) {
-                    // break and continue at the top level should have failed analysis already
-                    BIT_MANIPULATION_ASSERT(ret->is_return());
-                    return true;
-                }
+        if (return_type.get_type() == Type_Type::Void) {
+            BIT_MANIPULATION_ASSERT(function.definitely_returns != Tribool::maybe);
+            if (function.definitely_returns == Tribool::fawse) {
+                out.push_back(ins::Push { { h }, Concrete_Value::Void });
+                out.push_back(ins::Return { { h } });
             }
-            return false;
-        }();
-
-        if (!returns_unconditionally) {
-            out.push_back(ins::Push { { h }, Concrete_Value::Void });
-            out.push_back(ins::Return { { h } });
         }
 
         return {};

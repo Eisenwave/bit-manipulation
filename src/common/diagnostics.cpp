@@ -142,6 +142,10 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
         return "Attempted to use a function in an expression as if it was a variable.";
     case execution_error: //
         return "Error in the execution of the generated code for constant-evaluated functions.";
+    case no_return: //
+        return "This function might not return. Ensure returning, or specify a Void return type.";
+    case unreachable_code: //
+        return "This statement is unreachable.";
     case evaluation_error: //
         return "Evaluation error in constant expressions or constant folding.";
     case condition_not_bool: //
@@ -382,6 +386,8 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
         return "The function's return type is not declared Void:";
     case execution_limit_exceeded:
         return "Evaluation was abandoned here: (could this be an infinite loop?)";
+    case unreachable_code: //
+        return "See prior statement which definitely returns here:";
     case annotation_unknown: //
         return "When applying annotation here:";
     case annotation_duplicate: //

@@ -183,6 +183,13 @@ private:
             }
         }
         if (level >= Analysis_Level::for_constant_evaluation) {
+            Result<bool, Analysis_Error> definitely_returns
+                = analyze_returning(m_program, handle, node);
+            if (!definitely_returns) {
+                return definitely_returns.error();
+            }
+            node.definitely_returns = *definitely_returns;
+
             auto& constant_evaluation_machine = m_program.get_vm();
             const Size vm_address = constant_evaluation_machine.instruction_count();
             Result<void, Analysis_Error> instructions
@@ -1135,7 +1142,14 @@ analyze(Analyzed_Program& program, const Parsed_Program& parsed, std::pmr::memor
         return r;
     }
     local_memory.release();
-    return analyze_semantics(program, &local_memory);
+    if (auto r = analyze_semantics(program, &local_memory); !r) {
+        return r;
+    }
+    local_memory.release();
+    if (auto r = analyze_returning(program); !r) {
+        return r;
+    }
+    return {};
 }
 
 bool analyze(Analyzed_Program& program,

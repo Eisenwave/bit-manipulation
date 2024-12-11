@@ -32,6 +32,23 @@ Result<void, Analysis_Error> analyze_semantics(Analyzed_Program& program,
                                                std::pmr::memory_resource* memory_resource);
 
 /// @brief The fourth stage of analysis.
+/// Validates whether all functions that return something other than `Void` definitely return.
+Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program);
+
+/// @brief Runs `analyze_returning` for just a single function instead of the whole program.
+///
+/// This is useful because while return analysis is considered a separate stage,
+/// it is run early for the sake of convenience so that VM codegen can use this information
+/// to determine whether `Void` functions already return or require an implicit `return`.
+/// @return `true` if the function definitely returns;
+/// note that functions that are missing a return statement will still produce an error;
+/// the returned value is essentially only useful for analyzing `Void` functions,
+/// where omitting `return` is permitted
+Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
+                                               const ast::Some_Node* function_node,
+                                               const ast::Function& f);
+
+/// @brief The fifth stage of analysis.
 /// Applies any language-agnostic annotations, such as `@inline`, `@unroll`, etc.
 /// Also verifies that any annotation has been used properly by checking its arguments,
 /// verifying that `@immutable` has only been applied to immutable variables, etc.

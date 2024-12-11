@@ -584,6 +584,8 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(break_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(continue_outside_loop);
         BIT_MANIPULATION_ENUM_STRING_CASE(execution_limit_exceeded);
+        BIT_MANIPULATION_ENUM_STRING_CASE(no_return);
+        BIT_MANIPULATION_ENUM_STRING_CASE(unreachable_code);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_unknown);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_duplicate);
         BIT_MANIPULATION_ENUM_STRING_CASE(annotation_not_applicable);
