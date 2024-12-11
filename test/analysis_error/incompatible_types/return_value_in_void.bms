@@ -1,0 +1,4 @@
+function awoo() -> Void {
+    let i = 0;
+    return 0;
+}
