@@ -13,6 +13,7 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
+#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 
 #include "wasm/bm.hpp"
@@ -36,7 +37,7 @@ bm_allocation copy_to_heap(const void* data, Uint32 n)
 
 bm_allocation copy_to_heap(std::string_view str)
 {
-    return copy_to_heap(str.data(), Uint32(str.size() + 1));
+    return copy_to_heap(str.data(), Uint32(str.size()));
 }
 
 bm_allocation to_heap(pmr_ostringstream&& stream)
@@ -92,9 +93,10 @@ bm_allocation translate_to(std::string_view source, bmd::Code_Language lang)
         return error_to_heap(r.error(), parsed, &memory);
     }
 
-    static_cast<void>(lang);
-    // TODO: implement language conversion
-    return copy_to_heap("ok");
+    bmd::Code_String out { &memory };
+    bmd::generate_code(out, analyzed, lang, { .c_23 = true });
+
+    return copy_to_heap(out.get_text());
 }
 
 } // namespace
