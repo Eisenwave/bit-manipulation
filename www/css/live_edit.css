@@ -41,7 +41,7 @@ textarea {
 }
 
 #code-input-container,
-#output {
+#output-container {
     width: 100%;
     height: 100%;
     overflow-y: hidden;
@@ -58,7 +58,7 @@ textarea {
     border-radius: 0.5em;
 }
 
-#output,
+#output-container,
 #code-input-container {
     font-family: 'JetBrainsMono';
     font-variant-ligatures: no-contextual;

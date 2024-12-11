@@ -238,7 +238,13 @@ function bmTranslateCode(str, lang) {
 }
 
 codeInput.addEventListener('input', () => {
-    const result = bmTranslateCode(codeInput.value, 'c');
+    let result;
+    try {
+        result = bmTranslateCode(codeInput.value, 'c');
+    } catch (e) {
+        output.textContent = `Internal compiler error: ${e.message}\n\n${e.stack}`;
+        return;
+    }
     try {
         output.textContent = bmUtf8ToString(result);
     } finally {
