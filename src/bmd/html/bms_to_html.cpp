@@ -14,6 +14,8 @@ namespace {
 constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
 {
     using enum bms::Token_Type;
+    BIT_MANIPULATION_ASSERT(type != eof);
+
     switch (type) {
     case identifier: return Code_Span_Type::identifier;
 
@@ -83,6 +85,8 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
     case keyword_int:
     case keyword_bool:
     case keyword_void: return Code_Span_Type::type_name;
+
+    case eof: break;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
