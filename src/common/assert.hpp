@@ -36,17 +36,17 @@ struct Assertion_Error {
         ::bit_manipulation::Assertion_Error_Type::unreachable, ::std::string_view(__VA_ARGS__),    \
         ::std::source_location::current() })
 
-#if __has_cpp_attribute(assume)
+#if __cplusplus >= 202302L
+#define BIT_MANIPULATION_CPP23 1
+#endif
+
+#if defined(BIT_MANIPULATION_CPP23) && __has_cpp_attribute(assume)
 #define BIT_MANIPULATION_ASSUME(...) [[assume(__VA_ARGS__)]]
 #elif defined(__clang__)
 #define BIT_MANIPULATION_ASSUME(...) __builtin_assume(__VA_ARGS__)
 #else
 #define BIT_MANIPULATION_ASSUME(...)
 #endif
-
-#define M3DP_DEBUG_ASSERT(...)                                                                     \
-    M3DP_IF_DEBUG(M3DP_ASSERT(__VA_ARGS__))                                                        \
-    M3DP_IF_NOT_DEBUG(M3DP_ASSUME(__VA_ARGS__))
 
 } // namespace bit_manipulation
 
