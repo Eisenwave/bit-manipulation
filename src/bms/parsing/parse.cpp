@@ -394,15 +394,25 @@ public:
 
     Result<void, Parse_Error> operator()()
     {
-        if (auto program = match_program()) {
+        auto program = match_program();
+        if (program) {
             m_program.set_root_handle(m_program.push_node(std::move(*program)));
             return {};
         }
-        else {
-            const auto fail_token = m_pos < m_tokens.size() ? m_tokens[m_pos] : Token {};
-            const auto [fail_rule, expected_tokens] = program.error();
-            return Parse_Error { fail_rule, expected_tokens, fail_token };
-        }
+
+        const auto fail_token = [&]() -> Token {
+            if (m_pos < m_tokens.size()) {
+                return m_tokens[m_pos];
+            }
+            // empty programs are allowed, so having a parse error with no tokens makes no sense
+            BIT_MANIPULATION_ASSERT(m_tokens.size() != 0);
+            // only one-past-the-end position should be possible
+            BIT_MANIPULATION_ASSERT(m_pos == m_tokens.size());
+            return Token { { m_tokens.back().pos.end_pos(), 1 }, Token_Type::eof };
+        }();
+
+        const auto [fail_rule, expected_tokens] = program.error();
+        return Parse_Error { fail_rule, expected_tokens, fail_token };
     }
 
 private:

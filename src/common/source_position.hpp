@@ -39,11 +39,23 @@ struct Local_Source_Span : Local_Source_Position {
 
     [[nodiscard]] friend constexpr auto operator<=>(Local_Source_Span, Local_Source_Span) = default;
 
+    /// @brief Returns a span with the same properties except that the length is `l`.
+    [[nodiscard]] constexpr Local_Source_Span with_length(Size l) const
+    {
+        return { Local_Source_Position { *this }, l };
+    }
+
+    /// @brief Returns a span on the same line and with the same length, shifted to the right
+    /// by `offset` characters.
     [[nodiscard]] constexpr Local_Source_Span to_right(Size offset) const
     {
         return { { .line = line, .column = column + offset, .begin = begin + offset }, length };
     }
 
+    /// @brief Returns a span on the same line and with the same length, shifted to the left by
+    /// `offset` characters.
+    /// The `offset` shall not be greater than `this->column` or `this->begin`
+    /// (which would correspond to flowing off the beginning of the column or source).
     [[nodiscard]] constexpr Local_Source_Span to_left(Size offset) const
     {
         BIT_MANIPULATION_ASSERT(column >= offset);
@@ -66,6 +78,13 @@ struct Local_Source_Span : Local_Source_Position {
     [[nodiscard]] constexpr Size end() const
     {
         return begin + length;
+    }
+
+    /// @brief Returns the one-past-the-end position as a `Local_Source_Position`.
+    /// This position is assumed to be on the same line and one column past this span.
+    [[nodiscard]] constexpr Local_Source_Position end_pos() const
+    {
+        return { .line = line, .column = column + length, .begin = begin + length };
     }
 };
 

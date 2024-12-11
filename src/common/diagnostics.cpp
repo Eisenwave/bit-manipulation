@@ -636,7 +636,14 @@ std::ostream& print_file_position(std::ostream& out,
 
 std::string_view find_line(std::string_view source, Size index)
 {
-    BIT_MANIPULATION_ASSERT(index < source.size());
+    BIT_MANIPULATION_ASSERT(index <= source.size());
+
+    if (index == source.size() || source[index] == '\n') {
+        // Special case for EOF positions, which may be past the end of a line,
+        // and even past the end of the whole source, but only by a single character.
+        // For such positions, we yield the currently ended line.
+        --index;
+    }
 
     Size begin = source.rfind('\n', index);
     begin = begin != std::string_view::npos ? begin + 1 : 0;
@@ -670,11 +677,11 @@ std::ostream& print_affected_line(std::ostream& out,
         out << ansi::h_yellow;
     }
     out << std::right << std::setfill(' ') //
-        << std::setw(5) << pos.line + 1 << separator;
+        << std::setw(5) << pos.line + 1;
     if (colors) {
         out << ansi::reset;
     }
-    out << line << '\n' //
+    out << separator << line << '\n' //
         << std::setw(5) << "" << separator //
         << std::string(pos.column, ' ');
     if (colors) {
@@ -707,8 +714,11 @@ std::ostream& print_parse_error(std::ostream& out,
 {
     print_file_position(out, file, error.fail_token.pos, colors)
         << ": " << (colors ? colored_error_prefix : error_prefix);
-    out << "unexpected token " << token_type_readable_name(error.fail_token.type)
-        << " while matching '" << grammar_rule_name(error.fail_rule) << "'\n";
+
+    const std::string_view preamble
+        = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
+    out << preamble << token_type_readable_name(error.fail_token.type) << " while matching '"
+        << grammar_rule_name(error.fail_rule) << "'\n";
 
     print_file_position(out, file, error.fail_token.pos, colors) << ": " << //
         (colors ? colored_note_prefix : note_prefix) << "expected ";

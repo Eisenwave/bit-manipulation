@@ -9,6 +9,10 @@
 namespace bit_manipulation::bms {
 
 enum struct Token_Type : Default_Underlying {
+    // End of file token.
+    // This token type is symbolic and doesn't match any part of the language itself,
+    // but can be used to identify when the end of the file has been reached.
+    eof,
     // identifier
     identifier,
     // (

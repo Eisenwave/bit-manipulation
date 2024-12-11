@@ -11,6 +11,7 @@ namespace bit_manipulation::bms {
     using enum Token_Type;
 
     switch (type) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(eof);
         BIT_MANIPULATION_ENUM_STRING_CASE(identifier);
         BIT_MANIPULATION_ENUM_STRING_CASE(left_parenthesis);
         BIT_MANIPULATION_ENUM_STRING_CASE(right_parenthesis);
@@ -78,6 +79,7 @@ namespace bit_manipulation::bms {
     using enum Token_Type;
 
     switch (type) {
+    case eof: return "end of file";
     case identifier: return "identifier";
     case left_parenthesis: return "'('";
     case right_parenthesis: return "')'";
@@ -201,8 +203,10 @@ namespace bit_manipulation::bms {
 [[nodiscard]] Size token_type_length(Token_Type type)
 {
     using enum Token_Type;
+    BIT_MANIPULATION_ASSERT(type != eof);
 
     switch (type) {
+    case eof:
     case identifier:
     case binary_literal:
     case octal_literal:
