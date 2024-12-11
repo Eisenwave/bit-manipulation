@@ -17,6 +17,7 @@ if(DEFINED EMSCRIPTEN)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wmissing-declarations)
 #    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+    add_compile_definitions($<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(WARNING_OPTIONS ${LLVM_WARNING_OPTIONS})
 #    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
@@ -149,11 +150,11 @@ if(DEFINED EMSCRIPTEN)
         "SHELL:-s SIDE_MODULE=0"
         "-stdlib=libc++"
         "-Os"
-        "-fno-exceptions"
+#       "-fno-exceptions"
     )
     target_link_options(bm-wasm PRIVATE
         "-Os"
-        "-fno-exceptions"
+#       "-fno-exceptions"
         "-static-libc++"
         "-stdlib=libc++"
         "SHELL:-s WASM=1"
