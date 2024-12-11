@@ -261,6 +261,10 @@ public:
 
         Instance(std::pmr::vector<int>&& widths, Some_Node* handle);
 
+        Function& function();
+
+        const Function& function() const;
+
         bool has_widths(const Widths& w) const noexcept
         {
             for (Size i = 0; i < widths.size(); ++i) {
@@ -1103,6 +1107,16 @@ struct Some_Node : Some_Node_Variant {
 
 static_assert(std::is_move_constructible_v<Some_Node>);
 static_assert(std::is_copy_constructible_v<Some_Node>);
+
+inline Function& Function::Instance::function()
+{
+    return get<Function>(*handle);
+}
+
+inline const Function& Function::Instance::function() const
+{
+    return get<Function>(*handle);
+}
 
 inline Type& Function::get_return_type()
 {
