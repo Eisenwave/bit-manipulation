@@ -543,22 +543,22 @@ private:
 
     Rule_Result match_program()
     {
-        auto first = match_program_declaration();
-        if (!first) {
-            return first;
-        }
         std::pmr::vector<astp::Handle> declarations(m_program.get_memory());
-        declarations.push_back(m_program.push_node(std::move(*first)));
 
+        Local_Source_Span first_pos {};
+        BIT_MANIPULATION_ASSERT(first_pos.empty());
         while (!eof()) {
             auto d = match_program_declaration();
             if (!d) {
                 return d;
             }
+            if (first_pos.empty()) {
+                first_pos = get_source_position(*d);
+                BIT_MANIPULATION_ASSERT(!first_pos.empty());
+            }
             declarations.push_back(m_program.push_node(std::move(*d)));
         }
-        return astp::Some_Node { astp::Program { get_source_position(*first),
-                                                 std::move(declarations) } };
+        return astp::Some_Node { astp::Program { first_pos, std::move(declarations) } };
     }
 
     Rule_Result match_program_declaration()

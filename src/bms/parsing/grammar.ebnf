@@ -1,5 +1,5 @@
 program
-    = declaration, { declaration };
+    = { declaration };
 
 program_declaration
     = const_declaration
