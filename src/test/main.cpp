@@ -183,6 +183,13 @@ TEST(BMS_Parse_Error, let_no_type_no_init)
     EXPECT_TRUE(test_for_diagnostic("parse_error/let_no_type_no_init.bms", expectations));
 }
 
+TEST(BMS_Parse_Error, missing_semicolon_eof)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .line = 1, .token_type = bms::Token_Type::eof };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/missing_semicolon_eof.bms", expectations));
+}
+
 TEST(BMS_Parse_Error, nameless_function)
 {
     constexpr Parse_Error_Expectations expectations //
