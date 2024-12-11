@@ -241,8 +241,8 @@ public:
     }
 
     template <typename T>
-    Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         requires has_alternative_v<Variant, std::remove_cvref_t<T>>
+    Variant(T&& other) noexcept(noexcept(T(std::forward<T>(other))))
         : m_index(pack_first_index_of_v<std::remove_cvref_t<T>, Ts...>)
     {
         std::construct_at(reinterpret_cast<std::remove_reference_t<T>*>(m_storage),
