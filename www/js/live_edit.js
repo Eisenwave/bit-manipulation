@@ -5,6 +5,7 @@ const whileDraggingClass = 'while-dragging';
 const separator = document.getElementById('separator');
 const splitVerticalButton = document.getElementById('button-split-vertical');
 const splitHorizontalButton = document.getElementById('button-split-horizontal');
+/** @type {HTMLTextAreaElement} */
 const codeInput = document.getElementById('code-input');
 const inputLineNumbers = document.getElementById('input-line-numbers');
 const output = document.getElementById('output');
@@ -236,6 +237,55 @@ function bmTranslateCode(str, lang) {
     const resultAddress = wasm.instance.exports.bm_translate_code_result.value;
     return bmDecodeAllocationAt(resultAddress);
 }
+
+const indent = '    ';
+
+/**
+ * Insert a string into this string at a given index.
+ * @param {string} str the string to insert
+ * @param {number} index the index at which to insert, where `0` means prepending before the string
+ * @returns {string}
+ */
+String.prototype.insertAt = function (str, index) {
+    return this.substring(0, index) + str + this.substring(index);
+}
+
+String.prototype.removeAt = function (amount, index) {
+    return this.substring(0, index) + this.substring(index + amount);
+}
+
+String.prototype.indexNotOf = function (c, position) {
+    for (let i = position ?? 0; i < this.length; ++i) {
+        if (this[i] != c) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+codeInput.addEventListener('keydown', (e) => {
+    if (e.key == 'Tab') {
+        e.preventDefault();
+        const start = codeInput.selectionStart;
+        const end = codeInput.selectionEnd;
+
+        const beforeLineStart = codeInput.value.lastIndexOf('\n', Math.max(0, start - 1));
+        if (e.shiftKey) {
+            const firstNonIndent = codeInput.value.indexNotOf(' ', beforeLineStart + 1);
+            if (firstNonIndent >= 0) {
+                const currentIndentLength
+                    = firstNonIndent - (beforeLineStart + 1);
+                const removalSize = Math.min(currentIndentLength, indent.length);
+                codeInput.value = codeInput.value.removeAt(removalSize, beforeLineStart + 1);
+                codeInput.setSelectionRange(start - removalSize, end - removalSize);
+            }
+        } else {
+            // this is actually correct even if '\n' couldn't be found and -1 is returned
+            codeInput.value = codeInput.value.insertAt(indent, beforeLineStart + 1);
+            codeInput.setSelectionRange(start + indent.length, end + indent.length);
+        }
+    }
+})
 
 codeInput.addEventListener('input', () => {
     let result;
