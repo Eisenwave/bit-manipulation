@@ -32,6 +32,15 @@ struct Return_Analyzer {
 
     Result<bool, Analysis_Error> operator()(const ast::Function& function) const
     {
+        if (function.is_generic) {
+            for (const ast::Function::Instance& instance : function.instances) {
+                if (auto r = Return_Analyzer { m_program, instance.handle }(instance.function());
+                    !r) {
+                    return r;
+                }
+            }
+            return false;
+        }
         // we intentionally don't require functions to have been analyzed here
         // because it's only required that the function body and return type was analyzed,
         // not the function itself
@@ -83,6 +92,7 @@ struct Return_Analyzer {
                     .cause(children[i])
                     .build();
             }
+            return r;
         }
         return false;
     }
@@ -137,6 +147,9 @@ Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
                                                const ast::Function& f)
 {
     BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &f);
+    // We cannot obtain a meaningful result for generic functions because whether they return
+    // may depend on the individual instantiation.
+    BIT_MANIPULATION_ASSERT(!f.is_generic);
     return Return_Analyzer { program, function_node }(f);
 }
 
