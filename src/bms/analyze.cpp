@@ -488,6 +488,7 @@ private:
                 }
                     .fail(handle)
                     .cause(function->get_return_type_node())
+                    .type(return_type)
                     .build();
             }
             node.const_value() = Concrete_Value::Void;
@@ -504,6 +505,7 @@ private:
             return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                 .fail(handle)
                 .cause(function->get_return_type_node())
+                .type(return_type)
                 .build();
         }
         const Result<Value, Evaluation_Error_Code> eval_result
