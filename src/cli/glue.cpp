@@ -64,7 +64,7 @@ std::string_view highlight_color_of(bmd::Code_Span_Type type)
     case diagnostic_text:
     case diagnostic_code_citation:
     case diagnostic_punctuation:
-    case diagnostic_operator: return "";
+    case diagnostic_operator: return ansi::reset;
 
     case diagnostic_code_position: return ansi::h_black;
 
