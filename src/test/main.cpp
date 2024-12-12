@@ -116,6 +116,11 @@ TEST(Valid_BMS, if_expression)
     EXPECT_TRUE(test_for_success("valid_bms/if_expression.bms"));
 }
 
+TEST(Valid_BMS, implicit_return_type)
+{
+    EXPECT_TRUE(test_for_success("valid_bms/implicit_return_type.bms"));
+}
+
 TEST(Valid_BMS, loop)
 {
     EXPECT_TRUE(test_for_success("valid_bms/loop.bms"));
@@ -560,12 +565,20 @@ TEST(BMS_Analysis_Error, incompatible_types_in_binary_expression)
                                     expectations));
 }
 
-TEST(BMS_Analysis_Error, incompatible_types_return_value_in_void)
+TEST(BMS_Analysis_Error, incompatible_types_return_value_in_void_explicit)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 3, .cause_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/return_value_in_void.bms",
-                                    expectations));
+    EXPECT_TRUE(test_for_diagnostic(
+        "analysis_error/incompatible_types/return_value_in_void_explicit.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, incompatible_types_return_value_in_void_implicit)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 3, .cause_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic(
+        "analysis_error/incompatible_types/return_value_in_void_implicit.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, incompatible_types_in_return)
