@@ -563,7 +563,7 @@ TEST(BMS_Analysis_Error, incompatible_types_in_binary_expression)
 TEST(BMS_Analysis_Error, incompatible_types_return_value_in_void)
 {
     static const Analysis_Error_Expectations expectations //
-        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 2, .cause_line = 1 };
+        { .code = bms::Analysis_Error_Code::incompatible_types, .fail_line = 3, .cause_line = 1 };
     EXPECT_TRUE(test_for_diagnostic("analysis_error/incompatible_types/return_value_in_void.bms",
                                     expectations));
 }
