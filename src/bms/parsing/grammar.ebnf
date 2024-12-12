@@ -15,7 +15,7 @@ initializer
 function_declaration
     = [annotation_sequence], "function", identifier, function_header, block_statement;
 function_header
-    = "(", [parameter_sequence], ")", "->", type, [requires_clause];
+    = "(", [parameter_sequence], ")", ["->", type], [requires_clause];
 requires_clause
     = "requires", expression;
 parameter_sequence

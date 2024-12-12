@@ -134,10 +134,12 @@ private:
                 return r;
             }
         }
-        if (auto r = analyze_types(node.get_return_type_node(), node.get_return_type(), level,
-                                   Expression_Context::normal);
-            !r) {
-            return r;
+        if (node.get_return_type_node() != nullptr) {
+            if (auto r = analyze_types(node.get_return_type_node(), node.get_return_type(), level,
+                                       Expression_Context::normal);
+                !r) {
+                return r;
+            }
         }
         auto scope = push_function(&node);
 
@@ -203,7 +205,8 @@ private:
             }
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
-        node.const_value() = get_const_value(*node.get_return_type_node());
+        node.const_value()
+            = node.get_return_type_node() ? node.get_return_type().const_value() : Value::Void;
         node.analysis_so_far = level;
         return {};
     }
@@ -479,7 +482,7 @@ private:
         }
         BIT_MANIPULATION_ASSERT(node.is_return());
 
-        const Concrete_Type return_type = function->get_return_type().concrete_type().value();
+        const Concrete_Type return_type = function->get_concrete_return_type();
 
         if (!node.get_expression_node()) {
             if (return_type != Concrete_Type::Void) {
@@ -504,7 +507,7 @@ private:
         if (!expr_value->get_type().is_convertible_to(return_type)) {
             return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                 .fail(handle)
-                .cause(function->get_return_type_node())
+                .cause(function->get_return_type_debug_info())
                 .type(return_type)
                 .build();
         }

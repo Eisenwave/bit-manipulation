@@ -48,7 +48,7 @@ struct Return_Analyzer {
         if (!r) {
             return r;
         }
-        if (!*r && function.get_return_type().get_type() != Type_Type::Void) {
+        if (!*r && function.get_concrete_return_type() != Concrete_Type::Void) {
             return Analysis_Error_Builder { Analysis_Error_Code::no_return }.fail(m_node).build();
         }
         return r;

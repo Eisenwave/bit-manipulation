@@ -175,10 +175,11 @@ private:
                 return r;
             }
         }
-        if (auto r
-            = analyze_symbols_local(node.get_return_type_node(), table, node.get_return_type());
-            !r) {
-            return r;
+        if (auto* return_type = node.get_return_type_node()) {
+            if (auto r = analyze_symbols_local(return_type, table, get<ast::Type>(*return_type));
+                !r) {
+                return r;
+            }
         }
         if (auto r = analyze_symbols_local(node.get_requires_clause_node(), table); !r) {
             return r;

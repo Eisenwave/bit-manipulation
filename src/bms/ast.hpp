@@ -386,6 +386,17 @@ public:
     {
         return { Construct::function, get_position(), get_name() };
     }
+
+    /// @brief Returns debug info for the return type.
+    /// This function is safe to call even if there is no declared return type,
+    /// in which case info with `Construct::implicit_type` is returned.
+    [[nodiscard]] Debug_Info get_return_type_debug_info() const;
+
+    /// @brief Returns the return type of this function as a `Concrete_Type`.
+    /// The declared return type (if any) shall have been analyzed,
+    /// and this function shall not be generic.
+    /// If no return type was declared, `Concrete_Type::Void` is returned.
+    [[nodiscard]] Concrete_Type get_concrete_return_type() const;
 };
 
 struct Type final : detail::Node_Base, detail::Parent<1> {
@@ -1138,6 +1149,27 @@ inline const Block_Statement& Function::get_body() const
 {
     BIT_MANIPULATION_ASSERT(get_body_node());
     return get<Block_Statement>(*get_body_node());
+}
+
+inline Debug_Info Function::get_return_type_debug_info() const
+{
+    if (m_return_type) {
+        return get_return_type().get_debug_info();
+    }
+    else {
+        return { Construct::implicit_type, get_position() };
+    }
+}
+
+inline Concrete_Type Function::get_concrete_return_type() const
+{
+    BIT_MANIPULATION_ASSERT(!is_generic);
+    if (!m_return_type) {
+        return Concrete_Type::Void;
+    }
+    const ast::Type& type = get_return_type();
+    BIT_MANIPULATION_ASSERT(type.was_analyzed());
+    return type.concrete_type().value();
 }
 
 inline Type& Let::get_type()

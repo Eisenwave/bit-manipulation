@@ -12,6 +12,7 @@ enum struct Construct : Default_Underlying {
     function,
     parameter,
     type,
+    implicit_type,
     constant,
     variable,
     static_assertion,
@@ -34,6 +35,11 @@ enum struct Construct : Default_Underlying {
     annotation_argument,
     annotation_parameter
 };
+
+[[nodiscard]] constexpr bool construct_is_type(bms::Construct construct) noexcept
+{
+    return construct == bms::Construct::type || construct == bms::Construct::implicit_type;
+}
 
 struct Debug_Info {
     Construct construct;

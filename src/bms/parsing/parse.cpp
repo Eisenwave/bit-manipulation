@@ -155,7 +155,6 @@ Function::Function(Local_Source_Span pos,
     , Parent<5> { annotations, parameters, return_type, requires_clause, body }
     , name(name)
 {
-    BIT_MANIPULATION_ASSERT(return_type != astp::Handle::null);
     BIT_MANIPULATION_ASSERT(body != astp::Handle::null);
 }
 
@@ -544,6 +543,8 @@ private:
         return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
     }
 
+    void push_or_null(const astp::Some_Node&) = delete;
+
     /// @brief Pushes the node and returns the corresponding handle if the node is not null,
     /// otherwise returns `null`.
     [[nodiscard]] astp::Handle push_or_null(astp::Some_Node* node)
@@ -717,8 +718,7 @@ private:
             return Rule_Error { this_rule, const_array_one_v<Token_Type::left_parenthesis> };
         }
 
-        // TODO: refactor to match_and_push_if
-        auto parameters = astp::Handle::null;
+        std::optional<astp::Some_Node> parameters;
         if (!peek(Token_Type::right_parenthesis)) {
             // By first checking whether there is no right parenthesis, we can ensure that there
             // must be parameters.
@@ -728,37 +728,32 @@ private:
             if (!r) {
                 return r;
             }
-            parameters = m_program.push_node(std::move(*r));
+            parameters = std::move(*r);
         }
 
         if (!expect(Token_Type::right_parenthesis)) {
             return Rule_Error { this_rule, const_array_one_v<Token_Type::right_parenthesis> };
         }
-        if (!expect(Token_Type::right_arrow)) {
-            return Rule_Error { this_rule, const_array_one_v<Token_Type::right_arrow> };
-        }
-        auto ret = match_type();
-        if (!ret) {
-            return ret;
-        }
-        // TODO: refactor to match_and_push_if
-        auto requires_handle = astp::Handle::null;
-        if (peek(Token_Type::keyword_requires)) {
-            if (auto req = match_requires_clause()) {
-                requires_handle = m_program.push_node(std::move(*req));
+        std::optional<astp::Some_Node> return_type;
+        if (expect(Token_Type::right_arrow)) {
+            auto r = match_type();
+            if (!r) {
+                return r;
             }
-            else {
-                return req;
-            }
+            return_type = std::move(*r);
         }
+
+        auto requires_clause
+            = optionally_match(&Parser::match_requires_clause, peek(Token_Type::keyword_requires));
         auto body = match_block_statement();
         if (!body) {
             return body;
         }
         return astp::Some_Node { astp::Function {
             t->pos, m_program.extract(name->pos), //
-            push_or_null(annotations), parameters, m_program.push_node(std::move(*ret)),
-            requires_handle, m_program.push_node(std::move(*body)) } };
+            push_or_null(annotations), push_or_null(std::move(parameters)),
+            push_or_null(std::move(return_type)), push_or_null(std::move(*requires_clause)),
+            m_program.push_node(std::move(*body)) } };
     }
 
     Rule_Result match_parameter_sequence()
