@@ -444,6 +444,7 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     case function: return "function";
     case parameter: return "function parameter";
     case type: return "type";
+    case implicit_type: return "implicit type";
     case constant: return "constant";
     case variable: return "variable";
     case static_assertion: return "static assertion";
@@ -477,16 +478,23 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     if (is_incompatible_return_type_error(error)) {
         BIT_MANIPULATION_ASSERT(error.cause());
         BIT_MANIPULATION_ASSERT(error.type());
+        BIT_MANIPULATION_ASSERT(construct_is_type(*error.cause_construct()));
+
         const bool is_void = error.type() == bms::Concrete_Type::Void;
 
         result.lines.push_back(
             { Error_Line_Type::error, error.fail_pos(),
               is_void ? "Cannot have non-empty return statement in a function returning Void."
                       : "Invalid conversion between return statement and return type." });
+        if (is_void) {
+            result.lines.push_back({ Error_Line_Type::note, error.fail_pos(),
+                                     "Use 'return;' to return from a Void function." });
+        }
         result.lines.push_back(
             { Error_Line_Type::note, error.cause_pos(),
-              is_void ? "Did you mean to 'return;' or declare the return type 'Void'?"
-                      : "Return type is declared here:" });
+              error.cause_construct() == bms::Construct::implicit_type
+                  ? "This function implicitly returns Void because no return type was specified:"
+                  : "Return type is declared here:" });
         return result;
     }
     if (error.code() == bms::Analysis_Error_Code::width_invalid) {
