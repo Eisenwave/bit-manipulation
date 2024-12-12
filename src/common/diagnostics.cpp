@@ -1,4 +1,5 @@
 #include <charconv>
+#include <functional>
 #include <iomanip>
 #include <span>
 
@@ -584,15 +585,14 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     return result;
 }
 
-void print_source_position(bmd::Code_String& out,
-                           const std::optional<Source_Position>& pos,
-                           bool colors)
+void print_source_position(bmd::Code_String& out, const std::optional<Source_Position>& pos)
 {
     if (!pos) {
-        out.append("(internal)", bmd::Code_Span_Type::diagnostic_code_position);
+        out.append("(internal):", bmd::Code_Span_Type::diagnostic_code_position);
     }
     else {
-        print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
+        constexpr bool colon_suffix = true;
+        print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colon_suffix);
     }
 }
 
@@ -610,6 +610,41 @@ print_source_position(std::ostream& out, const std::optional<Source_Position>& p
         return out;
     }
     return print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
+}
+
+void print_printable_error(bmd::Code_String& out, const Printable_Error& error)
+{
+    for (const Error_Line& line : error.lines) {
+        print_source_position(out, line.pos);
+        out.append(' ');
+        switch (line.type) {
+        case Error_Line_Type::error:
+            out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+            break;
+        case Error_Line_Type::note:
+            out.append(note_prefix_x, bmd::Code_Span_Type::diagnostic_note);
+            break;
+        }
+        out.append(' ');
+        out.append(line.message, bmd::Code_Span_Type::diagnostic_text);
+
+        if (line.comp) {
+            out.append(line.comp->left, bmd::Code_Span_Type::diagnostic_operand);
+            out.append(' ');
+            out.append(line.comp->op, bmd::Code_Span_Type::diagnostic_operator);
+            out.append(' ');
+            out.append(line.comp->right, bmd::Code_Span_Type::diagnostic_operand);
+        }
+
+        out.append('\n');
+        if (line.pos && !line.omit_affected_line) {
+            print_affected_line(out, error.source, *line.pos);
+        }
+    }
+
+    if (error.is_internal) {
+        print_internal_error_notice(out);
+    }
 }
 
 std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error, bool colors)
@@ -742,8 +777,6 @@ void print_affected_line(bmd::Code_String& out,
                          std::string_view source,
                          const Local_Source_Position& pos)
 {
-    constexpr std::string_view separator = " | ";
-
     const std::string_view line = find_line(source, pos.begin);
     with_stringified(pos.line + 1, [&](std::string_view s) {
         constexpr Size pad_max = 6;
@@ -930,6 +963,14 @@ std::ostream& print_parse_error(std::ostream& out,
     }
 
     return print_affected_line(out, source, error.pos, colors);
+}
+
+void print_analysis_error(bmd::Code_String& out,
+                          const bms::Parsed_Program& program,
+                          const bms::Analysis_Error& error)
+{
+    const auto printable = make_error_printable(program, error);
+    return print_printable_error(out, printable);
 }
 
 std::ostream& print_analysis_error(std::ostream& out,

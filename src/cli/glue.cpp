@@ -60,6 +60,27 @@ std::string_view highlight_color_of(bmd::Code_Span_Type type)
     case boolean_literal: return ansi::h_magenta;
 
     case error: return ansi::h_red;
+
+    case diagnostic_text:
+    case diagnostic_code_citation:
+    case diagnostic_punctuation:
+    case diagnostic_operator: return "";
+
+    case diagnostic_code_position: return ansi::h_black;
+
+    case diagnostic_error_text:
+    case diagnostic_error: return ansi::h_red;
+
+    case diagnostic_warning:
+    case diagnostic_line_number: return ansi::h_yellow;
+
+    case diagnostic_note: return ansi::h_white;
+
+    case diagnostic_position_indicator: return ansi::h_green;
+
+    case diagnostic_internal_error_notice: return ansi::h_yellow;
+
+    case diagnostic_operand: return ansi::h_magenta;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
 }

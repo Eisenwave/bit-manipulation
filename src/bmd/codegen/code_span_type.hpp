@@ -34,7 +34,9 @@ enum struct Code_Span_Type : Default_Underlying {
     diagnostic_punctuation,
     diagnostic_position_indicator,
     diagnostic_code_citation,
-    diagnostic_internal_error_notice
+    diagnostic_internal_error_notice,
+    diagnostic_operand,
+    diagnostic_operator
 };
 
 /// @brief Returns the HTML (custom) tag name corresponding to the given `type`.
@@ -64,6 +66,8 @@ constexpr std::string_view code_span_type_tag(Code_Span_Type type)
     case diagnostic_position_indicator: return "c-dpi";
     case diagnostic_code_citation: return "c-cct";
     case diagnostic_internal_error_notice: return "c-die";
+    case diagnostic_operand: return "c-dor";
+    case diagnostic_operator: return "c-dop";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
