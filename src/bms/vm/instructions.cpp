@@ -23,6 +23,7 @@ std::ostream& operator<<(std::ostream& out, const Concrete_Type& type)
 std::ostream& operator<<(std::ostream& out, const Concrete_Value& value)
 {
     switch (value.type.type()) {
+    case Type_Type::Nothing: return out << "Nothing";
     case Type_Type::Void: return out << "Void";
     case Type_Type::Bool: return out << (value.int_value ? "true" : "false");
     case Type_Type::Int: return out << to_string(value.int_value);

@@ -1500,7 +1500,16 @@ private:
         constexpr auto this_rule = Grammar_Rule::type;
         static constexpr Token_Type expected[]
             = { Token_Type::keyword_void, Token_Type::keyword_bool, Token_Type::keyword_int,
-                Token_Type::keyword_uint };
+                Token_Type::keyword_uint, Token_Type::keyword_nothing };
+
+        for (const auto simple_type : { Token_Type::keyword_void, Token_Type::keyword_bool,
+                                        Token_Type::keyword_int, Token_Type::keyword_nothing }) {
+
+            if (const Token* t = expect(simple_type)) {
+                return astp::Some_Node { astp::Type { t->pos, token_type_type_type(simple_type),
+                                                      astp::Handle::null } };
+            }
+        }
 
         if (const Token* t = expect(Token_Type::keyword_void)) {
             return astp::Some_Node { astp::Type { t->pos, Type_Type::Void, astp::Handle::null } };

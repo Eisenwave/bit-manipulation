@@ -3,6 +3,7 @@
 #include "bms/expression_type.hpp"
 #include "bms/parsing/grammar.hpp"
 #include "bms/tokenization/token_type.hpp"
+#include "bms/type_type.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -63,6 +64,7 @@ namespace bit_manipulation::bms {
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_int);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_bool);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_void);
+        BIT_MANIPULATION_ENUM_STRING_CASE(keyword_nothing);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_requires);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_return);
         BIT_MANIPULATION_ENUM_STRING_CASE(keyword_break);
@@ -131,6 +133,7 @@ namespace bit_manipulation::bms {
     case keyword_int: return "'Int'";
     case keyword_bool: return "'Bool'";
     case keyword_void: return "'Void'";
+    case keyword_nothing: return "'Nothing'";
     case keyword_requires: return "'requires'";
     case keyword_return: return "'return'";
     case keyword_break: return "'break'";
@@ -268,6 +271,8 @@ namespace bit_manipulation::bms {
 
     case keyword_return: return 6;
 
+    case keyword_nothing: return 7;
+
     case keyword_function:
     case keyword_requires:
     case keyword_continue: return 8;
@@ -275,6 +280,19 @@ namespace bit_manipulation::bms {
     case keyword_static_assert: return 13;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid token type");
+}
+
+[[nodiscard]] Type_Type token_type_type_type(Token_Type type)
+{
+    using enum Token_Type;
+    switch (type) {
+    case keyword_nothing: return Type_Type::Nothing;
+    case keyword_void: return Type_Type::Void;
+    case keyword_int: return Type_Type::Int;
+    case keyword_bool: return Type_Type::Bool;
+    case keyword_uint: return Type_Type::Uint;
+    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Token_Type does not correspond to a type.");
+    }
 }
 
 [[nodiscard]] bool is_comment(Token_Type type)

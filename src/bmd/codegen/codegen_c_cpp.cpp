@@ -226,6 +226,9 @@ to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Cpp_Dia
 
     using enum bms::Type_Type;
     switch (type.type()) {
+    // TODO: both Nothing and Void correspond to void, but we should also emit _Noreturn
+    //       or [[noreturn]] for these languages
+    case Nothing:
     case Void: return C_Cpp_Type { C_Cpp_Type_Type::void_ };
     case Int: return C_Cpp_Type { C_Cpp_Type_Type::int_ };
     case Bool: return C_Cpp_Type { C_Cpp_Type_Type::bool_ };

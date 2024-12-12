@@ -128,6 +128,6 @@ unary_operator
     = "+" | "-" | "!" | "~";
 
 type
-    = "Bool" | "Int" | "Void" | uint;
+    = "Bool" | "Int" | "Void" | "Nothing" | uint;
 uint
     = "Uint", parenthesized_expression;

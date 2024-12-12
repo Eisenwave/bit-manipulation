@@ -6,6 +6,8 @@
 
 #include "common/config.hpp"
 
+#include "bms/fwd.hpp"
+
 namespace bit_manipulation::bms {
 
 enum struct Token_Type : Default_Underlying {
@@ -115,6 +117,8 @@ enum struct Token_Type : Default_Underlying {
     keyword_bool,
     // Void,
     keyword_void,
+    // Nothing
+    keyword_nothing,
     // requires
     keyword_requires,
     // return
@@ -154,6 +158,10 @@ enum struct Token_Type : Default_Underlying {
 [[nodiscard]] std::string_view token_type_code_name(Token_Type type) noexcept;
 
 [[nodiscard]] Size token_type_length(Token_Type type);
+
+/// @brief Returns the corresponding `Type_Type`.
+/// For example, `keyword_void` corresponds to `Type_Type::Void`.
+[[nodiscard]] Type_Type token_type_type_type(Token_Type type);
 
 [[nodiscard]] bool is_comment(Token_Type type);
 

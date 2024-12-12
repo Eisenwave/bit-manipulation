@@ -47,6 +47,10 @@ void append_type(Code_String& out, const bms::Concrete_Type& type)
 {
     using enum bms::Type_Type;
     switch (type.type()) {
+        // TODO: maybe we can reduce redundancy here a bit
+    case Nothing: //
+        out.append("Nothing", Code_Span_Type::keyword);
+        return;
     case Void: //
         out.append("Void", Code_Span_Type::keyword);
         return;

@@ -8,34 +8,13 @@
 #include "common/assert.hpp"
 #include "common/config.hpp"
 
+#include "bms/type_type.hpp"
+
 namespace bit_manipulation::bms {
-
-/// @brief A type in the BMS language, without specified width.
-enum struct Type_Type : Default_Underlying {
-    /// @brief A type with no values.
-    Void,
-    /// @brief A boolean type: true or false.
-    Bool,
-    /// @brief An infinite precision integer.
-    Int,
-    /// @brief An arbitrary precision unsigned integer.
-    Uint,
-};
-
-[[nodiscard]] constexpr std::string_view type_type_name(Type_Type type)
-{
-    using enum Type_Type;
-    switch (type) {
-        BIT_MANIPULATION_ENUM_STRING_CASE(Void);
-        BIT_MANIPULATION_ENUM_STRING_CASE(Bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(Int);
-        BIT_MANIPULATION_ENUM_STRING_CASE(Uint);
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type type.");
-}
 
 /// @brief A type in the BMS language, with specified width in the case of `Uint`.
 struct Concrete_Type {
+    static const Concrete_Type Nothing;
     static const Concrete_Type Void;
     static const Concrete_Type Bool;
     static const Concrete_Type Int;
@@ -93,6 +72,7 @@ public:
     [[nodiscard]] constexpr Big_Uint get_mask() const
     {
         switch (m_type) {
+        case Type_Type::Nothing:
         case Type_Type::Void: return 0;
         case Type_Type::Bool: return 1;
         case Type_Type::Int: return Big_Uint(-1);
@@ -108,7 +88,8 @@ public:
     //       negatives
     [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
     {
-        return m_type != Type_Type::Void && (Big_Uint(value) & ~get_mask()) == 0;
+        return m_type != Type_Type::Nothing && m_type != Type_Type::Void
+            && (Big_Uint(value) & ~get_mask()) == 0;
     }
 
     /// @brief Returns `true` if this type is an `Int` or a `Uint` of any width.
@@ -124,6 +105,7 @@ public:
     }
 };
 
+inline constexpr Concrete_Type Concrete_Type::Nothing { Type_Type::Nothing, 0 };
 inline constexpr Concrete_Type Concrete_Type::Void { Type_Type::Void, 0 };
 inline constexpr Concrete_Type Concrete_Type::Bool { Type_Type::Bool, 0 };
 inline constexpr Concrete_Type Concrete_Type::Int { Type_Type::Int, 0 };

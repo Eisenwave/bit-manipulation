@@ -84,7 +84,8 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
     case keyword_uint:
     case keyword_int:
     case keyword_bool:
-    case keyword_void: return Code_Span_Type::type_name;
+    case keyword_void:
+    case keyword_nothing: return Code_Span_Type::type_name;
 
     case eof: break;
     }
