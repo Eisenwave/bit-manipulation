@@ -98,6 +98,61 @@ public:
         m_text.push_back(c);
     }
 
+    struct [[nodiscard]] Scoped_Builder {
+    private:
+        Code_String& self;
+        Size initial_size;
+        Code_Span_Type type;
+
+    public:
+        Scoped_Builder(Code_String& self, Code_Span_Type type)
+            : self { self }
+            , initial_size { self.m_text.size() }
+            , type { type }
+        {
+        }
+
+        ~Scoped_Builder() noexcept(false)
+        {
+            BIT_MANIPULATION_ASSERT(self.m_text.size() >= initial_size);
+            Size length = self.m_text.size() - initial_size;
+            if (length != 0) {
+                self.m_spans.push_back({ .begin = initial_size,
+                                         .length = self.m_text.size() - initial_size,
+                                         .type = type });
+            }
+        }
+
+        Scoped_Builder(const Scoped_Builder&) = delete;
+        Scoped_Builder& operator=(const Scoped_Builder&) = delete;
+
+        Scoped_Builder& append(char c)
+        {
+            self.append(c);
+            return *this;
+        }
+
+        Scoped_Builder& append(std::string_view text)
+        {
+            self.append(text);
+            return *this;
+        }
+    };
+
+    /// @brief Starts building a single code span out of multiple parts which will be fused
+    /// together.
+    /// For example:
+    /// ```
+    /// string.build(Code_Span_Type::identifier)
+    ///     .append("m_")
+    ///     .append(name);
+    /// ```
+    /// @param type the type of the appended span as a whole
+    Scoped_Builder build(Code_Span_Type type) &
+    {
+        return { *this, type };
+    }
+
     [[nodiscard]] std::string_view get_text() const
     {
         return { m_text.data(), m_text.size() };

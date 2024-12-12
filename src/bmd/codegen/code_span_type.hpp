@@ -24,6 +24,17 @@ enum struct Code_Span_Type : Default_Underlying {
     keyword,
     boolean_literal,
     error,
+    diagnostic_text,
+    diagnostic_error_text,
+    diagnostic_code_position,
+    diagnostic_error,
+    diagnostic_warning,
+    diagnostic_note,
+    diagnostic_line_number,
+    diagnostic_punctuation,
+    diagnostic_position_indicator,
+    diagnostic_code_citation,
+    diagnostic_internal_error_notice
 };
 
 /// @brief Returns the HTML (custom) tag name corresponding to the given `type`.
@@ -42,6 +53,17 @@ constexpr std::string_view code_span_type_tag(Code_Span_Type type)
     case keyword: return "c-key";
     case boolean_literal: return "c-bol";
     case error: return "c-err";
+    case diagnostic_text: return "c-dtx";
+    case diagnostic_error_text: return "c-det";
+    case diagnostic_code_position: return "c-dcp";
+    case diagnostic_error: return "c-der";
+    case diagnostic_warning: return "c-dwr";
+    case diagnostic_note: return "c-dnt";
+    case diagnostic_line_number: return "c-dln";
+    case diagnostic_punctuation: return "c-dpc";
+    case diagnostic_position_indicator: return "c-dpi";
+    case diagnostic_code_citation: return "c-cct";
+    case diagnostic_internal_error_notice: return "c-die";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
