@@ -172,10 +172,17 @@ struct Bms_Code_Generator::Visitor {
                 }
             }
         }
-        self.write_infix_operator(bms::Token_Type::right_arrow, Code_Span_Type::punctuation);
-        if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
-            !r) {
-            return r;
+        if (function.get_return_type_node()) {
+            self.write_infix_operator(bms::Token_Type::right_arrow, Code_Span_Type::punctuation);
+            if (auto r
+                = Visitor { self, function.get_return_type_node() }(function.get_return_type());
+                !r) {
+                return r;
+            }
+        }
+        else if (self.m_options.return_types == Return_Type_Policy::always) {
+            self.write_infix_operator(bms::Token_Type::right_arrow, Code_Span_Type::punctuation);
+            self.write_keyword(bms::Token_Type::keyword_void);
         }
 
         self.separate_after_function();

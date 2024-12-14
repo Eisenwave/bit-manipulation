@@ -12,7 +12,7 @@
 
 namespace bit_manipulation::bmd {
 
-enum struct Brace_Style { allman, k_and_r, stroustrup };
+enum struct Brace_Style : Default_Underlying { allman, k_and_r, stroustrup };
 
 constexpr bool is_break_after_function(Brace_Style style)
 {
@@ -23,6 +23,18 @@ constexpr bool is_break_after_if(Brace_Style style)
 {
     return style == Brace_Style::allman;
 }
+
+enum struct Return_Type_Policy : Default_Underlying {
+    /// @brief Prefer to keep the return types as they were written.
+    keep,
+    /// @brief Specify return types explicitly, even when this is unnecessary and not considered
+    /// idiomatic in the target language.
+    ///
+    /// For example, this always results in Kotlin output containing `: Unit`
+    /// and BMS output containing `-> Void` when those are effectively the return types,
+    /// despite it being permitted to omit this.
+    always
+};
 
 struct Code_Options {
     /// @brief The character used for indentation.
@@ -39,6 +51,8 @@ struct Code_Options {
     /// strictly require this.
     /// By default (`false`), a "readable" subset of necessary parenthesization is used.
     bool always_parenthesize_subexpressions = false;
+    /// @brief The return type policy.
+    Return_Type_Policy return_types = Return_Type_Policy::keep;
 
     /// @brief If `true`, prefer C23 features such as spelling `_Bool` as `bool`.
     bool c_23 = false;

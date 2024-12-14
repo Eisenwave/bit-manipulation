@@ -330,9 +330,17 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        if (auto r = Visitor { self, function.get_return_type_node() }(function.get_return_type());
-            !r) {
-            return r;
+        if (function.get_return_type_node()) {
+            if (auto r
+                = Visitor { self, function.get_return_type_node() }(function.get_return_type());
+                !r) {
+                return r;
+            }
+        }
+        else {
+            const auto return_type = function.get_concrete_return_type();
+            BIT_MANIPULATION_ASSERT(return_type == bms::Concrete_Type::Void);
+            self.write_keyword("void");
         }
         self.m_out.append(' ');
         self.m_out.append(function.get_name(), Code_Span_Type::identifier);
