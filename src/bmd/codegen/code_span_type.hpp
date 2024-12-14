@@ -40,7 +40,7 @@ enum struct Code_Span_Type : Default_Underlying {
 };
 
 /// @brief Returns the HTML (custom) tag name corresponding to the given `type`.
-constexpr std::string_view code_span_type_tag(Code_Span_Type type)
+[[nodiscard]] constexpr std::string_view code_span_type_tag(Code_Span_Type type)
 {
     using enum Code_Span_Type;
     switch (type) {
