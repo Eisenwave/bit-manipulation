@@ -701,5 +701,12 @@ TEST(BMS_Analysis_Error, annotation_missing_argument)
         test_for_diagnostic("analysis_error/annotation/missing_argument.bms", expectations));
 }
 
+TEST(BMS_Evaluation_Error, unreachable)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Evaluation_Error_Code::unreachable, .fail_line = 2 };
+    EXPECT_TRUE(test_for_diagnostic("evaluation_error/unreachable.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation

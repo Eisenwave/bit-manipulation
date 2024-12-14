@@ -1,0 +1,6 @@
+function awoo(b: Bool) -> Int {
+    if b { unreachable(); }
+    return 0;
+}
+
+const x = awoo();
