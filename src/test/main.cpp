@@ -618,11 +618,18 @@ TEST(BMS_Analysis_Error, execution_limit_exceeded)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/execution_limit_exceeded.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, no_return)
+TEST(BMS_Analysis_Error, no_return_explicit_type)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::no_return, .fail_line = 1 };
-    EXPECT_TRUE(test_for_diagnostic("analysis_error/no_return.bms", expectations));
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/no_return/explicit_type.bms", expectations));
+}
+
+TEST(BMS_Analysis_Error, no_return_implicit_type)
+{
+    static const Analysis_Error_Expectations expectations //
+        { .code = bms::Analysis_Error_Code::no_return, .fail_line = 1 };
+    EXPECT_TRUE(test_for_diagnostic("analysis_error/no_return/implicit_type.bms", expectations));
 }
 
 TEST(BMS_Analysis_Error, unreachable_code)
