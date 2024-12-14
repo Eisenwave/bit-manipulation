@@ -789,7 +789,7 @@ void print_affected_line(bmd::Code_String& out,
         out.append('|', bmd::Code_Span_Type::diagnostic_punctuation);
         out.append(' ');
         out.append(line, bmd::Code_Span_Type::diagnostic_code_citation);
-        out.append(' ');
+        out.append('\n');
 
         Size align_length = std::max(pad_max, s.size() + 1);
         out.append(align_length, ' ');
