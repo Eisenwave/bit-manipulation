@@ -14,7 +14,9 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-const Symbol_Table builtin_symbols { { "assert", { Builtin_Function::assert } } };
+// TODO: auto-generate this
+const Symbol_Table builtin_symbols { { "assert", { Builtin_Function::assert } },
+                                     { "unreachable", { Builtin_Function::unreachable } } };
 
 constexpr bool shadowing = false;
 
