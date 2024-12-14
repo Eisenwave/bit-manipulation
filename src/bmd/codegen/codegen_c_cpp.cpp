@@ -306,18 +306,21 @@ struct C_Cpp_Code_Generator::Visitor {
 
         bool first = true;
         for (const Some_Node* declaration : program.get_children()) {
-            if (auto r = self.generate_code(declaration)) {
-                if (!first) {
-                    self.end_line();
-                }
-                first = false;
+            Scoped_Attempt newline_attempt = self.start_attempt();
+            if (!first) {
                 self.end_line();
+                self.end_line();
+            }
+            if (auto r = self.generate_code(declaration)) {
+                first = false;
+                newline_attempt.commit();
             }
             else if (r.error().code != Generator_Error_Code::empty) {
                 return r;
             }
         }
 
+        self.end_line();
         attempt.commit();
         return {};
     }
