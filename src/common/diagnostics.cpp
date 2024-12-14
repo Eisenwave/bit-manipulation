@@ -252,6 +252,8 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
         return "Bit-shift was not less than the operand size.";
     case assertion_fail: //
         return "Assertion failed.";
+    case unreachable: //
+        return "Call to unreachable().";
     case int_to_uint_range_error: //
         return "Conversion from Int to Uint would lose information.";
     }

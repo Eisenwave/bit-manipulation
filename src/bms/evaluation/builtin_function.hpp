@@ -9,13 +9,20 @@
 namespace bit_manipulation::bms {
 
 enum struct Builtin_Function : Default_Underlying {
-    // `fn assert(cond: Bool) -> Void`
-    assert
+    // `assert(cond: Bool) -> Void`
+    assert,
+    // `unreachable() -> Nothing`
+    unreachable,
 };
 
-[[nodiscard]] constexpr std::string_view builtin_function_name(Builtin_Function)
+[[nodiscard]] constexpr std::string_view builtin_function_name(Builtin_Function f)
 {
-    return "assert";
+    using enum Builtin_Function;
+    switch (f) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(assert);
+        BIT_MANIPULATION_ENUM_STRING_CASE(unreachable);
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid builtin function.");
 }
 
 [[nodiscard]] constexpr Size builtin_parameter_count(Builtin_Function f)
@@ -23,6 +30,7 @@ enum struct Builtin_Function : Default_Underlying {
     using enum Builtin_Function;
     switch (f) {
     case assert: return 1;
+    case unreachable: return 0;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
 }
@@ -32,6 +40,7 @@ enum struct Builtin_Function : Default_Underlying {
     using enum Builtin_Function;
     switch (f) {
     case assert: return Concrete_Type::Void;
+    case unreachable: return Concrete_Type::Nothing;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
 }
@@ -53,6 +62,7 @@ inline constexpr Concrete_Type builtin_parameters_v<Builtin_Function::assert>[1]
     using enum Builtin_Function;
     switch (f) {
     case assert: return detail::builtin_parameters_v<Builtin_Function::assert>;
+    case unreachable: return {};
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function");
 }

@@ -85,40 +85,35 @@ result_from_concrete(Result<Concrete_Value, Evaluation_Error_Code> result)
     }
 }
 
-template <typename Iter>
+template <std::random_access_iterator Iter>
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 {
-    static_assert(std::random_access_iterator<Iter>);
     static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Type>);
     if (builtin_parameter_count(f) != Size(end - begin)) {
         return Analysis_Error_Code::wrong_number_of_arguments;
     }
-    switch (f) {
-    case Builtin_Function::assert: {
-        if (begin[0] != Concrete_Type::Bool) {
+    std::span<const Concrete_Type> parameters = builtin_parameter_types(f);
+    BIT_MANIPULATION_ASSERT(parameters.size() == builtin_parameter_count(f));
+    for (const Concrete_Type& type : parameters) {
+        if (*begin++ != type) {
             return Analysis_Error_Code::wrong_argument_type;
         }
-        return Concrete_Type::Void;
     }
-    }
-
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function or fallthrough");
+    return builtin_return_type(f);
 }
 
-template <typename R>
+template <std::ranges::random_access_range R>
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
 check_builtin_function_impl(Builtin_Function f, const R& args)
 {
-    static_assert(std::ranges::random_access_range<R>);
     return check_builtin_function_impl(f, std::ranges::begin(args), std::ranges::end(args));
 }
 
-template <typename Iter>
+template <std::random_access_iterator Iter>
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 {
-    static_assert(std::random_access_iterator<Iter>);
     static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Value>);
 
     const auto types
@@ -136,16 +131,18 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
         }
         return Concrete_Value::Void;
     }
+    case Builtin_Function::unreachable: {
+        return Evaluation_Error_Code::unreachable;
+    }
     }
 
     BIT_MANIPULATION_ASSERT_UNREACHABLE("unknown builtin function or fallthrough");
 }
 
-template <typename R>
+template <std::ranges::random_access_range R>
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 {
-    static_assert(std::ranges::random_access_range<R>);
     return unsafe_evaluate_builtin_function_impl(f, std::ranges::begin(args),
                                                  std::ranges::end(args));
 }
