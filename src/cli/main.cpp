@@ -82,7 +82,9 @@ int to_html(std::string_view file,
 
         if (!out_file) {
             if (!std::cout) {
-                print_io_error(std::cerr, "stdout", IO_Error_Code::cannot_open, colors);
+                bmd::Code_String out { memory };
+                print_io_error(out, "stdout", IO_Error_Code::cannot_open);
+                print_code_string(std::cerr, out, colors);
                 return 1;
             }
             Colored_HTML_Consumer consumer { std::cout };
@@ -91,7 +93,9 @@ int to_html(std::string_view file,
         else {
             std::ofstream out { std::string(*out_file) };
             if (!out) {
-                print_io_error(out, *out_file, IO_Error_Code::cannot_open, colors);
+                bmd::Code_String out { memory };
+                print_io_error(out, *out_file, IO_Error_Code::cannot_open);
+                print_code_string(std::cout, out, colors);
                 return 1;
             }
 
@@ -100,7 +104,9 @@ int to_html(std::string_view file,
         }
 
         if (!result) {
-            print_document_error(std::cout, file, source, result.error(), colors);
+            bmd::Code_String out { memory };
+            print_document_error(out, file, source, result.error());
+            print_code_string(std::cout, out, colors);
             return 1;
         }
 
@@ -223,18 +229,30 @@ try {
         return 1;
     }
 } catch (const Assertion_Error& e) {
-    print_assertion_error(std::cout, e, colors);
+    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
+    print_assertion_error(out, e);
+    print_code_string(std::cout, out, colors);
     return 1;
 } catch (std::exception& e) {
-    std::cout << ansi::h_red << "Unhandled exception! " << ansi::reset
-              << "An exception with the following message has been raised:\n\n";
-    std::cout << e.what() << "\n\n";
-    print_internal_error_notice(std::cout, colors);
+    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
+    out.append("Unhandled exception! ",
+               bit_manipulation::bmd::Code_Span_Type::diagnostic_error_text);
+    out.append("An exception with the following message has been raised:",
+               bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+    out.append("\n\n");
+    out.append(e.what(), bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+    print_internal_error_notice(out);
+    print_code_string(std::cout, out, colors);
     return 1;
 } catch (...) {
-    std::cout << ansi::h_red << "Unhandled exception! " << ansi::reset
-              << "An exception not derived from std::exception has been raised.\n\n";
-    print_internal_error_notice(std::cout, colors);
+    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
+    out.append("Unhandled exception! ",
+               bit_manipulation::bmd::Code_Span_Type::diagnostic_error_text);
+    out.append("An exception not derived from std::exception has been raised.",
+               bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+    out.append("\n\n");
+    print_internal_error_notice(out);
+    print_code_string(std::cout, out, colors);
     return 1;
 }
 
