@@ -73,6 +73,12 @@ public:
         m_spans.resize(length.span_count);
     }
 
+    void clear() noexcept
+    {
+        m_text.clear();
+        m_spans.clear();
+    }
+
     /// @brief Appends a raw range of text to the string.
     /// This is typically useful for e.g. whitespace between pieces of code.
     void append(std::string_view text)
