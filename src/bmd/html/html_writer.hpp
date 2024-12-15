@@ -104,6 +104,7 @@ struct Tag_Properties {
 
 /// @brief A class which provides member functions for writing HTML content to a stream
 /// correctly.
+/// Both entire HTML documents can be written, as well as HTML snippets.
 /// This writer only performs checks that are possibly without additional memory.
 /// These include:
 /// - verifying that given tag names and values are appropriate
@@ -121,7 +122,18 @@ private:
     HTML_Token_Consumer& m_out;
     Size m_indent_width;
 
-    enum struct State { initial, attributes, normal, new_line } m_state = State::initial;
+    enum struct State {
+        /// @brief The writer is currently at the start of a line.
+        /// This is also the initial state.
+        new_line,
+        /// @brief The writer is in the middle of a line, but not in the middle
+        /// of a tag, where attributes are currently written.
+        normal,
+        /// @brief The writer is currently writing attributes.
+        attributes
+    };
+
+    State m_state = State::new_line;
     Size m_depth = 0;
     Size m_indent_depth = 0;
 
@@ -148,7 +160,8 @@ public:
     }
 
     /// @brief Writes the `<!DOCTYPE ...` preamble for the HTML file.
-    /// This function must be called exactly once, prior to any other `write` functions.
+    /// For whole documents should be called exactly once, prior to any other `write` functions.
+    /// However, it is not required to call this.
     /// @return `*this`
     Self& write_preamble();
 

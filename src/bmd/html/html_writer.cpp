@@ -34,7 +34,7 @@ void HTML_Writer::indent(Formatting_Style style)
 
 void HTML_Writer::write_escaped_text(std::string_view text)
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::new_line || m_state == State::normal);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
 
     while (!text.empty()) {
         const Size bracket_pos = text.find_first_of("<>");
@@ -60,7 +60,7 @@ void HTML_Writer::write_escaped_text(std::string_view text)
 
 auto HTML_Writer::write_whitespace(char c, Size length) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state != State::attributes && m_state != State::initial);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(is_space(c));
 
     m_out.write(c, length, HTML_Token_Type::whitespace);
@@ -70,7 +70,7 @@ auto HTML_Writer::write_whitespace(char c, Size length) -> Self&
 
 auto HTML_Writer::write_preamble() -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::initial);
+    BIT_MANIPULATION_ASSERT(m_state == State::new_line);
 
     m_out.write("<!", HTML_Token_Type::tag_bracket);
     m_out.write("DOCTYPE html", HTML_Token_Type::preamble);
@@ -82,7 +82,7 @@ auto HTML_Writer::write_preamble() -> Self&
 
 auto HTML_Writer::write_empty_tag(Tag_Properties properties) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
@@ -98,7 +98,7 @@ auto HTML_Writer::write_empty_tag(Tag_Properties properties) -> Self&
 
 auto HTML_Writer::begin_tag(Tag_Properties properties) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
@@ -118,7 +118,7 @@ auto HTML_Writer::begin_tag(Tag_Properties properties) -> Self&
 
 Attribute_Writer HTML_Writer::begin_tag_with_attributes(Tag_Properties properties)
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
 
     indent(properties.style);
@@ -132,7 +132,7 @@ Attribute_Writer HTML_Writer::begin_tag_with_attributes(Tag_Properties propertie
 
 auto HTML_Writer::end_tag(Tag_Properties properties) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(is_html_identifier(properties.id));
     BIT_MANIPULATION_ASSERT(m_depth != 0);
 
@@ -259,7 +259,7 @@ auto HTML_Writer::write_source_gap(const Local_Source_Span& first,
                                    const Local_Source_Span& second,
                                    Formatting_Style style) -> Self&
 {
-    BIT_MANIPULATION_ASSERT(m_state != State::attributes && m_state != State::initial);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
     BIT_MANIPULATION_ASSERT(first.line < second.line
                             || (first.line == second.line && first.column <= second.column));
 
