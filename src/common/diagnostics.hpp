@@ -74,37 +74,20 @@ void print_assertion_error(Code_String& out, const Assertion_Error& error);
 
 void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error);
 
-// TODO: implement
-void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::string_view source)
-    = delete;
-
-[[deprecated]] std::ostream&
-print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source);
+void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::string_view source);
 
 struct BMS_AST_Formatting_Options {
     int indent_width;
-    bool colors;
 };
 
-// TODO: implement
-void print_ast(Code_String& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options)
-    = delete;
-
-[[deprecated]] std::ostream&
-print_ast(std::ostream& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options);
+void print_ast(Code_String& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options);
 
 struct BMD_AST_Formatting_Options {
     int indent_width;
     int max_node_text_length;
-    bool colors;
 };
 
-// TODO: implement
-void print_ast(Code_String& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options)
-    = delete;
-
-[[deprecated]] std::ostream&
-print_ast(std::ostream& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options);
+void print_ast(Code_String& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options);
 
 void print_internal_error_notice(Code_String& out);
 

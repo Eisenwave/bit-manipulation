@@ -1,6 +1,5 @@
 #include <charconv>
 #include <functional>
-#include <iomanip>
 #include <span>
 
 #include "common/code_string.hpp"
@@ -49,6 +48,8 @@ std::string_view highlight_color_of(Code_Span_Type type)
 {
     using enum Code_Span_Type;
     switch (type) {
+    case text: return ansi::reset;
+
     case identifier: return ansi::h_white;
     case type_name: return ansi::h_blue;
 
@@ -72,7 +73,8 @@ std::string_view highlight_color_of(Code_Span_Type type)
     case diagnostic_punctuation:
     case diagnostic_operator: return ansi::reset;
 
-    case diagnostic_code_position: return ansi::h_black;
+    case diagnostic_code_position:
+    case diagnostic_internal: return ansi::h_black;
 
     case diagnostic_error_text:
     case diagnostic_error: return ansi::h_red;
@@ -87,6 +89,12 @@ std::string_view highlight_color_of(Code_Span_Type type)
     case diagnostic_internal_error_notice: return ansi::h_yellow;
 
     case diagnostic_operand: return ansi::h_magenta;
+
+    case diagnostic_tag: return ansi::h_blue;
+
+    case diagnostic_attribute: return ansi::h_magenta;
+
+    case diagnostic_escape: return ansi::h_yellow;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
 }
@@ -852,6 +860,7 @@ void print_parse_error(Code_String& out,
     else {
         out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
     }
+    out.append('\n');
 
     if (!source.empty()) {
         print_affected_line(out, source, error.pos);
@@ -911,68 +920,83 @@ void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error
     out.append('\n');
 }
 
-std::ostream&
-print_tokens(std::ostream& out, std::span<const bms::Token> tokens, std::string_view source)
+void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::string_view source)
 {
     for (const bms::Token& t : tokens) {
-        const std::string_view text = source.substr(t.pos.begin, t.pos.length);
-        out << std::setfill(' ') << std::right //
-            << std::setw(2) << t.pos.line + 1 //
-            << ":" //
-            << std::setw(2) << t.pos.column + 1 << ": " //
-            << std::left //
-            << token_type_name(t.type);
+        {
+            constexpr Size align_size = 2;
+            auto pos_builder = out.build(Code_Span_Type::diagnostic_code_position);
+            with_stringified(t.pos.line + 1, [&](std::string_view s) {
+                pos_builder.append(align_size - std::min(s.size(), align_size), ' ');
+                pos_builder.append(s);
+            });
+            pos_builder.append(':');
+            with_stringified(t.pos.column + 1, [&](std::string_view s) {
+                pos_builder.append(align_size - std::min(s.size(), align_size), ' ');
+                pos_builder.append(s);
+            });
+            pos_builder.append(':');
+        }
+
+        out.append(' ');
+        out.append(token_type_name(t.type), Code_Span_Type::diagnostic_tag);
 
         if (token_type_length(t.type) == 0) {
-            out << "(" << text << ")";
+            const std::string_view text = source.substr(t.pos.begin, t.pos.length);
+            out.append('(', Code_Span_Type::diagnostic_punctuation);
+            out.append(text, Code_Span_Type::diagnostic_code_citation);
+            out.append(')', Code_Span_Type::diagnostic_punctuation);
+
             if (text.length() > 1) {
-                out << " (" << text.length() << " characters)";
+                out.append(' ');
+                auto builder = out.build(Code_Span_Type::diagnostic_text);
+                builder.append('(');
+                append_integer(builder, text.length());
+                builder.append(" characters)");
             }
         }
 
-        out << '\n';
+        out.append('\n');
     }
-    return out;
 }
 
 namespace {
 
 struct BMS_AST_Printer {
-    std::ostream& out;
+    Code_String& out;
     const bms::Parsed_Program& program;
     const BMS_AST_Formatting_Options options;
-
-    std::string_view color(std::string_view text) const
-    {
-        return options.colors ? text : "";
-    }
 
     void print(bms::astp::Handle handle, std::string_view child_name = "", int level = 0)
     {
         BIT_MANIPULATION_ASSERT(level >= 0);
         BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
 
-        out << std::string(Size(options.indent_width * level), ' ');
+        out.append(Size(options.indent_width * level), ' ');
         if (handle != bms::astp::Handle::null) {
-            out << color(ansi::h_black) << static_cast<Size>(handle) << color(ansi::reset) << ':';
+            const auto handle_int = std::underlying_type_t<bms::astp::Handle>(handle);
+            append_integer(out, handle_int, Code_Span_Type::diagnostic_internal);
+            out.append(':', Code_Span_Type::diagnostic_punctuation);
         }
         if (child_name != "") {
-            out << color(ansi::h_green) << child_name << color(ansi::black) << "="
-                << color(ansi::reset);
+            out.append(child_name, Code_Span_Type::diagnostic_attribute);
+            out.append('=', Code_Span_Type::diagnostic_punctuation);
         }
         if (handle == bms::astp::Handle::null) {
-            out << "null\n";
+            out.append("null", Code_Span_Type::diagnostic_internal);
+            out.append('\n');
             return;
         }
 
         const bms::astp::Some_Node& node = program.get_node(handle);
         const std::string_view node_name = get_node_name(node);
 
-        out << color(ansi::h_magenta) << node_name //
-            << color(ansi::h_black) << "(" //
-            << color(ansi::reset) << program.extract(get_source_position(node)) //
-            << color(ansi::h_black) << ")\n"
-            << color(ansi::reset);
+        out.append(node_name, Code_Span_Type::diagnostic_tag);
+        out.append('(', Code_Span_Type::diagnostic_punctuation);
+        out.append(program.extract(get_source_position(node)),
+                   Code_Span_Type::diagnostic_code_citation);
+        out.append(')', Code_Span_Type::diagnostic_punctuation);
+        out.append('\n');
 
         const auto children = get_children(node);
         for (Size i = 0; i < children.size(); ++i) {
@@ -992,24 +1016,20 @@ struct BMS_AST_Printer {
 };
 
 struct BMD_AST_Printer {
-    std::ostream& out;
+    Code_String& out;
     const bmd::Parsed_Document& program;
     const BMD_AST_Formatting_Options options;
-
-    std::string_view color(std::string_view text) const
-    {
-        return options.colors ? text : "";
-    }
 
     void print(bmd::ast::Some_Node* node, int level = 0)
     {
         BIT_MANIPULATION_ASSERT(level >= 0);
         BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
 
-        const std::string indent(Size(options.indent_width * level), ' ');
-        out << indent;
+        const auto indent = Size(options.indent_width * level);
+        out.append(indent, ' ');
         if (node == nullptr) {
-            out << "null\n";
+            out.append("null", Code_Span_Type::diagnostic_text);
+            out.append('\n');
             return;
         }
 
@@ -1019,19 +1039,27 @@ struct BMD_AST_Printer {
         const auto* const directive = get_if<bmd::ast::Directive>(node);
 
         if (directive) {
-            out << ansi::h_green << '\\' << directive->get_identifier();
+            out.build(Code_Span_Type::diagnostic_tag)
+                .append('\\')
+                .append(directive->get_identifier());
         }
         else {
-            out << ansi::h_magenta << node_name;
+            out.append(node_name, Code_Span_Type::diagnostic_attribute);
         }
-        out << ansi::h_black << "(" << ansi::reset;
-        print_cut_off(out, extracted);
-        out << ansi::h_black << ")\n" << ansi::reset;
+        out.append('(', Code_Span_Type::diagnostic_punctuation);
+        print_cut_off(extracted);
+        out.append(')', Code_Span_Type::diagnostic_punctuation);
+        out.append('\n');
 
         if (directive) {
             for (const auto& [key, val] : directive->m_arguments) {
-                out << indent << ansi::h_blue << key << ": " << ansi::reset
-                    << program.extract(get_source_span(val)) << '\n';
+                out.append(indent, ' ');
+                out.build(Code_Span_Type::diagnostic_attribute) //
+                    .append(key)
+                    .append(':');
+                out.append(program.extract(get_source_span(val)),
+                           Code_Span_Type::diagnostic_code_citation);
+                out.append('\n');
             }
         }
 
@@ -1044,59 +1072,60 @@ struct BMD_AST_Printer {
     /// @brief Prints text which is cut off at some point.
     /// This is useful because the BMD AST often contains nodes with very long text content,
     /// making it impractical to print everything.
-    /// @param out the output stream
     /// @param v the text to print
-    /// @param max_length the maximum printed length without cutting off by ellipsis
-    /// @return `out`
-    std::ostream& print_cut_off(std::ostream& out, std::string_view v)
+    void print_cut_off(std::string_view v)
     {
         BIT_MANIPULATION_ASSERT(options.max_node_text_length >= 0);
 
         int visual_length = 0;
 
-        for (Size i = 0; i < v.length(); ++i) {
+        for (Size i = 0; i < v.length();) {
             if (visual_length >= options.max_node_text_length) {
-                out << color(ansi::h_black) << " ..." << color(ansi::reset);
+                out.append("...", Code_Span_Type::diagnostic_punctuation);
                 break;
             }
 
             if (v[i] == '\r') {
-                out << color(ansi::h_red) << "\\r" << color(ansi::reset);
+                out.append("\\r", Code_Span_Type::diagnostic_escape);
                 visual_length += 2;
+                ++i;
             }
             else if (v[i] == '\t') {
-                out << color(ansi::h_red) << "\\t" << color(ansi::reset);
+                out.append("\\t", Code_Span_Type::diagnostic_escape);
                 visual_length += 2;
+                ++i;
             }
             else if (v[i] == '\n') {
-                out << color(ansi::h_red) << "\\n" << color(ansi::reset);
+                out.append("\\n", Code_Span_Type::diagnostic_escape);
                 visual_length += 2;
+                ++i;
             }
             else {
-                out << v[i];
-                visual_length += 1;
+                const auto remainder
+                    = v.substr(i, Size(options.max_node_text_length - visual_length));
+                const auto part = remainder.substr(0, remainder.find_first_not_of("\r\t\n"));
+                out.append(part, Code_Span_Type::diagnostic_code_citation);
+                visual_length += part.size();
+                i += part.size();
             }
         }
-
-        return out;
     }
 };
 
 } // namespace
 
-std::ostream&
-print_ast(std::ostream& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options options)
+void print_ast(Code_String& out,
+               const bms::Parsed_Program& program,
+               BMS_AST_Formatting_Options options)
 {
     BMS_AST_Printer { out, program, options }.print(program.get_root_handle());
-    return out;
 }
 
-std::ostream& print_ast(std::ostream& out,
-                        const bmd::Parsed_Document& document,
-                        BMD_AST_Formatting_Options options)
+void print_ast(Code_String& out,
+               const bmd::Parsed_Document& document,
+               BMD_AST_Formatting_Options options)
 {
     BMD_AST_Printer { out, document, options }.print(document.root_node);
-    return out;
 }
 
 void print_internal_error_notice(Code_String& out)

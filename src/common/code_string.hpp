@@ -196,6 +196,12 @@ public:
         return *this;
     }
 
+    Scoped_Builder& append(Size n, char c)
+    {
+        self.append(n, c);
+        return *this;
+    }
+
     Scoped_Builder& append(std::string_view text)
     {
         self.append(text);

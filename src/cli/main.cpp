@@ -40,7 +40,9 @@ int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
     }
     const std::pmr::string source = load_file(file, memory);
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
-    print_tokens(std::cout, tokens, source);
+    Code_String out { memory };
+    print_tokens(out, tokens, source);
+    print_code_string(std::cout, out, colors);
     return 0;
 }
 
@@ -51,13 +53,16 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     if (file.ends_with(".bms")) {
         const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
         const bms::Parsed_Program p = parse_tokenized(tokens, source, file, memory);
-        print_ast(std::cout, p, { .indent_width = 2, .colors = true });
+        Code_String out { memory };
+        print_ast(out, p, { .indent_width = 2 });
+        print_code_string(std::cout, out, colors);
         return 0;
     }
     if (file.ends_with(".bmd")) {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
-        print_ast(std::cout, program,
-                  { .indent_width = 2, .max_node_text_length = 30, .colors = true });
+        Code_String out { memory };
+        print_ast(out, program, { .indent_width = 2, .max_node_text_length = 30 });
+        print_code_string(std::cout, out, colors);
         return 0;
     }
 

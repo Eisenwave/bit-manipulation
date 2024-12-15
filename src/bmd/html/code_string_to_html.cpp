@@ -12,6 +12,7 @@ namespace bit_manipulation::bmd {
 {
     using enum Code_Span_Type;
     switch (type) {
+    case text: return "c-txt";
     case identifier: return "c-idn";
     case type_name: return "c-typ";
     case bracket: return "c-bra";
@@ -36,6 +37,10 @@ namespace bit_manipulation::bmd {
     case diagnostic_internal_error_notice: return "c-die";
     case diagnostic_operand: return "c-dor";
     case diagnostic_operator: return "c-dop";
+    case diagnostic_tag: return "c-dtg";
+    case diagnostic_attribute: return "c-dat";
+    case diagnostic_internal: return "c-dit";
+    case diagnostic_escape: return "c-des";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }

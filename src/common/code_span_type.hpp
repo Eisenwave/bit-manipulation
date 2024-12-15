@@ -12,6 +12,7 @@ namespace bit_manipulation {
 /// While languages have many more tokens, these all fall into the listed handful categories
 /// for the purpose of syntax highlighting.
 enum struct Code_Span_Type : Default_Underlying {
+    text,
     identifier,
     type_name,
     bracket,
@@ -35,7 +36,11 @@ enum struct Code_Span_Type : Default_Underlying {
     diagnostic_code_citation,
     diagnostic_internal_error_notice,
     diagnostic_operand,
-    diagnostic_operator
+    diagnostic_operator,
+    diagnostic_tag,
+    diagnostic_attribute,
+    diagnostic_internal,
+    diagnostic_escape
 };
 
 } // namespace bit_manipulation
