@@ -1,6 +1,7 @@
 #include <functional>
 #include <iostream>
 
+#include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 #include "common/io.hpp"
 #include "common/tty.hpp"
@@ -120,26 +121,34 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         m_failed = true;
-        print_io_error(std::cout, file, e, should_print_colors);
+        Code_String out;
+        print_io_error(out, file, e);
+        print_code_string(std::cout, out, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         m_failed = true;
-        print_tokenize_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_tokenize_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
         m_failed = true;
-        print_parse_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_parse_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Analysis_Error& e) final
     {
         m_failed = true;
         if (parsed_program != nullptr) {
-            print_analysis_error(std::cout, *parsed_program, e, should_print_colors);
+            Code_String out;
+            print_analysis_error(out, *parsed_program, e);
+            print_code_string(std::cout, out, should_print_colors);
         }
         return Policy_Action::FAILURE;
     }
@@ -171,7 +180,9 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e, should_print_colors);
+        Code_String out;
+        print_io_error(out, file, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
@@ -182,7 +193,9 @@ public:
         }
         std::cout << color(ansi::red) << "Expected '" << name_of(m_expected) //
                   << "' but got '" << name_of(e.code) << "':\n";
-        print_tokenize_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_tokenize_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error&) final
@@ -223,13 +236,17 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e, should_print_colors);
+        Code_String out;
+        print_io_error(out, file, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_tokenize_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_tokenize_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
@@ -260,7 +277,9 @@ public:
         };
 
         if (!test_expectations()) {
-            print_parse_error(std::cout, file, source, e, should_print_colors);
+            Code_String out;
+            print_parse_error(out, file, source, e);
+            print_code_string(std::cout, out, should_print_colors);
             return m_state = Policy_Action::FAILURE;
         }
 
@@ -302,19 +321,25 @@ public:
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_io_error(std::cout, file, e, should_print_colors);
+        Code_String out;
+        print_io_error(out, file, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_tokenize_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_tokenize_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        print_parse_error(std::cout, file, source, e, should_print_colors);
+        Code_String out;
+        print_parse_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
 
@@ -359,7 +384,9 @@ public:
 
         if (!test_expectations()) {
             BIT_MANIPULATION_ASSERT(parsed_program);
-            print_analysis_error(std::cout, *parsed_program, e, should_print_colors);
+            Code_String out;
+            print_analysis_error(out, *parsed_program, e);
+            print_code_string(std::cout, out, should_print_colors);
             return m_state = Policy_Action::FAILURE;
         }
         return m_state = Policy_Action::SUCCESS;
