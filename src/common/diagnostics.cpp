@@ -942,6 +942,35 @@ std::ostream& print_parse_error(std::ostream& out,
     return print_affected_line(out, source, error.fail_token.pos, colors);
 }
 
+void print_parse_error(bmd::Code_String& out,
+                       std::string_view file,
+                       std::string_view source,
+                       const bmd::Parse_Error& error)
+{
+    constexpr bool colon_suffix = true;
+    print_file_position(out, file, error.pos, colon_suffix);
+    out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+    out.append(' ');
+
+    if (error.code == bmd::Parse_Error_Code::unexpected_character) {
+        out.build(bmd::Code_Span_Type::diagnostic_text)
+            .append("unexpected character '")
+            .append(source[error.pos.begin])
+            .append("' while matching '")
+            .append(grammar_rule_name(error.rule))
+            .append('\'');
+        out.append('\n');
+        // TODO: diagnose expected character perhaps
+    }
+    else {
+        out.append(to_prose(error.code), bmd::Code_Span_Type::diagnostic_text);
+    }
+
+    if (!source.empty()) {
+        print_affected_line(out, source, error.pos);
+    }
+}
+
 std::ostream& print_parse_error(std::ostream& out,
                                 std::string_view file,
                                 std::string_view source,
