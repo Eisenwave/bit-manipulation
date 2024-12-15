@@ -25,7 +25,7 @@ struct Concrete_Type {
     [[nodiscard]] static constexpr Concrete_Type Uint(int width)
     {
         BIT_MANIPULATION_ASSERT(width <= uint_max_width);
-        BIT_MANIPULATION_ASSERT(width > 1);
+        BIT_MANIPULATION_ASSERT(width > 0);
         return Concrete_Type { Type_Type::Uint, width };
     }
 
@@ -39,7 +39,7 @@ public:
         , m_width(width)
     {
         BIT_MANIPULATION_ASSERT(type == Type_Type::Uint || width == 0);
-        BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || (width > 0 && width < uint_max_width));
+        BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || (width > 0 && width <= uint_max_width));
     }
 
     [[nodiscard]] friend constexpr bool operator<=>(Concrete_Type, Concrete_Type) = default;
