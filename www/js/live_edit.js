@@ -174,13 +174,14 @@ function bmStringToUtf8(str) {
 /**
  * Decodes a `bm_allocation` object located at the given address.
  * @param {number} address the address in WASM memory of the object
- * @returns {{memory: number, size: number}}
+ * @returns {{memory: number, size: number, isHtml: boolean}}
  */
-function bmDecodeAllocationAt(address) {
+function bmDecodeTextResultAt(address) {
     const view = new DataView(wasm.instance.exports.memory.buffer);
     return {
         memory: view.getUint32(address, true),
-        size: view.getUint32(address + 4, true)
+        size: view.getUint32(address + 4, true),
+        isHtml: !!view.getUint8(address)
     };
 }
 
@@ -199,7 +200,7 @@ function bmUtf8ToString({ memory, size }) {
 /**
  * Measures the length of the string and returns the result as an allocation.
  * @param {string} str 
- * @returns {{memory: number, size: number}}
+ * @returns {{memory: number, size: number, isHtml: boolean}}
  */
 function bmLengthAsUtf8(str) {
     const input = bmStringToUtf8(str + '\0');
@@ -210,7 +211,7 @@ function bmLengthAsUtf8(str) {
     }
 
     const resultAddress = wasm.instance.exports.bm_length_as_string_result.value;
-    return bmDecodeAllocationAt(resultAddress);
+    return bmDecodeTextResultAt(resultAddress);
 }
 
 const codeLanguages = ['bms', 'c', 'cpp', 'rust', 'java', 'kotlin', 'javascript', 'typescript'];
@@ -219,7 +220,7 @@ const codeLanguages = ['bms', 'c', 'cpp', 'rust', 'java', 'kotlin', 'javascript'
  * 
  * @param {string} str 
  * @param {string} lang one of `codeLanguages`
- * @returns {{memory: number, size: number}}
+ * @returns {{memory: number, size: number, isHtml: boolean}}
  */
 function bmTranslateCode(str, lang) {
     const langIndex = codeLanguages.indexOf(lang);
@@ -235,7 +236,7 @@ function bmTranslateCode(str, lang) {
     }
 
     const resultAddress = wasm.instance.exports.bm_translate_code_result.value;
-    return bmDecodeAllocationAt(resultAddress);
+    return bmDecodeTextResultAt(resultAddress);
 }
 
 const indent = '    ';
@@ -296,7 +297,13 @@ codeInput.addEventListener('input', () => {
         return;
     }
     try {
-        output.textContent = bmUtf8ToString(result);
+        const resultAsString = bmUtf8ToString(result);
+        if (result.isHtml) {
+            output.innerHTML = resultAsString;
+        }
+        else {
+            output.textContent = resultAsString;
+        }
     } finally {
         bmFree(result);
     }

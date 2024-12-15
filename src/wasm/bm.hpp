@@ -16,6 +16,14 @@ struct [[nodiscard]] bm_allocation {
     bit_manipulation::Uint32 size;
 };
 
+struct [[nodiscard]] bm_text_result {
+    /// @brief The result allocation.
+    bm_allocation allocation;
+    /// @brief `true` if the resulting allocation contains HTML,
+    /// `false` if it contains plaintext.
+    bool is_html;
+};
+
 // IntelliSense doesn't seem capable of figuring out we're building for a 32-bit target from
 // compile_commands.json (which indicate this via use of em++).
 // However, bm_allocation should absolutely be 8 bytes large on a 32-bit target.
@@ -39,11 +47,11 @@ void bm_foreign_free(void* p, bit_manipulation::Uint32 n);
 
 int bm_plus(int, int);
 
-extern bm_allocation bm_length_as_string_result;
+extern bm_text_result bm_length_as_string_result;
 
 void bm_length_as_string(const char* str);
 
-extern bm_allocation bm_translate_code_result;
+extern bm_text_result bm_translate_code_result;
 
 /// @brief Translates BMS code in the string to the specified target language.
 /// @param source the BMS source code
