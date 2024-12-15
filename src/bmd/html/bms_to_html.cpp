@@ -6,6 +6,7 @@
 #include "bms/tokenization/tokenize.hpp"
 
 #include "bmd/html/bms_to_html.hpp"
+#include "bmd/html/code_string_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
 
 namespace bit_manipulation::bmd {

@@ -5,6 +5,8 @@
 
 namespace bit_manipulation::bmd {
 
+[[nodiscard]] std::string_view code_span_type_tag(Code_Span_Type);
+
 void code_string_to_html(HTML_Writer& out, const Code_String& string);
 
 } // namespace bit_manipulation::bmd
