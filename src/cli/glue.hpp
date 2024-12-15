@@ -55,6 +55,6 @@ Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
                                              const bmd::Parsed_Document& document,
                                              std::pmr::memory_resource* memory);
 
-std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors);
+std::ostream& print_code_string(std::ostream& out, const Code_String& string, bool colors);
 
 } // namespace bit_manipulation

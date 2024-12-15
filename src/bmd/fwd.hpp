@@ -7,7 +7,6 @@ namespace bit_manipulation::bmd {
 
 enum struct Directive_Type : Default_Underlying;
 enum struct Formatting_Style : Default_Underlying;
-enum struct Code_Span_Type : Default_Underlying;
 enum struct HTML_Token_Type : Default_Underlying;
 
 enum struct Grammar_Rule : Default_Underlying;
@@ -22,8 +21,6 @@ struct Parsed_Document;
 
 struct HTML_Writer;
 struct HTML_Token_Consumer;
-
-struct Code_String;
 
 namespace ast {
 

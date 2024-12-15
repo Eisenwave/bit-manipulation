@@ -1,11 +1,12 @@
 #ifndef BIT_MANIPULATION_BMD_GENERATOR_BASE_HPP
 #define BIT_MANIPULATION_BMD_GENERATOR_BASE_HPP
 
+#include "common/code_span_type.hpp"
+#include "common/code_string.hpp"
 #include "common/result.hpp"
 
 #include "bms/analyzed_program.hpp"
 
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/codegen/generator_error.hpp"
 

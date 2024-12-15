@@ -1,10 +1,10 @@
 #include <ostream>
 
 #include "common/ansi.hpp"
+#include "common/code_span_type.hpp"
+#include "common/code_string.hpp"
 
 #include "bmd/codegen/code_language.hpp"
-#include "bmd/codegen/code_span_type.hpp"
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
@@ -39,9 +39,9 @@ std::string_view highlight_color_of(bmd::HTML_Token_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
 }
 
-std::string_view highlight_color_of(bmd::Code_Span_Type type)
+std::string_view highlight_color_of(Code_Span_Type type)
 {
-    using enum bmd::Code_Span_Type;
+    using enum Code_Span_Type;
     switch (type) {
     case identifier: return ansi::h_white;
     case type_name: return ansi::h_blue;
@@ -184,15 +184,15 @@ Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
     return bmd::doc_to_html(out, document, options, memory);
 }
 
-std::ostream& print_code_string(std::ostream& out, const bmd::Code_String& string, bool colors)
+std::ostream& print_code_string(std::ostream& out, const Code_String& string, bool colors)
 {
     const std::string_view text = string.get_text();
     if (!colors) {
         return out << text;
     }
 
-    bmd::Code_String_Span previous {};
-    for (bmd::Code_String_Span span : string) {
+    Code_String_Span previous {};
+    for (Code_String_Span span : string) {
         const Size previous_end = previous.begin + previous.length;
         BIT_MANIPULATION_ASSERT(span.begin >= previous_end);
         if (previous_end != span.begin) {

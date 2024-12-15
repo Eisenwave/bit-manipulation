@@ -7,6 +7,7 @@
 
 #include "common/ansi.hpp"
 #include "common/assert.hpp"
+#include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 #include "common/io.hpp"
 
@@ -17,7 +18,6 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
@@ -82,7 +82,7 @@ int to_html(std::string_view file,
 
         if (!out_file) {
             if (!std::cout) {
-                bmd::Code_String out { memory };
+                Code_String out { memory };
                 print_io_error(out, "stdout", IO_Error_Code::cannot_open);
                 print_code_string(std::cerr, out, colors);
                 return 1;
@@ -93,7 +93,7 @@ int to_html(std::string_view file,
         else {
             std::ofstream out { std::string(*out_file) };
             if (!out) {
-                bmd::Code_String out { memory };
+                Code_String out { memory };
                 print_io_error(out, *out_file, IO_Error_Code::cannot_open);
                 print_code_string(std::cout, out, colors);
                 return 1;
@@ -104,7 +104,7 @@ int to_html(std::string_view file,
         }
 
         if (!result) {
-            bmd::Code_String out { memory };
+            Code_String out { memory };
             print_document_error(out, file, source, result.error());
             print_code_string(std::cout, out, colors);
             return 1;
@@ -155,7 +155,7 @@ int generate(std::string_view file,
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
     bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
-    bmd::Code_String out { &memory_resource };
+    Code_String out { &memory_resource };
     if (!bmd::generate_code(out, a, *language, {})) {
         std::cout << ansi::red << "Error: failed to generate code.\n";
         return 1;
@@ -229,27 +229,25 @@ try {
         return 1;
     }
 } catch (const Assertion_Error& e) {
-    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
+    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
     print_assertion_error(out, e);
     print_code_string(std::cout, out, colors);
     return 1;
 } catch (std::exception& e) {
-    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
-    out.append("Unhandled exception! ",
-               bit_manipulation::bmd::Code_Span_Type::diagnostic_error_text);
+    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
+    out.append("Unhandled exception! ", bit_manipulation::Code_Span_Type::diagnostic_error_text);
     out.append("An exception with the following message has been raised:",
-               bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+               bit_manipulation::Code_Span_Type::diagnostic_text);
     out.append("\n\n");
-    out.append(e.what(), bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+    out.append(e.what(), bit_manipulation::Code_Span_Type::diagnostic_text);
     print_internal_error_notice(out);
     print_code_string(std::cout, out, colors);
     return 1;
 } catch (...) {
-    bit_manipulation::bmd::Code_String out { std::pmr::get_default_resource() };
-    out.append("Unhandled exception! ",
-               bit_manipulation::bmd::Code_Span_Type::diagnostic_error_text);
+    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
+    out.append("Unhandled exception! ", bit_manipulation::Code_Span_Type::diagnostic_error_text);
     out.append("An exception not derived from std::exception has been raised.",
-               bit_manipulation::bmd::Code_Span_Type::diagnostic_text);
+               bit_manipulation::Code_Span_Type::diagnostic_text);
     out.append("\n\n");
     print_internal_error_notice(out);
     print_code_string(std::cout, out, colors);

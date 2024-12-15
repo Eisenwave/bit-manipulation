@@ -10,9 +10,9 @@
 #include "common/assert.hpp"
 #include "common/io.hpp"
 
-#include "bmd/fwd.hpp"
-
 #include "bms/fwd.hpp"
+
+#include "bmd/fwd.hpp"
 
 namespace bit_manipulation {
 
@@ -25,7 +25,7 @@ std::string_view find_line(std::string_view source, Size index);
 /// @brief Prints the location of the file nicely formatted.
 /// @param out the string to write to
 /// @param file the file
-void print_location_of_file(bmd::Code_String& out, std::string_view file);
+void print_location_of_file(Code_String& out, std::string_view file);
 
 /// @brief Prints the location of the file nicely formatted.
 /// @param out the stream to write to
@@ -40,7 +40,7 @@ print_location_of_file(std::ostream& out, std::string_view file, bool colors);
 /// @param file the file
 /// @param pos the position within the file
 /// @param colon_suffix if `true`, appends a `:` to the string as part of the same token
-void print_file_position(bmd::Code_String& out,
+void print_file_position(Code_String& out,
                          std::string_view file,
                          const Local_Source_Position& pos,
                          bool colon_suffix);
@@ -56,7 +56,7 @@ void print_file_position(bmd::Code_String& out,
                                                  const Local_Source_Position& pos,
                                                  bool colors);
 
-void print_affected_line(bmd::Code_String& out,
+void print_affected_line(Code_String& out,
                          std::string_view source,
                          const Local_Source_Position& pos);
 
@@ -72,7 +72,7 @@ void print_affected_line(bmd::Code_String& out,
                                                  const Local_Source_Position& pos,
                                                  bool colors);
 
-void print_tokenize_error(bmd::Code_String& out,
+void print_tokenize_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
                           const bms::Tokenize_Error& e);
@@ -83,7 +83,7 @@ void print_tokenize_error(bmd::Code_String& out,
                                                   const bms::Tokenize_Error& e,
                                                   bool colors);
 
-void print_parse_error(bmd::Code_String& out,
+void print_parse_error(Code_String& out,
                        std::string_view file,
                        std::string_view source,
                        const bms::Parse_Error& e);
@@ -94,7 +94,7 @@ void print_parse_error(bmd::Code_String& out,
                                                const bms::Parse_Error& e,
                                                bool colors);
 
-void print_analysis_error(bmd::Code_String& out,
+void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error);
 
@@ -103,7 +103,7 @@ void print_analysis_error(bmd::Code_String& out,
                                                   const bms::Analysis_Error& error,
                                                   bool colors);
 
-void print_parse_error(bmd::Code_String& out,
+void print_parse_error(Code_String& out,
                        std::string_view file,
                        std::string_view source,
                        const bmd::Parse_Error& e);
@@ -114,7 +114,7 @@ void print_parse_error(bmd::Code_String& out,
                                                const bmd::Parse_Error& e,
                                                bool colors);
 
-void print_document_error(bmd::Code_String& out,
+void print_document_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
                           const bmd::Document_Error& error);
@@ -125,20 +125,18 @@ void print_document_error(bmd::Code_String& out,
                                                   const bmd::Document_Error& error,
                                                   bool colors);
 
-void print_assertion_error(bmd::Code_String& out, const Assertion_Error& error);
+void print_assertion_error(Code_String& out, const Assertion_Error& error);
 
 [[deprecated]] std::ostream&
 print_assertion_error(std::ostream& out, const Assertion_Error& error, bool colors);
 
-void print_io_error(bmd::Code_String& out, std::string_view file, IO_Error_Code error);
+void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error);
 
 [[deprecated]] std::ostream&
 print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error, bool colors);
 
 // TODO: implement
-void print_tokens(bmd::Code_String& out,
-                  std::span<const bms::Token> tokens,
-                  std::string_view source)
+void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::string_view source)
     = delete;
 
 [[deprecated]] std::ostream&
@@ -150,9 +148,7 @@ struct BMS_AST_Formatting_Options {
 };
 
 // TODO: implement
-void print_ast(bmd::Code_String& out,
-               const bms::Parsed_Program& program,
-               BMS_AST_Formatting_Options)
+void print_ast(Code_String& out, const bms::Parsed_Program& program, BMS_AST_Formatting_Options)
     = delete;
 
 [[deprecated]] std::ostream&
@@ -165,15 +161,13 @@ struct BMD_AST_Formatting_Options {
 };
 
 // TODO: implement
-void print_ast(bmd::Code_String& out,
-               const bmd::Parsed_Document& document,
-               BMD_AST_Formatting_Options)
+void print_ast(Code_String& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options)
     = delete;
 
 [[deprecated]] std::ostream&
 print_ast(std::ostream& out, const bmd::Parsed_Document& document, BMD_AST_Formatting_Options);
 
-void print_internal_error_notice(bmd::Code_String& out);
+void print_internal_error_notice(Code_String& out);
 
 [[deprecated]] std::ostream& print_internal_error_notice(std::ostream& out, bool colors);
 

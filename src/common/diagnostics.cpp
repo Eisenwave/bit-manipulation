@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <span>
 
+#include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 #include "common/to_string.hpp"
 
@@ -20,7 +21,6 @@
 #include "bms/tokenization/tokenize_error.hpp"
 #include "bms/vm/execution_error.hpp"
 
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
 #include "bmd/parsing/ast.hpp"
@@ -587,10 +587,10 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     return result;
 }
 
-void print_source_position(bmd::Code_String& out, const std::optional<Source_Position>& pos)
+void print_source_position(Code_String& out, const std::optional<Source_Position>& pos)
 {
     if (!pos) {
-        out.append("(internal):", bmd::Code_Span_Type::diagnostic_code_position);
+        out.append("(internal):", Code_Span_Type::diagnostic_code_position);
     }
     else {
         constexpr bool colon_suffix = true;
@@ -614,28 +614,28 @@ print_source_position(std::ostream& out, const std::optional<Source_Position>& p
     return print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
 }
 
-void print_printable_error(bmd::Code_String& out, const Printable_Error& error)
+void print_printable_error(Code_String& out, const Printable_Error& error)
 {
     for (const Error_Line& line : error.lines) {
         print_source_position(out, line.pos);
         out.append(' ');
         switch (line.type) {
         case Error_Line_Type::error:
-            out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+            out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
             break;
         case Error_Line_Type::note:
-            out.append(note_prefix_x, bmd::Code_Span_Type::diagnostic_note);
+            out.append(note_prefix_x, Code_Span_Type::diagnostic_note);
             break;
         }
         out.append(' ');
-        out.append(line.message, bmd::Code_Span_Type::diagnostic_text);
+        out.append(line.message, Code_Span_Type::diagnostic_text);
 
         if (line.comp) {
-            out.append(line.comp->left, bmd::Code_Span_Type::diagnostic_operand);
+            out.append(line.comp->left, Code_Span_Type::diagnostic_operand);
             out.append(' ');
-            out.append(line.comp->op, bmd::Code_Span_Type::diagnostic_operator);
+            out.append(line.comp->op, Code_Span_Type::diagnostic_operator);
             out.append(' ');
-            out.append(line.comp->right, bmd::Code_Span_Type::diagnostic_operand);
+            out.append(line.comp->right, Code_Span_Type::diagnostic_operand);
         }
 
         out.append('\n');
@@ -696,25 +696,25 @@ void with_stringified(Integer x, F&& f)
 }
 
 template <typename Integer>
-void append_integer(bmd::Code_String& out, Integer x, bmd::Code_Span_Type type)
+void append_integer(Code_String& out, Integer x, Code_Span_Type type)
 {
     with_stringified(x, [&](std::string_view s) { out.append(s, type); });
 }
 
 template <typename Integer>
-void append_integer(bmd::Code_String::Scoped_Builder& out, Integer x)
+void append_integer(Code_String::Scoped_Builder& out, Integer x)
 {
     with_stringified(x, [&](std::string_view s) { out.append(s); });
 }
 
 } // namespace
 
-void print_file_position(bmd::Code_String& out,
+void print_file_position(Code_String& out,
                          std::string_view file,
                          const Local_Source_Position& pos,
                          bool suffix_colon)
 {
-    auto builder = out.build(bmd::Code_Span_Type::diagnostic_code_position);
+    auto builder = out.build(Code_Span_Type::diagnostic_code_position);
     builder.append(file).append(':');
     append_integer(builder, pos.line + 1);
     builder.append(':');
@@ -758,9 +758,9 @@ std::string_view find_line(std::string_view source, Size index)
     return source.substr(begin, end - begin);
 }
 
-void print_location_of_file(bmd::Code_String& out, std::string_view file)
+void print_location_of_file(Code_String& out, std::string_view file)
 {
-    out.build(bmd::Code_Span_Type::diagnostic_code_position).append(file).append(':');
+    out.build(Code_Span_Type::diagnostic_code_position).append(file).append(':');
 }
 
 std::ostream& print_location_of_file(std::ostream& out, std::string_view file, bool colors)
@@ -775,7 +775,7 @@ std::ostream& print_location_of_file(std::ostream& out, std::string_view file, b
     return out;
 }
 
-void print_affected_line(bmd::Code_String& out,
+void print_affected_line(Code_String& out,
                          std::string_view source,
                          const Local_Source_Position& pos)
 {
@@ -784,20 +784,20 @@ void print_affected_line(bmd::Code_String& out,
         constexpr Size pad_max = 6;
         Size pad_length = pad_max - std::min(s.size(), Size { pad_max - 1 });
         out.append(pad_length, ' ');
-        append_integer(out, pos.line + 1, bmd::Code_Span_Type::diagnostic_line_number);
+        append_integer(out, pos.line + 1, Code_Span_Type::diagnostic_line_number);
         out.append(' ');
-        out.append('|', bmd::Code_Span_Type::diagnostic_punctuation);
+        out.append('|', Code_Span_Type::diagnostic_punctuation);
         out.append(' ');
-        out.append(line, bmd::Code_Span_Type::diagnostic_code_citation);
+        out.append(line, Code_Span_Type::diagnostic_code_citation);
         out.append('\n');
 
         Size align_length = std::max(pad_max, s.size() + 1);
         out.append(align_length, ' ');
         out.append(' ');
-        out.append('|', bmd::Code_Span_Type::diagnostic_punctuation);
+        out.append('|', Code_Span_Type::diagnostic_punctuation);
         out.append(' ');
         out.append(pos.column, ' ');
-        out.append('^', bmd::Code_Span_Type::diagnostic_position_indicator);
+        out.append('^', Code_Span_Type::diagnostic_position_indicator);
         out.append('\n');
     });
 }
@@ -831,7 +831,7 @@ std::ostream& print_affected_line(std::ostream& out,
     return out;
 }
 
-void print_tokenize_error(bmd::Code_String& out,
+void print_tokenize_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
                           const bms::Tokenize_Error& e)
@@ -839,9 +839,9 @@ void print_tokenize_error(bmd::Code_String& out,
     constexpr bool suffix_colon = true;
     print_file_position(out, file, e.pos, suffix_colon);
     out.append(' ');
-    out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
     out.append(' ');
-    out.append(to_prose(e.code), bmd::Code_Span_Type::diagnostic_text);
+    out.append(to_prose(e.code), Code_Span_Type::diagnostic_text);
     out.append('\n');
     print_affected_line(out, source, e.pos);
 }
@@ -858,7 +858,7 @@ std::ostream& print_tokenize_error(std::ostream& out,
     return out;
 }
 
-void print_parse_error(bmd::Code_String& out,
+void print_parse_error(Code_String& out,
                        std::string_view file,
                        std::string_view source,
                        const bms::Parse_Error& error)
@@ -866,12 +866,12 @@ void print_parse_error(bmd::Code_String& out,
     constexpr bool colon_suffix = true;
     print_file_position(out, file, error.fail_token.pos, colon_suffix);
     out.append(' ');
-    out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
     const std::string_view preamble
         = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
-    out.build(bmd::Code_Span_Type::diagnostic_text)
+    out.build(Code_Span_Type::diagnostic_text)
         .append(preamble)
         .append(token_type_readable_name(error.fail_token.type))
         .append(" while matching '")
@@ -881,11 +881,11 @@ void print_parse_error(bmd::Code_String& out,
 
     print_file_position(out, file, error.fail_token.pos, colon_suffix);
     out.append(' ');
-    out.append(note_prefix_x, bmd::Code_Span_Type::diagnostic_note);
+    out.append(note_prefix_x, Code_Span_Type::diagnostic_note);
     out.append(' ');
 
     {
-        auto note_builder = out.build(bmd::Code_Span_Type::diagnostic_text);
+        auto note_builder = out.build(Code_Span_Type::diagnostic_text);
         note_builder.append("expected ");
 
         const std::span<const bms::Token_Type> expected = error.expected_tokens;
@@ -942,18 +942,18 @@ std::ostream& print_parse_error(std::ostream& out,
     return print_affected_line(out, source, error.fail_token.pos, colors);
 }
 
-void print_parse_error(bmd::Code_String& out,
+void print_parse_error(Code_String& out,
                        std::string_view file,
                        std::string_view source,
                        const bmd::Parse_Error& error)
 {
     constexpr bool colon_suffix = true;
     print_file_position(out, file, error.pos, colon_suffix);
-    out.append(error_prefix_x, bmd::Code_Span_Type::diagnostic_error);
+    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
     if (error.code == bmd::Parse_Error_Code::unexpected_character) {
-        out.build(bmd::Code_Span_Type::diagnostic_text)
+        out.build(Code_Span_Type::diagnostic_text)
             .append("unexpected character '")
             .append(source[error.pos.begin])
             .append("' while matching '")
@@ -963,7 +963,7 @@ void print_parse_error(bmd::Code_String& out,
         // TODO: diagnose expected character perhaps
     }
     else {
-        out.append(to_prose(error.code), bmd::Code_Span_Type::diagnostic_text);
+        out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
     }
 
     if (!source.empty()) {
@@ -996,7 +996,7 @@ std::ostream& print_parse_error(std::ostream& out,
     return print_affected_line(out, source, error.pos, colors);
 }
 
-void print_analysis_error(bmd::Code_String& out,
+void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error)
 {
@@ -1013,7 +1013,7 @@ std::ostream& print_analysis_error(std::ostream& out,
     return print_printable_error(out, printable, colors);
 }
 
-void print_document_error(bmd::Code_String& out,
+void print_document_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
                           const bmd::Document_Error& error)
@@ -1021,7 +1021,7 @@ void print_document_error(bmd::Code_String& out,
     constexpr bool colon_suffix = true;
     print_file_position(out, file, error.pos, colon_suffix);
     out.append(' ');
-    out.append(to_prose(error.code), bmd::Code_Span_Type::diagnostic_text);
+    out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
 
     print_affected_line(out, source, error.pos);
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
@@ -1045,14 +1045,14 @@ std::ostream& print_document_error(std::ostream& out,
     return out;
 }
 
-void print_assertion_error(bmd::Code_String& out, const Assertion_Error& error)
+void print_assertion_error(Code_String& out, const Assertion_Error& error)
 {
-    out.append("Assertion failed! ", bmd::Code_Span_Type::diagnostic_error);
+    out.append("Assertion failed! ", Code_Span_Type::diagnostic_error);
 
     const std::string_view message = error.type == Assertion_Error_Type::expression
         ? "The following expression evaluated to 'false', but was expected to be 'true':"
         : "Code which must be unreachable has been reached.";
-    out.append(message, bmd::Code_Span_Type::diagnostic_text);
+    out.append(message, Code_Span_Type::diagnostic_text);
     out.append("\n\n");
 
     Local_Source_Position pos { .line = error.location.line(),
@@ -1061,7 +1061,7 @@ void print_assertion_error(bmd::Code_String& out, const Assertion_Error& error)
     constexpr bool colon_suffix = true;
     print_file_position(out, error.location.file_name(), pos, colon_suffix);
     out.append(' ');
-    out.append(error.message, bmd::Code_Span_Type::diagnostic_error_text);
+    out.append(error.message, Code_Span_Type::diagnostic_error_text);
     out.append("\n\n");
     print_internal_error_notice(out);
 }
@@ -1099,11 +1099,11 @@ std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& er
     return print_internal_error_notice(out, colors);
 }
 
-void print_io_error(bmd::Code_String& out, std::string_view file, IO_Error_Code error)
+void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error)
 {
     print_location_of_file(out, file);
     out.append(' ');
-    out.append(to_prose(error), bmd::Code_Span_Type::diagnostic_text);
+    out.append(to_prose(error), Code_Span_Type::diagnostic_text);
     out.append('\n');
 }
 
@@ -1302,11 +1302,11 @@ std::ostream& print_ast(std::ostream& out,
     return out;
 }
 
-void print_internal_error_notice(bmd::Code_String& out)
+void print_internal_error_notice(Code_String& out)
 {
     constexpr std::string_view notice = "This is an internal error. Please report this bug at:\n"
                                         "https://github.com/Eisenwave/bit-manipulation/issues\n";
-    out.append(notice, bmd::Code_Span_Type::diagnostic_internal_error_notice);
+    out.append(notice, Code_Span_Type::diagnostic_internal_error_notice);
 }
 
 std::ostream& print_internal_error_notice(std::ostream& out, bool colors)

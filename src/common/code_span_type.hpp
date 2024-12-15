@@ -1,13 +1,12 @@
-#ifndef BIT_MANIPULATION_BMD_CODE_SPAN_TYPE_HPP
-#define BIT_MANIPULATION_BMD_CODE_SPAN_TYPE_HPP
+#ifndef BIT_MANIPULATION_CODE_SPAN_TYPE_HPP
+#define BIT_MANIPULATION_CODE_SPAN_TYPE_HPP
 
 #include <string_view>
 
 #include "common/assert.hpp"
+#include "common/fwd.hpp"
 
-#include "bmd/fwd.hpp"
-
-namespace bit_manipulation::bmd {
+namespace bit_manipulation {
 
 /// @brief The type of a code span in a syntax-highlighted document.
 /// While languages have many more tokens, these all fall into the listed handful categories
@@ -72,6 +71,6 @@ enum struct Code_Span_Type : Default_Underlying {
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
 
-} // namespace bit_manipulation::bmd
+} // namespace bit_manipulation
 
 #endif

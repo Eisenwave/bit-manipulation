@@ -4,6 +4,7 @@
 #include <string>
 
 #include "common/assert.hpp"
+#include "common/code_string.hpp"
 #include "common/config.hpp"
 #include "common/diagnostics.hpp"
 
@@ -12,7 +13,6 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 
 #include "wasm/bm.hpp"
@@ -40,7 +40,7 @@ bm_allocation error_to_heap(const bms::Tokenize_Error& error,
                             std::string_view source,
                             std::pmr::memory_resource* memory)
 {
-    bmd::Code_String error_out { memory };
+    Code_String error_out { memory };
     print_tokenize_error(error_out, file_name, source, error);
     return copy_to_heap(error_out.get_text());
 }
@@ -49,7 +49,7 @@ bm_allocation error_to_heap(const bms::Parse_Error& error,
                             std::string_view source,
                             std::pmr::memory_resource* memory)
 {
-    bmd::Code_String error_out { memory };
+    Code_String error_out { memory };
     print_parse_error(error_out, file_name, source, error);
     return copy_to_heap(error_out.get_text());
 }
@@ -58,7 +58,7 @@ bm_allocation error_to_heap(const bms::Analysis_Error& error,
                             const bms::Parsed_Program& parsed,
                             std::pmr::memory_resource* memory)
 {
-    bmd::Code_String error_out { memory };
+    Code_String error_out { memory };
     print_analysis_error(error_out, parsed, error);
     return copy_to_heap(error_out.get_text());
 }
@@ -83,7 +83,7 @@ bm_allocation translate_to(std::string_view source, bmd::Code_Language lang)
         return error_to_heap(r.error(), parsed, &memory);
     }
 
-    bmd::Code_String out { &memory };
+    Code_String out { &memory };
     bmd::generate_code(out, analyzed, lang, { .c_23 = true });
 
     return copy_to_heap(out.get_text());

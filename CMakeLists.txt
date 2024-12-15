@@ -35,8 +35,6 @@ set(HEADERS
     src/bmd/scope_success_writer.hpp
 
     src/bmd/codegen/code_language.hpp
-    src/bmd/codegen/code_span_type.hpp
-    src/bmd/codegen/code_string.hpp
     src/bmd/codegen/codegen.hpp
     src/bmd/codegen/generator_base.hpp
     src/bmd/codegen/generator_error.hpp
@@ -86,6 +84,8 @@ set(HEADERS
 
     src/common/ansi.hpp
     src/common/assert.hpp
+    src/common/code_span_type.hpp
+    src/common/code_string.hpp
     src/common/config.hpp
     src/common/diagnostics.hpp
     src/common/fwd.hpp

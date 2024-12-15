@@ -1,5 +1,5 @@
-#ifndef BIT_MANIPULATION_BMD_CODE_STRING_HPP
-#define BIT_MANIPULATION_BMD_CODE_STRING_HPP
+#ifndef BIT_MANIPULATION_CODE_STRING_HPP
+#define BIT_MANIPULATION_CODE_STRING_HPP
 
 #include <concepts>
 #include <memory_resource>
@@ -7,11 +7,10 @@
 #include <utility>
 #include <vector>
 
+#include "common/code_span_type.hpp"
 #include "common/source_position.hpp"
 
-#include "bmd/codegen/code_span_type.hpp"
-
-namespace bit_manipulation::bmd {
+namespace bit_manipulation {
 
 struct Code_String_Span {
     Size begin;
@@ -302,6 +301,6 @@ inline auto Code_String::cend() const -> const_iterator
     return end();
 }
 
-} // namespace bit_manipulation::bmd
+} // namespace bit_manipulation
 
 #endif

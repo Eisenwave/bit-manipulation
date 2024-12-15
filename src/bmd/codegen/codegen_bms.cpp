@@ -1,6 +1,8 @@
 #include <optional>
 
 #include "common/assert.hpp"
+#include "common/code_span_type.hpp"
+#include "common/code_string.hpp"
 #include "common/result.hpp"
 #include "common/to_string.hpp"
 #include "common/variant.hpp"
@@ -12,8 +14,6 @@
 #include "bms/expression_type.hpp"
 
 #include "bmd/codegen/code_language.hpp"
-#include "bmd/codegen/code_span_type.hpp"
-#include "bmd/codegen/code_string.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/codegen/generator_base.hpp"
 

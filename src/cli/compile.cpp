@@ -1,12 +1,11 @@
 #include <iostream>
 
+#include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
 #include "bms/tokenization/tokenize.hpp"
-
-#include "bmd/codegen/code_string.hpp"
 
 #include "cli/compile.hpp"
 #include "cli/glue.hpp"
@@ -24,7 +23,7 @@ tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memo
         return tokens;
     }
     else {
-        bmd::Code_String out { memory };
+        Code_String out { memory };
         print_tokenize_error(out, file, source, result.error());
         print_code_string(std::cout, out, colors);
         std::exit(1);
@@ -35,7 +34,7 @@ std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* mem
 {
     Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
     if (!result) {
-        bmd::Code_String out { memory };
+        Code_String out { memory };
         print_io_error(out, file, result.error());
         print_code_string(std::cout, out, colors);
         std::exit(1);
@@ -49,7 +48,7 @@ parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_
 
     Result<bmd::Parsed_Document, bmd::Parse_Error> parsed = bmd::parse(source, memory);
     if (!parsed) {
-        bmd::Code_String out { memory };
+        Code_String out { memory };
         print_parse_error(out, file, source, parsed.error());
         print_code_string(std::cout, out, colors);
         std::exit(1);
@@ -68,7 +67,7 @@ bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
         return parsed;
     }
     else {
-        bmd::Code_String out { memory };
+        Code_String out { memory };
         print_parse_error(out, file_name, source, result.error());
         print_code_string(std::cout, out, colors);
         std::exit(1);
@@ -85,7 +84,7 @@ bms::Analyzed_Program analyze_parsed(const bms::Parsed_Program& parsed,
         return analyzed;
     }
     else {
-        bmd::Code_String out { memory };
+        Code_String out { memory };
         print_analysis_error(out, parsed, result.error());
         print_code_string(std::cout, out, colors);
         std::exit(1);
