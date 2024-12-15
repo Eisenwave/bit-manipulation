@@ -40,7 +40,8 @@ private:
     std::pmr::vector<Code_String_Span> m_spans;
 
 public:
-    [[nodiscard]] Code_String(std::pmr::memory_resource* memory = std::pmr::get_default_resource())
+    [[nodiscard]] explicit Code_String(std::pmr::memory_resource* memory
+                                       = std::pmr::get_default_resource())
         : m_text(memory)
         , m_spans(memory)
     {
