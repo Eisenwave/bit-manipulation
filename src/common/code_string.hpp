@@ -67,6 +67,16 @@ public:
         return m_spans.size();
     }
 
+    [[nodiscard]] std::string_view get_text() const
+    {
+        return { m_text.data(), m_text.size() };
+    }
+
+    [[nodiscard]] std::string_view get_text(const Code_String_Span& span) const
+    {
+        return get_text().substr(span.begin, span.length);
+    }
+
     void resize(Length length)
     {
         m_text.resize(length.text_length);
@@ -166,16 +176,6 @@ public:
     Scoped_Builder build(Code_Span_Type type) &
     {
         return { *this, type };
-    }
-
-    [[nodiscard]] std::string_view get_text() const
-    {
-        return { m_text.data(), m_text.size() };
-    }
-
-    [[nodiscard]] std::string_view get_text(const Code_String_Span& span) const
-    {
-        return get_text().substr(span.begin, span.length);
     }
 
     [[nodiscard]] const_iterator begin() const;
