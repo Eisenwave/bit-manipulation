@@ -89,8 +89,8 @@ struct Printable_Error {
             && error.evaluation_error() == bms::Evaluation_Error_Code::type_error);
 }
 
-constexpr std::string_view error_prefix_x = "error:";
-constexpr std::string_view note_prefix_x = "note:";
+constexpr std::string_view error_prefix = "error:";
+constexpr std::string_view note_prefix = "note:";
 
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
@@ -597,11 +597,9 @@ void print_printable_error(Code_String& out, const Printable_Error& error)
         out.append(' ');
         switch (line.type) {
         case Error_Line_Type::error:
-            out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
+            out.append(error_prefix, Code_Span_Type::diagnostic_error);
             break;
-        case Error_Line_Type::note:
-            out.append(note_prefix_x, Code_Span_Type::diagnostic_note);
-            break;
+        case Error_Line_Type::note: out.append(note_prefix, Code_Span_Type::diagnostic_note); break;
         }
         out.append(' ');
         out.append(line.message, Code_Span_Type::diagnostic_text);
@@ -729,7 +727,7 @@ void print_tokenize_error(Code_String& out,
     constexpr bool suffix_colon = true;
     print_file_position(out, file, e.pos, suffix_colon);
     out.append(' ');
-    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
+    out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
     out.append(to_prose(e.code), Code_Span_Type::diagnostic_text);
     out.append('\n');
@@ -744,7 +742,7 @@ void print_parse_error(Code_String& out,
     constexpr bool colon_suffix = true;
     print_file_position(out, file, error.fail_token.pos, colon_suffix);
     out.append(' ');
-    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
+    out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
     const std::string_view preamble
@@ -759,7 +757,7 @@ void print_parse_error(Code_String& out,
 
     print_file_position(out, file, error.fail_token.pos, colon_suffix);
     out.append(' ');
-    out.append(note_prefix_x, Code_Span_Type::diagnostic_note);
+    out.append(note_prefix, Code_Span_Type::diagnostic_note);
     out.append(' ');
 
     {
@@ -792,7 +790,7 @@ void print_parse_error(Code_String& out,
 {
     constexpr bool colon_suffix = true;
     print_file_position(out, file, error.pos, colon_suffix);
-    out.append(error_prefix_x, Code_Span_Type::diagnostic_error);
+    out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
     if (error.code == bmd::Parse_Error_Code::unexpected_character) {
