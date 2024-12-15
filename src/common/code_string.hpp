@@ -32,18 +32,12 @@ public:
         Size span_count;
     };
 
-    using iterator = Code_String_Iterator;
-    using const_iterator = Code_String_Iterator;
+    using iterator = Code_String_Span*;
+    using const_iterator = const Code_String_Span*;
 
 private:
-    struct Internal_Span {
-        Size begin;
-        Size length;
-        Code_Span_Type type;
-    };
-
     std::pmr::vector<char> m_text;
-    std::pmr::vector<Internal_Span> m_spans;
+    std::pmr::vector<Code_String_Span> m_spans;
 
 public:
     [[nodiscard]] Code_String(std::pmr::memory_resource* memory = std::pmr::get_default_resource())
@@ -123,46 +117,7 @@ public:
         m_text.push_back(c);
     }
 
-    struct [[nodiscard]] Scoped_Builder {
-    private:
-        Code_String& self;
-        Size initial_size;
-        Code_Span_Type type;
-
-    public:
-        Scoped_Builder(Code_String& self, Code_Span_Type type)
-            : self { self }
-            , initial_size { self.m_text.size() }
-            , type { type }
-        {
-        }
-
-        ~Scoped_Builder() noexcept(false)
-        {
-            BIT_MANIPULATION_ASSERT(self.m_text.size() >= initial_size);
-            Size length = self.m_text.size() - initial_size;
-            if (length != 0) {
-                self.m_spans.push_back({ .begin = initial_size,
-                                         .length = self.m_text.size() - initial_size,
-                                         .type = type });
-            }
-        }
-
-        Scoped_Builder(const Scoped_Builder&) = delete;
-        Scoped_Builder& operator=(const Scoped_Builder&) = delete;
-
-        Scoped_Builder& append(char c)
-        {
-            self.append(c);
-            return *this;
-        }
-
-        Scoped_Builder& append(std::string_view text)
-        {
-            self.append(text);
-            return *this;
-        }
-    };
+    struct Scoped_Builder;
 
     /// @brief Starts building a single code span out of multiple parts which will be fused
     /// together.
@@ -173,153 +128,83 @@ public:
     ///     .append(name);
     /// ```
     /// @param type the type of the appended span as a whole
-    Scoped_Builder build(Code_Span_Type type) &
+    Scoped_Builder build(Code_Span_Type type) &;
+
+    [[nodiscard]] iterator begin()
     {
-        return { *this, type };
+        return m_spans.data();
     }
 
-    [[nodiscard]] const_iterator begin() const;
-
-    [[nodiscard]] const_iterator end() const;
-
-    [[nodiscard]] const_iterator cbegin() const;
-
-    [[nodiscard]] const_iterator cend() const;
-
-    friend struct Code_String_Iterator;
-
-private:
-    Code_String_Span extract(const Internal_Span& span) const
+    [[nodiscard]] iterator end()
     {
-        return { .begin = span.begin, .length = span.length, .type = span.type };
-    }
-};
-
-struct Code_String_Iterator {
-public:
-    friend struct Code_String;
-
-    using difference_type = Difference;
-    using value_type = Code_String_Span;
-    using self_type = Code_String_Iterator;
-
-private:
-    const Code_String* m_string = nullptr;
-    Difference m_index = 0;
-
-    [[nodiscard]] Code_String_Iterator(const Code_String* string, Difference index)
-        : m_string(string)
-        , m_index(index)
-    {
+        return m_spans.data() + Difference(m_spans.size());
     }
 
-public:
-    [[nodiscard]] Code_String_Iterator() = default;
-
-    [[nodiscard]] value_type operator*() const
+    [[nodiscard]] const_iterator begin() const
     {
-        BIT_MANIPULATION_ASSERT(m_index >= 0);
-        return m_string->extract(m_string->m_spans[Size(m_index)]);
+        return m_spans.data();
     }
 
-    [[nodiscard]] value_type operator[](Difference d) const
+    [[nodiscard]] const_iterator end() const
     {
-        return *(*this + d);
+        return m_spans.data() + Difference(m_spans.size());
     }
 
-    self_type& operator++()
+    [[nodiscard]] const_iterator cbegin() const
     {
-        ++m_index;
-        return *this;
+        return begin();
     }
 
-    self_type operator++(int)
+    [[nodiscard]] const_iterator cend() const
     {
-        auto copy = *this;
-        ++*this;
-        return copy;
-    }
-
-    self_type& operator--()
-    {
-        BIT_MANIPULATION_ASSERT(m_index != 0);
-        --m_index;
-        return *this;
-    }
-
-    self_type operator--(int)
-    {
-        auto copy = *this;
-        --*this;
-        return copy;
-    }
-
-    [[nodiscard]] self_type& operator+=(difference_type d) &
-    {
-        m_index += d;
-        BIT_MANIPULATION_ASSERT(m_index >= 0);
-        return *this;
-    }
-
-    [[nodiscard]] self_type& operator-=(difference_type d) &
-    {
-        m_index -= d;
-        BIT_MANIPULATION_ASSERT(m_index >= 0);
-        return *this;
-    }
-
-    [[nodiscard]] friend self_type operator+(self_type iter, difference_type d)
-    {
-        return iter += d;
-    }
-
-    [[nodiscard]] friend self_type operator+(difference_type d, self_type iter)
-    {
-        return iter += d;
-    }
-
-    [[nodiscard]] friend self_type operator-(self_type iter, difference_type d)
-    {
-        return iter -= d;
-    }
-
-    [[nodiscard]] friend difference_type operator-(self_type a, self_type b)
-    {
-        BIT_MANIPULATION_ASSERT(a.m_string == b.m_string);
-        return a.m_index - b.m_index;
-    }
-
-    [[nodiscard]] friend bool operator==(self_type a, self_type b)
-    {
-        BIT_MANIPULATION_ASSERT(a.m_string == b.m_string);
-        return a.m_index == b.m_index;
-    }
-
-    [[nodiscard]] friend std::strong_ordering operator<=>(self_type a, self_type b)
-    {
-        BIT_MANIPULATION_ASSERT(a.m_string == b.m_string);
-        return a.m_index <=> b.m_index;
+        return end();
     }
 };
 
-inline auto Code_String::begin() const -> const_iterator
-{
-    return { this, 0 };
-}
+struct [[nodiscard]] Code_String::Scoped_Builder {
+private:
+    Code_String& self;
+    Size initial_size;
+    Code_Span_Type type;
 
-inline auto Code_String::end() const -> const_iterator
-{
-    return { this, Difference(m_spans.size()) };
-}
+public:
+    Scoped_Builder(Code_String& self, Code_Span_Type type)
+        : self { self }
+        , initial_size { self.m_text.size() }
+        , type { type }
+    {
+    }
 
-inline auto Code_String::cbegin() const -> const_iterator
-{
-    return begin();
-}
+    ~Scoped_Builder() noexcept(false)
+    {
+        BIT_MANIPULATION_ASSERT(self.m_text.size() >= initial_size);
+        Size length = self.m_text.size() - initial_size;
+        if (length != 0) {
+            self.m_spans.push_back({ .begin = initial_size,
+                                     .length = self.m_text.size() - initial_size,
+                                     .type = type });
+        }
+    }
 
-inline auto Code_String::cend() const -> const_iterator
+    Scoped_Builder(const Scoped_Builder&) = delete;
+    Scoped_Builder& operator=(const Scoped_Builder&) = delete;
+
+    Scoped_Builder& append(char c)
+    {
+        self.append(c);
+        return *this;
+    }
+
+    Scoped_Builder& append(std::string_view text)
+    {
+        self.append(text);
+        return *this;
+    }
+};
+
+inline Code_String::Scoped_Builder Code_String::build(Code_Span_Type type) &
 {
-    return end();
+    return { *this, type };
 }
 
 } // namespace bit_manipulation
