@@ -40,6 +40,7 @@ set(HEADERS
     src/bmd/codegen/generator_error.hpp
 
     src/bmd/html/bms_to_html.hpp
+    src/bmd/html/code_string_to_html.hpp
     src/bmd/html/doc_to_html.hpp
     src/bmd/html/html_writer.hpp
     
@@ -107,6 +108,7 @@ add_library(bm STATIC ${HEADERS}
     src/bmd/codegen/codegen_bms.cpp
     src/bmd/codegen/codegen_c_cpp.cpp
     src/bmd/html/bms_to_html.cpp
+    src/bmd/html/code_string_to_html.cpp
     src/bmd/html/doc_to_html.cpp
     src/bmd/html/html_writer.cpp
     src/bmd/parsing/parse.cpp
