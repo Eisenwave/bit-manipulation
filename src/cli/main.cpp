@@ -229,12 +229,12 @@ try {
         return 1;
     }
 } catch (const Assertion_Error& e) {
-    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
+    bit_manipulation::Code_String out;
     print_assertion_error(out, e);
     print_code_string(std::cout, out, colors);
     return 1;
 } catch (std::exception& e) {
-    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
+    bit_manipulation::Code_String out;
     out.append("Unhandled exception! ", bit_manipulation::Code_Span_Type::diagnostic_error_text);
     out.append("An exception with the following message has been raised:",
                bit_manipulation::Code_Span_Type::diagnostic_text);
@@ -244,7 +244,7 @@ try {
     print_code_string(std::cout, out, colors);
     return 1;
 } catch (...) {
-    bit_manipulation::Code_String out { std::pmr::get_default_resource() };
+    bit_manipulation::Code_String out;
     out.append("Unhandled exception! ", bit_manipulation::Code_Span_Type::diagnostic_error_text);
     out.append("An exception not derived from std::exception has been raised.",
                bit_manipulation::Code_Span_Type::diagnostic_text);
