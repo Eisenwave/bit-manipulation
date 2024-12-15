@@ -625,7 +625,9 @@ TEST(BMS_Analysis_Error, no_return_explicit_type)
     EXPECT_TRUE(test_for_diagnostic("analysis_error/no_return/explicit_type.bms", expectations));
 }
 
-TEST(BMS_Analysis_Error, no_return_implicit_type)
+// this is actually fine because return; is optional for Void return types, explicit or implicit
+// TODO: move to valid_bms
+TEST(BMS_Analysis_Error, DISABLED_no_return_implicit_type)
 {
     static const Analysis_Error_Expectations expectations //
         { .code = bms::Analysis_Error_Code::no_return, .fail_line = 1 };
