@@ -136,6 +136,18 @@ TEST(Valid_BMS, static_assert)
     EXPECT_TRUE(test_for_success("valid_bms/static_assert.bms"));
 }
 
+TEST(Valid_BMS, uint_pow2)
+{
+    EXPECT_TRUE(test_for_success("valid_bms/uint_pow2.bms"));
+}
+
+TEST(Valid_BMS, uint128)
+{
+    if (uint_max_width >= 128) {
+        EXPECT_TRUE(test_for_success("valid_bms/uint128.bms"));
+    }
+}
+
 TEST(Valid_BMS, void)
 {
     EXPECT_TRUE(test_for_success("valid_bms/void.bms"));
