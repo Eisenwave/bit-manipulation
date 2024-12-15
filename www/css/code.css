@@ -2,23 +2,104 @@
 
     c-bra,
     c-pun {
-        color: rgb(100, 100, 100);
+        /* bracket, punctuation */
+        color: #646464;
     }
 
     c-opr {
-        color: rgb(0, 0, 0);
+        /* operation */
+        color: #000000;
     }
 
     c-idn {
-        color: rgb(92, 71, 126);
+        /* identifier */
+        color: #5c477e;
     }
 
-    c-key {
-        color: rgb(200, 0, 50);
+    c-key,
+    c-bol {
+        /* keyword, boolean literal */
+        color: #c80032;
     }
 
     c-typ {
-        color: rgb(0, 80, 200);
+        /* type name */
+        color: #0050c8;
+    }
+
+    c-int,
+    c-str {
+        /* number, string */
+        color: #367c2a;
+    }
+
+    c-dtx {
+        /* diagnostic text */
+        color: #000000;
+    }
+
+    c-det {
+        /* diagnostic error text */
+        color: #872727;
+    }
+
+    c-dcp {
+        /* diagnostic code position */
+        color: #303030;
+        font-weight: bold;
+    }
+
+    c-der {
+        /* diagnostic error */
+        color: #872727;
+        font-weight: bold;
+    }
+
+    c-dwr {
+        /* diagnostic warning */
+        color: #826a14;
+        font-weight: bold;
+    }
+
+    c-dnt {
+        /* diagnostic note */
+        color: #464646;
+        font-weight: bold;
+    }
+
+    c-dln {
+        /* diagnostic line number */
+        color: #646400;
+    }
+
+    c-dpc {
+        /* diagnostic punctuation */
+        color: #646464;
+    }
+
+    c-dpi {
+        /* diagnostic position indicator */
+        color: #367c2a;
+    }
+
+    c-dcc {
+        /* diagnostic code citation */
+        color: #000000;
+    }
+
+    c-die {
+        /* diagnostic internal error notice */
+        color: #3d003d;
+    }
+
+    c-dor {
+        /* diagnostic operand */
+        color: #3d003d;
+    }
+
+    c-dop {
+        /* diagnostic operator */
+        color: #000000;
     }
 
 }
@@ -27,23 +108,104 @@
 
     c-bra,
     c-pun {
-        color: rgb(160, 160, 160);
+        /* bracket, punctuation */
+        color: #a0a0a0;
     }
 
     c-opr {
-        color: white;
+        /* operation */
+        color: #ffffff;
     }
 
     c-idn {
-        color: rgb(255, 220, 156);
+        /* identifier */
+        color: #ffdc9c;
     }
 
-    c-key {
-        color: rgb(255, 90, 130);
+    c-key,
+    c-bol {
+        /* keyword, boolean literal */
+        color: #ff5a82;
     }
 
     c-typ {
-        color: rgb(84, 169, 239);
+        /* type name */
+        color: #54a9ef;
+    }
+
+    c-int,
+    c-str {
+        /* number, string */
+        color: #76b76a;
+    }
+
+    c-dtx {
+        /* diagnostic text */
+        color: #d2d2d2;
+    }
+
+    c-det {
+        /* diagnostic error text */
+        color: #dc4848;
+    }
+
+    c-dcp {
+        /* diagnostic code position */
+        color: #7e7e7e;
+        font-weight: bold;
+    }
+
+    c-der {
+        /* diagnostic error */
+        color: #cb2929;
+        font-weight: bold;
+    }
+
+    c-dwr {
+        /* diagnostic warning */
+        color: #dbb83c;
+        font-weight: bold;
+    }
+
+    c-dnt {
+        /* diagnostic note */
+        color: #a1a1a1;
+        font-weight: bold;
+    }
+
+    c-dln {
+        /* diagnostic line number */
+        color: #d5d539;
+    }
+
+    c-dpc {
+        /* diagnostic punctuation */
+        color: #8b8b8b;
+    }
+
+    c-dpi {
+        /* diagnostic position indicator */
+        color: #69c459;
+    }
+
+    c-dcc {
+        /* diagnostic code citation */
+        color: #d2d2d2;
+    }
+
+    c-die {
+        /* diagnostic internal error notice */
+        color: #c381c3;
+    }
+
+    c-dor {
+        /* diagnostic operand */
+        color: #d178d1;
+    }
+
+    c-dop {
+        /* diagnostic operator */
+        color: #ffffff;
     }
 
 }
