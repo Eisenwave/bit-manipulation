@@ -64,7 +64,7 @@ enum struct Code_Span_Type : Default_Underlying {
     case diagnostic_line_number: return "c-dln";
     case diagnostic_punctuation: return "c-dpc";
     case diagnostic_position_indicator: return "c-dpi";
-    case diagnostic_code_citation: return "c-cct";
+    case diagnostic_code_citation: return "c-dcc";
     case diagnostic_internal_error_notice: return "c-die";
     case diagnostic_operand: return "c-dor";
     case diagnostic_operator: return "c-dop";
