@@ -170,7 +170,7 @@ auto HTML_Writer::write_comment_tag(std::string_view comment, Formatting_Style s
 
 Size HTML_Writer::write_inner_text(std::string_view text, Formatting_Style style)
 {
-    BIT_MANIPULATION_ASSERT(m_state == State::normal || m_state == State::new_line);
+    BIT_MANIPULATION_ASSERT(m_state != State::attributes);
 
     if (style == Formatting_Style::pre) {
         write_escaped_text(text);
