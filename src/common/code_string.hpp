@@ -16,6 +16,11 @@ struct Code_String_Span {
     Size begin;
     Size length;
     Code_Span_Type type;
+
+    [[nodiscard]] constexpr Size end() const
+    {
+        return begin + length;
+    }
 };
 
 struct Code_String_Iterator;
@@ -55,6 +60,11 @@ public:
     [[nodiscard]] Size get_text_length() const
     {
         return m_text.size();
+    }
+
+    [[nodiscard]] Size get_span_count() const
+    {
+        return m_spans.size();
     }
 
     void resize(Length length)
@@ -155,6 +165,11 @@ public:
     [[nodiscard]] std::string_view get_text() const
     {
         return { m_text.data(), m_text.size() };
+    }
+
+    [[nodiscard]] std::string_view get_text(const Code_String_Span& span) const
+    {
+        return get_text().substr(span.begin, span.length);
     }
 
     [[nodiscard]] const_iterator begin() const;
