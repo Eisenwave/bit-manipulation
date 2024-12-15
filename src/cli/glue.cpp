@@ -39,52 +39,6 @@ std::string_view highlight_color_of(bmd::HTML_Token_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown HTML tag type.");
 }
 
-std::string_view highlight_color_of(Code_Span_Type type)
-{
-    using enum Code_Span_Type;
-    switch (type) {
-    case identifier: return ansi::h_white;
-    case type_name: return ansi::h_blue;
-
-    case number: return ansi::h_cyan;
-
-    case string: return ansi::h_green;
-
-    case comment:
-    case operation: return ansi::h_black;
-
-    case bracket:
-    case punctuation: return ansi::black;
-
-    case keyword:
-    case boolean_literal: return ansi::h_magenta;
-
-    case error: return ansi::h_red;
-
-    case diagnostic_text:
-    case diagnostic_code_citation:
-    case diagnostic_punctuation:
-    case diagnostic_operator: return ansi::reset;
-
-    case diagnostic_code_position: return ansi::h_black;
-
-    case diagnostic_error_text:
-    case diagnostic_error: return ansi::h_red;
-
-    case diagnostic_warning:
-    case diagnostic_line_number: return ansi::h_yellow;
-
-    case diagnostic_note: return ansi::h_white;
-
-    case diagnostic_position_indicator: return ansi::h_green;
-
-    case diagnostic_internal_error_notice: return ansi::h_yellow;
-
-    case diagnostic_operand: return ansi::h_magenta;
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
-}
-
 } // namespace
 
 std::optional<bmd::Code_Language> code_language_by_name(std::string_view name)
@@ -182,31 +136,6 @@ Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
                                               .stylesheets = stylesheets };
 
     return bmd::doc_to_html(out, document, options, memory);
-}
-
-std::ostream& print_code_string(std::ostream& out, const Code_String& string, bool colors)
-{
-    const std::string_view text = string.get_text();
-    if (!colors) {
-        return out << text;
-    }
-
-    Code_String_Span previous {};
-    for (Code_String_Span span : string) {
-        const Size previous_end = previous.begin + previous.length;
-        BIT_MANIPULATION_ASSERT(span.begin >= previous_end);
-        if (previous_end != span.begin) {
-            out << text.substr(previous_end, span.begin - previous_end);
-        }
-        out << highlight_color_of(span.type) << text.substr(span.begin, span.length) << ansi::reset;
-        previous = span;
-    }
-    const Size last_span_end = previous.begin + previous.length;
-    if (last_span_end != text.size()) {
-        out << text.substr(last_span_end);
-    }
-
-    return out;
 }
 
 } // namespace bit_manipulation

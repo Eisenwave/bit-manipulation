@@ -108,7 +108,7 @@ print_ast(std::ostream& out, const bmd::Parsed_Document& document, BMD_AST_Forma
 
 void print_internal_error_notice(Code_String& out);
 
-[[deprecated]] std::ostream& print_internal_error_notice(std::ostream& out, bool colors);
+std::ostream& print_code_string(std::ostream& out, const Code_String& string, bool colors);
 
 } // namespace bit_manipulation
 
