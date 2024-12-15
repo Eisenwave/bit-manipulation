@@ -92,14 +92,6 @@ struct Printable_Error {
 constexpr std::string_view error_prefix_x = "error:";
 constexpr std::string_view note_prefix_x = "note:";
 
-constexpr std::string_view error_prefix = "error: ";
-constexpr std::string_view note_prefix = "note: ";
-
-const std::string colored_error_prefix
-    = std::string(ansi::h_red) + "error: " + std::string(ansi::reset);
-const std::string colored_note_prefix
-    = std::string(ansi::h_white) + "note: " + std::string(ansi::reset);
-
 std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
     switch (e) {
@@ -598,22 +590,6 @@ void print_source_position(Code_String& out, const std::optional<Source_Position
     }
 }
 
-std::ostream&
-print_source_position(std::ostream& out, const std::optional<Source_Position>& pos, bool colors)
-{
-    if (!pos) {
-        if (colors) {
-            out << ansi::black;
-        }
-        out << "(internal)";
-        if (colors) {
-            out << ansi::reset;
-        }
-        return out;
-    }
-    return print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colors);
-}
-
 void print_printable_error(Code_String& out, const Printable_Error& error)
 {
     for (const Error_Line& line : error.lines) {
@@ -647,36 +623,6 @@ void print_printable_error(Code_String& out, const Printable_Error& error)
     if (error.is_internal) {
         print_internal_error_notice(out);
     }
-}
-
-std::ostream& print_printable_error(std::ostream& out, const Printable_Error& error, bool colors)
-{
-    for (const Error_Line& line : error.lines) {
-        print_source_position(out, line.pos, colors) << ": ";
-        switch (line.type) {
-        case Error_Line_Type::error: out << (colors ? colored_error_prefix : error_prefix); break;
-        case Error_Line_Type::note: out << (colors ? colored_note_prefix : note_prefix); break;
-        }
-        out << line.message;
-
-        if (line.comp) {
-            const auto color = [&](std::string_view c) { return colors ? c : ""; };
-            out << color(ansi::h_magenta) << line.comp->left << color(ansi::reset) //
-                << ' ' << line.comp->op << ' ' //
-                << color(ansi::h_magenta) << line.comp->right << color(ansi::reset);
-        }
-
-        out << '\n';
-        if (line.pos && !line.omit_affected_line) {
-            print_affected_line(out, error.source, *line.pos, colors);
-        }
-    }
-
-    if (error.is_internal) {
-        print_internal_error_notice(out, colors);
-    }
-
-    return out;
 }
 
 template <typename Integer>
@@ -724,21 +670,6 @@ void print_file_position(Code_String& out,
     }
 }
 
-std::ostream& print_file_position(std::ostream& out,
-                                  std::string_view file,
-                                  const Local_Source_Position& pos,
-                                  bool colors)
-{
-    if (colors) {
-        out << ansi::black;
-    }
-    out << file << ":" << pos.line + 1 << ":" << pos.column + 1;
-    if (colors) {
-        out << ansi::reset;
-    }
-    return out;
-}
-
 std::string_view find_line(std::string_view source, Size index)
 {
     BIT_MANIPULATION_ASSERT(index <= source.size());
@@ -761,18 +692,6 @@ std::string_view find_line(std::string_view source, Size index)
 void print_location_of_file(Code_String& out, std::string_view file)
 {
     out.build(Code_Span_Type::diagnostic_code_position).append(file).append(':');
-}
-
-std::ostream& print_location_of_file(std::ostream& out, std::string_view file, bool colors)
-{
-    if (colors) {
-        out << ansi::black;
-    }
-    out << file << ":";
-    if (colors) {
-        out << ansi::reset;
-    }
-    return out;
 }
 
 void print_affected_line(Code_String& out,
@@ -802,35 +721,6 @@ void print_affected_line(Code_String& out,
     });
 }
 
-std::ostream& print_affected_line(std::ostream& out,
-                                  std::string_view source,
-                                  const Local_Source_Position& pos,
-                                  bool colors)
-{
-    constexpr std::string_view separator = " | ";
-
-    const std::string_view line = find_line(source, pos.begin);
-    if (colors) {
-        out << ansi::h_yellow;
-    }
-    out << std::right << std::setfill(' ') //
-        << std::setw(5) << pos.line + 1;
-    if (colors) {
-        out << ansi::reset;
-    }
-    out << separator << line << '\n' //
-        << std::setw(5) << "" << separator //
-        << std::string(pos.column, ' ');
-    if (colors) {
-        out << ansi::h_green;
-    }
-    out << "^\n";
-    if (colors) {
-        out << ansi::reset;
-    }
-    return out;
-}
-
 void print_tokenize_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
@@ -844,18 +734,6 @@ void print_tokenize_error(Code_String& out,
     out.append(to_prose(e.code), Code_Span_Type::diagnostic_text);
     out.append('\n');
     print_affected_line(out, source, e.pos);
-}
-
-std::ostream& print_tokenize_error(std::ostream& out,
-                                   std::string_view file,
-                                   std::string_view source,
-                                   const bms::Tokenize_Error& e,
-                                   bool colors)
-{
-    print_file_position(out, file, e.pos, colors);
-    out << ": " << (colors ? colored_error_prefix : error_prefix) << to_prose(e.code) << '\n';
-    print_affected_line(out, source, e.pos, colors);
-    return out;
 }
 
 void print_parse_error(Code_String& out,
@@ -907,41 +785,6 @@ void print_parse_error(Code_String& out,
     print_affected_line(out, source, error.fail_token.pos);
 }
 
-std::ostream& print_parse_error(std::ostream& out,
-                                std::string_view file,
-                                std::string_view source,
-                                const bms::Parse_Error& error,
-                                bool colors)
-{
-    print_file_position(out, file, error.fail_token.pos, colors)
-        << ": " << (colors ? colored_error_prefix : error_prefix);
-
-    const std::string_view preamble
-        = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
-    out << preamble << token_type_readable_name(error.fail_token.type) << " while matching '"
-        << grammar_rule_name(error.fail_rule) << "'\n";
-
-    print_file_position(out, file, error.fail_token.pos, colors) << ": " << //
-        (colors ? colored_note_prefix : note_prefix) << "expected ";
-
-    const std::span<const bms::Token_Type> expected = error.expected_tokens;
-    if (expected.size() == 0) {
-        out << "nothing";
-    }
-    else if (expected.size() == 1) {
-        out << token_type_readable_name(expected[0]);
-    }
-    else {
-        out << "one of: ";
-        for (Size i = 0; i < expected.size(); ++i) {
-            out << (i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
-            out << token_type_readable_name(expected[i]);
-        }
-    }
-    out << "\n";
-    return print_affected_line(out, source, error.fail_token.pos, colors);
-}
-
 void print_parse_error(Code_String& out,
                        std::string_view file,
                        std::string_view source,
@@ -971,46 +814,12 @@ void print_parse_error(Code_String& out,
     }
 }
 
-std::ostream& print_parse_error(std::ostream& out,
-                                std::string_view file,
-                                std::string_view source,
-                                const bmd::Parse_Error& error,
-                                bool colors)
-{
-    print_file_position(out, file, error.pos, colors)
-        << ": " << (colors ? colored_error_prefix : error_prefix);
-
-    if (error.code == bmd::Parse_Error_Code::unexpected_character) {
-        out << "unexpected character '" << source[error.pos.begin] << "' while matching '"
-            << grammar_rule_name(error.rule) << "'\n";
-        // TODO: diagnose expected character perhaps
-    }
-    else {
-        out << to_prose(error.code) << '\n';
-    }
-
-    if (source.empty()) {
-        return out;
-    }
-
-    return print_affected_line(out, source, error.pos, colors);
-}
-
 void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error)
 {
     const auto printable = make_error_printable(program, error);
     return print_printable_error(out, printable);
-}
-
-std::ostream& print_analysis_error(std::ostream& out,
-                                   const bms::Parsed_Program& program,
-                                   const bms::Analysis_Error& error,
-                                   bool colors)
-{
-    const auto printable = make_error_printable(program, error);
-    return print_printable_error(out, printable, colors);
 }
 
 void print_document_error(Code_String& out,
@@ -1027,22 +836,6 @@ void print_document_error(Code_String& out,
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
         print_internal_error_notice(out);
     }
-}
-
-std::ostream& print_document_error(std::ostream& out,
-                                   std::string_view file,
-                                   std::string_view source,
-                                   const bmd::Document_Error& error,
-                                   bool colors)
-{
-    print_file_position(out, file, error.pos, colors)
-        << ": " << (colors ? colored_error_prefix : error_prefix) << to_prose(error.code) << '\n';
-
-    print_affected_line(out, source, error.pos, colors);
-    if (error.code == bmd::Document_Error_Code::writer_misuse) {
-        print_internal_error_notice(out, colors);
-    }
-    return out;
 }
 
 void print_assertion_error(Code_String& out, const Assertion_Error& error)
@@ -1066,52 +859,12 @@ void print_assertion_error(Code_String& out, const Assertion_Error& error)
     print_internal_error_notice(out);
 }
 
-std::ostream& print_assertion_error(std::ostream& out, const Assertion_Error& error, bool colors)
-{
-    if (colors) {
-        out << ansi::h_red;
-    }
-    out << "Assertion failed! ";
-    if (colors) {
-        out << ansi::reset;
-    }
-
-    if (error.type == Assertion_Error_Type::expression) {
-        out << "The following expression evaluated to 'false', but was expected to be 'true':\n\n";
-    }
-    else {
-        out << "Code which must be unreachable has been reached.\n\n";
-    }
-
-    Local_Source_Position pos { .line = error.location.line(),
-                                .column = error.location.column(),
-                                .begin = {} };
-    print_file_position(out, error.location.file_name(), pos, colors);
-    out << ": ";
-    if (colors) {
-        out << ansi::red;
-    }
-    out << error.message;
-    if (colors) {
-        out << ansi::reset;
-    }
-    out << "\n\n";
-    return print_internal_error_notice(out, colors);
-}
-
 void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error)
 {
     print_location_of_file(out, file);
     out.append(' ');
     out.append(to_prose(error), Code_Span_Type::diagnostic_text);
     out.append('\n');
-}
-
-std::ostream&
-print_io_error(std::ostream& out, std::string_view file, IO_Error_Code error, bool colors)
-{
-    print_location_of_file(out, file, colors) << ": " << to_prose(error) << '\n';
-    return out;
 }
 
 std::ostream&
@@ -1307,19 +1060,6 @@ void print_internal_error_notice(Code_String& out)
     constexpr std::string_view notice = "This is an internal error. Please report this bug at:\n"
                                         "https://github.com/Eisenwave/bit-manipulation/issues\n";
     out.append(notice, Code_Span_Type::diagnostic_internal_error_notice);
-}
-
-std::ostream& print_internal_error_notice(std::ostream& out, bool colors)
-{
-    if (colors) {
-        out << ansi::h_yellow;
-    }
-    out << "This is an internal error. Please report this bug at:\n"
-        << "https://github.com/Eisenwave/bit-manipulation/issues\n";
-    if (colors) {
-        out << ansi::reset;
-    }
-    return out;
 }
 
 } // namespace bit_manipulation
