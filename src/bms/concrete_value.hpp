@@ -28,18 +28,18 @@ public:
         return { Concrete_Type::Int, value };
     }
 
-    constexpr Concrete_Value(Concrete_Type type, Big_Int value)
+    [[nodiscard]] constexpr Concrete_Value(Concrete_Type type, Big_Int value)
         : type(type)
         , int_value(value)
     {
     }
 
-    constexpr Concrete_Value()
+    [[nodiscard]] constexpr Concrete_Value()
         : Concrete_Value(Concrete_Type::Void, 0)
     {
     }
 
-    constexpr Result<Concrete_Value, Evaluation_Error_Code>
+    [[nodiscard]] constexpr Result<Concrete_Value, Evaluation_Error_Code>
     convert_to(Concrete_Type other, Conversion_Type conversion) const
     {
         if (type == other) {
@@ -59,7 +59,7 @@ public:
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible type conversion requested.");
     }
 
-    constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
+    [[nodiscard]] constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
     {
         BIT_MANIPULATION_ASSERT(type.is_uint());
         const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
