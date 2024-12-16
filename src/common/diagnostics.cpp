@@ -114,7 +114,7 @@ enum struct Error_Line_Type : Default_Underlying { note, error };
 struct Error_Line {
     Error_Line_Type type;
     std::optional<Source_Position> pos {};
-    std::string message;
+    std::string_view message;
     bool omit_affected_line = false;
 };
 
@@ -769,7 +769,7 @@ void print_analysis_error(Code_String& out,
             message += ", but the maximum allowed is ";
             message += to_characters(uint_max_width).as_string();
             message += '.';
-            print_error_line(out, { Error_Line_Type::error, error.fail_pos(), std::move(message) },
+            print_error_line(out, { Error_Line_Type::error, error.fail_pos(), message },
                              program.get_source());
         }
         else {
@@ -807,7 +807,7 @@ void print_analysis_error(Code_String& out,
         print_error_line(out,
                          { .type = Error_Line_Type::note,
                            .pos = error.fail_pos(),
-                           .message = std::move(message),
+                           .message = message,
                            .omit_affected_line = true },
                          program.get_source());
     }
@@ -841,8 +841,7 @@ void print_analysis_error(Code_String& out,
             message += ')';
         }
 
-        print_error_line(out, { Error_Line_Type::note, cause->pos, std::move(message) },
-                         program.get_source());
+        print_error_line(out, { Error_Line_Type::note, cause->pos, message }, program.get_source());
     }
 
     if (is_internal(error)) {
