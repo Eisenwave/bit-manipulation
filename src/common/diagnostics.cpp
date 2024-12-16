@@ -127,7 +127,7 @@ struct Error_Line {
 constexpr std::string_view error_prefix = "error:";
 constexpr std::string_view note_prefix = "note:";
 
-std::string_view to_prose(bms::Tokenize_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
     switch (e) {
     case bms::Tokenize_Error_Code::illegal_character: //
@@ -141,7 +141,7 @@ std::string_view to_prose(bms::Tokenize_Error_Code e)
     }
 }
 
-std::string_view to_prose(bms::Analysis_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
     switch (e) {
@@ -267,7 +267,7 @@ std::string_view to_prose(bms::Analysis_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
-std::string_view to_prose(bms::Evaluation_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bms::Evaluation_Error_Code e)
 {
     using enum bms::Evaluation_Error_Code;
     switch (e) {
@@ -287,7 +287,7 @@ std::string_view to_prose(bms::Evaluation_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
-std::string_view to_prose(bms::Execution_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bms::Execution_Error_Code e)
 {
     using enum bms::Execution_Error_Code;
     switch (e) {
@@ -313,7 +313,7 @@ std::string_view to_prose(bms::Execution_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
-std::string_view to_prose(bmd::Parse_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bmd::Parse_Error_Code e)
 {
     using enum bmd::Parse_Error_Code;
     switch (e) {
@@ -346,7 +346,7 @@ std::string_view to_prose(bmd::Parse_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
 
-std::string_view to_prose(bmd::Document_Error_Code e)
+[[nodiscard]] std::string_view to_prose(bmd::Document_Error_Code e)
 {
     using enum bmd::Document_Error_Code;
     switch (e) {
@@ -371,7 +371,7 @@ std::string_view to_prose(bmd::Document_Error_Code e)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
 
-std::string_view cause_to_prose(bms::Analysis_Error_Code e)
+[[nodiscard]] std::string_view cause_to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
     switch (e) {
@@ -440,7 +440,7 @@ std::string_view cause_to_prose(bms::Analysis_Error_Code e)
     }
 }
 
-std::string_view to_prose(IO_Error_Code e)
+[[nodiscard]] std::string_view to_prose(IO_Error_Code e)
 {
     switch (e) {
     case IO_Error_Code::cannot_open: //
@@ -454,7 +454,7 @@ std::string_view to_prose(IO_Error_Code e)
     }
 }
 
-bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
+[[nodiscard]] bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
 {
     return error.code() == bms::Analysis_Error_Code::incompatible_types
         && error.fail().construct == bms::Construct::return_statement;
