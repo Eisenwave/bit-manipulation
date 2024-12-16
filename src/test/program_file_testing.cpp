@@ -422,19 +422,20 @@ bool test_validity(std::string_view file,
     policy.file = full_path;
 
     std::pmr::monotonic_buffer_resource memory;
-    Result<std::pmr::string, IO_Error_Code> source = file_to_string(full_path, &memory);
-    if (!source) {
-        return policy.error(source.error()) == Policy_Action::SUCCESS;
+    Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, &memory);
+    if (!source_data) {
+        return policy.error(source_data.error()) == Policy_Action::SUCCESS;
     }
     switch (policy.done(Testing_Stage::load_file)) {
     case Policy_Action::SUCCESS: return true;
     case Policy_Action::FAILURE: return false;
     case Policy_Action::CONTINUE: break;
     }
-    policy.source = *source;
+    const std::string_view source { source_data->data(), source_data->size() };
+    policy.source = source;
 
     std::pmr::vector<bms::Token> tokens(&memory);
-    if (!bms::tokenize(tokens, *source, diagnostics)) {
+    if (!bms::tokenize(tokens, source, diagnostics)) {
         return policy.error(diagnostics.tokenize_errors.back()) == Policy_Action::SUCCESS;
     }
     switch (policy.done(Testing_Stage::tokenize)) {
@@ -443,7 +444,7 @@ bool test_validity(std::string_view file,
     case Policy_Action::CONTINUE: break;
     }
 
-    bms::Parsed_Program parsed { *source, &memory };
+    bms::Parsed_Program parsed { source, &memory };
     if (!bms::parse(parsed, tokens, diagnostics)) {
         return policy.error(diagnostics.parse_errors.back()) == Policy_Action::SUCCESS;
     }

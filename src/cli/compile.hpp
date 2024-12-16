@@ -2,7 +2,6 @@
 #define BIT_MANIPULATION_CLI_COMPILE_HPP
 
 #include <memory_resource>
-#include <string>
 #include <string_view>
 #include <vector>
 
@@ -18,7 +17,7 @@ std::pmr::vector<bms::Token> tokenize_bms_file(std::string_view source,
                                                std::string_view file,
                                                std::pmr::memory_resource* memory);
 
-std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory);
+std::pmr::vector<char> load_file(std::string_view file, std::pmr::memory_resource* memory);
 
 bmd::Parsed_Document
 parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory);

@@ -30,9 +30,9 @@ tokenize_bms_file(std::string_view source, std::string_view file, std::pmr::memo
     }
 }
 
-std::pmr::string load_file(std::string_view file, std::pmr::memory_resource* memory)
+std::pmr::vector<char> load_file(std::string_view file, std::pmr::memory_resource* memory)
 {
-    Result<std::pmr::string, IO_Error_Code> result = file_to_string(file, memory);
+    Result<std::pmr::vector<char>, IO_Error_Code> result = file_to_bytes(file, memory);
     if (!result) {
         Code_String out { memory };
         print_io_error(out, file, result.error());

@@ -38,7 +38,8 @@ int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
         std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
         return 1;
     }
-    const std::pmr::string source = load_file(file, memory);
+    const std::pmr::vector<char> source_data = load_file(file, memory);
+    const std::string_view source { source_data.data(), source_data.size() };
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
     Code_String out { memory };
     print_tokens(out, tokens, source);
@@ -48,7 +49,8 @@ int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
 
 int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
 {
-    const std::pmr::string source = load_file(file, memory);
+    const std::pmr::vector<char> source_data = load_file(file, memory);
+    const std::string_view source { source_data.data(), source_data.size() };
 
     if (file.ends_with(".bms")) {
         const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
@@ -74,7 +76,8 @@ int to_html(std::string_view file,
             std::optional<std::string_view> out_file,
             std::pmr::memory_resource* memory)
 {
-    const std::pmr::string source = load_file(file, memory);
+    const std::pmr::vector<char> source_data = load_file(file, memory);
+    const std::string_view source { source_data.data(), source_data.size() };
 
     if (file.ends_with(".bms")) {
         std::cout << "Converting BMS files to HTML is not supported yet\n";
@@ -129,7 +132,8 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
         return 1;
     }
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
-    const std::pmr::string source = load_file(file, &memory_resource);
+    const std::pmr::vector<char> source_data = load_file(file, &memory_resource);
+    const std::string_view source { source_data.data(), source_data.size() };
 
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
@@ -154,7 +158,8 @@ int generate(std::string_view file,
     }
 
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
-    const std::pmr::string source = load_file(file, &memory_resource);
+    const std::pmr::vector<char> source_data = load_file(file, &memory_resource);
+    const std::string_view source { source_data.data(), source_data.size() };
 
     const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, &memory_resource);
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
