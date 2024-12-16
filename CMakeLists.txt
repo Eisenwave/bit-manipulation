@@ -130,6 +130,7 @@ add_library(bm STATIC ${HEADERS}
     src/common/diagnostics.cpp
     src/common/io.cpp
     src/common/parse.cpp
+    src/common/to_string.cpp
     src/common/tty.cpp
 )
 
@@ -184,6 +185,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/diagnostic_policy.hpp
         src/test/main.cpp
         src/test/program_file_testing.cpp
+        src/test/test_to_string.cpp
         src/test/tribool.cpp
         src/test/variant.cpp
     )

@@ -28,20 +28,6 @@
 
 namespace bit_manipulation {
 
-std::string to_string(Uint128 x)
-{
-    /// The greatest power of 10 that fits into a 64-bit integer.
-    constexpr Uint128 exp10_19 = 10000000000000000000ull;
-
-    return x <= std::uint64_t(-1) ? std::to_string(Uint64(x))
-                                  : to_string(x / exp10_19) + std::to_string(Uint64(x % exp10_19));
-}
-
-std::string to_string(Int128 x)
-{
-    return x >= 0 ? to_string(Uint128(x)) : '-' + to_string(-Uint128(x));
-}
-
 namespace {
 
 std::string_view highlight_color_of(Code_Span_Type type)
@@ -675,34 +661,6 @@ void print_printable_error(Code_String& out, const Printable_Error& error)
     if (error.is_internal) {
         print_internal_error_notice(out);
     }
-}
-
-template <typename Integer>
-constexpr int approximate_to_chars_decimal_digits_v
-    = (std::numeric_limits<Integer>::digits * 100 / 310) + 1 + std::is_signed_v<Integer>;
-
-static_assert(approximate_to_chars_decimal_digits_v<unsigned char> >= 3);
-static_assert(approximate_to_chars_decimal_digits_v<unsigned short> >= 6);
-
-template <Size N>
-struct Characters {
-    std::array<char, N> buffer;
-    Size length;
-
-    [[nodiscard]] std::string_view as_string() const
-    {
-        return { buffer.data(), length };
-    }
-};
-
-template <typename Integer>
-Characters<approximate_to_chars_decimal_digits_v<Integer>> to_characters(Integer x)
-{
-    Characters<approximate_to_chars_decimal_digits_v<Integer>> chars;
-    auto result = std::to_chars(chars.buffer.data(), chars.buffer.data() + chars.buffer.size(), x);
-    BIT_MANIPULATION_ASSERT(result.ec == std::errc {});
-    chars.length = Size(result.ptr - chars.buffer.data());
-    return chars;
 }
 
 template <typename Integer>
