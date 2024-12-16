@@ -5,7 +5,6 @@
 #include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 #include "common/to_chars.hpp"
-#include "common/to_string.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/ast.hpp"
@@ -86,29 +85,36 @@ namespace {
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
 }
 
-std::string value_to_string(bms::Concrete_Value v)
+void append_compared_value(Code_String& out, bms::Concrete_Value v)
 {
+    constexpr auto span_type = Code_Span_Type::diagnostic_operand;
+
     switch (v.type.type()) {
-    case bms::Type_Type::Void: return "Void";
-    case bms::Type_Type::Bool: return v.int_value ? "true" : "false";
-    case bms::Type_Type::Int: return to_string(v.int_value);
-    case bms::Type_Type::Uint: return to_string(Big_Uint(v.int_value));
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
+    case bms::Type_Type::Nothing: //
+        out.append("Nothing", span_type);
+        return;
+    case bms::Type_Type::Void: //
+        out.append("Void", span_type);
+        return;
+    case bms::Type_Type::Bool: //
+        out.append(v.int_value ? "true" : "false", span_type);
+        return;
+    case bms::Type_Type::Int: //
+        out.append_integer(v.int_value, span_type);
+        return;
+    case bms::Type_Type::Uint: //
+        out.append_integer(Big_Uint(v.int_value), span_type);
+        return;
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
 }
 
 enum struct Error_Line_Type : Default_Underlying { note, error };
-
-struct Printable_Comparison {
-    std::string left, right;
-    std::string_view op;
-};
 
 struct Error_Line {
     Error_Line_Type type;
     std::optional<Source_Position> pos {};
     std::string message;
-    std::optional<Printable_Comparison> comp {};
     bool omit_affected_line = false;
 };
 
@@ -516,11 +522,13 @@ void print_source_position(Code_String& out, const std::optional<Source_Position
     }
 }
 
-void print_error_line(Code_String& out, const Error_Line& line, std::string_view source)
+void print_diagnostic_prefix(Code_String& out,
+                             Error_Line_Type type,
+                             std::optional<Source_Position> pos)
 {
-    print_source_position(out, line.pos);
+    print_source_position(out, pos);
     out.append(' ');
-    switch (line.type) {
+    switch (type) {
     case Error_Line_Type::error: //
         out.append(error_prefix, Code_Span_Type::diagnostic_error);
         break;
@@ -528,16 +536,13 @@ void print_error_line(Code_String& out, const Error_Line& line, std::string_view
         out.append(note_prefix, Code_Span_Type::diagnostic_note);
         break;
     }
+}
+
+void print_error_line(Code_String& out, const Error_Line& line, std::string_view source)
+{
+    print_diagnostic_prefix(out, line.type, line.pos);
     out.append(' ');
     out.append(line.message, Code_Span_Type::diagnostic_text);
-
-    if (line.comp) {
-        out.append(line.comp->left, Code_Span_Type::diagnostic_operand);
-        out.append(' ');
-        out.append(line.comp->op, Code_Span_Type::diagnostic_operator);
-        out.append(' ');
-        out.append(line.comp->right, Code_Span_Type::diagnostic_operand);
-    }
 
     out.append('\n');
     if (line.pos && !line.omit_affected_line) {
@@ -808,12 +813,18 @@ void print_analysis_error(Code_String& out,
     }
 
     if (const auto comp_fail = error.comparison_failure()) {
-        print_error_line(out,
-                         { Error_Line_Type::note, error.cause_pos(), "Comparison evaluated to ",
-                           Printable_Comparison { value_to_string(comp_fail->left),
-                                                  value_to_string(comp_fail->right),
-                                                  expression_type_code_name(comp_fail->op) } },
-                         program.get_source());
+        print_diagnostic_prefix(out, Error_Line_Type::note, error.cause_pos());
+        out.append(' ');
+        out.append("Comparison evaluated to ", Code_Span_Type::diagnostic_text);
+        append_compared_value(out, comp_fail->left);
+        out.append(' ');
+        out.append(expression_type_code_name(comp_fail->op), Code_Span_Type::diagnostic_operator);
+        out.append(' ');
+        append_compared_value(out, comp_fail->right);
+        out.append('\n');
+        if (std::optional<Source_Position> pos = error.cause_pos()) {
+            print_affected_line(out, program.get_source(), *pos);
+        }
     }
     else if (auto cause = error.cause()) {
         std::string message = error.code() == bms::Analysis_Error_Code::evaluation_error
