@@ -273,22 +273,32 @@ codeInput.addEventListener('keydown', (e) => {
         const beforeLineStart = codeInput.value.lastIndexOf('\n', Math.max(0, start - 1));
         if (e.shiftKey) {
             const firstNonIndent = codeInput.value.indexNotOf(' ', beforeLineStart + 1);
-            if (firstNonIndent >= 0) {
-                const currentIndentLength
-                    = firstNonIndent - (beforeLineStart + 1);
-                const removalSize = Math.min(currentIndentLength, indent.length);
-                codeInput.value = codeInput.value.removeAt(removalSize, beforeLineStart + 1);
-                codeInput.setSelectionRange(start - removalSize, end - removalSize);
+            if (firstNonIndent < 0) {
+                return;
             }
+            const currentIndentLength
+                = firstNonIndent - (beforeLineStart + 1);
+            if (currentIndentLength === 0) {
+                return;
+            }
+            const removalSize = Math.min(currentIndentLength, indent.length);
+            codeInput.value = codeInput.value.removeAt(removalSize, beforeLineStart + 1);
+            codeInput.setSelectionRange(start - removalSize, end - removalSize);
         } else {
             // this is actually correct even if '\n' couldn't be found and -1 is returned
             codeInput.value = codeInput.value.insertAt(indent, beforeLineStart + 1);
             codeInput.setSelectionRange(start + indent.length, end + indent.length);
         }
+        const event = new InputEvent('input', {
+            'bubbles': true,
+            'cancelable': false
+        });
+        codeInput.dispatchEvent(event);
     }
 })
 
 codeInput.addEventListener('input', () => {
+    console.log('input');
     let result;
     try {
         result = bmTranslateCode(codeInput.value, 'c');
