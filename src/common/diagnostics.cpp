@@ -112,12 +112,6 @@ struct Error_Line {
     bool omit_affected_line = false;
 };
 
-struct Printable_Error {
-    std::string_view source;
-    std::pmr::vector<Error_Line> lines {};
-    bool is_internal = false;
-};
-
 // Certain internal errors aren't assertion failures but make it here.
 // For example, an evaluation error can fail as a type error, but that can only happen
 // if prior analysis didn't spot the type error in the first place.
@@ -511,115 +505,6 @@ bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid construct.");
 }
 
-[[nodiscard]] Printable_Error make_error_printable(const bms::Parsed_Program& program,
-                                                   const bms::Analysis_Error& error)
-{
-    Printable_Error result { program.get_source() };
-
-    if (is_incompatible_return_type_error(error)) {
-        BIT_MANIPULATION_ASSERT(error.cause());
-        BIT_MANIPULATION_ASSERT(error.type());
-        BIT_MANIPULATION_ASSERT(construct_is_type(*error.cause_construct()));
-
-        const bool is_void = error.type() == bms::Concrete_Type::Void;
-
-        result.lines.push_back(
-            { Error_Line_Type::error, error.fail_pos(),
-              is_void ? "Cannot have non-empty return statement in a function returning Void."
-                      : "Invalid conversion between return statement and return type." });
-        if (is_void) {
-            result.lines.push_back({ Error_Line_Type::note, error.fail_pos(),
-                                     "Use 'return;' to return from a Void function." });
-        }
-        result.lines.push_back(
-            { Error_Line_Type::note, error.cause_pos(),
-              error.cause_construct() == bms::Construct::implicit_type
-                  ? "This function implicitly returns Void because no return type was specified:"
-                  : "Return type is declared here:" });
-        return result;
-    }
-    if (error.code() == bms::Analysis_Error_Code::width_invalid) {
-        const std::optional<bms::Value>& width_value = error.value();
-        // if width_invalid got raised during analysis, it means we have to know the width
-        BIT_MANIPULATION_ASSERT(width_value);
-        const Big_Int width = width_value->as_int();
-        std::string prefix = "The width evaluated to " + to_string(width);
-        if (width < 0) {
-            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
-                                     std::move(prefix) + ", but widths must be positive." });
-        }
-        else if (width == 0) {
-            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
-                                     std::move(prefix) + ", but widths shall not be zero." });
-        }
-        else if (width > uint_max_width) {
-            result.lines.push_back({ Error_Line_Type::error, error.fail_pos(),
-                                     std::move(prefix) + ", but the maximum allowed is "
-                                         + std::to_string(uint_max_width) + '.' });
-        }
-        else {
-            BIT_MANIPULATION_ASSERT_UNREACHABLE("width_invalid raised for seemingly no reason");
-        }
-        return result;
-    }
-
-    const std::string_view error_prose = to_prose(error.code());
-
-    result.lines.push_back({ Error_Line_Type::error, error.fail_pos(), std::string(error_prose) });
-
-    if (error.code() == bms::Analysis_Error_Code::execution_error) {
-        result.lines.push_back({ Error_Line_Type::note, error.fail_pos(),
-                                 std::string(to_prose(error.execution_error())) });
-    }
-
-    if (const auto wrong_argument = error.wrong_argument()) {
-        std::string message = "Parameter '";
-        message += wrong_argument->name;
-        message += "' must be ";
-        switch (error.code()) {
-        case bms::Analysis_Error_Code::annotation_argument_wrong_type:
-            message += diagnosis_name_of(wrong_argument->expected);
-            break;
-        case bms::Analysis_Error_Code::annotation_argument_wrong_value:
-            message += wrong_argument->value_constraints;
-            break;
-        default:
-            BIT_MANIPULATION_ASSERT_UNREACHABLE("Don't know what to do with wrong_argument().");
-        }
-        result.lines.push_back({ .type = Error_Line_Type::note,
-                                 .pos = error.fail_pos(),
-                                 .message = std::move(message),
-                                 .omit_affected_line = true });
-    }
-
-    if (const auto comp_fail = error.comparison_failure()) {
-        result.lines.push_back(
-            { Error_Line_Type::note, error.cause_pos(), "Comparison evaluated to ",
-              Printable_Comparison { value_to_string(comp_fail->left),
-                                     value_to_string(comp_fail->right),
-                                     expression_type_code_name(comp_fail->op) } });
-    }
-    else if (auto cause = error.cause()) {
-        std::string message = error.code() == bms::Analysis_Error_Code::evaluation_error
-            ? "Caused by: " + std::string(to_prose(error.evaluation_error()))
-            : std::string(cause_to_prose(error.code()));
-        if (!cause->pos) {
-            message += " (";
-            message += diagnosis_name_of(cause->construct);
-            if (!cause->name.empty()) {
-                message += " '";
-                message += cause->name;
-                message += '\'';
-            }
-            message += ')';
-        }
-        result.lines.push_back({ Error_Line_Type::note, cause->pos, std::move(message) });
-    }
-
-    result.is_internal = is_internal(error);
-    return result;
-}
-
 void print_source_position(Code_String& out, const std::optional<Source_Position>& pos)
 {
     if (!pos) {
@@ -631,36 +516,32 @@ void print_source_position(Code_String& out, const std::optional<Source_Position
     }
 }
 
-void print_printable_error(Code_String& out, const Printable_Error& error)
+void print_error_line(Code_String& out, const Error_Line& line, std::string_view source)
 {
-    for (const Error_Line& line : error.lines) {
-        print_source_position(out, line.pos);
-        out.append(' ');
-        switch (line.type) {
-        case Error_Line_Type::error:
-            out.append(error_prefix, Code_Span_Type::diagnostic_error);
-            break;
-        case Error_Line_Type::note: out.append(note_prefix, Code_Span_Type::diagnostic_note); break;
-        }
-        out.append(' ');
-        out.append(line.message, Code_Span_Type::diagnostic_text);
+    print_source_position(out, line.pos);
+    out.append(' ');
+    switch (line.type) {
+    case Error_Line_Type::error: //
+        out.append(error_prefix, Code_Span_Type::diagnostic_error);
+        break;
+    case Error_Line_Type::note: //
+        out.append(note_prefix, Code_Span_Type::diagnostic_note);
+        break;
+    }
+    out.append(' ');
+    out.append(line.message, Code_Span_Type::diagnostic_text);
 
-        if (line.comp) {
-            out.append(line.comp->left, Code_Span_Type::diagnostic_operand);
-            out.append(' ');
-            out.append(line.comp->op, Code_Span_Type::diagnostic_operator);
-            out.append(' ');
-            out.append(line.comp->right, Code_Span_Type::diagnostic_operand);
-        }
-
-        out.append('\n');
-        if (line.pos && !line.omit_affected_line) {
-            print_affected_line(out, error.source, *line.pos);
-        }
+    if (line.comp) {
+        out.append(line.comp->left, Code_Span_Type::diagnostic_operand);
+        out.append(' ');
+        out.append(line.comp->op, Code_Span_Type::diagnostic_operator);
+        out.append(' ');
+        out.append(line.comp->right, Code_Span_Type::diagnostic_operand);
     }
 
-    if (error.is_internal) {
-        print_internal_error_notice(out);
+    out.append('\n');
+    if (line.pos && !line.omit_affected_line) {
+        print_affected_line(out, source, *line.pos);
     }
 }
 
@@ -831,8 +712,131 @@ void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error)
 {
-    const auto printable = make_error_printable(program, error);
-    return print_printable_error(out, printable);
+    if (is_incompatible_return_type_error(error)) {
+        BIT_MANIPULATION_ASSERT(error.cause());
+        BIT_MANIPULATION_ASSERT(error.type());
+        BIT_MANIPULATION_ASSERT(construct_is_type(*error.cause_construct()));
+
+        const bool is_void = error.type() == bms::Concrete_Type::Void;
+
+        print_error_line(
+            out,
+            { Error_Line_Type::error, error.fail_pos(),
+              is_void ? "Cannot have non-empty return statement in a function returning Void."
+                      : "Invalid conversion between return statement and return type." },
+            program.get_source());
+        if (is_void) {
+            print_error_line(out,
+                             { Error_Line_Type::note, error.fail_pos(),
+                               "Use 'return;' to return from a Void function." },
+                             program.get_source());
+        }
+        print_error_line(
+            out,
+            { Error_Line_Type::note, error.cause_pos(),
+              error.cause_construct() == bms::Construct::implicit_type
+                  ? "This function implicitly returns Void because no return type was specified:"
+                  : "Return type is declared here:" },
+            program.get_source());
+        return;
+    }
+    if (error.code() == bms::Analysis_Error_Code::width_invalid) {
+        const std::optional<bms::Value>& width_value = error.value();
+        // if width_invalid got raised during analysis, it means we have to know the width
+        BIT_MANIPULATION_ASSERT(width_value);
+        const Big_Int width = width_value->as_int();
+        std::string prefix = "The width evaluated to ";
+        prefix += to_characters(width).as_string();
+        if (width < 0) {
+            print_error_line(out,
+                             { Error_Line_Type::error, error.fail_pos(),
+                               std::move(prefix) + ", but widths must be positive." },
+                             program.get_source());
+        }
+        else if (width == 0) {
+            print_error_line(out,
+                             { Error_Line_Type::error, error.fail_pos(),
+                               std::move(prefix) + ", but widths shall not be zero." },
+                             program.get_source());
+        }
+        else if (width > uint_max_width) {
+            std::string message = std::move(prefix);
+            message += ", but the maximum allowed is ";
+            message += to_characters(uint_max_width).as_string();
+            message += '.';
+            print_error_line(out, { Error_Line_Type::error, error.fail_pos(), std::move(message) },
+                             program.get_source());
+        }
+        else {
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("width_invalid raised for seemingly no reason");
+        }
+        return;
+    }
+
+    const std::string_view error_prose = to_prose(error.code());
+
+    print_error_line(out, { Error_Line_Type::error, error.fail_pos(), std::string(error_prose) },
+                     program.get_source());
+
+    if (error.code() == bms::Analysis_Error_Code::execution_error) {
+        print_error_line(out,
+                         { Error_Line_Type::note, error.fail_pos(),
+                           std::string(to_prose(error.execution_error())) },
+                         program.get_source());
+    }
+
+    if (const auto wrong_argument = error.wrong_argument()) {
+        std::string message = "Parameter '";
+        message += wrong_argument->name;
+        message += "' must be ";
+        switch (error.code()) {
+        case bms::Analysis_Error_Code::annotation_argument_wrong_type:
+            message += diagnosis_name_of(wrong_argument->expected);
+            break;
+        case bms::Analysis_Error_Code::annotation_argument_wrong_value:
+            message += wrong_argument->value_constraints;
+            break;
+        default:
+            BIT_MANIPULATION_ASSERT_UNREACHABLE("Don't know what to do with wrong_argument().");
+        }
+        print_error_line(out,
+                         { .type = Error_Line_Type::note,
+                           .pos = error.fail_pos(),
+                           .message = std::move(message),
+                           .omit_affected_line = true },
+                         program.get_source());
+    }
+
+    if (const auto comp_fail = error.comparison_failure()) {
+        print_error_line(out,
+                         { Error_Line_Type::note, error.cause_pos(), "Comparison evaluated to ",
+                           Printable_Comparison { value_to_string(comp_fail->left),
+                                                  value_to_string(comp_fail->right),
+                                                  expression_type_code_name(comp_fail->op) } },
+                         program.get_source());
+    }
+    else if (auto cause = error.cause()) {
+        std::string message = error.code() == bms::Analysis_Error_Code::evaluation_error
+            ? "Caused by: " + std::string(to_prose(error.evaluation_error()))
+            : std::string(cause_to_prose(error.code()));
+        if (!cause->pos) {
+            message += " (";
+            message += diagnosis_name_of(cause->construct);
+            if (!cause->name.empty()) {
+                message += " '";
+                message += cause->name;
+                message += '\'';
+            }
+            message += ')';
+        }
+
+        print_error_line(out, { Error_Line_Type::note, cause->pos, std::move(message) },
+                         program.get_source());
+    }
+
+    if (is_internal(error)) {
+        print_internal_error_notice(out);
+    }
 }
 
 void print_document_error(Code_String& out,
