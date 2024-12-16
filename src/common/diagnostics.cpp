@@ -684,25 +684,39 @@ constexpr int approximate_to_chars_decimal_digits_v
 static_assert(approximate_to_chars_decimal_digits_v<unsigned char> >= 3);
 static_assert(approximate_to_chars_decimal_digits_v<unsigned short> >= 6);
 
-template <typename Integer, std::invocable<std::string_view> F>
-void with_stringified(Integer x, F&& f)
+template <Size N>
+struct Characters {
+    std::array<char, N> buffer;
+    Size length;
+
+    [[nodiscard]] std::string_view as_string() const
+    {
+        return { buffer.data(), length };
+    }
+};
+
+template <typename Integer>
+Characters<approximate_to_chars_decimal_digits_v<Integer>> to_characters(Integer x)
 {
-    char buffer[approximate_to_chars_decimal_digits_v<Integer>];
-    auto result = std::to_chars(buffer, std::end(buffer), x);
+    Characters<approximate_to_chars_decimal_digits_v<Integer>> chars;
+    auto result = std::to_chars(chars.buffer.data(), chars.buffer.data() + chars.buffer.size(), x);
     BIT_MANIPULATION_ASSERT(result.ec == std::errc {});
-    std::invoke(std::forward<F>(f), std::string_view { buffer, result.ptr });
+    chars.length = Size(result.ptr - chars.buffer.data());
+    return chars;
 }
 
 template <typename Integer>
 void append_integer(Code_String& out, Integer x, Code_Span_Type type)
 {
-    with_stringified(x, [&](std::string_view s) { out.append(s, type); });
+    auto chars = to_characters(x);
+    out.append(chars.as_string(), type);
 }
 
 template <typename Integer>
 void append_integer(Code_String::Scoped_Builder& out, Integer x)
 {
-    with_stringified(x, [&](std::string_view s) { out.append(s); });
+    auto chars = to_characters(x);
+    out.append(chars.as_string());
 }
 
 } // namespace
@@ -751,26 +765,26 @@ void print_affected_line(Code_String& out,
                          const Local_Source_Position& pos)
 {
     const std::string_view line = find_line(source, pos.begin);
-    with_stringified(pos.line + 1, [&](std::string_view s) {
-        constexpr Size pad_max = 6;
-        Size pad_length = pad_max - std::min(s.size(), Size { pad_max - 1 });
-        out.append(pad_length, ' ');
-        append_integer(out, pos.line + 1, Code_Span_Type::diagnostic_line_number);
-        out.append(' ');
-        out.append('|', Code_Span_Type::diagnostic_punctuation);
-        out.append(' ');
-        out.append(line, Code_Span_Type::diagnostic_code_citation);
-        out.append('\n');
 
-        Size align_length = std::max(pad_max, s.size() + 1);
-        out.append(align_length, ' ');
-        out.append(' ');
-        out.append('|', Code_Span_Type::diagnostic_punctuation);
-        out.append(' ');
-        out.append(pos.column, ' ');
-        out.append('^', Code_Span_Type::diagnostic_position_indicator);
-        out.append('\n');
-    });
+    Characters line_chars = to_characters(pos.line + 1);
+    constexpr Size pad_max = 6;
+    Size pad_length = pad_max - std::min(line_chars.length, Size { pad_max - 1 });
+    out.append(pad_length, ' ');
+    append_integer(out, pos.line + 1, Code_Span_Type::diagnostic_line_number);
+    out.append(' ');
+    out.append('|', Code_Span_Type::diagnostic_punctuation);
+    out.append(' ');
+    out.append(line, Code_Span_Type::diagnostic_code_citation);
+    out.append('\n');
+
+    Size align_length = std::max(pad_max, line_chars.length + 1);
+    out.append(align_length, ' ');
+    out.append(' ');
+    out.append('|', Code_Span_Type::diagnostic_punctuation);
+    out.append(' ');
+    out.append(pos.column, ' ');
+    out.append('^', Code_Span_Type::diagnostic_position_indicator);
+    out.append('\n');
 }
 
 void print_tokenize_error(Code_String& out,
@@ -926,15 +940,14 @@ void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::str
         {
             constexpr Size align_size = 2;
             auto pos_builder = out.build(Code_Span_Type::diagnostic_code_position);
-            with_stringified(t.pos.line + 1, [&](std::string_view s) {
-                pos_builder.append(align_size - std::min(s.size(), align_size), ' ');
-                pos_builder.append(s);
-            });
+            Characters line_chars = to_characters(t.pos.line + 1);
+            pos_builder.append(align_size - std::min(line_chars.length, align_size), ' ');
+            pos_builder.append(line_chars.as_string());
             pos_builder.append(':');
-            with_stringified(t.pos.column + 1, [&](std::string_view s) {
-                pos_builder.append(align_size - std::min(s.size(), align_size), ' ');
-                pos_builder.append(s);
-            });
+
+            Characters column_chars = to_characters(t.pos.column + 1);
+            pos_builder.append(align_size - std::min(column_chars.length, align_size), ' ');
+            pos_builder.append(column_chars.as_string());
             pos_builder.append(':');
         }
 
