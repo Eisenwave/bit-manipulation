@@ -1,6 +1,6 @@
 #include <cstring>
 
-#include "common/to_string.hpp"
+#include "common/to_chars.hpp"
 
 namespace bit_manipulation {
 

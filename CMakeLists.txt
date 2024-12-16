@@ -96,6 +96,7 @@ set(HEADERS
     src/common/parse.hpp
     src/common/result.hpp
     src/common/source_position.hpp
+    src/common/to_chars.hpp
     src/common/to_string.hpp
     src/common/tribool.hpp
     src/common/tty.hpp
@@ -130,7 +131,7 @@ add_library(bm STATIC ${HEADERS}
     src/common/diagnostics.cpp
     src/common/io.cpp
     src/common/parse.cpp
-    src/common/to_string.cpp
+    src/common/to_chars.cpp
     src/common/tty.cpp
 )
 
@@ -185,7 +186,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/diagnostic_policy.hpp
         src/test/main.cpp
         src/test/program_file_testing.cpp
-        src/test/test_to_string.cpp
+        src/test/test_to_chars.cpp
         src/test/tribool.cpp
         src/test/variant.cpp
     )

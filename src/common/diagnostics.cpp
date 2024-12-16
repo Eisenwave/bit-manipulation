@@ -4,6 +4,7 @@
 
 #include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
+#include "common/to_chars.hpp"
 #include "common/to_string.hpp"
 
 #include "bms/analysis_error.hpp"

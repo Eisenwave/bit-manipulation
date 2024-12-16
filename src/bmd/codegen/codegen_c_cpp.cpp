@@ -4,7 +4,6 @@
 #include "common/code_span_type.hpp"
 #include "common/code_string.hpp"
 #include "common/result.hpp"
-#include "common/to_string.hpp"
 #include "common/variant.hpp"
 
 #include "bms/analyzed_program.hpp"

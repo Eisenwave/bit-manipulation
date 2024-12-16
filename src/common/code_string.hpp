@@ -9,7 +9,7 @@
 
 #include "common/code_span_type.hpp"
 #include "common/source_position.hpp"
-#include "common/to_string.hpp"
+#include "common/to_chars.hpp"
 
 namespace bit_manipulation {
 
