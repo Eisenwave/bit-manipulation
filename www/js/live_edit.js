@@ -1,4 +1,4 @@
-import { container, editorFractionItem, editorFractionLimit, isEditorVertical, resizeContainerToFraction, setEditorVertical } from "./live_edit_core.js";
+import { container, editorContentsItem, editorFractionItem, editorFractionLimit, isEditorVertical, resizeContainerToFraction, setEditorVertical } from "./live_edit_core.js";
 
 const whileDraggingClass = 'while-dragging';
 
@@ -298,7 +298,7 @@ codeInput.addEventListener('keydown', (e) => {
 })
 
 codeInput.addEventListener('input', () => {
-    console.log('input');
+    localStorage.setItem(editorContentsItem, codeInput.value);
     let result;
     try {
         result = bmTranslateCode(codeInput.value, 'c');

@@ -3,6 +3,7 @@ export const container = document.getElementById('container');
 export const editorFractionLimit = 0.1;
 export const editorFractionItem = 'editorFraction';
 export const editorIsVerticalItem = 'editorIsVertical';
+export const editorContentsItem = 'editorContents';
 
 let isVertical = false;
 
