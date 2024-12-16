@@ -181,7 +181,7 @@ function bmDecodeTextResultAt(address) {
     return {
         memory: view.getUint32(address, true),
         size: view.getUint32(address + 4, true),
-        isHtml: !!view.getUint8(address)
+        isHtml: !!view.getUint8(address + 8)
     };
 }
 
