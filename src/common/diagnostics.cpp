@@ -31,7 +31,7 @@ namespace bit_manipulation {
 
 namespace {
 
-std::string_view highlight_color_of(Code_Span_Type type)
+[[nodiscard]] std::string_view highlight_color_of(Code_Span_Type type)
 {
     using enum Code_Span_Type;
     switch (type) {
