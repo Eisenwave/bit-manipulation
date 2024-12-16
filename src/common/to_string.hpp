@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_TO_STRING_HPP
 #define BIT_MANIPULATION_TO_STRING_HPP
 
+#include <array>
 #include <charconv>
 #include <concepts>
 #include <limits>
@@ -67,9 +68,17 @@ template <character_convertible T>
     return chars;
 }
 
-[[deprecated]] std::string to_string(Uint128 x);
+#ifdef BIT_MANIPULATION_HAS_INT_128
+[[nodiscard]] inline std::string to_string(Int128 x)
+{
+    return std::string(to_characters(x).as_string());
+}
 
-[[deprecated]] std::string to_string(Int128 x);
+[[nodiscard]] inline std::string to_string(Uint128 x)
+{
+    return std::string(to_characters(x).as_string());
+}
+#endif
 
 } // namespace bit_manipulation
 

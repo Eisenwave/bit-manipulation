@@ -33,10 +33,10 @@ void append_value(Code_String& out, const bms::Concrete_Value& v)
         out.append(v.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
         break;
     case bms::Type_Type::Int: //
-        out.append(to_string(v.int_value), Code_Span_Type::number);
+        out.append_integer(v.int_value, Code_Span_Type::number);
         break;
     case bms::Type_Type::Uint: //
-        out.append(to_string(Big_Uint(v.int_value)), Code_Span_Type::number);
+        out.append_integer(Big_Uint(v.int_value), Code_Span_Type::number);
         break;
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
     }
@@ -64,8 +64,7 @@ void append_type(Code_String& out, const bms::Concrete_Type& type)
         out.append("Uint", Code_Span_Type::keyword);
         return;
         out.append('(', Code_Span_Type::bracket);
-        // TODO: using allocations here is really dirty; better avoid
-        out.append(std::to_string(type.width()));
+        out.append_integer(type.width(), Code_Span_Type::number);
         out.append(')', Code_Span_Type::bracket);
         return;
     }

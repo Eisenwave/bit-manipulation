@@ -60,18 +60,4 @@ std::to_chars_result To_Chars::operator()(char* begin, char* end, Uint128 x) con
 }
 #endif
 
-std::string to_string(Uint128 x)
-{
-    /// The greatest power of 10 that fits into a 64-bit integer.
-    constexpr Uint128 exp10_19 = 10000000000000000000ull;
-
-    return x <= std::uint64_t(-1) ? std::to_string(Uint64(x))
-                                  : to_string(x / exp10_19) + std::to_string(Uint64(x % exp10_19));
-}
-
-std::string to_string(Int128 x)
-{
-    return x >= 0 ? to_string(Uint128(x)) : '-' + to_string(-Uint128(x));
-}
-
 } // namespace bit_manipulation

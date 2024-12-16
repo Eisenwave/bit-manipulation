@@ -9,6 +9,7 @@
 
 #include "common/code_span_type.hpp"
 #include "common/source_position.hpp"
+#include "common/to_string.hpp"
 
 namespace bit_manipulation {
 
@@ -118,6 +119,20 @@ public:
         m_text.push_back(c);
     }
 
+    template <character_convertible Integer>
+    void append_integer(Integer x)
+    {
+        const Characters chars = to_characters(x);
+        append(chars.as_string());
+    }
+
+    template <character_convertible Integer>
+    void append_integer(Integer x, Code_Span_Type type)
+    {
+        const Characters chars = to_characters(x);
+        append(chars.as_string(), type);
+    }
+
     struct Scoped_Builder;
 
     /// @brief Starts building a single code span out of multiple parts which will be fused
@@ -205,6 +220,13 @@ public:
     Scoped_Builder& append(std::string_view text)
     {
         self.append(text);
+        return *this;
+    }
+
+    template <typename Integer>
+    Scoped_Builder& append_integer(Integer x)
+    {
+        self.append_integer(x);
         return *this;
     }
 };

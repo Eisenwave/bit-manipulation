@@ -663,20 +663,6 @@ void print_printable_error(Code_String& out, const Printable_Error& error)
     }
 }
 
-template <typename Integer>
-void append_integer(Code_String& out, Integer x, Code_Span_Type type)
-{
-    auto chars = to_characters(x);
-    out.append(chars.as_string(), type);
-}
-
-template <typename Integer>
-void append_integer(Code_String::Scoped_Builder& out, Integer x)
-{
-    auto chars = to_characters(x);
-    out.append(chars.as_string());
-}
-
 } // namespace
 
 void print_file_position(Code_String& out,
@@ -685,10 +671,11 @@ void print_file_position(Code_String& out,
                          bool suffix_colon)
 {
     auto builder = out.build(Code_Span_Type::diagnostic_code_position);
-    builder.append(file).append(':');
-    append_integer(builder, pos.line + 1);
-    builder.append(':');
-    append_integer(builder, pos.column + 1);
+    builder.append(file)
+        .append(':')
+        .append_integer(pos.line + 1)
+        .append(':')
+        .append_integer(pos.column + 1);
     if (suffix_colon) {
         builder.append(':');
     }
@@ -728,7 +715,7 @@ void print_affected_line(Code_String& out,
     constexpr Size pad_max = 6;
     Size pad_length = pad_max - std::min(line_chars.length, Size { pad_max - 1 });
     out.append(pad_length, ' ');
-    append_integer(out, pos.line + 1, Code_Span_Type::diagnostic_line_number);
+    out.append_integer(pos.line + 1, Code_Span_Type::diagnostic_line_number);
     out.append(' ');
     out.append('|', Code_Span_Type::diagnostic_punctuation);
     out.append(' ');
@@ -921,9 +908,7 @@ void print_tokens(Code_String& out, std::span<const bms::Token> tokens, std::str
             if (text.length() > 1) {
                 out.append(' ');
                 auto builder = out.build(Code_Span_Type::diagnostic_text);
-                builder.append('(');
-                append_integer(builder, text.length());
-                builder.append(" characters)");
+                builder.append('(').append_integer(text.length()).append(" characters)");
             }
         }
 
@@ -946,7 +931,7 @@ struct BMS_AST_Printer {
         out.append(Size(options.indent_width * level), ' ');
         if (handle != bms::astp::Handle::null) {
             const auto handle_int = std::underlying_type_t<bms::astp::Handle>(handle);
-            append_integer(out, handle_int, Code_Span_Type::diagnostic_internal);
+            out.append_integer(handle_int, Code_Span_Type::diagnostic_internal);
             out.append(':', Code_Span_Type::diagnostic_punctuation);
         }
         if (child_name != "") {
