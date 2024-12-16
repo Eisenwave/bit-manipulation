@@ -112,7 +112,6 @@ void append_compared_value(Code_String& out, bms::Concrete_Value v)
 enum struct Error_Line_Type : Default_Underlying { note, error };
 
 struct Error_Line {
-    Error_Line_Type type;
     std::optional<Source_Position> pos {};
     std::string_view message;
     bool omit_affected_line = false;
@@ -538,9 +537,12 @@ void print_diagnostic_prefix(Code_String& out,
     }
 }
 
-void print_error_line(Code_String& out, const Error_Line& line, std::string_view source)
+void print_diagnostic_line(Code_String& out,
+                           Error_Line_Type type,
+                           const Error_Line& line,
+                           std::string_view source)
 {
-    print_diagnostic_prefix(out, line.type, line.pos);
+    print_diagnostic_prefix(out, type, line.pos);
     out.append(' ');
     out.append(line.message, Code_Span_Type::diagnostic_text);
 
@@ -548,6 +550,16 @@ void print_error_line(Code_String& out, const Error_Line& line, std::string_view
     if (line.pos && !line.omit_affected_line) {
         print_affected_line(out, source, *line.pos);
     }
+}
+
+void print_error_line(Code_String& out, const Error_Line& line, std::string_view source)
+{
+    return print_diagnostic_line(out, Error_Line_Type::error, line, source);
+}
+
+void print_note_line(Code_String& out, const Error_Line& line, std::string_view source)
+{
+    return print_diagnostic_line(out, Error_Line_Type::note, line, source);
 }
 
 } // namespace
@@ -726,19 +738,18 @@ void print_analysis_error(Code_String& out,
 
         print_error_line(
             out,
-            { Error_Line_Type::error, error.fail_pos(),
+            { error.fail_pos(),
               is_void ? "Cannot have non-empty return statement in a function returning Void."
                       : "Invalid conversion between return statement and return type." },
             program.get_source());
         if (is_void) {
-            print_error_line(out,
-                             { Error_Line_Type::note, error.fail_pos(),
-                               "Use 'return;' to return from a Void function." },
-                             program.get_source());
+            print_note_line(out,
+                            { error.fail_pos(), "Use 'return;' to return from a Void function." },
+                            program.get_source());
         }
-        print_error_line(
+        print_note_line(
             out,
-            { Error_Line_Type::note, error.cause_pos(),
+            { error.cause_pos(),
               error.cause_construct() == bms::Construct::implicit_type
                   ? "This function implicitly returns Void because no return type was specified:"
                   : "Return type is declared here:" },
@@ -753,24 +764,21 @@ void print_analysis_error(Code_String& out,
         std::string prefix = "The width evaluated to ";
         prefix += to_characters(width).as_string();
         if (width < 0) {
-            print_error_line(out,
-                             { Error_Line_Type::error, error.fail_pos(),
-                               std::move(prefix) + ", but widths must be positive." },
-                             program.get_source());
+            print_error_line(
+                out, { error.fail_pos(), std::move(prefix) + ", but widths must be positive." },
+                program.get_source());
         }
         else if (width == 0) {
-            print_error_line(out,
-                             { Error_Line_Type::error, error.fail_pos(),
-                               std::move(prefix) + ", but widths shall not be zero." },
-                             program.get_source());
+            print_error_line(
+                out, { error.fail_pos(), std::move(prefix) + ", but widths shall not be zero." },
+                program.get_source());
         }
         else if (width > uint_max_width) {
             std::string message = std::move(prefix);
             message += ", but the maximum allowed is ";
             message += to_characters(uint_max_width).as_string();
             message += '.';
-            print_error_line(out, { Error_Line_Type::error, error.fail_pos(), message },
-                             program.get_source());
+            print_error_line(out, { error.fail_pos(), message }, program.get_source());
         }
         else {
             BIT_MANIPULATION_ASSERT_UNREACHABLE("width_invalid raised for seemingly no reason");
@@ -778,16 +786,11 @@ void print_analysis_error(Code_String& out,
         return;
     }
 
-    const std::string_view error_prose = to_prose(error.code());
-
-    print_error_line(out, { Error_Line_Type::error, error.fail_pos(), std::string(error_prose) },
-                     program.get_source());
+    print_error_line(out, { error.fail_pos(), to_prose(error.code()) }, program.get_source());
 
     if (error.code() == bms::Analysis_Error_Code::execution_error) {
-        print_error_line(out,
-                         { Error_Line_Type::note, error.fail_pos(),
-                           std::string(to_prose(error.execution_error())) },
-                         program.get_source());
+        print_note_line(out, { error.fail_pos(), to_prose(error.execution_error()) },
+                        program.get_source());
     }
 
     if (const auto wrong_argument = error.wrong_argument()) {
@@ -804,12 +807,9 @@ void print_analysis_error(Code_String& out,
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE("Don't know what to do with wrong_argument().");
         }
-        print_error_line(out,
-                         { .type = Error_Line_Type::note,
-                           .pos = error.fail_pos(),
-                           .message = message,
-                           .omit_affected_line = true },
-                         program.get_source());
+        print_note_line(out,
+                        { .pos = error.fail_pos(), .message = message, .omit_affected_line = true },
+                        program.get_source());
     }
 
     if (const auto comp_fail = error.comparison_failure()) {
@@ -841,7 +841,7 @@ void print_analysis_error(Code_String& out,
             message += ')';
         }
 
-        print_error_line(out, { Error_Line_Type::note, cause->pos, message }, program.get_source());
+        print_note_line(out, { cause->pos, message }, program.get_source());
     }
 
     if (is_internal(error)) {
