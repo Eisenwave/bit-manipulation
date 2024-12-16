@@ -1,4 +1,13 @@
-import { container, editorContentsItem, editorFractionItem, editorFractionLimit, isEditorVertical, resizeContainerToFraction, setEditorVertical } from "./live_edit_core.js";
+import {
+    container,
+    codeInput,
+    editorContentsItem,
+    editorFractionItem,
+    editorFractionLimit,
+    isEditorVertical,
+    resizeContainerToFraction,
+    setEditorVertical
+} from "./live_edit_core.js";
 
 const whileDraggingClass = 'while-dragging';
 
@@ -6,7 +15,6 @@ const separator = document.getElementById('separator');
 const splitVerticalButton = document.getElementById('button-split-vertical');
 const splitHorizontalButton = document.getElementById('button-split-horizontal');
 /** @type {HTMLTextAreaElement} */
-const codeInput = document.getElementById('code-input');
 const inputLineNumbers = document.getElementById('input-line-numbers');
 const output = document.getElementById('output');
 
@@ -117,10 +125,6 @@ function setVisibleLineNumbers(n) {
     inputLineNumbers.textContent = arr.join('\n');
     currentLineNumbers = n;
 }
-
-codeInput.addEventListener('input', () => {
-    setVisibleLineNumbers(codeInput.value.count('\n') + 1);
-});
 
 codeInput.addEventListener('scroll', () => {
     inputLineNumbers.scrollTo({ top: codeInput.scrollTop });
@@ -289,16 +293,18 @@ codeInput.addEventListener('keydown', (e) => {
             codeInput.value = codeInput.value.insertAt(indent, beforeLineStart + 1);
             codeInput.setSelectionRange(start + indent.length, end + indent.length);
         }
-        const event = new InputEvent('input', {
+        codeInput.dispatchEvent(new InputEvent('input', {
             'bubbles': true,
             'cancelable': false
-        });
-        codeInput.dispatchEvent(event);
+        }));
     }
-})
+});
 
-codeInput.addEventListener('input', () => {
-    localStorage.setItem(editorContentsItem, codeInput.value);
+function onCodeInput(persist = false) {
+    if (persist) {
+        localStorage.setItem(editorContentsItem, codeInput.value);
+    }
+    setVisibleLineNumbers(codeInput.value.count('\n') + 1);
     let result;
     try {
         result = bmTranslateCode(codeInput.value, 'c');
@@ -317,7 +323,12 @@ codeInput.addEventListener('input', () => {
     } finally {
         bmFree(result);
     }
-});
+
+}
+
+codeInput.addEventListener('input', () => onCodeInput(true));
+
+onCodeInput();
 
 function debugStuff() {
     console.debug(bmPlus(1, 2));

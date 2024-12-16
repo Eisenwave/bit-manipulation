@@ -1,4 +1,5 @@
 export const container = document.getElementById('container');
+export const codeInput = document.getElementById('code-input');
 
 export const editorFractionLimit = 0.1;
 export const editorFractionItem = 'editorFraction';
@@ -46,6 +47,19 @@ export function setEditorVertical(vertical, persist = false) {
     }
 }
 
+export function setEditorContents(value, persist = false, dispatch = false) {
+    codeInput.textContent = value;
+    if (persist) {
+        localStorage.setItem(editorContentsItem, value);
+    }
+    if (dispatch) {
+        codeInput.dispatchEvent(new InputEvent('input', {
+            'bubbles': true,
+            'cancelable': false
+        }));
+    }
+}
+
 const initialFraction = localStorage.getItem(editorFractionItem);
 if (initialFraction !== null) {
     resizeContainerToFraction(Number(initialFraction));
@@ -54,4 +68,9 @@ if (initialFraction !== null) {
 const initialIsVertical = localStorage.getItem(editorIsVerticalItem);
 if (initialIsVertical !== null) {
     setEditorVertical(initialIsVertical === 'true');
+}
+
+const initialContents = localStorage.getItem(editorContentsItem);
+if (initialContents !== null) {
+    setEditorContents(initialContents, false, true);
 }
