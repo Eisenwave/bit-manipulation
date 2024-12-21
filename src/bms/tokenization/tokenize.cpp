@@ -168,7 +168,7 @@ struct Tokenize_Result {
     Size length;
     Token_Type type;
 
-    Tokenize_Result(Size length, Token_Type type)
+    [[nodiscard]] Tokenize_Result(Size length, Token_Type type)
         : length(length)
         , type(type)
     {
@@ -181,7 +181,8 @@ struct Tokenizer {
     const std::string_view m_source;
     Local_Source_Span pos = {};
 
-    Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out);
+    bool
+    operator()(std::pmr::vector<Token>& out, Diagnostic_Consumer& diagnostics, Tokenize_Mode mode);
 
     Result<Tokenize_Result, Tokenize_Error> try_match(std::string_view s) const;
 
@@ -203,8 +204,11 @@ struct Tokenizer {
     }
 };
 
-Result<void, Tokenize_Error> Tokenizer::tokenize(std::pmr::vector<Token>& out)
+bool Tokenizer::operator()(std::pmr::vector<Token>& out,
+                           Diagnostic_Consumer& diagnostics,
+                           Tokenize_Mode mode)
 {
+    bool during_recovery = false;
     pos = {};
     while (pos.begin != m_source.length()) {
         BIT_MANIPULATION_ASSERT(pos.begin < m_source.length());
@@ -221,8 +225,19 @@ Result<void, Tokenize_Error> Tokenizer::tokenize(std::pmr::vector<Token>& out)
 
         Result<Tokenize_Result, Tokenize_Error> result = try_match(remainder);
         if (!result) {
-            return result.error();
+            if (!during_recovery) {
+                diagnostics(std::move(result.error()));
+            }
+            if (mode == Tokenize_Mode::single_error) {
+                return false;
+            }
+            BIT_MANIPULATION_ASSERT(mode == Tokenize_Mode::multi_error);
+            during_recovery = true;
+            advance_position_by(1);
+            continue;
         }
+        during_recovery = false;
+
         pos.length = result->length;
         out.push_back({ pos, result->type });
 
@@ -236,7 +251,7 @@ Result<void, Tokenize_Error> Tokenizer::tokenize(std::pmr::vector<Token>& out)
         advance_position_by(result->length);
     }
 
-    return {};
+    return diagnostics.ok();
 }
 
 Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s) const
@@ -316,25 +331,53 @@ Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s)
     return Tokenize_Error { Tokenize_Error_Code::illegal_character, pos };
 }
 
+struct Single_Tokenize_Error_Consumer : Diagnostic_Consumer {
+    std::optional<Tokenize_Error> error;
+
+    void operator()(Tokenize_Error&& e) final
+    {
+        error = std::move(e);
+    }
+
+    void operator()(Parse_Error&&) final
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected parse error.");
+    }
+
+    void operator()(Analysis_Error&&) final
+    {
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected analysis error.");
+    }
+
+    [[nodiscard]] Size error_count() const noexcept
+    {
+        return Size { error.has_value() };
+    }
+
+    void clear() noexcept final
+    {
+        error.reset();
+    }
+};
+
 } // namespace
 
 Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out, std::string_view source)
 {
+    Single_Tokenize_Error_Consumer diagnostics;
     Tokenizer tokenizer { source };
-    return tokenizer.tokenize(out);
+    if (!tokenizer(out, diagnostics, Tokenize_Mode::single_error)) {
+        return std::move(diagnostics.error.value());
+    }
+    return {};
 }
 
 bool tokenize(std::pmr::vector<Token>& out,
               std::string_view source,
-              Diagnostic_Consumer& diagnostics)
+              Diagnostic_Consumer& diagnostics,
+              Tokenize_Mode mode)
 {
-    if (auto result = tokenize(out, source)) {
-        return true;
-    }
-    else {
-        diagnostics(std::move(result.error()));
-        return false;
-    }
+    return Tokenizer { source }(out, diagnostics, mode);
 }
 
 } // namespace bit_manipulation::bms
