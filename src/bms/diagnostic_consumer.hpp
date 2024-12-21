@@ -17,7 +17,7 @@ struct Diagnostic_Consumer {
     virtual void operator()(Analysis_Error&&) = 0;
 
     /// @brief Returns the total amount of errors.
-    virtual std::size_t error_count() const noexcept = 0;
+    virtual Size error_count() const noexcept = 0;
 
     /// @brief Removes all collected diagnostics from the consumer.
     ///
