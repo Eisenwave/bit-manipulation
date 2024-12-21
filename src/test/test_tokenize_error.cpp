@@ -36,6 +36,8 @@ TEST(BMS_Tokenize_Error, unterminated_comment)
 
 TEST(BMS_Multi_Tokenize_Error, illegal_characters_at_start_of_identifier)
 {
+    // In this test, we make sure that the initial error of the illegal '$' character does not
+    // subsequently produce more errors with tokenizing the identifier.
     constexpr Tokenize_Error_Expectations expectations[]
         = { { .code = bms::Tokenize_Error_Code::illegal_character },
             { .code = bms::Tokenize_Error_Code::illegal_character },
@@ -46,12 +48,30 @@ TEST(BMS_Multi_Tokenize_Error, illegal_characters_at_start_of_identifier)
 
 TEST(BMS_Multi_Tokenize_Error, illegal_characters_space_separated)
 {
+    // In this most simple multi-error test, we check that there are exactly as many errors
+    // as expected.
     constexpr Tokenize_Error_Expectations expectations[]
         = { { .code = bms::Tokenize_Error_Code::illegal_character },
             { .code = bms::Tokenize_Error_Code::illegal_character },
             { .code = bms::Tokenize_Error_Code::illegal_character } };
     EXPECT_TRUE(test_for_diagnostics("tokenize_error/multi_illegal_character/space_separated.bms",
                                      expectations));
+}
+
+TEST(BMS_Multi_Tokenize_Error, illegal_characters_space_separated_recovering)
+{
+    // In this test, we verify that errors aren't spammed, and some recovery takes place.
+    // Namely, if we have multiple illegal characters in a row, this should not produce multiple
+    // tokenization errors.
+    //
+    // New distinct errors are only meant to be produced after whitespace or a token has been
+    // matched successfully.
+    constexpr Tokenize_Error_Expectations expectations[]
+        = { { .code = bms::Tokenize_Error_Code::illegal_character },
+            { .code = bms::Tokenize_Error_Code::illegal_character },
+            { .code = bms::Tokenize_Error_Code::illegal_character } };
+    EXPECT_TRUE(test_for_diagnostics(
+        "tokenize_error/multi_illegal_character/space_separated_recovering.bms", expectations));
 }
 
 } // namespace
