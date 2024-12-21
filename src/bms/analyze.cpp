@@ -1160,13 +1160,13 @@ analyze(Analyzed_Program& program, const Parsed_Program& parsed, std::pmr::memor
 bool analyze(Analyzed_Program& program,
              const Parsed_Program& parsed,
              std::pmr::memory_resource* memory_resource,
-             Diagnostic_Consumer& diagnostics)
+             Function_Ref<Error_Reaction(Analysis_Error&&)> on_error)
 {
     if (auto result = analyze(program, parsed, memory_resource)) {
         return true;
     }
     else {
-        diagnostics(std::move(result.error()));
+        void(on_error(std::move(result.error())));
         return false;
     }
 }

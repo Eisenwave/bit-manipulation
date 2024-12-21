@@ -3,6 +3,7 @@
 
 #include <memory_resource>
 
+#include "common/function_ref.hpp"
 #include "common/result.hpp"
 
 #include "bms/analysis_error.hpp"
@@ -67,7 +68,7 @@ Result<void, Analysis_Error> analyze(Analyzed_Program& program,
 bool analyze(Analyzed_Program& program,
              const Parsed_Program& parsed,
              std::pmr::memory_resource* memory_resource,
-             Diagnostic_Consumer& diagnostics);
+             Function_Ref<Error_Reaction(Analysis_Error&&)> on_error);
 
 } // namespace bit_manipulation::bms
 

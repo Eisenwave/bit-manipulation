@@ -7,6 +7,7 @@
 #include <string_view>
 
 #include "common/config.hpp"
+#include "common/function_ref.hpp"
 #include "common/result.hpp"
 
 #include "bms/fwd.hpp"
@@ -68,7 +69,7 @@ Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> 
 
 bool parse(Parsed_Program& program,
            std::span<const Token> tokens,
-           Diagnostic_Consumer& diagnostics);
+           Function_Ref<Error_Reaction(Parse_Error&&)> on_error);
 
 } // namespace bit_manipulation::bms
 

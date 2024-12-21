@@ -181,8 +181,8 @@ struct Tokenizer {
     const std::string_view m_source;
     Local_Source_Span pos = {};
 
-    bool
-    operator()(std::pmr::vector<Token>& out, Diagnostic_Consumer& diagnostics, Tokenize_Mode mode);
+    bool operator()(std::pmr::vector<Token>& out,
+                    Function_Ref<Error_Reaction(Tokenize_Error&&)> diagnostics);
 
     Result<Tokenize_Result, Tokenize_Error> try_match(std::string_view s) const;
 
@@ -205,9 +205,9 @@ struct Tokenizer {
 };
 
 bool Tokenizer::operator()(std::pmr::vector<Token>& out,
-                           Diagnostic_Consumer& diagnostics,
-                           Tokenize_Mode mode)
+                           Function_Ref<Error_Reaction(Tokenize_Error&&)> on_error)
 {
+    bool success = true;
     bool during_recovery = false;
     pos = {};
     while (pos.begin != m_source.length()) {
@@ -221,17 +221,18 @@ bool Tokenizer::operator()(std::pmr::vector<Token>& out,
             }
             advance_position_by(whitespace_length);
             remainder = remainder.substr(whitespace_length);
+            during_recovery = false;
         }
 
         Result<Tokenize_Result, Tokenize_Error> result = try_match(remainder);
         if (!result) {
+            success = false;
             if (!during_recovery) {
-                diagnostics(std::move(result.error()));
+                Error_Reaction reaction = on_error(std::move(result.error()));
+                if (reaction == Error_Reaction::abort) {
+                    return false;
+                }
             }
-            if (mode == Tokenize_Mode::single_error) {
-                return false;
-            }
-            BIT_MANIPULATION_ASSERT(mode == Tokenize_Mode::multi_error);
             during_recovery = true;
             advance_position_by(1);
             continue;
@@ -251,7 +252,7 @@ bool Tokenizer::operator()(std::pmr::vector<Token>& out,
         advance_position_by(result->length);
     }
 
-    return diagnostics.ok();
+    return success;
 }
 
 Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s) const
@@ -331,53 +332,27 @@ Result<Tokenize_Result, Tokenize_Error> Tokenizer::try_match(std::string_view s)
     return Tokenize_Error { Tokenize_Error_Code::illegal_character, pos };
 }
 
-struct Single_Tokenize_Error_Consumer : Diagnostic_Consumer {
-    std::optional<Tokenize_Error> error;
-
-    void operator()(Tokenize_Error&& e) final
-    {
-        error = std::move(e);
-    }
-
-    void operator()(Parse_Error&&) final
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected parse error.");
-    }
-
-    void operator()(Analysis_Error&&) final
-    {
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected analysis error.");
-    }
-
-    [[nodiscard]] Size error_count() const noexcept
-    {
-        return Size { error.has_value() };
-    }
-
-    void clear() noexcept final
-    {
-        error.reset();
-    }
-};
-
 } // namespace
 
 Result<void, Tokenize_Error> tokenize(std::pmr::vector<Token>& out, std::string_view source)
 {
-    Single_Tokenize_Error_Consumer diagnostics;
+    std::optional<Tokenize_Error> error;
+    auto on_error = [&](Tokenize_Error&& e) -> Error_Reaction {
+        error.emplace(std::move(e));
+        return Error_Reaction::abort;
+    };
     Tokenizer tokenizer { source };
-    if (!tokenizer(out, diagnostics, Tokenize_Mode::single_error)) {
-        return std::move(diagnostics.error.value());
+    if (!tokenizer(out, on_error)) {
+        return std::move(error.value());
     }
     return {};
 }
 
 bool tokenize(std::pmr::vector<Token>& out,
               std::string_view source,
-              Diagnostic_Consumer& diagnostics,
-              Tokenize_Mode mode)
+              Function_Ref<Error_Reaction(Tokenize_Error&&)> on_error)
 {
-    return Tokenizer { source }(out, diagnostics, mode);
+    return Tokenizer { source }(out, on_error);
 }
 
 } // namespace bit_manipulation::bms

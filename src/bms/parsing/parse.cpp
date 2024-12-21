@@ -1540,13 +1540,15 @@ Result<void, Parse_Error> parse(Parsed_Program& program, std::span<const Token> 
     return Parser { program, tokens }();
 }
 
-bool parse(Parsed_Program& program, std::span<const Token> tokens, Diagnostic_Consumer& diagnostics)
+bool parse(Parsed_Program& program,
+           std::span<const Token> tokens,
+           Function_Ref<Error_Reaction(Parse_Error&&)> on_error)
 {
     if (auto result = parse(program, tokens)) {
         return true;
     }
     else {
-        diagnostics(std::move(result.error()));
+        void(on_error(std::move(result.error())));
         return false;
     }
 }
