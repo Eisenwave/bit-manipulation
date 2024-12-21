@@ -7,6 +7,9 @@
 
 namespace bit_manipulation {
 
+template <typename T, typename R, typename... Args>
+concept invocable_r = std::is_invocable_r_v<R, T, Args...>;
+
 template <typename F>
 struct Function_Ref;
 
@@ -19,7 +22,7 @@ private:
 public:
     [[nodiscard]] Function_Ref() = default;
 
-    template <typename F>
+    template <invocable_r<R, Args...> F>
         requires(!std::same_as<F, Function_Ref>)
     [[nodiscard]] Function_Ref(F& f) noexcept
         : m_entity { std::addressof(f) }
