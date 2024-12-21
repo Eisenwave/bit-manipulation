@@ -111,6 +111,8 @@ enum struct Builtin_Function : Default_Underlying;
 enum struct Construct : Default_Underlying;
 enum struct Annotation_Parameter_Type : Default_Underlying;
 
+enum struct Error_Reaction : Default_Underlying;
+
 struct Virtual_Machine;
 struct Debug_Info;
 struct Resolve_Annotations;

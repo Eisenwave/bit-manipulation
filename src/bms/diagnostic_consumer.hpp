@@ -5,16 +5,18 @@
 
 namespace bit_manipulation::bms {
 
+enum struct Error_Reaction : Default_Underlying {
+    abort,
+    keep_going,
+};
+
 /// @brief A consumer for diagnostics that can be used throughout all stages of compilation.
 struct Diagnostic_Consumer {
     // The lack of virtual destructor is intentional; we don't ever store this polymorphically.
 
-    /// @brief Consumes a `Tokenize_Error`
-    virtual void operator()(Tokenize_Error&&) = 0;
-    /// @brief Consumes a `Parse_Error`
-    virtual void operator()(Parse_Error&&) = 0;
-    /// @brief Consumes an `Analysis_Error`
-    virtual void operator()(Analysis_Error&&) = 0;
+    [[nodiscard]] virtual Error_Reaction operator()(Tokenize_Error&&) = 0;
+    [[nodiscard]] virtual Error_Reaction operator()(Parse_Error&&) = 0;
+    [[nodiscard]] virtual Error_Reaction operator()(Analysis_Error&&) = 0;
 
     /// @brief Returns the total amount of errors.
     virtual Size error_count() const noexcept = 0;

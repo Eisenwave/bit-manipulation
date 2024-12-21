@@ -10,28 +10,38 @@
 
 namespace bit_manipulation::bms {
 
-struct Basic_Diagnostic_Consumer : Diagnostic_Consumer {
+struct Basic_Diagnostic_Consumer final : virtual Diagnostic_Consumer {
 
     std::vector<Tokenize_Error> tokenize_errors;
     std::vector<Parse_Error> parse_errors;
     std::vector<Analysis_Error> analysis_errors;
 
-    void operator()(Tokenize_Error&& error) override
+    bms::Error_Reaction m_reaction;
+
+    explicit Basic_Diagnostic_Consumer(bms::Error_Reaction reaction)
+        : m_reaction { reaction }
+    {
+    }
+
+    bms::Error_Reaction operator()(Tokenize_Error&& error) override
     {
         tokenize_errors.push_back(std::move(error));
+        return m_reaction;
     }
 
-    void operator()(Parse_Error&& error) override
+    bms::Error_Reaction operator()(Parse_Error&& error) override
     {
         parse_errors.push_back(std::move(error));
+        return m_reaction;
     }
 
-    void operator()(Analysis_Error&& error) override
+    bms::Error_Reaction operator()(Analysis_Error&& error) override
     {
         analysis_errors.push_back(std::move(error));
+        return m_reaction;
     }
 
-    std::size_t error_count() const noexcept override
+    Size error_count() const noexcept override
     {
         return tokenize_errors.size() + parse_errors.size() + analysis_errors.size();
     }
