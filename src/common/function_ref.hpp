@@ -17,7 +17,7 @@ private:
     R (*m_invoker)(void*, Args...) = nullptr;
 
 public:
-    Function_Ref() = default;
+    [[nodiscard]] Function_Ref() = default;
 
     template <typename F>
         requires(!std::same_as<F, Function_Ref>)
