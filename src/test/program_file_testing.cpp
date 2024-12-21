@@ -165,11 +165,13 @@ public:
 struct Expect_Tokenize_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
     Policy_Action m_state = Policy_Action::CONTINUE;
-    bms::Tokenize_Error_Code m_expected;
+    std::span<const Tokenize_Error_Expectations> m_expectations;
+    Size m_index = 0;
 
 public:
-    explicit Expect_Tokenize_Error_Diagnostic_Policy(bms::Tokenize_Error_Code expected)
-        : m_expected(expected)
+    explicit Expect_Tokenize_Error_Diagnostic_Policy(
+        std::span<const Tokenize_Error_Expectations> expectations)
+        : m_expectations(expectations)
     {
     }
 
@@ -177,6 +179,7 @@ public:
     {
         return m_state == Policy_Action::SUCCESS;
     }
+
     Policy_Action error(IO_Error_Code e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
@@ -185,19 +188,35 @@ public:
         print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
+
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        if (e.code == m_expected) {
-            return m_state = Policy_Action::SUCCESS;
-        }
-        std::cout << color(ansi::red) << "Expected '" << name_of(m_expected) //
-                  << "' but got '" << name_of(e.code) << "':\n";
         Code_String out;
+        if (m_index >= m_expectations.size()) {
+            out.build(Code_Span_Type::diagnostic_error_text)
+                .append("Too many errors! Expected amount of ")
+                .append_integer(m_expectations.size())
+                .append(" was exceeded by this error:\n");
+        }
+        else if (e.code == m_expectations[m_index].code) {
+            ++m_index;
+            return m_state = (m_index == m_expectations.size() ? Policy_Action::SUCCESS
+                                                               : Policy_Action::CONTINUE);
+        }
+        else {
+            out.build(Code_Span_Type::diagnostic_error_text)
+                .append("Expected '")
+                .append(name_of(m_expectations[m_index].code))
+                .append("' but got '")
+                .append(name_of(e.code))
+                .append("':\n");
+        }
         print_tokenize_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
         return m_state = Policy_Action::FAILURE;
     }
+
     Policy_Action error(const bms::Parse_Error&) final
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
@@ -206,6 +225,7 @@ public:
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
     }
+
     Policy_Action done(Testing_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
@@ -416,6 +436,7 @@ public:
 bool test_validity(std::string_view file,
                    bms::Basic_Diagnostic_Consumer& diagnostics,
                    Printing_Diagnostic_Policy& policy,
+                   bms::Tokenize_Mode tokenize_mode,
                    std::function<bool(const bms::Analyzed_Program&)> introspect)
 {
     const auto full_path = "test/" + std::string(file);
@@ -435,7 +456,7 @@ bool test_validity(std::string_view file,
     policy.source = source;
 
     std::pmr::vector<bms::Token> tokens(&memory);
-    if (!bms::tokenize(tokens, source, diagnostics)) {
+    if (!bms::tokenize(tokens, source, diagnostics, tokenize_mode)) {
         return policy.error(diagnostics.tokenize_errors.back()) == Policy_Action::SUCCESS;
     }
     switch (policy.done(Testing_Stage::tokenize)) {
@@ -477,10 +498,11 @@ bool test_validity(std::string_view file,
 
 bool test_validity(std::string_view file,
                    Printing_Diagnostic_Policy& policy,
+                   bms::Tokenize_Mode tokenize_mode = bms::Tokenize_Mode::single_error,
                    std::function<bool(const bms::Analyzed_Program&)> introspection = {})
 {
     bms::Basic_Diagnostic_Consumer diagnostics;
-    return test_validity(file, diagnostics, policy, std::move(introspection));
+    return test_validity(file, diagnostics, policy, tokenize_mode, std::move(introspection));
 }
 
 } // namespace
@@ -497,13 +519,21 @@ bool test_for_success_then_introspect(
 {
     bms::Basic_Diagnostic_Consumer diagnostics;
     Expect_Success_Diagnostic_Policy policy { Testing_Stage::introspect };
-    return test_validity(file, diagnostics, policy, std::move(introspection));
+    return test_validity(file, diagnostics, policy, bms::Tokenize_Mode::single_error,
+                         std::move(introspection));
 }
 
-bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expected)
+bool test_for_diagnostics(std::string_view file,
+                          std::span<const Tokenize_Error_Expectations> expectations)
 {
-    Expect_Tokenize_Error_Diagnostic_Policy policy { expected };
-    return test_validity(file, policy);
+    Expect_Tokenize_Error_Diagnostic_Policy policy { expectations };
+    return test_validity(file, policy, bms::Tokenize_Mode::multi_error);
+}
+
+bool test_for_diagnostic(std::string_view file, const Tokenize_Error_Expectations& expectations)
+{
+    Expect_Tokenize_Error_Diagnostic_Policy policy { std::span { &expectations, 1 } };
+    return test_validity(file, policy, bms::Tokenize_Mode::single_error);
 }
 
 bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& expectations)

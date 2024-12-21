@@ -153,30 +153,6 @@ TEST(Valid_BMS, void)
     EXPECT_TRUE(test_for_success("valid_bms/void.bms"));
 }
 
-TEST(BMS_Tokenize_Error, illegal_character)
-{
-    EXPECT_TRUE(test_for_diagnostic("tokenize_error/illegal_character.bms",
-                                    bms::Tokenize_Error_Code::illegal_character));
-}
-
-TEST(BMS_Tokenize_Error, no_digits_following_integer_prefix)
-{
-    EXPECT_TRUE(test_for_diagnostic("tokenize_error/no_digits_following_integer_prefix.bms",
-                                    bms::Tokenize_Error_Code::no_digits_following_integer_prefix));
-}
-
-TEST(BMS_Tokenize_Error, integer_suffix)
-{
-    EXPECT_TRUE(test_for_diagnostic("tokenize_error/integer_suffix.bms",
-                                    bms::Tokenize_Error_Code::integer_suffix));
-}
-
-TEST(BMS_Tokenize_Error, unterminated_comment)
-{
-    EXPECT_TRUE(test_for_diagnostic("tokenize_error/unterminated_comment.bms",
-                                    bms::Tokenize_Error_Code::unterminated_comment));
-}
-
 TEST(BMS_Parse_Error, global_let)
 {
     constexpr Parse_Error_Expectations expectations //

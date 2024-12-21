@@ -187,6 +187,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/main.cpp
         src/test/program_file_testing.cpp
         src/test/test_to_chars.cpp
+        src/test/test_tokenize_error.cpp
         src/test/tribool.cpp
         src/test/variant.cpp
     )

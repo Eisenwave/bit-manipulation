@@ -11,6 +11,10 @@
 
 namespace bit_manipulation {
 
+struct Tokenize_Error_Expectations {
+    bms::Tokenize_Error_Code code {};
+};
+
 struct Parse_Error_Expectations {
     std::optional<bms::Grammar_Rule> rule {};
     std::optional<Size> line {};
@@ -60,7 +64,10 @@ bool test_for_success_then_introspect(
     std::string_view file,
     std::function<bool(const bms::Analyzed_Program&)> introspection);
 
-bool test_for_diagnostic(std::string_view file, bms::Tokenize_Error_Code expected);
+bool test_for_diagnostic(std::string_view file, const Tokenize_Error_Expectations& expectations);
+
+bool test_for_diagnostics(std::string_view file,
+                          std::span<const Tokenize_Error_Expectations> expectations);
 
 bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& expectations);
 
