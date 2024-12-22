@@ -9,6 +9,9 @@
 
 namespace bit_manipulation {
 
+template <typename T>
+concept function_pointer = std::is_pointer_v<T> && std::is_function_v<std::remove_pointer_t<T>>;
+
 template <typename T, bool nothrow, typename R, typename... Args>
 concept invocable_n_r = (nothrow && std::is_nothrow_invocable_r_v<R, T, Args...>)
     || (!nothrow && std::is_invocable_r_v<R, T, Args...>);
@@ -16,7 +19,7 @@ concept invocable_n_r = (nothrow && std::is_nothrow_invocable_r_v<R, T, Args...>
 template <bool constant, bool nothrow, typename R, typename... Args>
 struct Function_Ref_Base {
 private:
-    using Function_Pointer = R (*)(Args...) noexcept(nothrow);
+    using Function_Pointer_Type = R (*)(Args...) noexcept(nothrow);
     using Storage_Type = const_if_t<void, constant>*;
 
     template <typename F>
@@ -24,7 +27,18 @@ private:
     struct Invoker {
         static R call(Storage_Type entity, Args... args) noexcept(nothrow)
         {
-            return (*reinterpret_cast<F>(entity))(std::forward<Args>(args)...);
+            if constexpr (std::is_function_v<std::remove_pointer_t<F>>) {
+                // This 'const_cast' is needed because Clang does not support conversions from
+                // 'const void*' to function pointer types.
+                // This could be considered a bug or a language defect
+                // (see https://github.com/cplusplus/CWG/issues/657).
+                // In any case, we need to remove 'const'.
+                void* entity_raw = const_cast<void*>(entity_raw);
+                return R((*reinterpret_cast<F>(entity_raw))(std::forward<Args>(args)...));
+            }
+            else {
+                return R((*reinterpret_cast<F>(entity))(std::forward<Args>(args)...));
+            }
         }
     };
 
@@ -39,7 +53,7 @@ public:
     ///
     /// This will create a `Function_Ref` which is bound to nothing,
     /// and when called, simply forwards to `F`.
-    template <std::convertible_to<Function_Pointer> auto F>
+    template <std::convertible_to<Function_Pointer_Type> auto F>
     [[nodiscard]] consteval Function_Ref_Base(Constant<F>) noexcept
         : m_invoker { [](Storage_Type, Args... args) noexcept(nothrow) { //
             return F(std::forward<Args>(args)...);
@@ -62,8 +76,16 @@ public:
     {
         using Entity = std::remove_reference_t<F>;
 
-        if constexpr (std::is_convertible_v<F&&, Function_Pointer>) {
-            const Function_Pointer pointer = f;
+        if constexpr (std::is_function_v<Entity>) {
+            m_invoker = &Invoker<Entity* const>::call;
+            m_entity = reinterpret_cast<Storage_Type>(&f);
+        }
+        else if constexpr (function_pointer<Entity>) {
+            m_invoker = &Invoker<const Entity>::call;
+            m_entity = reinterpret_cast<Storage_Type>(f);
+        }
+        else if constexpr (std::is_convertible_v<F&&, Function_Pointer_Type>) {
+            const Function_Pointer_Type pointer = f;
             m_invoker = &Invoker<decltype(pointer)>::call;
             m_entity = reinterpret_cast<Storage_Type>(pointer);
         }
@@ -75,7 +97,7 @@ public:
                           "This Function_Ref has a const qualifier on the function type, so it can "
                           "only bind to function pointers, or to entities with a const call "
                           "operator. Did you forget to mark your call operator 'const'?");
-            m_invoker = &Invoker<Entity*>::call;
+            m_invoker = &Invoker<const_if_t<Entity, const>*>::call;
             m_entity = std::addressof(f);
         }
     }
