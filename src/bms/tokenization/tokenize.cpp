@@ -191,13 +191,18 @@ struct Tokenizer {
         BIT_MANIPULATION_ASSERT(pos.begin + length <= m_source.length());
         for (Size i = 0; i < length; ++i) {
             switch (m_source[pos.begin]) {
-            case '\t': pos.column += 4; break;
-            case '\r': pos.column = 0; break;
+            case '\t': //
+                pos.column += 4;
+                break;
+            case '\r': //
+                pos.column = 0;
+                break;
             case '\n':
                 pos.column = 0;
                 pos.line += 1;
                 break;
-            default: pos.column += 1;
+            default: //
+                pos.column += 1;
             }
             pos.begin += 1;
         }
