@@ -192,7 +192,7 @@ function bmDecodeTextResultAt(address) {
 /**
  * Decodes a `bm_allocation` object located at the given address.
  * @param {number} address the address in WASM memory of the object
- * @returns {{memory: number, size: number, isHtml: boolean}}
+ * @returns {{memory: number, size: number}}
  */
 function bmDecodeAllocationAt(address) {
     const view = new DataView(wasm.instance.exports.memory.buffer);
@@ -256,6 +256,22 @@ function bmTranslateCode(str, lang) {
     return bmDecodeTextResultAt(resultAddress);
 }
 
+/**
+ * Takes BMS source code and converts it to a string containing the syntax-highlighted HTML.
+ * @param {string} source the source code
+ * @returns {{memory: number, size: number}} the syntax-highlighted HTML
+ */
+function bmSyntaxHighlight(source) {
+    const input = bmStringToUtf8(source);
+    try {
+        wasm.instance.exports.bm_syntax_highlight(input.memory, input.size);
+    } finally {
+        bmFree(input);
+    }
+    const resultAddress = wasm.instance.exports.bm_syntax_highlight_result.value;
+    return bmDecodeAllocationAt(resultAddress);
+}
+
 const indent = '    ';
 
 /**
@@ -313,6 +329,8 @@ codeInput.addEventListener('keydown', (e) => {
     }
 });
 
+const inspect_syntax_highlighting = 'raw';
+
 function onCodeInput(persist = false) {
     if (persist) {
         localStorage.setItem(editorContentsItem, codeInput.value);
@@ -320,14 +338,19 @@ function onCodeInput(persist = false) {
     setVisibleLineNumbers(codeInput.value.count('\n') + 1);
     let result;
     try {
-        result = bmTranslateCode(codeInput.value, 'c');
+        if (inspect_syntax_highlighting !== null) {
+            result = bmSyntaxHighlight(codeInput.value);
+        }
+        else {
+            result = bmTranslateCode(codeInput.value, 'c');
+        }
     } catch (e) {
         output.textContent = `Internal compiler error: ${e.message}\n\n${e.stack}`;
         return;
     }
     try {
         const resultAsString = bmUtf8ToString(result);
-        if (result.isHtml) {
+        if (inspect_syntax_highlighting === 'preview' || result.isHtml) {
             output.innerHTML = resultAsString;
         }
         else {
