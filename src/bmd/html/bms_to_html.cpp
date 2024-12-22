@@ -98,7 +98,15 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
 {
     for (Size i = 0; i < tokens.size(); ++i) {
         if (i != 0) {
-            out.write_source_gap(tokens[i - 1].pos, tokens[i].pos, Formatting_Style::pre);
+            // Originally, we were using write_source_gap here, which would be fine if we only had
+            // successfully matched tokens, separated by whitespace.
+            // However, things like illegal characters can also fill the gaps between tokens,
+            // now that we use recoverable tokenization.
+            // Therefore, we need to write the code in the gap literally.
+            const Size previous_end = tokens[i - 1].pos.end();
+            const std::string_view gap
+                = code.substr(previous_end, tokens[i].pos.begin - previous_end);
+            out.write_inner_text(gap, Formatting_Style::pre);
         }
 
         const Code_Span_Type category = categorize_token_type(tokens[i].type);
@@ -107,6 +115,9 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);
         out.write_inner_text(text, Formatting_Style::pre);
         out.end_tag(tag);
+    }
+    if (!tokens.empty()) {
+        out.write_inner_text(code.substr(tokens.back().pos.end()), Formatting_Style::pre);
     }
 }
 
