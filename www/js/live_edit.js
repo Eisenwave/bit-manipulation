@@ -176,7 +176,7 @@ function bmStringToUtf8(str) {
 }
 
 /**
- * Decodes a `bm_allocation` object located at the given address.
+ * Decodes a `bm_text_result` object located at the given address.
  * @param {number} address the address in WASM memory of the object
  * @returns {{memory: number, size: number, isHtml: boolean}}
  */
@@ -186,6 +186,19 @@ function bmDecodeTextResultAt(address) {
         memory: view.getUint32(address, true),
         size: view.getUint32(address + 4, true),
         isHtml: !!view.getUint8(address + 8)
+    };
+}
+
+/**
+ * Decodes a `bm_allocation` object located at the given address.
+ * @param {number} address the address in WASM memory of the object
+ * @returns {{memory: number, size: number, isHtml: boolean}}
+ */
+function bmDecodeAllocationAt(address) {
+    const view = new DataView(wasm.instance.exports.memory.buffer);
+    return {
+        memory: view.getUint32(address, true),
+        size: view.getUint32(address + 4, true)
     };
 }
 
