@@ -14,6 +14,14 @@ using const_like_t = const_if_t<T, std::is_const_v<U>>;
 template <typename>
 inline constexpr bool dependent_false = false;
 
+template <auto X>
+struct Constant {
+    static constexpr decltype(X) value = X;
+};
+
+template <auto X>
+inline constexpr Constant<X> constant_v {};
+
 } // namespace bit_manipulation
 
 #endif
