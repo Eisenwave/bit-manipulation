@@ -188,7 +188,7 @@ struct Tokenizer {
 
     void advance_position_by(Size length)
     {
-        BIT_MANIPULATION_ASSERT(pos.begin + length < m_source.length());
+        BIT_MANIPULATION_ASSERT(pos.begin + length <= m_source.length());
         for (Size i = 0; i < length; ++i) {
             switch (m_source[pos.begin]) {
             case '\t': pos.column += 4; break;
