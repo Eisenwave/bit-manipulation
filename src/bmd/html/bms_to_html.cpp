@@ -1,6 +1,6 @@
 #include "common/code_span_type.hpp"
 
-#include "bms/parsing/parse.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/tokenization/token.hpp"
 #include "bms/tokenization/token_type.hpp"
 #include "bms/tokenization/tokenize.hpp"
@@ -112,28 +112,35 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
 
 } // namespace
 
-Result<void, Bms_Error>
-bms_inline_code_to_html(HTML_Writer& out, std::string_view code, std::pmr::memory_resource* memory)
+bool bms_inline_code_to_html(HTML_Writer& out,
+                             std::string_view code,
+                             std::pmr::memory_resource* memory,
+                             Function_Ref<void(bms::Tokenize_Error&&)> on_error)
 {
-    constexpr auto style = Formatting_Style::in_line;
+    BIT_MANIPULATION_ASSERT(memory != nullptr);
 
-    std::pmr::vector<bms::Token> tokens(memory);
-    Result<void, bms::Tokenize_Error> t = bms::tokenize(tokens, code);
-    if (!t) {
-        out.write_inner_text(code, style);
-        return Bms_Error { t.error() };
-    }
-
-    bms::Parsed_Program parsed(code, memory);
-    Result<void, bms::Parse_Error> p = bms::parse(parsed, tokens);
-    if (!p) {
-        tokens_to_html(out, tokens, code);
-        return Bms_Error { p.error() };
-    }
+    std::pmr::vector<bms::Token> tokens { memory };
+    auto error_consumer = [&](bms::Tokenize_Error&& e) { //
+        if (on_error) {
+            on_error(std::move(e));
+        }
+        return bms::Error_Reaction::keep_going;
+    };
+    bool tokenize_succeeded = bms::tokenize(tokens, code, error_consumer);
 
     // TODO: imbue tokens with identifier information if parsing succeeded
     tokens_to_html(out, tokens, code);
-    return {};
+
+    return tokenize_succeeded;
+}
+
+bool bms_inline_code_to_html(HTML_Token_Consumer& out,
+                             std::string_view code,
+                             std::pmr::memory_resource* memory,
+                             Function_Ref<void(bms::Tokenize_Error&&)> on_error)
+{
+    HTML_Writer writer { out, 0 };
+    return bms_inline_code_to_html(writer, code, memory, on_error);
 }
 
 } // namespace bit_manipulation::bmd

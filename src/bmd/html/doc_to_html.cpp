@@ -398,9 +398,7 @@ struct HTML_Converter {
 
         switch (lang) {
         case Nested_Language::bms: {
-            Result<void, Bms_Error> result
-                = bms_inline_code_to_html(m_writer, code_text->get_text(), m_memory);
-            if (!result && result.error().is_tokenize_error()) {
+            if (!bms_inline_code_to_html(m_writer, code_text->get_text(), m_memory)) {
                 return Document_Error { Document_Error_Code::code_tokenization_failure,
                                         code_text->get_source_position() };
             }
