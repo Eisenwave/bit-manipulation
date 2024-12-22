@@ -329,7 +329,8 @@ codeInput.addEventListener('keydown', (e) => {
     }
 });
 
-const inspect_syntax_highlighting = 'raw';
+/** @type {'raw' | 'preview' | null} */
+const inspect_syntax_highlighting = 'preview';
 
 function onCodeInput(persist = false) {
     if (persist) {
