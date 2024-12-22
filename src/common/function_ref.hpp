@@ -97,7 +97,7 @@ public:
                           "This Function_Ref has a const qualifier on the function type, so it can "
                           "only bind to function pointers, or to entities with a const call "
                           "operator. Did you forget to mark your call operator 'const'?");
-            m_invoker = &Invoker<const_if_t<Entity, const>*>::call;
+            m_invoker = &Invoker<const_if_t<Entity, constant>*>::call;
             m_entity = std::addressof(f);
         }
     }
@@ -107,6 +107,16 @@ public:
         BIT_MANIPULATION_ASSERT(m_entity);
         BIT_MANIPULATION_ASSERT(m_invoker);
         return m_invoker(m_entity, std::forward<Args>(args)...);
+    }
+
+    [[nodiscard]] constexpr bool has_value() const noexcept
+    {
+        return m_invoker != nullptr;
+    }
+
+    [[nodiscard]] constexpr operator bool() const noexcept
+    {
+        return has_value();
     }
 };
 
