@@ -10,10 +10,12 @@
 
 #include "bms/analyze.hpp"
 #include "bms/analyzed_program.hpp"
+#include "bms/diagnostic_consumer.hpp"
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
 #include "bmd/codegen/codegen.hpp"
+#include "bmd/html/bms_to_html.hpp"
 #include "bmd/html/code_string_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
 #include "bmd/html/token_consumer.hpp"
@@ -44,7 +46,7 @@ bm_allocation copy_to_heap(std::string_view str)
 struct Buffered_HTML_Token_Consumer final : bmd::Data_HTML_Token_Consumer {
     std::pmr::vector<char> out;
 
-    explicit Buffered_HTML_Token_Consumer(std::pmr::memory_resource* memory)
+    [[nodiscard]] explicit Buffered_HTML_Token_Consumer(std::pmr::memory_resource* memory)
         : out(memory)
     {
     }
@@ -65,6 +67,11 @@ struct Buffered_HTML_Token_Consumer final : bmd::Data_HTML_Token_Consumer {
     {
         out.insert(out.end(), s.begin(), s.end());
         return true;
+    }
+
+    [[nodiscard]] std::string_view as_string() const
+    {
+        return { out.data(), out.size() };
     }
 };
 
@@ -148,6 +155,15 @@ bm_text_result translate_to(std::string_view source, bmd::Code_Language lang, bo
     return to_heap_raw_or_html(out, &memory, as_html);
 }
 
+bm_allocation syntax_highlight(std::string_view source)
+{
+    std::pmr::unsynchronized_pool_resource memory;
+    Buffered_HTML_Token_Consumer out { &memory };
+
+    bmd::bms_inline_code_to_html(out, source, &memory);
+    return copy_to_heap(out.as_string());
+}
+
 } // namespace
 } // namespace bit_manipulation
 
@@ -190,6 +206,11 @@ void bm_translate_code(const char* source, Uint32 length, Uint8 lang)
     constexpr bool as_html = true;
     bm_translate_code_result
         = bit_manipulation::translate_to({ source, length }, bmd::Code_Language { lang }, as_html);
+}
+
+void bm_syntax_highlight(const char* source, Uint32 source_length)
+{
+    bm_syntax_highlight_result = syntax_highlight({ source, source_length });
 }
 
 //

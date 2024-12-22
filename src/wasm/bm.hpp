@@ -61,6 +61,15 @@ void bm_translate_code(const char* source,
                        bit_manipulation::Uint32 source_length,
                        bit_manipulation::Uint8 lang);
 
+extern bm_allocation bm_syntax_highlight_result;
+
+/// @brief Takes the input code and converts it to HTML, stored in `bm_syntax_highlight_result`.
+/// This function makes use of error recovery techniques,
+/// so even if some of the code is incorrect BMS, some syntax highlighting is still available.
+/// @param source the BMS source code
+/// @param source_length the length of the source code
+void bm_syntax_highlight(const char* source, bit_manipulation::Uint32 source_length);
+
 //
 }
 
