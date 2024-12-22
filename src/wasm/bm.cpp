@@ -208,6 +208,8 @@ void bm_translate_code(const char* source, Uint32 length, Uint8 lang)
         = bit_manipulation::translate_to({ source, length }, bmd::Code_Language { lang }, as_html);
 }
 
+bm_allocation bm_syntax_highlight_result;
+
 void bm_syntax_highlight(const char* source, Uint32 source_length)
 {
     bm_syntax_highlight_result = syntax_highlight({ source, source_length });
