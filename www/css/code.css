@@ -13,7 +13,27 @@
 
     c-idn {
         /* identifier */
+        color: #000000;
+    }
+
+    c-iva {
+        /* variable name */
         color: #5c477e;
+    }
+
+    c-ifn {
+        /* function name */
+        color: #853e7a;
+    }
+
+    c-ian {
+        /* annotation name */
+        color: #966c1c;
+    }
+
+    c-ity {
+        /* type name */
+        color: #0050c8;
     }
 
     c-key,
@@ -22,12 +42,7 @@
         color: #c80032;
     }
 
-    c-typ {
-        /* type name */
-        color: #0050c8;
-    }
-
-    c-int,
+    c-num,
     c-str {
         /* number, string */
         color: #367c2a;
@@ -119,7 +134,27 @@
 
     c-idn {
         /* identifier */
+        color: #ffffff;
+    }
+
+    c-iva {
+        /* variable name */
+        color: #8cb4d5;
+    }
+
+    c-ifn {
+        /* function name */
         color: #ffdc9c;
+    }
+
+    c-ian {
+        /* annotation name */
+        color: #e1b25a;
+    }
+
+    c-ity {
+        /* type name */
+        color: #4fb0ff;
     }
 
     c-key,
@@ -128,12 +163,7 @@
         color: #ff5a82;
     }
 
-    c-typ {
-        /* type name */
-        color: #54a9ef;
-    }
-
-    c-int,
+    c-num,
     c-str {
         /* number, string */
         color: #76b76a;

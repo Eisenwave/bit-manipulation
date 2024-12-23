@@ -14,9 +14,12 @@ namespace bit_manipulation::bmd {
     switch (type) {
     case text: return "c-txt";
     case identifier: return "c-idn";
-    case type_name: return "c-typ";
+    case variable_name: return "c-iva";
+    case function_name: return "c-ifn";
+    case annotation_name: return "c-ian";
+    case type_name: return "c-ity";
     case bracket: return "c-bra";
-    case number: return "c-int";
+    case number: return "c-num";
     case string: return "c-str";
     case comment: return "c-com";
     case operation: return "c-opr";

@@ -344,7 +344,7 @@ struct C_Cpp_Code_Generator::Visitor {
             self.write_keyword("void");
         }
         self.m_out.append(' ');
-        self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(function.get_name(), Code_Span_Type::function_name);
 
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -355,7 +355,7 @@ struct C_Cpp_Code_Generator::Visitor {
                     self.write_separating_comma();
                 }
                 first = false;
-                self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
                 self.m_out.append(':', Code_Span_Type::punctuation);
                 self.m_out.append(' ');
                 auto v = Visitor { self, parameter.get_type_node() };
@@ -398,7 +398,7 @@ struct C_Cpp_Code_Generator::Visitor {
         }
 
         self.m_out.append(' ');
-        self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(constant.get_name(), Code_Span_Type::variable_name);
 
         self.write_infix_operator("=");
         append_value(self.m_out, constant.const_value()->concrete_value());
@@ -418,7 +418,7 @@ struct C_Cpp_Code_Generator::Visitor {
         }
 
         self.m_out.append(' ');
-        self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(variable.get_name(), Code_Span_Type::variable_name);
 
         if (const Some_Node* initializer = variable.get_initializer_node()) {
             self.write_infix_operator("=");
@@ -529,7 +529,7 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(assignment.get_name(), Code_Span_Type::variable_name);
         self.write_infix_operator("=");
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;

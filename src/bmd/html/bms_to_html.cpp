@@ -13,7 +13,7 @@ namespace bit_manipulation::bmd {
 
 namespace {
 
-constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
+[[nodiscard]] constexpr Code_Span_Type token_type_code_span_type(bms::Token_Type type)
 {
     using enum bms::Token_Type;
     BIT_MANIPULATION_ASSERT(type != eof);
@@ -60,7 +60,8 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
 
     case double_right_arrow: return Code_Span_Type::error;
 
-    case at:
+    case at: return Code_Span_Type::annotation_name;
+
     case dot:
     case colon:
     case comma:
@@ -94,6 +95,46 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
 
+/// @brief Categorizes a token at the index, taking surrounding tokens into account to e.g.
+/// classify the kind of identifier.
+///
+/// For example, if `tokens[i]` is an `identifier` and `tokens[i - 1]` is `keyword_let`,
+/// `Code_Span_Type::variable_name` is returned.
+/// @param tokens the (non-empty) span of tokens
+/// @param i the index within the span
+/// @return the `Code_Span_Type` for `tokens[i]`
+[[nodiscard]] Code_Span_Type categorize_token_type(std::span<const bms::Token> tokens, Size i)
+{
+    BIT_MANIPULATION_ASSERT(i < tokens.size());
+    using enum bms::Token_Type;
+
+    if (tokens[i].type != identifier) {
+        return token_type_code_span_type(tokens[i].type);
+    }
+    if (i != 0) {
+        switch (tokens[i - 1].type) {
+        case keyword_let:
+        case keyword_const: return Code_Span_Type::variable_name;
+        case keyword_function: return Code_Span_Type::function_name;
+        case keyword_as:
+        case colon:
+        case right_arrow: return Code_Span_Type::type_name;
+        case at: return Code_Span_Type::annotation_name;
+        default: break;
+        }
+    }
+    if (i + 1 < tokens.size()) {
+        switch (tokens[i + 1].type) {
+        case assign:
+        case colon:
+        case keyword_as: return Code_Span_Type::variable_name;
+        case left_parenthesis: return Code_Span_Type::function_name;
+        default: break;
+        }
+    }
+    return Code_Span_Type::identifier;
+}
+
 void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::string_view code)
 {
     for (Size i = 0; i < tokens.size(); ++i) {
@@ -106,7 +147,7 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         const std::string_view gap = code.substr(previous_end, tokens[i].pos.begin - previous_end);
         out.write_inner_text(gap, Formatting_Style::pre);
 
-        const Code_Span_Type category = categorize_token_type(tokens[i].type);
+        const Code_Span_Type category = categorize_token_type(tokens, i);
         const Tag_Properties tag { code_span_type_tag(category), Formatting_Style::pre };
         out.begin_tag(tag);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);

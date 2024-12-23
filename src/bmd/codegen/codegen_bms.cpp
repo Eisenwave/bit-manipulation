@@ -150,7 +150,7 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
         self.write_keyword(bms::Token_Type::keyword_function);
         self.m_out.append(' ');
-        self.m_out.append(function.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(function.get_name(), Code_Span_Type::function_name);
 
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -161,7 +161,7 @@ struct Bms_Code_Generator::Visitor {
                     self.write_separating_comma();
                 }
                 first = false;
-                self.m_out.append(parameter.get_name(), Code_Span_Type::identifier);
+                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
                 self.m_out.append(':', Code_Span_Type::punctuation);
                 self.m_out.append(' ');
                 auto v = Visitor { self, parameter.get_type_node() };
@@ -221,7 +221,7 @@ struct Bms_Code_Generator::Visitor {
 
         self.write_keyword(bms::Token_Type::keyword_const);
         self.m_out.append(' ');
-        self.m_out.append(constant.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(constant.get_name(), Code_Span_Type::variable_name);
 
         if (const Some_Node* type = constant.get_type_node()) {
             self.m_out.append(':', Code_Span_Type::punctuation);
@@ -248,7 +248,7 @@ struct Bms_Code_Generator::Visitor {
 
         self.write_keyword(bms::Token_Type::keyword_let);
         self.m_out.append(' ');
-        self.m_out.append(variable.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(variable.get_name(), Code_Span_Type::variable_name);
 
         if (const Some_Node* type = variable.get_type_node()) {
             self.m_out.append(':', Code_Span_Type::punctuation);
@@ -375,7 +375,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append(assignment.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(assignment.get_name(), Code_Span_Type::variable_name);
         self.write_infix_operator(bms::Token_Type::assign);
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;
@@ -480,7 +480,7 @@ struct Bms_Code_Generator::Visitor {
             self.write_indent();
         }
 
-        self.m_out.append(call.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(call.get_name(), Code_Span_Type::function_name);
         {
             Scoped_Parenthesization p = self.parenthesize();
             bool first = true;
@@ -501,7 +501,7 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Id_Expression& id)
     {
-        self.m_out.append(id.get_identifier(), Code_Span_Type::identifier);
+        self.m_out.append(id.get_identifier(), Code_Span_Type::variable_name);
         return {};
     }
 
