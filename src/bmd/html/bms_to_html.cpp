@@ -97,17 +97,14 @@ constexpr Code_Span_Type categorize_token_type(bms::Token_Type type)
 void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::string_view code)
 {
     for (Size i = 0; i < tokens.size(); ++i) {
-        if (i != 0) {
-            // Originally, we were using write_source_gap here, which would be fine if we only had
-            // successfully matched tokens, separated by whitespace.
-            // However, things like illegal characters can also fill the gaps between tokens,
-            // now that we use recoverable tokenization.
-            // Therefore, we need to write the code in the gap literally.
-            const Size previous_end = tokens[i - 1].pos.end();
-            const std::string_view gap
-                = code.substr(previous_end, tokens[i].pos.begin - previous_end);
-            out.write_inner_text(gap, Formatting_Style::pre);
-        }
+        // Originally, we were using write_source_gap here, which would be fine if we only had
+        // successfully matched tokens, separated by whitespace.
+        // However, things like illegal characters can also fill the gaps between tokens,
+        // now that we use recoverable tokenization.
+        // Therefore, we need to write the code in the gap literally.
+        const Size previous_end = i == 0 ? 0 : tokens[i - 1].pos.end();
+        const std::string_view gap = code.substr(previous_end, tokens[i].pos.begin - previous_end);
+        out.write_inner_text(gap, Formatting_Style::pre);
 
         const Code_Span_Type category = categorize_token_type(tokens[i].type);
         const Tag_Properties tag { code_span_type_tag(category), Formatting_Style::pre };
@@ -116,9 +113,9 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         out.write_inner_text(text, Formatting_Style::pre);
         out.end_tag(tag);
     }
-    if (!tokens.empty()) {
-        out.write_inner_text(code.substr(tokens.back().pos.end()), Formatting_Style::pre);
-    }
+    const std::string_view trailing_code
+        = tokens.empty() ? code : code.substr(tokens.back().pos.end());
+    out.write_inner_text(trailing_code, Formatting_Style::pre);
 }
 
 } // namespace
