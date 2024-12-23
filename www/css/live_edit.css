@@ -118,6 +118,10 @@ textarea,
     overflow: hidden;
 }
 
+body.while-dragging {
+    user-select: none;
+}
+
 body:not(.vertical) #separator,
 body:not(.vertical).while-dragging,
 body:not(.vertical).while-dragging * {
