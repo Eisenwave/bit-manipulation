@@ -36,7 +36,11 @@ namespace {
     switch (type) {
     case text: return ansi::reset;
 
-    case identifier: return ansi::h_white;
+    case identifier:
+    case variable_name:
+    case function_name: return ansi::h_white;
+
+    case annotation_name:
     case type_name: return ansi::h_blue;
 
     case number: return ansi::h_cyan;
