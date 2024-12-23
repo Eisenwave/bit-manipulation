@@ -34,6 +34,13 @@ TEST(BMS_Tokenize_Error, unterminated_comment)
     EXPECT_TRUE(test_for_diagnostic("tokenize_error/unterminated_comment.bms", expectations));
 }
 
+TEST(BMS_Tokenize_Error, unterminated_string)
+{
+    constexpr Tokenize_Error_Expectations expectations //
+        { .code = bms::Tokenize_Error_Code::unterminated_string };
+    EXPECT_TRUE(test_for_diagnostic("tokenize_error/unterminated_string.bms", expectations));
+}
+
 TEST(BMS_Multi_Tokenize_Error, illegal_characters_at_start_of_identifier)
 {
     // In this test, we make sure that the initial error of the illegal '$' character does not
