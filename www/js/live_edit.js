@@ -291,7 +291,16 @@ String.prototype.removeAt = function (amount, index) {
 
 String.prototype.indexNotOf = function (c, position) {
     for (let i = position ?? 0; i < this.length; ++i) {
-        if (this[i] != c) {
+        if (!c.includes(this[i])) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+String.prototype.lastIndexNotOf = function (c, position) {
+    for (let i = position ?? this.length - 1; i >= 0; --i) {
+        if (!c.includes(this[i])) {
             return i;
         }
     }
@@ -299,7 +308,7 @@ String.prototype.indexNotOf = function (c, position) {
 }
 
 codeInput.addEventListener('keydown', (e) => {
-    if (e.key == 'Tab') {
+    if (e.key === 'Tab') {
         e.preventDefault();
         const start = codeInput.selectionStart;
         const end = codeInput.selectionEnd;
@@ -307,11 +316,9 @@ codeInput.addEventListener('keydown', (e) => {
         const beforeLineStart = codeInput.value.lastIndexOf('\n', Math.max(0, start - 1));
         if (e.shiftKey) {
             const firstNonIndent = codeInput.value.indexNotOf(' ', beforeLineStart + 1);
-            if (firstNonIndent < 0) {
-                return;
-            }
+            let indentEnd = firstNonIndent < 0 ? start : firstNonIndent;
             const currentIndentLength
-                = firstNonIndent - (beforeLineStart + 1);
+                = indentEnd - (beforeLineStart + 1);
             if (currentIndentLength === 0) {
                 return;
             }
@@ -323,6 +330,33 @@ codeInput.addEventListener('keydown', (e) => {
             codeInput.value = codeInput.value.insertAt(indent, beforeLineStart + 1);
             codeInput.setSelectionRange(start + indent.length, end + indent.length);
         }
+        codeInput.dispatchEvent(new InputEvent('input', {
+            'bubbles': true,
+            'cancelable': false
+        }));
+    }
+    else if (e.key === 'Enter') {
+        const start = codeInput.selectionStart;
+        const end = codeInput.selectionEnd;
+        if (e.shiftKey || start !== end) {
+            return;
+        }
+
+        e.preventDefault();
+        const beforeLineStart = codeInput.value.lastIndexOf('\n', Math.max(0, start - 1));
+        const firstNonIndent = codeInput.value.indexNotOf(' \t', beforeLineStart + 1);
+        const indentEnd = firstNonIndent < 0 ? start : firstNonIndent;
+        const currentIndent = codeInput.value.substring(beforeLineStart + 1, indentEnd);
+
+        const previousNonWhitespace = codeInput.value.lastIndexNotOf(' \t\r\n', Math.max(0, start - 1));
+        const newScopeIndent = previousNonWhitespace !== -1 && codeInput.value[previousNonWhitespace] === '{'
+            ? indent : '';
+
+        const addedIndent = currentIndent + newScopeIndent;
+        const addedLength = addedIndent.length + 1;
+
+        codeInput.value = codeInput.value.insertAt('\n' + addedIndent, start);
+        codeInput.setSelectionRange(start + addedLength, start + addedLength);
         codeInput.dispatchEvent(new InputEvent('input', {
             'bubbles': true,
             'cancelable': false
