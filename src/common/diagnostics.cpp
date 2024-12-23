@@ -134,16 +134,20 @@ constexpr std::string_view note_prefix = "note:";
 
 [[nodiscard]] std::string_view to_prose(bms::Tokenize_Error_Code e)
 {
+    using enum bms::Tokenize_Error_Code;
     switch (e) {
-    case bms::Tokenize_Error_Code::illegal_character: //
+    case illegal_character: //
         return "Illegal character encountered.";
-    case bms::Tokenize_Error_Code::integer_suffix: //
+    case no_digits_following_integer_prefix:
+        return "Digits after integer prefix are required; for example '0b01', '0xff', etc.";
+    case integer_suffix: //
         return "Suffix after integer literal is not allowed";
-    case bms::Tokenize_Error_Code::unterminated_comment: //
+    case unterminated_comment: //
         return "Unterminated block comment found. '/*' must have a matching '*/'";
-    default: //
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+    case unterminated_string: //
+        return "Unterminated string found. Each opening '\"' must have a closing '\"'.";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 [[nodiscard]] std::string_view to_prose(bms::Analysis_Error_Code e)
