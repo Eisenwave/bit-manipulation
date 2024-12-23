@@ -16,6 +16,7 @@ const splitVerticalButton = document.getElementById('button-split-vertical');
 const splitHorizontalButton = document.getElementById('button-split-horizontal');
 /** @type {HTMLTextAreaElement} */
 const inputLineNumbers = document.getElementById('input-line-numbers');
+const codeHighlight = document.getElementById('code-highlight');
 const output = document.getElementById('output');
 
 let isDragging = false;
@@ -330,13 +331,29 @@ codeInput.addEventListener('keydown', (e) => {
 });
 
 /** @type {'raw' | 'preview' | null} */
-const inspect_syntax_highlighting = 'preview';
+const inspect_syntax_highlighting = null;
 
 function onCodeInput(persist = false) {
     if (persist) {
         localStorage.setItem(editorContentsItem, codeInput.value);
     }
+
+    // Line numbers ...
     setVisibleLineNumbers(codeInput.value.count('\n') + 1);
+
+    // Syntax highlighting ...
+    if (inspect_syntax_highlighting === null) {
+        let highlighted;
+        try {
+            highlighted = bmSyntaxHighlight(codeInput.value);
+            codeHighlight.innerHTML = bmUtf8ToString(highlighted);
+        }
+        finally {
+            bmFree(highlighted);
+        }
+    }
+
+    // Output ..
     let result;
     try {
         if (inspect_syntax_highlighting !== null) {

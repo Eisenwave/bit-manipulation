@@ -26,18 +26,41 @@ body.vertical main {
 
 textarea {
     resize: none;
-    outline: none;
-    white-space: pre;
+    color: transparent;
+    caret-color: var(--text);
+}
 
-    color: inherit;
-    font-size: inherit;
-    background: var(--deep-background);
-
+textarea,
+#code-input-layers,
+#code-highlight {
     width: 100%;
     height: 100%;
     margin: 0;
     padding: 0;
     border: none;
+}
+
+#code-input-layers {
+    display: grid;
+    background: var(--deep-background);
+    font-size: 11pt;
+}
+
+#code-input-layers>* {
+    grid-row: 1;
+    grid-column: 1;
+
+    border: none;
+    outline: none;
+    white-space: pre;
+    background: none;
+
+    font-size: inherit;
+    font-family: inherit;
+}
+
+#code-highlight {
+    pointer-events: none;
 }
 
 #code-input-container,

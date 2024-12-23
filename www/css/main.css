@@ -127,6 +127,7 @@ body {
 }
 
 .codeblock,
+.code-font,
 code,
 textarea {
     font-family: 'JetBrainsMono';
