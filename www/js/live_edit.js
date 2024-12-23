@@ -348,7 +348,7 @@ codeInput.addEventListener('keydown', (e) => {
         const indentEnd = firstNonIndent < 0 ? start : firstNonIndent;
         const currentIndent = codeInput.value.substring(beforeLineStart + 1, indentEnd);
 
-        const previousNonWhitespace = codeInput.value.lastIndexNotOf(' \t\r\n', Math.max(0, start - 1));
+        const previousNonWhitespace = codeInput.value.lastIndexNotOf(' \t\r', Math.max(0, start - 1));
         const newScopeIndent = previousNonWhitespace !== -1 && codeInput.value[previousNonWhitespace] === '{'
             ? indent : '';
 
