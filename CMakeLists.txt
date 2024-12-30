@@ -195,6 +195,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/test_tokenize_error.cpp
         src/test/test_tribool.cpp
         src/test/test_valid_bms.cpp
+        src/test/test_valid_bmd.cpp
         src/test/test_variant.cpp
     )
 

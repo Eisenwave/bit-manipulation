@@ -121,8 +121,11 @@ public:
 
 } // namespace
 
-bool test_for_success(std::string_view file)
+bool test_for_success(std::string_view file, BMD_Stage until_stage)
 {
+    // Sorry, testing for only partial success is not implemented yet.
+    BIT_MANIPULATION_ASSERT(until_stage == BMD_Stage::process);
+
     Expect_Success_Diagnostic_Policy policy;
     return test_validity(file, policy);
 }
