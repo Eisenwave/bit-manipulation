@@ -1082,7 +1082,7 @@ struct BMD_AST_Printer {
             else {
                 const auto remainder
                     = v.substr(i, Size(options.max_node_text_length - visual_length));
-                const auto part = remainder.substr(0, remainder.find_first_not_of("\r\t\n"));
+                const auto part = remainder.substr(0, remainder.find_first_of("\r\t\n"));
                 out.append(part, Code_Span_Type::diagnostic_code_citation);
                 visual_length += part.size();
                 i += part.size();
