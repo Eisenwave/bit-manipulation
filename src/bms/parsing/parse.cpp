@@ -370,12 +370,12 @@ constexpr decltype(X) const_array_one_v[1] = { X };
 
 // Like `Parse_Error`, but without the `token` member because the parser keeps track of the token
 // position anyway, and it's more convenient to not deal with it most of the time.
-struct Rule_Error {
+struct [[nodiscard]] Rule_Error {
     Grammar_Rule rule;
     std::span<const Token_Type> expected_tokens;
 };
 
-struct Parser {
+struct [[nodiscard]] Parser {
 private:
     /// @brief The result program.
     Parsed_Program& m_program;
@@ -391,7 +391,7 @@ public:
     {
     }
 
-    Result<void, Parse_Error> operator()()
+    [[nodiscard]] Result<void, Parse_Error> operator()()
     {
         auto program = match_program();
         if (program) {
@@ -431,7 +431,7 @@ private:
     }
 
     template <std::invocable<Token_Type> Predicate>
-    const Token* peek_or_expect(Predicate p, bool increment) noexcept
+    [[nodiscard]] const Token* peek_or_expect(Predicate p, bool increment) noexcept
     {
         if (const Token* next = peek(); next && p(next->type)) {
             m_pos += increment;
@@ -467,13 +467,13 @@ private:
     }
 
     /// @return `peek() && peek() == expected ? peek() : nullptr`.
-    const Token* peek(Token_Type expected) noexcept
+    [[nodiscard]] const Token* peek(Token_Type expected) noexcept
     {
         return peek_or_expect([=](Token_Type t) { return t == expected; }, false);
     }
 
     /// @return `peek() && predicate(peek()->type) ? peek() : nullptr`.
-    const Token* peek(bool (&predicate)(Token_Type)) noexcept
+    [[nodiscard]] const Token* peek(bool (&predicate)(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, false);
     }
@@ -484,19 +484,19 @@ private:
     /// @param type the expected type
     /// @return The popped token with the given type, or `nullptr` if there is no token, or the
     /// token doesn't match the expected type.
-    const Token* expect(Token_Type type) noexcept
+    [[nodiscard]] const Token* expect(Token_Type type) noexcept
     {
         return peek_or_expect([=](Token_Type t) { return t == type; }, true);
     }
 
-    const Token* expect(bool predicate(Token_Type)) noexcept
+    [[nodiscard]] const Token* expect(bool predicate(Token_Type)) noexcept
     {
         return peek_or_expect(predicate, true);
     }
 
     using Rule_Result = Result<astp::Some_Node, Rule_Error>;
 
-    struct Scoped_Attempt {
+    struct [[nodiscard]] Scoped_Attempt {
         Parser& self;
         const Size pos;
         const Size node_count;
