@@ -123,7 +123,7 @@ Attribute_Writer HTML_Writer::begin_tag_with_attributes(Tag_Properties propertie
 
     indent(properties.style);
     m_out.write('<', HTML_Token_Type::tag_bracket);
-    m_out.write(properties.id, HTML_Token_Type::tag_bracket);
+    m_out.write(properties.id, HTML_Token_Type::tag_identifier);
 
     m_state = State::attributes;
 
