@@ -39,7 +39,7 @@ struct Document_Error {
 
 struct Document_Options {
     Size indent_width;
-    std::span<const std::string_view> stylesheets;
+    std::span<const std::string_view> stylesheets {};
 };
 
 /// @brief Converts the given parsed document to an HTML string.
@@ -47,10 +47,10 @@ struct Document_Options {
 /// @param document the document to convert
 /// @param options the options
 /// @param memory a source of temporary memory for subroutines such as BMS tokenization
-Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
-                                         const Parsed_Document& document,
-                                         Document_Options options,
-                                         std::pmr::memory_resource* memory);
+[[nodiscard]] Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
+                                                       const Parsed_Document& document,
+                                                       Document_Options options,
+                                                       std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation::bmd
 
