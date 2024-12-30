@@ -106,12 +106,12 @@ namespace {
 
 struct To_Policy_Consumer final : bms::Diagnostic_Consumer {
 private:
-    Diagnostic_Policy& m_policy;
+    BMS_Diagnostic_Policy& m_policy;
     Size m_error_count = 0;
     Policy_Action m_latest_policy_action = Policy_Action::CONTINUE;
 
 public:
-    explicit To_Policy_Consumer(Diagnostic_Policy& policy)
+    explicit To_Policy_Consumer(BMS_Diagnostic_Policy& policy)
         : m_policy(policy)
     {
     }
@@ -154,9 +154,9 @@ private:
     }
 };
 
-/// @brief A `Diagnostic_Policy` which stores extra `file` and `source` members to enable
+/// @brief A `BMS_Diagnostic_Policy` which stores extra `file` and `source` members to enable
 /// printing errors.
-struct Printing_Diagnostic_Policy : Diagnostic_Policy {
+struct Printing_Diagnostic_Policy : BMS_Diagnostic_Policy {
     std::string_view file;
     std::string_view source;
     const bms::Parsed_Program* parsed_program = nullptr;

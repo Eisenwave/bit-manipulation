@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "bms/parsing/grammar.hpp"
+#include "bms/tokenization/token_type.hpp"
 
 #include "test/program_file_testing.hpp"
 

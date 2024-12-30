@@ -3,8 +3,10 @@
 
 #include <functional>
 #include <optional>
+#include <span>
 #include <string_view>
 
+#include "bms/analysis_error.hpp"
 #include "bms/fwd.hpp"
 
 #include "test/diagnostic_policy.hpp"
