@@ -864,6 +864,9 @@ private:
             }
             return r;
         }();
+        if (!arguments) {
+            return arguments.error();
+        }
         return astp::Some_Node { astp::Annotation { at->pos, m_program.extract(id->pos),
                                                     std::move(*arguments) } };
     }
