@@ -83,7 +83,6 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case title: return Directive_Content_Type::text_span;
 
     case bold:
-    case code:
     case deleted:
     case emphasized:
     case heading1:
@@ -106,6 +105,7 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case underlined: return Directive_Content_Type::span;
 
     case sample_output:
+    case code:
     case code_block: return Directive_Content_Type::raw;
 
     case note: return Directive_Content_Type::block;
