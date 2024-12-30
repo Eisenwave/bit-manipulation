@@ -134,12 +134,12 @@
 
     c-idn {
         /* identifier */
-        color: #ffffff;
+        color: #cccccc;
     }
 
     c-iva {
         /* variable name */
-        color: #8cb4d5;
+        color: #a4c4de;
     }
 
     c-ifn {
@@ -149,7 +149,7 @@
 
     c-ian {
         /* annotation name */
-        color: #e1b25a;
+        color: #ea91d4;
     }
 
     c-ity {
@@ -166,7 +166,7 @@
     c-num,
     c-str {
         /* number, string */
-        color: #76b76a;
+        color: #98d48e;
     }
 
     c-dtx {
