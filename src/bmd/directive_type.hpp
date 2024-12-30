@@ -10,43 +10,77 @@
 namespace bit_manipulation::bmd {
 
 enum struct Directive_Type : Default_Underlying {
-    // HTML PASSTHROUGH TAGS
+    /// @brief Bold (`<b>`)
     bold,
-    line_break,
-    deleted,
-    description_list,
-    emphasized,
-    heading1,
-    heading2,
-    heading3,
-    heading4,
-    heading5,
-    heading6,
-    horizontal_rule,
-    inserted,
-    italic,
-    keyboard,
-    mark,
-    ordered_list,
-    quoted,
-    sample_output,
-    strikethrough,
-    strong,
-    subscript,
-    superscript,
-    teletype,
-    underlined,
-    unordered_list,
-    // BMD EXTRA TAGS
-    code,
-    code_block,
-    instruction,
-    item,
-    note,
-    meta,
-    title,
+    /// @brief BMS function info (meta).
     bms_function,
+    /// @brief Inline code (`<code>`) with syntax highlighting.
+    /// Use `<tt>` for no highlighting.
+    code,
+    /// @brief C equivalent (meta).
     c_equivalent,
+    /// @brief Code block
+    code_block,
+    /// @brief Line break (`<br>`)
+    line_break,
+    /// @brief Deleted (`<del>`)
+    deleted,
+    /// @brief Description list (`<dl>`)
+    description_list,
+    /// @brief Emphasized (`<em>`)
+    emphasized,
+    /// @brief Heading level 1 (`<h1>`)
+    heading1,
+    /// @brief Heading level 2 (`<h1>`)
+    heading2,
+    /// @brief Heading level 3 (`<h1>`)
+    heading3,
+    /// @brief Heading level 4 (`<h1>`)
+    heading4,
+    /// @brief Heading level 5 (`<h1>`)
+    heading5,
+    /// @brief Heading level 6 (`<h1>`)
+    heading6,
+    /// @brief Horizontal rule (`<hr>`)
+    horizontal_rule,
+    /// @brief Inserted (`<ins>`)
+    inserted,
+    /// @brief Instruction.
+    instruction,
+    /// @brief Italic (`<i>`)
+    italic,
+    /// @brief Item (`<li>`).
+    item,
+    /// @brief Keyboard key (`<kbd>`)
+    keyboard,
+    /// @brief Marked (`<mark>`)
+    mark,
+    /// @brief Block of meta-information.
+    meta,
+    /// @brief Note.
+    note,
+    /// @brief Ordered list (`<ol>`)
+    ordered_list,
+    /// @brief Quoted (`<q>`)
+    quoted,
+    /// @brief Sample output (`<samp>`)
+    sample_output,
+    /// @brief Strikethrough (`<s>`)
+    strikethrough,
+    /// @brief Strong (`<strong>`)
+    strong,
+    /// @brief Subscript (`<sub>`)
+    subscript,
+    /// @brief Superscript (`<sup>`)
+    superscript,
+    /// @brief Teletype (HTML4 `<tt>`, but translated into `<code>`)
+    teletype,
+    /// @brief Title (meta).
+    title,
+    /// @brief Underlined (`<u>`)
+    underlined,
+    /// @brief Unordered list (`<ul>`)
+    unordered_list,
 };
 
 /// @brief The type of content which is allowed in a given directive.
@@ -158,10 +192,7 @@ directive_type_by_id(std::string_view directive_id) noexcept;
 /// @brief Checks whether the corresponding directive is an "HTML passthrough
 /// directive". That is, a directive which has no unique rules and simply transforms
 /// into an HTML tag. For example, `\b{...}` directly translates into `<b>...</b>`.
-[[nodiscard]] inline bool directive_type_is_html_passthrough(Directive_Type type)
-{
-    return type <= Directive_Type::unordered_list;
-}
+[[nodiscard]] bool directive_type_is_html_passthrough(Directive_Type type);
 
 } // namespace bit_manipulation::bmd
 

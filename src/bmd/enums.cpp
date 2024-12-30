@@ -265,6 +265,40 @@ std::string_view directive_type_tag(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
+[[nodiscard]] bool directive_type_is_html_passthrough(Directive_Type type)
+{
+    using enum Directive_Type;
+    switch (type) {
+    case bold:
+    case line_break:
+    case deleted:
+    case description_list:
+    case emphasized:
+    case heading1:
+    case heading2:
+    case heading3:
+    case heading4:
+    case heading5:
+    case heading6:
+    case horizontal_rule:
+    case inserted:
+    case italic:
+    case keyboard:
+    case mark:
+    case ordered_list:
+    case quoted:
+    case sample_output:
+    case strikethrough:
+    case strong:
+    case subscript:
+    case superscript:
+    case teletype:
+    case underlined:
+    case unordered_list: return true;
+    default: return false;
+    }
+}
+
 std::string_view code_language_name(Code_Language lang)
 {
     using enum Code_Language;
