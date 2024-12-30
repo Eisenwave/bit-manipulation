@@ -100,44 +100,87 @@ namespace {
 ///
 /// For example, if `tokens[i]` is an `identifier` and `tokens[i - 1]` is `keyword_let`,
 /// `Code_Span_Type::variable_name` is returned.
-/// @param tokens the (non-empty) span of tokens
-/// @param i the index within the span
-/// @return the `Code_Span_Type` for `tokens[i]`
-[[nodiscard]] Code_Span_Type categorize_token_type(std::span<const bms::Token> tokens, Size i)
-{
-    BIT_MANIPULATION_ASSERT(i < tokens.size());
-    using enum bms::Token_Type;
+struct Token_Categorizer {
+private: /// @brief the (non-empty) span of tokens
+    std::span<const bms::Token> m_tokens;
+    /// @brief the index within the span
+    Size m_index = 0;
+    Code_Span_Type m_identifier_bias = Code_Span_Type::variable_name;
 
-    if (tokens[i].type != identifier) {
-        return token_type_code_span_type(tokens[i].type);
+public:
+    [[nodiscard]] explicit Token_Categorizer(std::span<const bms::Token> tokens)
+        : m_tokens { tokens }
+    {
     }
-    if (i != 0) {
-        switch (tokens[i - 1].type) {
-        case keyword_let:
-        case keyword_const: return Code_Span_Type::variable_name;
-        case keyword_function: return Code_Span_Type::function_name;
-        case keyword_as:
-        case colon:
-        case right_arrow: return Code_Span_Type::type_name;
-        case at: return Code_Span_Type::annotation_name;
-        default: break;
+
+    [[nodiscard]] Size index() const noexcept
+    {
+        return m_index;
+    }
+
+    void operator++()
+    {
+        BIT_MANIPULATION_ASSERT(m_index < m_tokens.size());
+        ++m_index;
+    }
+
+    [[nodiscard]] Code_Span_Type operator*()
+    {
+        BIT_MANIPULATION_ASSERT(m_index < m_tokens.size());
+        using enum bms::Token_Type;
+
+        if (m_tokens[m_index].type != identifier) {
+            return token_type_code_span_type(m_tokens[m_index].type);
         }
-    }
-    if (i + 1 < tokens.size()) {
-        switch (tokens[i + 1].type) {
-        case assign:
-        case colon:
-        case keyword_as: return Code_Span_Type::variable_name;
-        case left_parenthesis: return Code_Span_Type::function_name;
-        default: break;
+        if (m_index != 0) {
+            switch (m_tokens[m_index - 1].type) {
+            case keyword_let:
+            case keyword_const:
+                m_identifier_bias = Code_Span_Type::variable_name;
+                return Code_Span_Type::variable_name;
+            case keyword_function: //
+                m_identifier_bias = Code_Span_Type::variable_name;
+                return Code_Span_Type::function_name;
+            case keyword_as:
+            case colon:
+            case right_arrow: return Code_Span_Type::type_name;
+            case at: //
+                m_identifier_bias = Code_Span_Type::identifier;
+                return Code_Span_Type::annotation_name;
+            case semicolon: //
+                m_identifier_bias = Code_Span_Type::variable_name;
+                break;
+            default: break;
+            }
         }
+        if (m_index + 1 < m_tokens.size()) {
+            switch (m_tokens[m_index + 1].type) {
+            case assign: {
+                // We can't say that identifiers preceding '=' are variables in general;
+                // they could also be attribute arguments.
+                if (m_index == 0 || m_tokens[m_index - 1].type == semicolon
+                    || m_tokens[m_index - 1].type == identifier) {
+                    return Code_Span_Type::variable_name;
+                }
+                break;
+            }
+            case colon:
+            case keyword_as: return Code_Span_Type::variable_name;
+            case left_parenthesis: return Code_Span_Type::function_name;
+            default: break;
+            }
+        }
+        return m_identifier_bias;
     }
-    return Code_Span_Type::identifier;
-}
+};
 
 void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::string_view code)
 {
-    for (Size i = 0; i < tokens.size(); ++i) {
+    Token_Categorizer categorizer { tokens };
+
+    for (Size i = 0; i < tokens.size(); ++i, ++categorizer) {
+        BIT_MANIPULATION_ASSERT(categorizer.index() == i);
+
         // Originally, we were using write_source_gap here, which would be fine if we only had
         // successfully matched tokens, separated by whitespace.
         // However, things like illegal characters can also fill the gaps between tokens,
@@ -147,7 +190,7 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         const std::string_view gap = code.substr(previous_end, tokens[i].pos.begin - previous_end);
         out.write_inner_text(gap, Formatting_Style::pre);
 
-        const Code_Span_Type category = categorize_token_type(tokens, i);
+        const Code_Span_Type category = *categorizer;
         const Tag_Properties tag { code_span_type_tag(category), Formatting_Style::pre };
         out.begin_tag(tag);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);
