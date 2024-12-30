@@ -15,37 +15,37 @@ namespace {
 
 TEST(BMS_Syntax, annotated_everything)
 {
-    EXPECT_TRUE(test_for_success("syntax/annotated_everything.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/annotated_everything.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, annotated_function_calls)
 {
-    EXPECT_TRUE(test_for_success("syntax/annotated_function_calls.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/annotated_function_calls.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, annotated_loop)
 {
-    EXPECT_TRUE(test_for_success("syntax/annotated_loop.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/annotated_loop.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, annotation_with_arguments)
 {
-    EXPECT_TRUE(test_for_success("syntax/annotation_with_arguments.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/annotation_with_arguments.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, empty_function_void)
 {
-    EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/empty_function_void.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, function_return_zero)
 {
-    EXPECT_TRUE(test_for_success("syntax/function_return_zero.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/function_return_zero.bms", BMS_Stage::parse));
 }
 
 TEST(BMS_Syntax, global_const)
 {
-    EXPECT_TRUE(test_for_success("syntax/global_const.bms", Testing_Stage::parse));
+    EXPECT_TRUE(test_for_success("syntax/global_const.bms", BMS_Stage::parse));
 }
 
 TEST(Valid_BMS, assert)

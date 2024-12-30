@@ -167,10 +167,10 @@ struct Printing_Diagnostic_Policy : Diagnostic_Policy {
 struct Expect_Success_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
     bool m_failed = false;
-    Testing_Stage m_max_stage = Testing_Stage::analyze;
+    BMS_Stage m_max_stage = BMS_Stage::analyze;
 
 public:
-    explicit Expect_Success_Diagnostic_Policy(Testing_Stage max_stage)
+    explicit Expect_Success_Diagnostic_Policy(BMS_Stage max_stage)
         : m_max_stage(max_stage)
     {
     }
@@ -213,7 +213,7 @@ public:
         }
         return Policy_Action::FAILURE;
     }
-    Policy_Action done(Testing_Stage stage)
+    Policy_Action done(BMS_Stage stage)
     {
         return m_failed            ? Policy_Action::FAILURE
             : stage >= m_max_stage ? Policy_Action::SUCCESS
@@ -287,11 +287,11 @@ public:
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
     }
 
-    Policy_Action done(Testing_Stage stage)
+    Policy_Action done(BMS_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        BIT_MANIPULATION_ASSERT(stage <= Testing_Stage::tokenize);
-        if (stage < Testing_Stage::tokenize) {
+        BIT_MANIPULATION_ASSERT(stage <= BMS_Stage::tokenize);
+        if (stage < BMS_Stage::tokenize) {
             return Policy_Action::CONTINUE;
         }
         if (m_index < m_expectations.size()) {
@@ -383,12 +383,12 @@ public:
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE();
     }
-    Policy_Action done(Testing_Stage stage)
+    Policy_Action done(BMS_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        BIT_MANIPULATION_ASSERT(stage <= Testing_Stage::parse);
-        return stage == Testing_Stage::parse ? m_state = Policy_Action::FAILURE
-                                             : Policy_Action::CONTINUE;
+        BIT_MANIPULATION_ASSERT(stage <= BMS_Stage::parse);
+        return stage == BMS_Stage::parse ? m_state = Policy_Action::FAILURE
+                                         : Policy_Action::CONTINUE;
     }
 };
 
@@ -486,10 +486,10 @@ public:
         return m_state = Policy_Action::SUCCESS;
     }
 
-    Policy_Action done(Testing_Stage stage)
+    Policy_Action done(BMS_Stage stage)
     {
         BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
-        if (stage == Testing_Stage::analyze) {
+        if (stage == BMS_Stage::analyze) {
             std::cout << color(ansi::red) << "Expected '" << m_expectations.code //
                       << "' but program was analyzed with no errors.\n"
                       << color(ansi::reset);
@@ -526,7 +526,7 @@ bool test_validity(std::string_view file,
     if (!source_data) {
         return policy.error(source_data.error()) == Policy_Action::SUCCESS;
     }
-    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(Testing_Stage::load_file));
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::load_file));
     const std::string_view source { source_data->data(), source_data->size() };
     policy.source = source;
 
@@ -534,18 +534,18 @@ bool test_validity(std::string_view file,
     To_Policy_Consumer diagnostic_consumer { policy };
     bms::tokenize(tokens, source, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
-    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(Testing_Stage::tokenize));
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::tokenize));
 
     bms::Parsed_Program parsed { source, &memory };
     policy.parsed_program = &parsed;
     bms::parse(parsed, tokens, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
-    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(Testing_Stage::parse));
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::parse));
 
     bms::Analyzed_Program analyzed(parsed, full_path, &memory);
     bms::analyze(analyzed, parsed, &memory, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
-    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(Testing_Stage::analyze));
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::analyze));
 
     if (!policy.is_success()) {
         return false;
@@ -558,7 +558,7 @@ bool test_validity(std::string_view file,
 
 } // namespace
 
-bool test_for_success(std::string_view file, Testing_Stage until_stage)
+bool test_for_success(std::string_view file, BMS_Stage until_stage)
 {
     Expect_Success_Diagnostic_Policy policy { until_stage };
     return test_validity(file, policy);
@@ -568,7 +568,7 @@ bool test_for_success_then_introspect(
     std::string_view file,
     std::function<bool(const bms::Analyzed_Program&)> introspection)
 {
-    Expect_Success_Diagnostic_Policy policy { Testing_Stage::introspect };
+    Expect_Success_Diagnostic_Policy policy { BMS_Stage::introspect };
     return test_validity(file, policy, std::move(introspection));
 }
 

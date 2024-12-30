@@ -58,7 +58,7 @@ struct Analysis_Error_Expectations {
     std::optional<int> cause_line {};
 };
 
-bool test_for_success(std::string_view file, Testing_Stage until_stage = Testing_Stage::analyze);
+bool test_for_success(std::string_view file, BMS_Stage until_stage = BMS_Stage::analyze);
 
 bool test_for_success_then_introspect(
     std::string_view file,

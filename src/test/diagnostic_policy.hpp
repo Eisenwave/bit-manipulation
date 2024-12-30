@@ -42,7 +42,7 @@ struct Diagnostic_Policy {
     virtual Policy_Action error(const bms::Parse_Error&) = 0;
     virtual Policy_Action error(const bms::Analysis_Error&) = 0;
 
-    virtual Policy_Action done(Testing_Stage) = 0;
+    virtual Policy_Action done(BMS_Stage) = 0;
 };
 
 } // namespace bit_manipulation
