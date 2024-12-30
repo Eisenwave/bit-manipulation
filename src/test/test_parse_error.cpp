@@ -53,5 +53,12 @@ TEST(BMS_Parse_Error, unbalanced_parentheses)
     EXPECT_TRUE(test_for_diagnostic("parse_error/unbalanced_parentheses.bms", expectations));
 }
 
+TEST(BMS_Parse_Error, unclosed_annotation)
+{
+    constexpr Parse_Error_Expectations expectations //
+        { .line = 1, .token_type = bms::Token_Type::eof };
+    EXPECT_TRUE(test_for_diagnostic("parse_error/unclosed_annotation.bms", expectations));
+}
+
 } // namespace
 } // namespace bit_manipulation
