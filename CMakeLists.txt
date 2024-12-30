@@ -193,9 +193,9 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/test_parse_error.cpp
         src/test/test_to_chars.cpp
         src/test/test_tokenize_error.cpp
+        src/test/test_tribool.cpp
         src/test/test_valid_bms.cpp
-        src/test/tribool.cpp
-        src/test/variant.cpp
+        src/test/test_variant.cpp
     )
 
     target_link_libraries(bm-cli bm)
