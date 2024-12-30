@@ -97,9 +97,9 @@ namespace {
 {
     using enum Policy_Action;
     switch (action) {
-    case CONTINUE: return bms::Error_Reaction::keep_going;
-    case SUCCESS:
-    case FAILURE: return bms::Error_Reaction::abort;
+    case keep_going: return bms::Error_Reaction::keep_going;
+    case success:
+    case failure: return bms::Error_Reaction::abort;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid policy action.");
 }
@@ -108,7 +108,7 @@ struct To_Policy_Consumer final : bms::Diagnostic_Consumer {
 private:
     BMS_Diagnostic_Policy& m_policy;
     Size m_error_count = 0;
-    Policy_Action m_latest_policy_action = Policy_Action::CONTINUE;
+    Policy_Action m_latest_policy_action = Policy_Action::keep_going;
 
 public:
     explicit To_Policy_Consumer(BMS_Diagnostic_Policy& policy)
@@ -185,7 +185,7 @@ public:
         Code_String out;
         print_io_error(out, file, e);
         print_code_string(std::cout, out, should_print_colors);
-        return Policy_Action::FAILURE;
+        return Policy_Action::failure;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
@@ -193,7 +193,7 @@ public:
         Code_String out;
         print_tokenize_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return Policy_Action::FAILURE;
+        return Policy_Action::failure;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
@@ -201,7 +201,7 @@ public:
         Code_String out;
         print_parse_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return Policy_Action::FAILURE;
+        return Policy_Action::failure;
     }
     Policy_Action error(const bms::Analysis_Error& e) final
     {
@@ -211,13 +211,13 @@ public:
             print_analysis_error(out, *parsed_program, e);
             print_code_string(std::cout, out, should_print_colors);
         }
-        return Policy_Action::FAILURE;
+        return Policy_Action::failure;
     }
     Policy_Action done(BMS_Stage stage)
     {
-        return m_failed            ? Policy_Action::FAILURE
-            : stage >= m_max_stage ? Policy_Action::SUCCESS
-                                   : Policy_Action::CONTINUE;
+        return m_failed            ? Policy_Action::failure
+            : stage >= m_max_stage ? Policy_Action::success
+                                   : Policy_Action::keep_going;
     }
 };
 
@@ -225,7 +225,7 @@ public:
 /// It has failed when another error is raised, or if tokenization succeeds.
 struct Expect_Tokenize_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
-    Policy_Action m_state = Policy_Action::CONTINUE;
+    Policy_Action m_state = Policy_Action::keep_going;
     std::span<const Tokenize_Error_Expectations> m_expectations;
     Size m_index = 0;
 
@@ -238,21 +238,21 @@ public:
 
     bool is_success() const
     {
-        return m_state == Policy_Action::SUCCESS;
+        return m_state == Policy_Action::success;
     }
 
     Policy_Action error(IO_Error_Code e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_io_error(out, file, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
 
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         if (m_index >= m_expectations.size()) {
             out.build(Code_Span_Type::diagnostic_error_text)
@@ -262,8 +262,8 @@ public:
         }
         else if (e.code == m_expectations[m_index].code) {
             ++m_index;
-            return m_state = (m_index == m_expectations.size() ? Policy_Action::SUCCESS
-                                                               : Policy_Action::CONTINUE);
+            return m_state = (m_index == m_expectations.size() ? Policy_Action::success
+                                                               : Policy_Action::keep_going);
         }
         else {
             out.build(Code_Span_Type::diagnostic_error_text)
@@ -275,7 +275,7 @@ public:
         }
         print_tokenize_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
 
     Policy_Action error(const bms::Parse_Error&) final
@@ -289,10 +289,10 @@ public:
 
     Policy_Action done(BMS_Stage stage)
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         BIT_MANIPULATION_ASSERT(stage <= BMS_Stage::tokenize);
         if (stage < BMS_Stage::tokenize) {
-            return Policy_Action::CONTINUE;
+            return Policy_Action::keep_going;
         }
         if (m_index < m_expectations.size()) {
             Code_String out;
@@ -303,9 +303,9 @@ public:
                 .append_integer(m_index)
                 .append("\n");
             print_code_string(std::cout, out, should_print_colors);
-            return m_state = Policy_Action::FAILURE;
+            return m_state = Policy_Action::failure;
         }
-        return m_state = Policy_Action::SUCCESS;
+        return m_state = Policy_Action::success;
     }
 };
 
@@ -313,7 +313,7 @@ public:
 /// It has failed when another error is raised, or if parsing succeeds.
 struct Expect_Parse_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
-    Policy_Action m_state = Policy_Action::CONTINUE;
+    Policy_Action m_state = Policy_Action::keep_going;
     Parse_Error_Expectations m_expectations;
 
 public:
@@ -325,27 +325,27 @@ public:
 
     bool is_success() const
     {
-        return m_state == Policy_Action::SUCCESS;
+        return m_state == Policy_Action::success;
     }
     Policy_Action error(IO_Error_Code e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_io_error(out, file, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_tokenize_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
 
         const auto test_expectations = [&]() -> bool {
             if (m_expectations.rule && e.fail_rule != *m_expectations.rule) {
@@ -374,10 +374,10 @@ public:
             Code_String out;
             print_parse_error(out, file, source, e);
             print_code_string(std::cout, out, should_print_colors);
-            return m_state = Policy_Action::FAILURE;
+            return m_state = Policy_Action::failure;
         }
 
-        return m_state = Policy_Action::SUCCESS;
+        return m_state = Policy_Action::success;
     }
     Policy_Action error(const bms::Analysis_Error&) final
     {
@@ -385,10 +385,10 @@ public:
     }
     Policy_Action done(BMS_Stage stage)
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         BIT_MANIPULATION_ASSERT(stage <= BMS_Stage::parse);
-        return stage == BMS_Stage::parse ? m_state = Policy_Action::FAILURE
-                                         : Policy_Action::CONTINUE;
+        return stage == BMS_Stage::parse ? m_state = Policy_Action::failure
+                                         : Policy_Action::keep_going;
     }
 };
 
@@ -396,7 +396,7 @@ public:
 /// It has failed when another error is raised, or if parsing succeeds.
 struct Expect_Analysis_Error_Diagnostic_Policy final : Printing_Diagnostic_Policy {
 private:
-    Policy_Action m_state = Policy_Action::CONTINUE;
+    Policy_Action m_state = Policy_Action::keep_going;
     Analysis_Error_Expectations m_expectations;
 
 public:
@@ -410,31 +410,31 @@ public:
 
     bool is_success() const
     {
-        return m_state == Policy_Action::SUCCESS;
+        return m_state == Policy_Action::success;
     }
     Policy_Action error(IO_Error_Code e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_io_error(out, file, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
     Policy_Action error(const bms::Tokenize_Error& e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_tokenize_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
     Policy_Action error(const bms::Parse_Error& e) final
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         Code_String out;
         print_parse_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_state = Policy_Action::FAILURE;
+        return m_state = Policy_Action::failure;
     }
 
     Policy_Action error(const bms::Analysis_Error& e) final
@@ -481,21 +481,21 @@ public:
             Code_String out;
             print_analysis_error(out, *parsed_program, e);
             print_code_string(std::cout, out, should_print_colors);
-            return m_state = Policy_Action::FAILURE;
+            return m_state = Policy_Action::failure;
         }
-        return m_state = Policy_Action::SUCCESS;
+        return m_state = Policy_Action::success;
     }
 
     Policy_Action done(BMS_Stage stage)
     {
-        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::CONTINUE);
+        BIT_MANIPULATION_ASSERT(m_state == Policy_Action::keep_going);
         if (stage == BMS_Stage::analyze) {
             std::cout << color(ansi::red) << "Expected '" << m_expectations.code //
                       << "' but program was analyzed with no errors.\n"
                       << color(ansi::reset);
-            return m_state = Policy_Action::FAILURE;
+            return m_state = Policy_Action::failure;
         }
-        return Policy_Action::CONTINUE;
+        return Policy_Action::keep_going;
     }
 };
 
@@ -513,9 +513,9 @@ bool test_validity(std::string_view file,
 {
 #define BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(...)                                              \
     switch (__VA_ARGS__) {                                                                         \
-    case Policy_Action::SUCCESS: return true;                                                      \
-    case Policy_Action::FAILURE: return false;                                                     \
-    case Policy_Action::CONTINUE: break;                                                           \
+    case Policy_Action::success: return true;                                                      \
+    case Policy_Action::failure: return false;                                                     \
+    case Policy_Action::keep_going: break;                                                         \
     }
 
     const auto full_path = "test/" + std::string(file);
@@ -524,7 +524,7 @@ bool test_validity(std::string_view file,
     std::pmr::monotonic_buffer_resource memory;
     Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, &memory);
     if (!source_data) {
-        return policy.error(source_data.error()) == Policy_Action::SUCCESS;
+        return policy.error(source_data.error()) == Policy_Action::success;
     }
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::load_file));
     const std::string_view source { source_data->data(), source_data->size() };

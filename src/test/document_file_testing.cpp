@@ -42,9 +42,9 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
 {
 #define BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(...)                                              \
     switch (__VA_ARGS__) {                                                                         \
-    case Policy_Action::SUCCESS: return true;                                                      \
-    case Policy_Action::FAILURE: return false;                                                     \
-    case Policy_Action::CONTINUE: break;                                                           \
+    case Policy_Action::success: return true;                                                      \
+    case Policy_Action::failure: return false;                                                     \
+    case Policy_Action::keep_going: break;                                                         \
     }
 
     const auto full_path = "test/" + std::string(file);
@@ -53,7 +53,7 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
     std::pmr::monotonic_buffer_resource memory;
     Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, &memory);
     if (!source_data) {
-        return policy.error(source_data.error()) == Policy_Action::SUCCESS;
+        return policy.error(source_data.error()) == Policy_Action::success;
     }
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::load_file));
     const std::string_view source { source_data->data(), source_data->size() };
@@ -78,12 +78,12 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
 
 struct Expect_Success_Diagnostic_Policy final : Printing_BMD_Diagnostic_Policy {
 private:
-    Policy_Action m_action = Policy_Action::CONTINUE;
+    Policy_Action m_action = Policy_Action::keep_going;
 
 public:
     virtual bool is_success() const
     {
-        return m_action == Policy_Action::SUCCESS;
+        return m_action == Policy_Action::success;
     }
 
     Policy_Action error(IO_Error_Code e) final
@@ -91,7 +91,7 @@ public:
         Code_String out;
         print_io_error(out, file, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_action = Policy_Action::FAILURE;
+        return m_action = Policy_Action::failure;
     }
 
     Policy_Action error(const bmd::Parse_Error& e) final
@@ -99,7 +99,7 @@ public:
         Code_String out;
         print_parse_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_action = Policy_Action::FAILURE;
+        return m_action = Policy_Action::failure;
     }
 
     Policy_Action error(const bmd::Document_Error& e) final
@@ -107,15 +107,15 @@ public:
         Code_String out;
         print_document_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
-        return m_action = Policy_Action::FAILURE;
+        return m_action = Policy_Action::failure;
     }
 
     Policy_Action done(BMD_Stage stage)
     {
         if (stage < BMD_Stage::process) {
-            return Policy_Action::CONTINUE;
+            return Policy_Action::keep_going;
         }
-        return m_action = Policy_Action::SUCCESS;
+        return m_action = Policy_Action::success;
     }
 };
 

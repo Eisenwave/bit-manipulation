@@ -15,16 +15,16 @@ namespace bit_manipulation {
 
 enum struct Policy_Action {
     /// @brief Immediate success.
-    SUCCESS,
+    success,
     /// @brief Immediate failure.
-    FAILURE,
-    /// @brief Continue going.
-    CONTINUE
+    failure,
+    /// @brief Keep going.
+    keep_going
 };
 
 constexpr bool is_exit(Policy_Action action)
 {
-    return action != Policy_Action::CONTINUE;
+    return action != Policy_Action::keep_going;
 }
 
 /// @brief A polymorphic class for deciding which `Policy_Action` to take when various diagnostics
@@ -32,8 +32,8 @@ constexpr bool is_exit(Policy_Action action)
 /// Diagnostic policies are stateful, i.e. they are required to remember failures and keep these
 /// consistent with `is_success()`.
 struct BMS_Diagnostic_Policy {
-    /// @brief Returns `false` if any prior call returned `Policy_Action::FAILURE`,
-    /// returns `true` if any prior call returned `Policy_Action::SUCCESS`,
+    /// @brief Returns `false` if any prior call returned `Policy_Action::failure`,
+    /// returns `true` if any prior call returned `Policy_Action::success`,
     /// or some other value if the policy is otherwise not considered to have succeeded.
     virtual bool is_success() const = 0;
 
