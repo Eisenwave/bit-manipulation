@@ -6,13 +6,9 @@
 #include "common/io.hpp"
 #include "common/tty.hpp"
 
-#include "bms/analyze.hpp"
-#include "bms/analyzed_program.hpp"
-#include "bms/ast.hpp"
-#include "bms/basic_diagnostic_consumer.hpp"
-#include "bms/parsing/grammar.hpp"
-#include "bms/parsing/parse.hpp"
-#include "bms/tokenization/tokenize.hpp"
+#include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/token_consumer.hpp"
+#include "bmd/parsing/parse.hpp"
 
 #include "test/diagnostic_policy.hpp"
 #include "test/program_file_testing.hpp"
@@ -22,29 +18,112 @@ namespace {
 
 const bool should_print_colors = is_tty(stdout);
 
-std::string_view color(std::string_view c)
-{
-    return should_print_colors ? c : "";
-}
+struct Printing_BMD_Diagnostic_Policy : BMD_Diagnostic_Policy {
+    std::string_view file;
+    std::string_view source;
+};
 
-bool test_validity(std::string_view file)
+struct Ignoring_HTML_Token_Consumer final : bmd::HTML_Token_Consumer {
+    bool write(char, bmd::HTML_Token_Type) final
+    {
+        return true;
+    }
+    bool write(char, Size, bmd::HTML_Token_Type) final
+    {
+        return true;
+    }
+    bool write(std::string_view, bmd::HTML_Token_Type) final
+    {
+        return true;
+    }
+};
+
+bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy)
 {
+#define BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(...)                                              \
+    switch (__VA_ARGS__) {                                                                         \
+    case Policy_Action::SUCCESS: return true;                                                      \
+    case Policy_Action::FAILURE: return false;                                                     \
+    case Policy_Action::CONTINUE: break;                                                           \
+    }
+
     const auto full_path = "test/" + std::string(file);
+    policy.file = full_path;
 
     std::pmr::monotonic_buffer_resource memory;
     Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, &memory);
     if (!source_data) {
-        return false;
+        return policy.error(source_data.error()) == Policy_Action::SUCCESS;
+    }
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::load_file));
+    const std::string_view source { source_data->data(), source_data->size() };
+    policy.source = source;
+
+    Result<bmd::Parsed_Document, bmd::Parse_Error> doc = bmd::parse(source, &memory);
+    if (!doc) {
+        BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.error(doc.error()));
+    }
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::parse));
+
+    Ignoring_HTML_Token_Consumer consumer;
+    Result<void, bmd::Document_Error> result
+        = bmd::doc_to_html(consumer, *doc, { .indent_width = 4 }, &memory);
+    if (!result) {
+        BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.error(result.error()));
+    }
+    BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::process));
+
+    return policy.is_success();
+}
+
+struct Expect_Success_Diagnostic_Policy final : Printing_BMD_Diagnostic_Policy {
+private:
+    Policy_Action m_action = Policy_Action::CONTINUE;
+
+public:
+    virtual bool is_success() const
+    {
+        return m_action == Policy_Action::SUCCESS;
     }
 
-    return true;
-}
+    Policy_Action error(IO_Error_Code e) final
+    {
+        Code_String out;
+        print_io_error(out, file, e);
+        print_code_string(std::cout, out, should_print_colors);
+        return m_action = Policy_Action::FAILURE;
+    }
+
+    Policy_Action error(const bmd::Parse_Error& e) final
+    {
+        Code_String out;
+        print_parse_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
+        return m_action = Policy_Action::FAILURE;
+    }
+
+    Policy_Action error(const bmd::Document_Error& e) final
+    {
+        Code_String out;
+        print_document_error(out, file, source, e);
+        print_code_string(std::cout, out, should_print_colors);
+        return m_action = Policy_Action::FAILURE;
+    }
+
+    Policy_Action done(BMD_Stage stage)
+    {
+        if (stage < BMD_Stage::process) {
+            return Policy_Action::CONTINUE;
+        }
+        return m_action = Policy_Action::SUCCESS;
+    }
+};
 
 } // namespace
 
-bool test_for_success(std::string_view file, BMS_Stage until_stage)
+bool test_for_success(std::string_view file)
 {
-    Expect_Success_Diagnostic_Policy policy { until_stage };
+    Expect_Success_Diagnostic_Policy policy;
     return test_validity(file, policy);
 }
 

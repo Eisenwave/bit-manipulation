@@ -184,7 +184,11 @@ else(NOT DEFINED EMSCRIPTEN)
     add_executable(bm-test ${HEADERS}
         src/test/compilation_stage.hpp
         src/test/diagnostic_policy.hpp
+        src/test/document_file_testing.cpp
+        src/test/document_file_testing.hpp
         src/test/program_file_testing.cpp
+        src/test/program_file_testing.hpp
+
         src/test/test_analysis_error.cpp
         src/test/test_parse_error.cpp
         src/test/test_to_chars.cpp

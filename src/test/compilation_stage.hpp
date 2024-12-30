@@ -20,7 +20,8 @@ constexpr auto operator<=>(BMS_Stage a, BMS_Stage b)
 
 enum struct BMD_Stage : Default_Underlying { //
     load_file,
-    parse
+    parse,
+    process
 };
 
 constexpr auto operator<=>(BMD_Stage a, BMD_Stage b)
