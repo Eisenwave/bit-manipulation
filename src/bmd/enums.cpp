@@ -29,6 +29,7 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     using enum Directive_Type;
     switch (type) {
     case bold:
+    case emphasized:
     case heading1:
     case heading2:
     case heading3:
@@ -37,12 +38,15 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case heading6:
     case line_break:
     case deleted:
+    case inserted:
     case instruction:
     case italic:
     case item:
     case keyboard:
+    case mark:
     case quoted:
     case strikethrough:
+    case strong:
     case subscript:
     case superscript:
     case teletype:
@@ -50,8 +54,10 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     case code: return Formatting_Style::in_line;
 
     case code_block:
+    case description_list:
     case ordered_list:
     case note:
+    case sample_output:
     case unordered_list: return Formatting_Style::block;
 
     case horizontal_rule: return Formatting_Style::flat;
@@ -79,26 +85,32 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     case bold:
     case code:
     case deleted:
+    case emphasized:
     case heading1:
     case heading2:
     case heading3:
     case heading4:
     case heading5:
     case heading6:
+    case inserted:
     case italic:
     case item:
     case keyboard:
+    case mark:
     case quoted:
     case strikethrough:
+    case strong:
     case subscript:
     case superscript:
     case teletype:
     case underlined: return Directive_Content_Type::span;
 
+    case sample_output:
     case code_block: return Directive_Content_Type::raw;
 
     case note: return Directive_Content_Type::block;
 
+    case description_list:
     case ordered_list:
     case unordered_list: return Directive_Content_Type::list;
 
@@ -115,17 +127,22 @@ Directive_Environment directive_type_environment(Directive_Type type)
     case bold:
     case line_break:
     case deleted:
+    case emphasized:
+    case inserted:
     case instruction:
     case italic:
     case keyboard:
+    case mark:
     case quoted:
     case strikethrough:
+    case strong:
     case subscript:
     case superscript:
     case teletype:
     case underlined:
     case code: return Directive_Environment::paragraph;
 
+    case description_list:
     case heading1:
     case heading2:
     case heading3:
@@ -136,6 +153,7 @@ Directive_Environment directive_type_environment(Directive_Type type)
     case ordered_list:
     case meta:
     case note:
+    case sample_output:
     case unordered_list:
     case horizontal_rule: return Directive_Environment::content;
 
@@ -163,6 +181,8 @@ std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id
         { "cequiv", c_equivalent },
         { "codeblock", code_block },
         { "del", deleted },
+        { "dl", description_list },
+        { "em", emphasized },
         { "h1", heading1 },
         { "h2", heading2 },
         { "h3", heading3 },
@@ -171,14 +191,18 @@ std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id
         { "h6", heading6 },
         { "hr", horizontal_rule },
         { "i", italic },
+        { "ins", inserted },
         { "instruction", instruction },
         { "item", item },
         { "kbd", keyboard },
+        { "mark", mark },
         { "meta", meta },
         { "note", note },
         { "ol", ordered_list },
         { "q", quoted },
         { "s", strikethrough },
+        { "samp", sample_output },
+        { "strong", strong },
         { "sub", subscript },
         { "sup", superscript },
         { "title", title },
@@ -203,7 +227,9 @@ std::string_view directive_type_tag(Directive_Type type)
     switch (type) {
     case bold: return "b";
     case line_break: return "br";
+    case description_list: return "dl";
     case deleted: return "del";
+    case emphasized: return "em";
     case heading1: return "h1";
     case heading2: return "h2";
     case heading3: return "h3";
@@ -211,11 +237,15 @@ std::string_view directive_type_tag(Directive_Type type)
     case heading5: return "h5";
     case heading6: return "h6";
     case horizontal_rule: return "hr";
+    case inserted: return "ins";
     case italic: return "i";
     case keyboard: return "kbd";
+    case mark: return "mark";
     case ordered_list: return "ol";
     case quoted: return "q";
+    case sample_output: return "samp";
     case strikethrough: return "s";
+    case strong: return "strong";
     case subscript: return "sub";
     case superscript: return "sub";
     case teletype: return "tt";
