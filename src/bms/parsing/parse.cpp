@@ -552,7 +552,7 @@ private:
         return node ? m_program.push_node(std::move(*node)) : astp::Handle::null;
     }
 
-    Rule_Result match_program()
+    [[nodiscard]] Rule_Result match_program()
     {
         std::pmr::vector<astp::Handle> declarations(m_program.get_memory());
 
@@ -572,7 +572,7 @@ private:
         return astp::Some_Node { astp::Program { first_pos, std::move(declarations) } };
     }
 
-    Rule_Result match_program_declaration()
+    [[nodiscard]] Rule_Result match_program_declaration()
     {
         constexpr auto this_rule = Grammar_Rule::program_declaration;
         static constexpr Token_Type expected[]
@@ -602,7 +602,7 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    Rule_Result match_annotated_program_declaration(astp::Some_Node& annotations)
+    [[nodiscard]] Rule_Result match_annotated_program_declaration(astp::Some_Node& annotations)
     {
         constexpr auto this_rule = Grammar_Rule::program_declaration;
         static constexpr Token_Type expected[]
@@ -617,7 +617,7 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    Rule_Result match_let_declaration(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_let_declaration(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::let_declaration;
 
@@ -658,7 +658,7 @@ private:
                                              init_handle } };
     }
 
-    Rule_Result match_const_declaration(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_const_declaration(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::const_declaration;
 
@@ -693,7 +693,7 @@ private:
                                                m_program.push_node(std::move(*init)) } };
     }
 
-    Rule_Result match_initializer()
+    [[nodiscard]] Rule_Result match_initializer()
     {
         constexpr auto this_rule = Grammar_Rule::initializer;
         if (!expect(Token_Type::assign)) {
@@ -702,7 +702,7 @@ private:
         return match_expression();
     }
 
-    Rule_Result match_function_declaration(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_function_declaration(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::function_declaration;
 
@@ -756,7 +756,7 @@ private:
             m_program.push_node(std::move(*body)) } };
     }
 
-    Rule_Result match_parameter_sequence()
+    [[nodiscard]] Rule_Result match_parameter_sequence()
     {
         Local_Source_Span first_pos;
         std::pmr::vector<astp::Handle> parameters(m_program.get_memory());
@@ -776,7 +776,7 @@ private:
         return astp::Some_Node { astp::Parameter_List { first_pos, std::move(parameters) } };
     }
 
-    Rule_Result match_parameter()
+    [[nodiscard]] Rule_Result match_parameter()
     {
         constexpr auto this_rule = Grammar_Rule::parameter;
         const Token* id = expect(Token_Type::identifier);
@@ -794,7 +794,7 @@ private:
                                                    m_program.push_node(std::move(*type)) } };
     }
 
-    Rule_Result match_static_assertion()
+    [[nodiscard]] Rule_Result match_static_assertion()
     {
         constexpr auto this_rule = Grammar_Rule::static_assertion;
         const Token* t = expect(Token_Type::keyword_static_assert);
@@ -812,7 +812,7 @@ private:
             t->pos, m_program.push_node(std::move(*expression)) } };
     }
 
-    Rule_Result match_requires_clause()
+    [[nodiscard]] Rule_Result match_requires_clause()
     {
         constexpr auto this_rule = Grammar_Rule::requires_clause;
         const Token* t = expect(Token_Type::keyword_requires);
@@ -822,7 +822,7 @@ private:
         return match_expression();
     }
 
-    Rule_Result match_annotation_sequence()
+    [[nodiscard]] Rule_Result match_annotation_sequence()
     {
         Local_Source_Span first_pos;
         std::pmr::vector<astp::Handle> annotations(m_program.get_memory());
@@ -842,7 +842,7 @@ private:
         return astp::Some_Node { astp::Annotation_List { first_pos, std::move(annotations) } };
     }
 
-    Rule_Result match_annotation()
+    [[nodiscard]] Rule_Result match_annotation()
     {
         constexpr auto this_rule = Grammar_Rule::annotation;
         const Token* at = expect(Token_Type::at);
@@ -889,7 +889,7 @@ private:
         return arguments;
     }
 
-    Rule_Result match_annotation_argument()
+    [[nodiscard]] Rule_Result match_annotation_argument()
     {
         constexpr auto this_rule = Grammar_Rule::annotation_argument;
         static constexpr Token_Type expected[]
@@ -922,7 +922,7 @@ private:
                                                              value->type } };
     }
 
-    Rule_Result match_statement()
+    [[nodiscard]] Rule_Result match_statement()
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         // This is a manually computed FIRST set of the statement rule.
@@ -968,7 +968,7 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Rule_Result match_assignment_or_function_call_statement()
+    [[nodiscard]] Rule_Result match_assignment_or_function_call_statement()
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         if (const Token* t = peek(); !t || t->type != Token_Type::identifier) {
@@ -986,7 +986,7 @@ private:
         return r;
     }
 
-    Rule_Result match_annotated_statement(astp::Some_Node& annotations)
+    [[nodiscard]] Rule_Result match_annotated_statement(astp::Some_Node& annotations)
     {
         constexpr auto this_rule = Grammar_Rule::statement;
         static constexpr Token_Type possible_types[]
@@ -1007,7 +1007,7 @@ private:
         return Rule_Error { this_rule, possible_types };
     }
 
-    Rule_Result match_assignment_statement(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_assignment_statement(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::assignment_statement;
         auto a = match_assignment(annotations);
@@ -1020,7 +1020,7 @@ private:
         return a;
     }
 
-    Rule_Result match_function_call_statement()
+    [[nodiscard]] Rule_Result match_function_call_statement()
     {
         constexpr auto this_rule = Grammar_Rule::function_call_statement;
         auto call = match_function_call_expression();
@@ -1033,7 +1033,7 @@ private:
         return call;
     }
 
-    Rule_Result match_assignment(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_assignment(astp::Some_Node* annotations = nullptr)
     {
         constexpr auto this_rule = Grammar_Rule::assignment;
 
@@ -1053,7 +1053,7 @@ private:
                                                     m_program.push_node(std::move(*e)) } };
     }
 
-    Rule_Result match_return_statement()
+    [[nodiscard]] Rule_Result match_return_statement()
     {
         constexpr auto this_rule = Grammar_Rule::return_statement;
         const Token* t = expect(Token_Type::keyword_return);
@@ -1074,7 +1074,7 @@ private:
                                                           m_program.push_node(std::move(*e)) } };
     }
 
-    Rule_Result match_break_statement()
+    [[nodiscard]] Rule_Result match_break_statement()
     {
         constexpr auto this_rule = Grammar_Rule::break_statement;
         const Token* t = expect(Token_Type::keyword_break);
@@ -1087,7 +1087,7 @@ private:
         return astp::Some_Node { astp::Break { t->pos } };
     }
 
-    Rule_Result match_continue_statement()
+    [[nodiscard]] Rule_Result match_continue_statement()
     {
         constexpr auto this_rule = Grammar_Rule::continue_statement;
         const Token* t = expect(Token_Type::keyword_continue);
@@ -1100,7 +1100,7 @@ private:
         return astp::Some_Node { astp::Continue { t->pos } };
     }
 
-    Rule_Result match_if_statement(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_if_statement(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::if_statement;
 
@@ -1129,7 +1129,7 @@ private:
             m_program.push_node(std::move(*block)), else_handle } };
     }
 
-    Rule_Result match_else_statement()
+    [[nodiscard]] Rule_Result match_else_statement()
     {
         const auto this_rule = Grammar_Rule::else_statement;
 
@@ -1140,7 +1140,7 @@ private:
         return peek(Token_Type::keyword_if) ? match_if_statement() : match_block_statement();
     }
 
-    Rule_Result match_while_statement(astp::Some_Node* annotations = nullptr)
+    [[nodiscard]] Rule_Result match_while_statement(astp::Some_Node* annotations = nullptr)
     {
         const auto this_rule = Grammar_Rule::while_statement;
 
@@ -1161,7 +1161,7 @@ private:
                                                          m_program.push_node(std::move(*block)) } };
     }
 
-    Rule_Result match_block_statement()
+    [[nodiscard]] Rule_Result match_block_statement()
     {
         constexpr auto this_rule = Grammar_Rule::block_statement;
         const Token* first = expect(Token_Type::left_brace);
@@ -1184,7 +1184,7 @@ private:
         BIT_MANIPULATION_UNREACHABLE();
     }
 
-    Rule_Result match_expression()
+    [[nodiscard]] Rule_Result match_expression()
     {
         bool is_conversion_expression = [&]() {
             Scoped_Attempt always_roll_back = start_attempt();
@@ -1195,7 +1195,7 @@ private:
                                         : match_if_expression();
     }
 
-    Rule_Result match_conversion_expression()
+    [[nodiscard]] Rule_Result match_conversion_expression()
     {
         constexpr auto this_rule = Grammar_Rule::conversion_expression;
         auto expression = match_prefix_expression();
@@ -1214,7 +1214,7 @@ private:
             m_program.push_node(std::move(*type)) } };
     }
 
-    Rule_Result match_if_expression()
+    [[nodiscard]] Rule_Result match_if_expression()
     {
         constexpr auto this_rule = Grammar_Rule::if_expression;
         auto left = match_binary_expression();
@@ -1237,7 +1237,7 @@ private:
             m_program.push_node(std::move(*condition)), m_program.push_node(std::move(*right)) } };
     }
 
-    Rule_Result match_binary_expression()
+    [[nodiscard]] Rule_Result match_binary_expression()
     {
         // FIXME: use a similar roll_back_after approach to match_conversion_expression
         if (should_binary_expression_commit_to_comparison_expression()) {
@@ -1262,8 +1262,8 @@ private:
     }
 
 #if BIT_MANIPULATION_ENABLE_EXPERIMENTAL_PARSING
-    Rule_Result match_binary_expression_impl(astp::Some_Node lhs,
-                                             Binary_Operator_Precedence min_precedence)
+    [[nodiscard]] Rule_Result
+    match_binary_expression_impl(astp::Some_Node lhs, Binary_Operator_Precedence min_precedence)
     {
         constexpr auto this_rule = Grammar_Rule::statement;
 #if 0
@@ -1356,7 +1356,7 @@ private:
         return false;
     }
 
-    Rule_Result match_comparison_expression()
+    [[nodiscard]] Rule_Result match_comparison_expression()
     {
         constexpr auto this_rule = Grammar_Rule::comparison_expression;
         static constexpr Token_Type expected[]
@@ -1380,7 +1380,7 @@ private:
             op->type } };
     }
 
-    Rule_Result match_arithmetic_expression()
+    [[nodiscard]] Rule_Result match_arithmetic_expression()
     {
         auto left = match_prefix_expression();
         if (!left) {
@@ -1399,7 +1399,7 @@ private:
             op->type } };
     }
 
-    Rule_Result match_prefix_expression()
+    [[nodiscard]] Rule_Result match_prefix_expression()
     {
         if (const Token* t = expect(is_unary_operator)) {
             auto e = match_postfix_expression();
@@ -1412,7 +1412,7 @@ private:
         return match_postfix_expression();
     }
 
-    Rule_Result match_postfix_expression()
+    [[nodiscard]] Rule_Result match_postfix_expression()
     {
         if (peek(Token_Type::identifier)) {
             if (const Token* lookahead = peek_n(1);
@@ -1423,7 +1423,7 @@ private:
         return match_primary_expression();
     }
 
-    Rule_Result match_function_call_expression()
+    [[nodiscard]] Rule_Result match_function_call_expression()
     {
         constexpr auto this_rule = Grammar_Rule::function_call_expression;
         const Token* id = expect(Token_Type::identifier);
@@ -1458,7 +1458,7 @@ private:
             push_or_null(std::move(*annotations)) } };
     }
 
-    Rule_Result match_primary_expression()
+    [[nodiscard]] Rule_Result match_primary_expression()
     {
         // FIXME: boolean literals don't appear to be supported, but should be matched here
         constexpr auto this_rule = Grammar_Rule::primary_expression;
@@ -1481,7 +1481,7 @@ private:
         return Rule_Error { this_rule, expected };
     }
 
-    [[maybe_unused]] Rule_Result match_parenthesized_expression()
+    [[maybe_unused]] [[nodiscard]] Rule_Result match_parenthesized_expression()
     {
         constexpr auto this_rule = Grammar_Rule::parenthesized_expression;
         const Token* t = expect(Token_Type::left_parenthesis);
@@ -1498,7 +1498,7 @@ private:
         return e;
     }
 
-    Rule_Result match_type()
+    [[nodiscard]] Rule_Result match_type()
     {
         constexpr auto this_rule = Grammar_Rule::type;
         static constexpr Token_Type expected[]
