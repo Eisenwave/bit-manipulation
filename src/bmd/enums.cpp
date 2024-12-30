@@ -196,6 +196,7 @@ std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id
     return it->type;
 }
 
+// https://github.com/Eisenwave/bit-manipulation/wiki/Bit-Manipulation-Doc-(BMD)
 std::string_view directive_type_tag(Directive_Type type)
 {
     using enum Directive_Type;
