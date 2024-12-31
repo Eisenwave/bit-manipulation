@@ -232,7 +232,18 @@ function bmLengthAsUtf8(str) {
     return bmDecodeTextResultAt(resultAddress);
 }
 
-const codeLanguages = ['bms', 'c', 'cpp', 'rust', 'java', 'kotlin', 'javascript', 'typescript'];
+const codeLanguages = [
+    'plaintext',
+    'bmd',
+    'bms',
+    'c',
+    'cpp',
+    'rust',
+    'java',
+    'kotlin',
+    'javascript',
+    'typescript'
+];
 
 /**
  * 
