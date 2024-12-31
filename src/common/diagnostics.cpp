@@ -472,16 +472,16 @@ constexpr std::string_view note_prefix = "note:";
 
 [[nodiscard]] std::string_view to_prose(IO_Error_Code e)
 {
+    using enum IO_Error_Code;
     switch (e) {
-    case IO_Error_Code::cannot_open: //
+    case cannot_open: //
         return "Failed to open file.";
-    case IO_Error_Code::read_error: //
+    case read_error: //
         return "I/O error occurred when reading from file.";
-    case IO_Error_Code::write_error: //
+    case write_error: //
         return "I/O error occurred when writing to file.";
-    default: //
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code"); // FIXME
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
 [[nodiscard]] bool is_incompatible_return_type_error(const bms::Analysis_Error& error)
