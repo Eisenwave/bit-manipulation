@@ -30,11 +30,11 @@ set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
 include_directories(${INCLUDE_DIRS})
 
 set(HEADERS
+    src/bmd/code_language.hpp
     src/bmd/directive_type.hpp
     src/bmd/fwd.hpp
     src/bmd/scope_success_writer.hpp
 
-    src/bmd/codegen/code_language.hpp
     src/bmd/codegen/codegen.hpp
     src/bmd/codegen/generator_base.hpp
     src/bmd/codegen/generator_error.hpp
