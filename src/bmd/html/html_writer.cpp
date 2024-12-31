@@ -4,6 +4,7 @@
 
 #include "bmd/html/html_writer.hpp"
 #include "bmd/html/token_consumer.hpp"
+#include "bmd/html/token_type.hpp"
 
 namespace bit_manipulation::bmd {
 

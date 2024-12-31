@@ -40,20 +40,6 @@ enum struct Formatting_Style : Default_Underlying {
     return style == Formatting_Style::flat || style == Formatting_Style::block;
 }
 
-enum struct HTML_Token_Type : Default_Underlying {
-    whitespace,
-    preamble,
-    comment,
-    tag_identifier,
-    tag_bracket,
-    attribute_key,
-    attribute_equal,
-    attribute_comma,
-    attribute_quote,
-    attribute_value,
-    inner_text,
-};
-
 /// @brief RAII helper class which lets us write attributes more conveniently.
 /// This class is not intended to be used directly, but with the help of `HTML_Writer`.
 struct Attribute_Writer {

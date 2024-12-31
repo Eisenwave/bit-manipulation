@@ -43,6 +43,7 @@ set(HEADERS
     src/bmd/html/code_string_to_html.hpp
     src/bmd/html/doc_to_html.hpp
     src/bmd/html/html_writer.hpp
+    src/bmd/html/token_type.hpp
     
     src/bmd/parsing/ast.hpp
     src/bmd/parsing/grammar.hpp

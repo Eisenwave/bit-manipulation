@@ -7,7 +7,7 @@
 #include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
-#include "bmd/html/html_writer.hpp"
+#include "bmd/html/token_type.hpp"
 
 #include "cli/glue.hpp"
 
