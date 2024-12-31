@@ -1,7 +1,10 @@
 #include <iostream>
 #include <unordered_map>
 
+#include "common/code_string.hpp"
+#include "common/diagnostics.hpp"
 #include "common/parse.hpp"
+#include "common/tty.hpp"
 
 #include "bms/analysis_error.hpp"
 #include "bms/analyze.hpp"
@@ -201,7 +204,9 @@ private:
             }
             node.vm_address = vm_address;
             if constexpr (debug_dump_generated_programs) {
-                dump_program(std::cout, constant_evaluation_machine.instructions());
+                Code_String out { &m_memory_resource };
+                print_program(out, constant_evaluation_machine.instructions());
+                print_code_string(std::cout, out, is_stdout_tty);
             }
         }
         BIT_MANIPULATION_ASSERT(!node.is_generic);
