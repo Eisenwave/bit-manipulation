@@ -586,6 +586,50 @@ void print_note_line(Code_String& out, const Error_Line& line, std::string_view 
     return print_diagnostic_line(out, Error_Line_Type::note, line, source);
 }
 
+void do_print_affected_line(Code_String& out,
+                            std::string_view source,
+                            Size begin,
+                            Size length,
+                            Size line,
+                            Size column)
+{
+    BIT_MANIPULATION_ASSERT(length > 0);
+
+    {
+        // Sorry, multi-line printing is not supported yet.
+        const std::string_view snippet = source.substr(begin, length);
+        BIT_MANIPULATION_ASSERT(length <= 1 || snippet.find('\n') == std::string_view::npos);
+    }
+
+    const std::string_view cited_code = find_line(source, begin);
+
+    const Characters line_chars = to_characters(line + 1);
+    constexpr Size pad_max = 6;
+    const Size pad_length = pad_max - std::min(line_chars.length, Size { pad_max - 1 });
+    out.append(pad_length, ' ');
+    out.append_integer(line + 1, Code_Span_Type::diagnostic_line_number);
+    out.append(' ');
+    out.append('|', Code_Span_Type::diagnostic_punctuation);
+    out.append(' ');
+    out.append(cited_code, Code_Span_Type::diagnostic_code_citation);
+    out.append('\n');
+
+    const Size align_length = std::max(pad_max, line_chars.length + 1);
+    out.append(align_length, ' ');
+    out.append(' ');
+    out.append('|', Code_Span_Type::diagnostic_punctuation);
+    out.append(' ');
+    out.append(column, ' ');
+    {
+        auto position = out.build(Code_Span_Type::diagnostic_position_indicator);
+        position.append('^');
+        if (length > 1) {
+            position.append(length - 1, '~');
+        }
+    }
+    out.append('\n');
+}
+
 } // namespace
 
 void print_file_position(Code_String& out,
@@ -602,6 +646,19 @@ void print_file_position(Code_String& out,
     if (suffix_colon) {
         builder.append(':');
     }
+}
+
+void print_affected_line(Code_String& out,
+                         std::string_view source,
+                         const Local_Source_Position& pos)
+{
+    do_print_affected_line(out, source, pos.begin, 1, pos.line, pos.column);
+}
+
+void print_affected_line(Code_String& out, std::string_view source, const Local_Source_Span& pos)
+{
+    BIT_MANIPULATION_ASSERT(!pos.empty());
+    do_print_affected_line(out, source, pos.begin, pos.length, pos.line, pos.column);
 }
 
 std::string_view find_line(std::string_view source, Size index)
@@ -626,33 +683,6 @@ std::string_view find_line(std::string_view source, Size index)
 void print_location_of_file(Code_String& out, std::string_view file)
 {
     out.build(Code_Span_Type::diagnostic_code_position).append(file).append(':');
-}
-
-void print_affected_line(Code_String& out,
-                         std::string_view source,
-                         const Local_Source_Position& pos)
-{
-    const std::string_view line = find_line(source, pos.begin);
-
-    Characters line_chars = to_characters(pos.line + 1);
-    constexpr Size pad_max = 6;
-    Size pad_length = pad_max - std::min(line_chars.length, Size { pad_max - 1 });
-    out.append(pad_length, ' ');
-    out.append_integer(pos.line + 1, Code_Span_Type::diagnostic_line_number);
-    out.append(' ');
-    out.append('|', Code_Span_Type::diagnostic_punctuation);
-    out.append(' ');
-    out.append(line, Code_Span_Type::diagnostic_code_citation);
-    out.append('\n');
-
-    Size align_length = std::max(pad_max, line_chars.length + 1);
-    out.append(align_length, ' ');
-    out.append(' ');
-    out.append('|', Code_Span_Type::diagnostic_punctuation);
-    out.append(' ');
-    out.append(pos.column, ' ');
-    out.append('^', Code_Span_Type::diagnostic_position_indicator);
-    out.append('\n');
 }
 
 void print_tokenize_error(Code_String& out,

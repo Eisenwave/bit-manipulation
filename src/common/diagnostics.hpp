@@ -46,6 +46,8 @@ void print_affected_line(Code_String& out,
                          std::string_view source,
                          const Local_Source_Position& pos);
 
+void print_affected_line(Code_String& out, std::string_view source, const Local_Source_Span& pos);
+
 void print_tokenize_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,
