@@ -19,7 +19,7 @@ namespace detail {
 struct Base {
     Local_Source_Span m_pos;
 
-    Local_Source_Span get_source_position() const
+    [[nodiscard]] Local_Source_Span get_source_position() const
     {
         return m_pos;
     }
@@ -33,9 +33,9 @@ struct Identifier : detail::Base {
 
     std::string_view m_value;
 
-    Identifier(const Local_Source_Span& pos, std::string_view value);
+    [[nodiscard]] Identifier(const Local_Source_Span& pos, std::string_view value);
 
-    std::string_view get_value() const
+    [[nodiscard]] std::string_view get_value() const
     {
         return m_value;
     }
@@ -48,14 +48,14 @@ struct Number : detail::Base {
     Int64 m_value;
     Literal_Type m_type;
 
-    Number(const Local_Source_Span& pos, Int64 value, Literal_Type type);
+    [[nodiscard]] Number(const Local_Source_Span& pos, Int64 value, Literal_Type type);
 
-    Int64 get_value() const
+    [[nodiscard]] Int64 get_value() const
     {
         return m_value;
     }
 
-    Literal_Type get_type() const
+    [[nodiscard]] Literal_Type get_type() const
     {
         return m_type;
     }
@@ -75,9 +75,9 @@ struct Raw : detail::Base {
 
     std::string_view m_value;
 
-    Raw(const Local_Source_Span& pos, std::string_view value);
+    [[nodiscard]] Raw(const Local_Source_Span& pos, std::string_view value);
 
-    std::string_view get_value() const
+    [[nodiscard]] std::string_view get_value() const
     {
         return m_value;
     }
@@ -91,7 +91,7 @@ struct List : detail::Base {
 
     std::pmr::vector<Some_Node*> m_children;
 
-    List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
+    [[nodiscard]] List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
 
     [[nodiscard]] std::span<Some_Node*> get_children();
     [[nodiscard]] std::span<Some_Node* const> get_children() const;
@@ -111,18 +111,18 @@ struct Directive : detail::Base {
     Arguments m_arguments;
     Some_Node* m_block;
 
-    Directive(const Local_Source_Span& pos,
-              Directive_Type type,
-              std::string_view identifier,
-              Arguments&& args,
-              ast::Some_Node* block);
+    [[nodiscard]] Directive(const Local_Source_Span& pos,
+                            Directive_Type type,
+                            std::string_view identifier,
+                            Arguments&& args,
+                            ast::Some_Node* block);
 
-    Directive_Type get_type() const
+    [[nodiscard]] Directive_Type get_type() const
     {
         return m_type;
     }
 
-    std::string_view get_identifier() const
+    [[nodiscard]] std::string_view get_identifier() const
     {
         return m_identifier;
     }
@@ -130,16 +130,16 @@ struct Directive : detail::Base {
     /// @brief Returns the block which this directive optionally has.
     /// @return `nullptr` if there is no block, `ast::Text` for raw blocks, `ast::Content`
     /// otherwise.
-    ast::Some_Node* get_block() const
+    [[nodiscard]] ast::Some_Node* get_block() const
     {
         return m_block;
     }
 
-    std::span<Some_Node*> get_children()
+    [[nodiscard]] std::span<Some_Node*> get_children()
     {
         return { &m_block, 1 };
     }
-    std::span<Some_Node* const> get_children() const
+    [[nodiscard]] std::span<Some_Node* const> get_children() const
     {
         return { &m_block, 1 };
     }
@@ -151,18 +151,18 @@ struct Text : detail::Base {
 
     std::string_view m_text;
 
-    Text(const Local_Source_Span& pos, std::string_view text);
+    [[nodiscard]] Text(const Local_Source_Span& pos, std::string_view text);
 
-    std::string_view get_text() const
+    [[nodiscard]] std::string_view get_text() const
     {
         return m_text;
     }
 
-    std::span<Some_Node*> get_children()
+    [[nodiscard]] std::span<Some_Node*> get_children()
     {
         return {};
     }
-    std::span<Some_Node* const> get_children() const
+    [[nodiscard]] std::span<Some_Node* const> get_children() const
     {
         return {};
     }
@@ -187,22 +187,22 @@ struct Some_Node : Variant<List, Directive, Text> {
     using Variant::Variant;
 };
 
-inline std::string_view get_node_name(const Some_Node& node)
+[[nodiscard]] inline std::string_view get_node_name(const Some_Node& node)
 {
     return visit([]<typename T>(const T&) { return T::self_name; }, node);
 }
 
-inline std::span<Some_Node*> get_children(Some_Node& node)
+[[nodiscard]] inline std::span<Some_Node*> get_children(Some_Node& node)
 {
     return visit([]<typename T>(T& v) { return v.get_children(); }, node);
 }
 
-inline std::span<Some_Node* const> get_children(const Some_Node& node)
+[[nodiscard]] inline std::span<Some_Node* const> get_children(const Some_Node& node)
 {
     return visit([]<typename T>(const T& v) { return v.get_children(); }, node);
 }
 
-inline Local_Source_Span get_source_span(const Some_Node& node)
+[[nodiscard]] inline Local_Source_Span get_source_span(const Some_Node& node)
 {
     return visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
         .get_source_position();
