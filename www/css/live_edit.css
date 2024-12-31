@@ -42,7 +42,6 @@ textarea,
 
 #code-input-layers {
     display: grid;
-    background: var(--deep-background);
     font-size: 11pt;
 }
 
@@ -75,10 +74,12 @@ textarea,
 
     color: inherit;
     font-size: 11pt;
+}
 
-    background: var(--deep-background);
-    border: 0.5em solid var(--deep-background);
-    border-radius: 0.5em;
+#output {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
 }
 
 #output-container,
@@ -86,6 +87,14 @@ textarea,
     font-family: 'JetBrainsMono';
     font-variant-ligatures: no-contextual;
     font-weight: normal;
+}
+
+
+#code-input-container,
+#output {
+    background: var(--deep-background);
+    border: 0.5em solid var(--deep-background);
+    border-radius: 0.5em;
 }
 
 #output {
@@ -149,4 +158,16 @@ body.vertical.while-dragging * {
 
 #split-buttons img:hover {
     opacity: 1;
+}
+
+#output-options {
+    display: flex;
+    justify-content: flex-end;
+
+    margin-right: 0.5em;
+    margin-bottom: 0.75em;
+}
+
+body:not(.vertical) #output-options {
+    justify-content: flex-start;
 }
