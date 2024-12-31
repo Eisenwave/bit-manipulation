@@ -70,6 +70,8 @@ void print_document_error(Code_String& out,
                           std::string_view source,
                           const bmd::Document_Error& error);
 
+void print_generator_error(Code_String& out, const bmd::Generator_Error& error);
+
 void print_assertion_error(Code_String& out, const Assertion_Error& error);
 
 void print_io_error(Code_String& out, std::string_view file, IO_Error_Code error);

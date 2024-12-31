@@ -166,13 +166,15 @@ int generate(std::string_view file,
     bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
     Code_String out { &memory_resource };
-    if (!bmd::generate_code(out, a, *language, {})) {
-        std::cout << ansi::red << "Error: failed to generate code.\n";
-        return 1;
+    int result_code = 0;
+    if (Result<void, bmd::Generator_Error> r = bmd::generate_code(out, a, *language, {}); !r) {
+        out.clear();
+        print_generator_error(out, r.error());
+        result_code = 1;
     }
     print_code_string(std::cout, out, colors);
 
-    return 0;
+    return result_code;
 }
 
 struct Command_Help {

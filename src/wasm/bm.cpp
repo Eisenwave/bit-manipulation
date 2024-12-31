@@ -130,6 +130,14 @@ bm_text_result error_to_heap(const bms::Analysis_Error& error,
     return to_heap_raw_or_html(error_out, memory, as_html);
 }
 
+bm_text_result
+error_to_heap(const bmd::Generator_Error& error, std::pmr::memory_resource* memory, bool as_html)
+{
+    Code_String error_out { memory };
+    print_generator_error(error_out, error);
+    return to_heap_raw_or_html(error_out, memory, as_html);
+}
+
 bm_text_result translate_to(std::string_view source, bmd::Code_Language lang, bool as_html)
 {
     std::pmr::unsynchronized_pool_resource memory;
@@ -151,7 +159,11 @@ bm_text_result translate_to(std::string_view source, bmd::Code_Language lang, bo
     }
 
     Code_String out { &memory };
-    bmd::generate_code(out, analyzed, lang, { .c_23 = true });
+    if (Result<void, bmd::Generator_Error> r
+        = bmd::generate_code(out, analyzed, lang, { .c_23 = true });
+        !r) {
+        return error_to_heap(r.error(), &memory, as_html);
+    }
     return to_heap_raw_or_html(out, &memory, as_html);
 }
 

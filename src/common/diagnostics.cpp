@@ -20,6 +20,7 @@
 #include "bms/tokenization/tokenize_error.hpp"
 #include "bms/vm/execution_error.hpp"
 
+#include "bmd/codegen/generator_error.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
 #include "bmd/parsing/ast.hpp"
@@ -384,6 +385,22 @@ constexpr std::string_view note_prefix = "note:";
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
 
+[[nodiscard]] std::string_view to_prose(bmd::Generator_Error_Code e)
+{
+    using enum bmd::Generator_Error_Code;
+    switch (e) {
+    case unsupported_language: //
+        return "The specified target language is not supported.";
+    case empty: //
+        return "No code was generated for this code construct.";
+    case unsupported_integer_width: //
+        return "An integer with an unsupported width was requested.";
+    case error: //
+        return "This code construct is untranslatable to the target language.";
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
+}
+
 [[nodiscard]] std::string_view cause_to_prose(bms::Analysis_Error_Code e)
 {
     using enum bms::Analysis_Error_Code;
@@ -463,7 +480,7 @@ constexpr std::string_view note_prefix = "note:";
     case IO_Error_Code::write_error: //
         return "I/O error occurred when writing to file.";
     default: //
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code"); // FIXME
     }
 }
 
@@ -871,6 +888,15 @@ void print_document_error(Code_String& out,
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
         print_internal_error_notice(out);
     }
+}
+
+void print_generator_error(Code_String& out, const bmd::Generator_Error& error)
+{
+    auto pos = error.fail ? std::optional<Source_Position> {} : get_source_position(*error.fail);
+    print_source_position(out, pos);
+    out.append(' ');
+    out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
+    out.append('\n');
 }
 
 void print_assertion_error(Code_String& out, const Assertion_Error& error)

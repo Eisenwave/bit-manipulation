@@ -322,6 +322,8 @@ std::string_view code_language_readable_name(Code_Language lang)
 {
     using enum Code_Language;
     switch (lang) {
+    case plaintext: return "Plaintext";
+    case bmd: return "BMD";
     case bms: return "BMS";
     case c: return "C";
     case cpp: return "C++";

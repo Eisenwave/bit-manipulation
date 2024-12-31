@@ -11,7 +11,7 @@
 
 namespace bit_manipulation::bmd {
 
-enum struct Document_Error_Code {
+enum struct Document_Error_Code : Default_Underlying {
     /// @brief A directive is not allowed in a specific context.
     /// For example, `\i` is not directly allowed inside a `\meta` directive.
     directive_not_allowed,
