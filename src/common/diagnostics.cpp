@@ -541,8 +541,7 @@ void print_source_position(Code_String& out, const std::optional<Source_Position
         out.append("(internal):", Code_Span_Type::diagnostic_code_position);
     }
     else {
-        constexpr bool colon_suffix = true;
-        print_file_position(out, pos->file_name, Local_Source_Position { *pos }, colon_suffix);
+        print_file_position(out, pos->file_name, Local_Source_Position { *pos });
     }
 }
 
@@ -661,8 +660,7 @@ void print_tokenize_error(Code_String& out,
                           std::string_view source,
                           const bms::Tokenize_Error& e)
 {
-    constexpr bool suffix_colon = true;
-    print_file_position(out, file, e.pos, suffix_colon);
+    print_file_position(out, file, e.pos);
     out.append(' ');
     out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
@@ -676,8 +674,7 @@ void print_parse_error(Code_String& out,
                        std::string_view source,
                        const bms::Parse_Error& error)
 {
-    constexpr bool colon_suffix = true;
-    print_file_position(out, file, error.fail_token.pos, colon_suffix);
+    print_file_position(out, file, error.fail_token.pos);
     out.append(' ');
     out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
@@ -692,7 +689,7 @@ void print_parse_error(Code_String& out,
         .append('\'');
     out.append('\n');
 
-    print_file_position(out, file, error.fail_token.pos, colon_suffix);
+    print_file_position(out, file, error.fail_token.pos);
     out.append(' ');
     out.append(note_prefix, Code_Span_Type::diagnostic_note);
     out.append(' ');
@@ -725,8 +722,7 @@ void print_parse_error(Code_String& out,
                        std::string_view source,
                        const bmd::Parse_Error& error)
 {
-    constexpr bool colon_suffix = true;
-    print_file_position(out, file, error.pos, colon_suffix);
+    print_file_position(out, file, error.pos);
     out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
@@ -879,8 +875,7 @@ void print_document_error(Code_String& out,
                           std::string_view source,
                           const bmd::Document_Error& error)
 {
-    constexpr bool colon_suffix = true;
-    print_file_position(out, file, error.pos, colon_suffix);
+    print_file_position(out, file, error.pos);
     out.append(' ');
     out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
 
@@ -912,8 +907,7 @@ void print_assertion_error(Code_String& out, const Assertion_Error& error)
     Local_Source_Position pos { .line = error.location.line(),
                                 .column = error.location.column(),
                                 .begin = {} };
-    constexpr bool colon_suffix = true;
-    print_file_position(out, error.location.file_name(), pos, colon_suffix);
+    print_file_position(out, error.location.file_name(), pos);
     out.append(' ');
     out.append(error.message, Code_Span_Type::diagnostic_error_text);
     out.append("\n\n");

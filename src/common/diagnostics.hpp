@@ -35,7 +35,7 @@ void print_location_of_file(Code_String& out, std::string_view file);
 void print_file_position(Code_String& out,
                          std::string_view file,
                          const Local_Source_Position& pos,
-                         bool colon_suffix);
+                         bool colon_suffix = true);
 
 /// @brief Prints the contents of the affected line within `source` as well as position indicators
 /// which show the span which is affected by some diagnostic.
