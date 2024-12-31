@@ -6,7 +6,8 @@ import {
     editorFractionLimit,
     isEditorVertical,
     resizeContainerToFraction,
-    setEditorVertical
+    setEditorVertical,
+    codegenPreset
 } from "./live_edit_core.js";
 
 const whileDraggingClass = 'while-dragging';
@@ -232,34 +233,23 @@ function bmLengthAsUtf8(str) {
     return bmDecodeTextResultAt(resultAddress);
 }
 
-const codeLanguages = [
-    'plaintext',
-    'bmd',
-    'bms',
-    'c',
-    'cpp',
-    'rust',
-    'java',
-    'kotlin',
-    'javascript',
-    'typescript'
-];
-
 /**
  * 
  * @param {string} str 
- * @param {string} lang one of `codeLanguages`
+ * @param {number} preset the preset number (see `Codegen_Preset`)
  * @returns {{memory: number, size: number, isHtml: boolean}}
  */
-function bmTranslateCode(str, lang) {
-    const langIndex = codeLanguages.indexOf(lang);
-    if (langIndex < 0) {
-        throw `Language ${lang} is invalid.`;
+function bmTranslateCode(str, preset) {
+    if (typeof (preset) != 'number') {
+        throw 'Preset must be a number.';
+    }
+    if (preset < 0) {
+        throw `Preset index ${preset} is invalid.`;
     }
 
     const input = bmStringToUtf8(str);
     try {
-        wasm.instance.exports.bm_translate_code(input.memory, input.size, langIndex);
+        wasm.instance.exports.bm_translate_code(input.memory, input.size, preset);
     } finally {
         bmFree(input);
     }
@@ -405,7 +395,7 @@ function onCodeInput(persist = false) {
             result = bmSyntaxHighlight(codeInput.value);
         }
         else {
-            result = bmTranslateCode(codeInput.value, 'c');
+            result = bmTranslateCode(codeInput.value, codegenPreset.selectedIndex);
         }
     } catch (e) {
         output.textContent = `Internal compiler error: ${e.message}\n\n${e.stack}`;
@@ -426,6 +416,8 @@ function onCodeInput(persist = false) {
 }
 
 codeInput.addEventListener('input', () => onCodeInput(true));
+
+codegenPreset.addEventListener('change', () => onCodeInput(true));
 
 onCodeInput();
 

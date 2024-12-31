@@ -14,6 +14,7 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
+#include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/bms_to_html.hpp"
 #include "bmd/html/code_string_to_html.hpp"
@@ -138,7 +139,10 @@ error_to_heap(const bmd::Generator_Error& error, std::pmr::memory_resource* memo
     return to_heap_raw_or_html(error_out, memory, as_html);
 }
 
-bm_text_result translate_to(std::string_view source, bmd::Code_Language lang, bool as_html)
+bm_text_result translate_to(std::string_view source,
+                            bmd::Code_Language lang,
+                            bmd::Code_Options options,
+                            bool as_html)
 {
     std::pmr::unsynchronized_pool_resource memory;
 
@@ -159,8 +163,7 @@ bm_text_result translate_to(std::string_view source, bmd::Code_Language lang, bo
     }
 
     Code_String out { &memory };
-    if (Result<void, bmd::Generator_Error> r
-        = bmd::generate_code(out, analyzed, lang, { .c_23 = true });
+    if (Result<void, bmd::Generator_Error> r = bmd::generate_code(out, analyzed, lang, options);
         !r) {
         return error_to_heap(r.error(), &memory, as_html);
     }
@@ -174,6 +177,27 @@ bm_allocation syntax_highlight(std::string_view source)
 
     bmd::bms_inline_code_to_html(out, source, &memory);
     return copy_to_heap(out.as_string());
+}
+
+[[nodiscard]] bmd::Code_Language preset_code_language(Codegen_Preset preset)
+{
+    using enum Codegen_Preset;
+    switch (preset) {
+    case bms: return bmd::Code_Language::bms;
+    case c99:
+    case c23: return bmd::Code_Language::c;
+    case cpp: return bmd::Code_Language::cpp;
+    }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid preset.");
+}
+
+[[nodiscard]] bmd::Code_Options preset_code_options(Codegen_Preset preset)
+{
+    using enum Codegen_Preset;
+    switch (preset) {
+    case c23: return { .c_23 = true };
+    default: return {};
+    }
 }
 
 } // namespace
@@ -213,11 +237,15 @@ void bm_length_as_string(const char* str)
 
 bm_text_result bm_translate_code_result {};
 
-void bm_translate_code(const char* source, Uint32 length, Uint8 lang)
+void bm_translate_code(const char* source_data, Uint32 length, Codegen_Preset preset)
 {
     constexpr bool as_html = true;
-    bm_translate_code_result
-        = bit_manipulation::translate_to({ source, length }, bmd::Code_Language { lang }, as_html);
+
+    const std::string_view source = { source_data, length };
+    const auto lang = preset_code_language(preset);
+    const auto options = preset_code_options(preset);
+
+    bm_translate_code_result = bit_manipulation::translate_to(source, lang, options, as_html);
 }
 
 bm_allocation bm_syntax_highlight_result;

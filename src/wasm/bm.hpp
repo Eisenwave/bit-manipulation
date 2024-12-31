@@ -53,13 +53,24 @@ void bm_length_as_string(const char* str);
 
 extern bm_text_result bm_translate_code_result;
 
+enum struct Codegen_Preset : bit_manipulation::Uint8 {
+    /// @brief BMS.
+    bms,
+    /// @brief C99 (older C standard).
+    c99,
+    /// @brief C23 (recent C standard).
+    c23,
+    /// @brief C++.
+    cpp
+};
+
 /// @brief Translates BMS code in the string to the specified target language.
 /// @param source the BMS source code
 /// @param source_length the length of the source code
-/// @param lang the language to convert to, matching the values in `bmd::Code_Language`
+/// @param preset the codegen preset (see above)
 void bm_translate_code(const char* source,
                        bit_manipulation::Uint32 source_length,
-                       bit_manipulation::Uint8 lang);
+                       Codegen_Preset preset);
 
 extern bm_allocation bm_syntax_highlight_result;
 
