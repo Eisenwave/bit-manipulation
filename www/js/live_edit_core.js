@@ -1,10 +1,12 @@
 export const container = document.getElementById('container');
 export const codeInput = document.getElementById('code-input');
+export const codegenPreset = document.getElementById('codegen-preset');
 
 export const editorFractionLimit = 0.1;
 export const editorFractionItem = 'editorFraction';
 export const editorIsVerticalItem = 'editorIsVertical';
 export const editorContentsItem = 'editorContents';
+export const codegenPresetIndexItem = 'codegenPresetIndexItem';
 
 let isVertical = false;
 
@@ -60,6 +62,13 @@ export function setEditorContents(value, persist = false, dispatch = false) {
     }
 }
 
+export function setCodegenPresetIndex(index, persist = false) {
+    codegenPreset.selectedIndex = index;
+    if (persist) {
+        localStorage.setItem(codegenPresetIndexItem, index);
+    }
+}
+
 const initialFraction = localStorage.getItem(editorFractionItem);
 if (initialFraction !== null) {
     resizeContainerToFraction(Number(initialFraction));
@@ -73,4 +82,9 @@ if (initialIsVertical !== null) {
 const initialContents = localStorage.getItem(editorContentsItem);
 if (initialContents !== null) {
     setEditorContents(initialContents, false, true);
+}
+
+const initialPresetIndex = localStorage.getItem(codegenPresetIndexItem);
+if (initialPresetIndex !== null) {
+    setCodegenPresetIndex(Number(initialPresetIndex));
 }
