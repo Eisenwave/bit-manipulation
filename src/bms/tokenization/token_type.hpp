@@ -135,6 +135,12 @@ enum struct Token_Type : Default_Underlying {
     keyword_static_assert,
 };
 
+/// @brief Returns `true` if the given `type` is a keyword.
+[[nodiscard]] inline bool is_keyword(Token_Type type)
+{
+    return Default_Underlying(type) >= Default_Underlying(Token_Type::keyword_as);
+}
+
 /// @brief Returns the enumeration name of a token type.
 /// For example, `token_type_name(logical_not)` returns `"logical_not"`.
 /// @param type the token type
