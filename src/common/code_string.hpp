@@ -26,6 +26,15 @@ struct Code_String_Span {
 
 struct Code_String_Iterator;
 
+enum struct Sign_Policy : Default_Underlying {
+    /// @brief Print only `-`, never `+`.
+    negative_only,
+    /// @brief Print `+` for positive numbers, including zero.
+    always,
+    /// @brief Print `+` only for non-zero numbers.
+    nonzero
+};
+
 struct Code_String {
 public:
     struct Length {
@@ -120,19 +129,43 @@ public:
     }
 
     template <character_convertible Integer>
-    void append_integer(Integer x)
+    void append_integer(Integer x, Sign_Policy signs = Sign_Policy::negative_only)
     {
+        const bool plus
+            = (signs == Sign_Policy::always && x >= 0) || (signs == Sign_Policy::nonzero && x > 0);
         const Characters chars = to_characters(x);
-        append(chars.as_string());
+        append_digits(chars.as_string(), plus);
     }
 
     template <character_convertible Integer>
-    void append_integer(Integer x, Code_Span_Type type)
+    void
+    append_integer(Integer x, Code_Span_Type type, Sign_Policy signs = Sign_Policy::negative_only)
     {
+        const bool plus
+            = (signs == Sign_Policy::always && x >= 0) || (signs == Sign_Policy::nonzero && x > 0);
         const Characters chars = to_characters(x);
-        append(chars.as_string(), type);
+        append_digits(chars.as_string(), plus, &type);
     }
 
+private:
+    // using std::optional would obviously be more idiomatic, but we can avoid
+    // #include <optional> for this file by using a pointer
+    void append_digits(std::string_view digits, bool plus, const Code_Span_Type* type = nullptr)
+    {
+        const Size begin = m_text.size();
+        Size prefix_length = 0;
+        if (plus) {
+            m_text.push_back('+');
+            prefix_length = 1;
+        }
+        append(digits);
+        if (type) {
+            m_spans.push_back(
+                { .begin = begin, .length = digits.length() + prefix_length, .type = *type });
+        }
+    }
+
+public:
     struct Scoped_Builder;
 
     /// @brief Starts building a single code span out of multiple parts which will be fused
@@ -224,9 +257,9 @@ public:
     }
 
     template <typename Integer>
-    Scoped_Builder& append_integer(Integer x)
+    Scoped_Builder& append_integer(Integer x, Sign_Policy signs = Sign_Policy::negative_only)
     {
-        self.append_integer(x);
+        self.append_integer(x, signs);
         return *this;
     }
 };
