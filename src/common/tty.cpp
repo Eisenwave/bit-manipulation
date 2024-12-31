@@ -15,4 +15,8 @@ bool is_tty(std::FILE* file) noexcept
 #endif
 }
 
+const bool is_stdin_tty = is_tty(stdin);
+const bool is_stdout_tty = is_tty(stdout);
+const bool is_stderr_tty = is_tty(stderr);
+
 } // namespace bit_manipulation
