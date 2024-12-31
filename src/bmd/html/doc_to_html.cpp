@@ -383,8 +383,8 @@ struct HTML_Converter {
         return {};
     }
 
-    Result<void, Document_Error> convert_nested_code(const ast::Directive& directive,
-                                                     Nested_Language lang)
+    [[nodiscard]] Result<void, Document_Error> convert_nested_code(const ast::Directive& directive,
+                                                                   Nested_Language lang)
     {
         const auto* const code_text
             = directive.get_block() == nullptr ? nullptr : &get<ast::Text>(*directive.get_block());
