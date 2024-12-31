@@ -704,11 +704,16 @@ void print_parse_error(Code_String& out,
                        std::string_view source,
                        const bms::Parse_Error& error)
 {
-    print_file_position(out, file, error.fail_token.pos);
-    out.append(' ');
-    out.append(error_prefix, Code_Span_Type::diagnostic_error);
-    out.append(' ');
+    const auto print_prefix = [&](Code_Span_Type type) {
+        print_file_position(out, file, error.fail_token.pos);
+        out.append(' ');
+        out.append(note_prefix, type);
+        out.append(' ');
+    };
 
+    bool print_expectations = true;
+
+    print_prefix(Code_Span_Type::diagnostic_error);
     if (error.fail_rule == bms::Grammar_Rule::type
         && error.fail_token.type == bms::Token_Type::identifier) {
         const Local_Source_Span span = error.fail_token.pos;
@@ -716,44 +721,83 @@ void print_parse_error(Code_String& out,
             .append('\'')
             .append(source.substr(span.begin, span.length))
             .append("' is not a valid type.");
+        print_expectations = false;
+    }
+    else if (error.expected_tokens.size() == 1
+             && error.expected_tokens.front() == bms::Token_Type::identifier) {
+        const Local_Source_Span span = error.fail_token.pos;
+        out.build(Code_Span_Type::diagnostic_text)
+            .append('\'')
+            .append(source.substr(span.begin, span.length))
+            .append("' is not a valid identifier.");
+        if (is_keyword(error.fail_token.type)) {
+            out.append('\n');
+            print_prefix(Code_Span_Type::diagnostic_note);
+            out.build(Code_Span_Type::diagnostic_text)
+                .append("Keywords such as '")
+                .append(token_type_code_name(error.fail_token.type))
+                .append("' cannot be used as regular identifiers.");
+        }
+        print_expectations = false;
+    }
+    else if (error.expected_tokens.size() == 1
+             && error.expected_tokens.front() == bms::Token_Type::semicolon) {
+        out.build(Code_Span_Type::diagnostic_text)
+            .append("Missing semicolon (';'). Found ")
+            .append(token_type_readable_name(error.fail_token.type))
+            .append(" instead.");
+        print_expectations = false;
     }
     else {
         const std::string_view preamble
-            = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
+            = error.fail_token.type == bms::Token_Type::eof ? "Unexpected " : "Unexpected token ";
         out.build(Code_Span_Type::diagnostic_text)
             .append(preamble)
-            .append(token_type_readable_name(error.fail_token.type))
-            .append(" while matching '")
-            .append(grammar_rule_name(error.fail_rule))
-            .append('\'');
+            .append(token_type_readable_name(error.fail_token.type));
     }
     out.append('\n');
 
-    print_file_position(out, file, error.fail_token.pos);
-    out.append(' ');
-    out.append(note_prefix, Code_Span_Type::diagnostic_note);
-    out.append(' ');
+    if (print_expectations) {
+        print_prefix(Code_Span_Type::diagnostic_note);
+        {
+            auto note_builder = out.build(Code_Span_Type::diagnostic_text);
+            note_builder.append("Expected ");
 
-    {
-        auto note_builder = out.build(Code_Span_Type::diagnostic_text);
-        note_builder.append("expected ");
-
-        const std::span<const bms::Token_Type> expected = error.expected_tokens;
-        if (expected.size() == 0) {
-            note_builder.append("nothing");
-        }
-        else if (expected.size() == 1) {
-            note_builder.append(token_type_readable_name(expected[0]));
-        }
-        else {
-            note_builder.append("one of: ");
-            for (Size i = 0; i < expected.size(); ++i) {
-                note_builder.append(i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
-                note_builder.append(token_type_readable_name(expected[i]));
+            const std::span<const bms::Token_Type> expected = error.expected_tokens;
+            switch (expected.size()) {
+            case 0: {
+                note_builder.append("nothing");
+                break;
+            }
+            case 1: {
+                note_builder.append(token_type_readable_name(expected[0]));
+                break;
+            }
+            case 2: {
+                note_builder.append(token_type_readable_name(expected[0]))
+                    .append(" or ")
+                    .append(token_type_readable_name(expected[1]));
+                break;
+            }
+            default: {
+                note_builder.append("one of: ");
+                for (Size i = 0; i < expected.size(); ++i) {
+                    note_builder.append(i + 1 == expected.size() ? ", or " : i != 0 ? ", " : "");
+                    note_builder.append(token_type_readable_name(expected[i]));
+                }
+            }
             }
         }
+        out.append('\n');
     }
+
+    print_prefix(Code_Span_Type::diagnostic_note);
+    out.build(Code_Span_Type::diagnostic_text)
+        .append("While matching grammar rule '")
+        .append(grammar_rule_name(error.fail_rule))
+        .append('\'');
     out.append('\n');
+
     print_affected_line(out, source, error.fail_token.pos);
 }
 
