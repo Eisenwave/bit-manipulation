@@ -709,14 +709,24 @@ void print_parse_error(Code_String& out,
     out.append(error_prefix, Code_Span_Type::diagnostic_error);
     out.append(' ');
 
-    const std::string_view preamble
-        = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
-    out.build(Code_Span_Type::diagnostic_text)
-        .append(preamble)
-        .append(token_type_readable_name(error.fail_token.type))
-        .append(" while matching '")
-        .append(grammar_rule_name(error.fail_rule))
-        .append('\'');
+    if (error.fail_rule == bms::Grammar_Rule::type
+        && error.fail_token.type == bms::Token_Type::identifier) {
+        const Local_Source_Span span = error.fail_token.pos;
+        out.build(Code_Span_Type::diagnostic_text)
+            .append('\'')
+            .append(source.substr(span.begin, span.length))
+            .append("' is not a valid type.");
+    }
+    else {
+        const std::string_view preamble
+            = error.fail_token.type == bms::Token_Type::eof ? "unexpected " : "unexpected token ";
+        out.build(Code_Span_Type::diagnostic_text)
+            .append(preamble)
+            .append(token_type_readable_name(error.fail_token.type))
+            .append(" while matching '")
+            .append(grammar_rule_name(error.fail_rule))
+            .append('\'');
+    }
     out.append('\n');
 
     print_file_position(out, file, error.fail_token.pos);
