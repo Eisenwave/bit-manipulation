@@ -354,6 +354,7 @@ std::string_view code_language_readable_name(Code_Language lang)
         { "cpp", Code_Language::cpp },
         { "c++", Code_Language::cpp },
         { "cxx", Code_Language::cpp },
+        { "rs", Code_Language::rust },
         { "rust", Code_Language::rust },
         { "java", Code_Language::java },
         { "kt", Code_Language::kotlin },
@@ -370,6 +371,34 @@ std::string_view code_language_readable_name(Code_Language lang)
     }
 
     return it->second;
+}
+
+[[nodiscard]] Code_Language code_language_by_file(std::string_view name)
+{
+    if (name.empty() || name.find('.') == std::string_view::npos) {
+        return {};
+    }
+
+    static const std::unordered_map<std::string_view, Code_Language> lookup = {
+        { "txt", Code_Language::plaintext }, //
+        { "dat", Code_Language::plaintext }, //
+        { "bmd", Code_Language::bmd }, //
+        { "bms", Code_Language::bms }, //
+        { "h", Code_Language::c }, //
+        { "c", Code_Language::c }, //
+        { "hpp", Code_Language::cpp }, //
+        { "hxx", Code_Language::cpp }, //
+        { "cpp", Code_Language::cpp }, //
+        { "cxx", Code_Language::cpp }, //
+        { "rs", Code_Language::rust }, //
+        { "java", Code_Language::java }, //
+        { "kt", Code_Language::kotlin }, //
+        { "js", Code_Language::javascript }, //
+        { "ts", Code_Language::typescript },
+    };
+
+    auto it = lookup.find(name.substr(name.find_last_of('.') + 1));
+    return it == lookup.end() ? Code_Language::plaintext : it->second;
 }
 
 } // namespace bit_manipulation::bmd

@@ -37,6 +37,12 @@ enum struct Code_Language : Default_Underlying {
 
 [[nodiscard]] std::optional<Code_Language> code_language_by_name(std::string_view name);
 
+/// @brief Returns the language corresponding to the given file path (absolute or relative).
+/// For example, if `name` is `code.c`, the result is `c`.
+///
+/// If no language could be identified, `plaintext` is returned as a fallback.
+[[nodiscard]] Code_Language code_language_by_file(std::string_view name);
+
 } // namespace bit_manipulation::bmd
 
 #endif

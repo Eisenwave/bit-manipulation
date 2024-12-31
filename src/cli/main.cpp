@@ -18,6 +18,7 @@
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
 
+#include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
@@ -34,7 +35,7 @@ constexpr bool colors = true;
 
 int dump_tokens(std::string_view file, std::pmr::memory_resource* memory)
 {
-    if (!file.ends_with(".bms")) {
+    if (bmd::code_language_by_file(file) != bmd::Code_Language::bms) {
         std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
         return 1;
     }
@@ -52,7 +53,8 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     const std::pmr::vector<char> source_data = load_file(file, memory);
     const std::string_view source { source_data.data(), source_data.size() };
 
-    if (file.ends_with(".bms")) {
+    switch (bmd::code_language_by_file(file)) {
+    case bmd::Code_Language::bms: {
         const std::pmr::vector<bms::Token> tokens = tokenize_bms_file(source, file, memory);
         const bms::Parsed_Program p = parse_tokenized(tokens, source, file, memory);
         Code_String out { memory };
@@ -60,7 +62,8 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
         print_code_string(std::cout, out, colors);
         return 0;
     }
-    if (file.ends_with(".bmd")) {
+
+    case bmd::Code_Language::bmd: {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
         Code_String out { memory };
         print_ast(out, program, { .indent_width = 2, .max_node_text_length = 30 });
@@ -68,8 +71,14 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
         return 0;
     }
 
-    std::cout << ansi::red << "Error: unrecognized file suffix for: " << file << '\n';
-    return 1;
+    default: {
+        if (colors) {
+            std::cout << ansi::red;
+        }
+        std::cout << "Error: expected '.bms' or '.bmd' file, but got: " << file << '\n';
+        return 1;
+    }
+    }
 }
 
 int to_html(std::string_view file,
@@ -79,11 +88,13 @@ int to_html(std::string_view file,
     const std::pmr::vector<char> source_data = load_file(file, memory);
     const std::string_view source { source_data.data(), source_data.size() };
 
-    if (file.ends_with(".bms")) {
+    switch (bmd::code_language_by_file(file)) {
+    case bmd::Code_Language::bms: {
         std::cout << "Converting BMS files to HTML is not supported yet\n";
         return 0;
     }
-    if (file.ends_with(".bmd")) {
+
+    case bmd::Code_Language::bmd: {
         const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
 
         Result<void, bmd::Document_Error> result;
@@ -121,14 +132,23 @@ int to_html(std::string_view file,
         return 0;
     }
 
-    std::cout << ansi::red << "Error: unrecognized file suffix for: " << file << '\n';
-    return 1;
+    default: {
+        if (colors) {
+            std::cout << ansi::red;
+        }
+        std::cout << "Error: expected '.bms' or '.bmd' file, but got: " << file << '\n';
+        return 1;
+    }
+    }
 }
 
 int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
 {
-    if (!file.ends_with(".bms")) {
-        std::cout << ansi::red << "Error: file must have '.bms' suffix\n";
+    if (bmd::code_language_by_file(file) != bmd::Code_Language::bms) {
+        if (colors) {
+            std::cout << ansi::red;
+        }
+        std::cout << "Error: file must have '.bms' suffix\n";
         return 1;
     }
     std::pmr::unsynchronized_pool_resource memory_resource(memory);
@@ -139,7 +159,13 @@ int check_semantics(std::string_view file, std::pmr::memory_resource* memory)
     bms::Parsed_Program p = parse_tokenized(tokens, source, file, &memory_resource);
     bms::Analyzed_Program a = analyze_parsed(p, file, &memory_resource);
 
-    std::cout << ansi::green << "All checks passed.\n" << ansi::reset;
+    if (colors) {
+        std::cout << ansi::green;
+    }
+    std::cout << "All checks passed.\n";
+    if (colors) {
+        std::cout << ansi::reset;
+    }
     return 0;
 }
 
@@ -147,13 +173,16 @@ int generate(std::string_view file,
              std::string_view language_name,
              std::pmr::memory_resource* memory)
 {
-    if (!file.ends_with(".bms")) {
+    if (bmd::code_language_by_file(file) != bmd::Code_Language::bms) {
         std::cout << ansi::red << "Error: file must have '.bms' suffix.\n";
         return 1;
     }
     std::optional<bmd::Code_Language> language = code_language_by_name(language_name);
     if (!language) {
-        std::cout << ansi::red << "Error: unrecognized code language: '" << language_name << "'\n";
+        if (colors) {
+            std::cout << ansi::red;
+        }
+        std::cout << "Error: unrecognized code language: '" << language_name << "'\n";
         return 1;
     }
 
