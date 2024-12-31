@@ -98,7 +98,6 @@ set(HEADERS
     src/common/result.hpp
     src/common/source_position.hpp
     src/common/to_chars.hpp
-    src/common/to_string.hpp
     src/common/tribool.hpp
     src/common/tty.hpp
     src/common/variant.hpp
