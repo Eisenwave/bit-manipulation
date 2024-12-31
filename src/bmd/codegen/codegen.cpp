@@ -1,5 +1,5 @@
 #include "bmd/codegen/codegen.hpp"
-#include "bmd/codegen/code_language.hpp"
+#include "bmd/code_language.hpp"
 
 namespace bit_manipulation::bmd {
 
@@ -48,8 +48,8 @@ Result<void, Generator_Error> generate_code(Code_String& out,
     case kotlin: return generate_kotlin_code(out, program, options);
     case javascript: return generate_javascript_code(out, program, options);
     case typescript: return generate_typescript_code(out, program, options);
+    default: return Generator_Error { Generator_Error_Code::unsupported_language };
     }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid language.");
 }
 
 } // namespace bit_manipulation::bmd

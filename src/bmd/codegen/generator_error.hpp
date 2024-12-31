@@ -6,6 +6,9 @@
 namespace bit_manipulation::bmd {
 
 enum struct Generator_Error_Code : Default_Underlying {
+    /// @brief Code for the specified target language cannot be generated.
+    /// This may be the case when using e.g. `Code_Language::plaintext` as a target.
+    unsupported_language,
     /// @brief The code construct could not be translated or is irrelevant to the result language.
     /// However, this is not a critical issue and the construct can simply be ignored.
     /// For example, this can happen with `static_assert` when translated into languages that have
@@ -22,7 +25,7 @@ enum struct Generator_Error_Code : Default_Underlying {
 
 struct Generator_Error {
     Generator_Error_Code code;
-    const bms::ast::Some_Node* fail;
+    const bms::ast::Some_Node* fail = nullptr;
 };
 
 } // namespace bit_manipulation::bmd

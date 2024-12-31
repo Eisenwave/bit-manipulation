@@ -1,6 +1,7 @@
 #include <algorithm>
+#include <unordered_map>
 
-#include "bmd/codegen/code_language.hpp"
+#include "bmd/code_language.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/html/html_writer.hpp"
 
@@ -303,6 +304,8 @@ std::string_view code_language_name(Code_Language lang)
 {
     using enum Code_Language;
     switch (lang) {
+        BIT_MANIPULATION_ENUM_STRING_CASE(plaintext);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bmd);
         BIT_MANIPULATION_ENUM_STRING_CASE(bms);
         BIT_MANIPULATION_ENUM_STRING_CASE(c);
         BIT_MANIPULATION_ENUM_STRING_CASE(cpp);
@@ -329,6 +332,42 @@ std::string_view code_language_readable_name(Code_Language lang)
     case typescript: return "TypeScript";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid lang");
+}
+
+[[nodiscard]] std::optional<Code_Language> code_language_by_name(std::string_view name)
+{
+    if (name.empty()) {
+        return {};
+    }
+
+    static const std::unordered_map<std::string_view, Code_Language> lookup = {
+        { "plain", Code_Language::plaintext }, //
+        { "plaintext", Code_Language::plaintext },
+        { "text", Code_Language::plaintext },
+        { "txt", Code_Language::plaintext },
+        { "raw", Code_Language::plaintext },
+        { "bmd", Code_Language::bmd },
+        { "bms", Code_Language::bms },
+        { "c", Code_Language::c },
+        { "cpp", Code_Language::cpp },
+        { "c++", Code_Language::cpp },
+        { "cxx", Code_Language::cpp },
+        { "rust", Code_Language::rust },
+        { "java", Code_Language::java },
+        { "kt", Code_Language::kotlin },
+        { "kotlin", Code_Language::kotlin },
+        { "js", Code_Language::javascript },
+        { "javascript", Code_Language::javascript },
+        { "ts", Code_Language::typescript },
+        { "typescript", Code_Language::typescript },
+    };
+
+    auto it = lookup.find(name);
+    if (it == lookup.end()) {
+        return {};
+    }
+
+    return it->second;
 }
 
 } // namespace bit_manipulation::bmd

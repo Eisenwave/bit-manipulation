@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 
+#include "bmd/code_language.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/html/bms_to_html.hpp"
 #include "bmd/html/doc_to_html.hpp"
@@ -12,45 +13,6 @@
 namespace bit_manipulation::bmd {
 
 namespace {
-
-/// @brief The kind of nested language; to be used in `\code` and other directives.
-enum struct Nested_Language {
-    plaintext,
-    bms,
-    bmd,
-    c,
-    cxx,
-    rust,
-};
-
-std::optional<Nested_Language> nested_language_by_name(std::string_view name)
-{
-    if (name.empty()) {
-        return {};
-    }
-
-    static const std::unordered_map<std::string_view, Nested_Language> lookup
-        = { //
-            { "bmd", Nested_Language::bmd },
-            { "bms", Nested_Language::bms },
-            { "c", Nested_Language::c },
-            { "c++", Nested_Language::cxx },
-            { "cxx", Nested_Language::cxx },
-            { "cpp", Nested_Language::cxx },
-            { "plain", Nested_Language::plaintext },
-            { "plaintext", Nested_Language::plaintext },
-            { "text", Nested_Language::plaintext },
-            { "raw", Nested_Language::plaintext },
-            { "rust", Nested_Language::rust }
-          };
-
-    auto it = lookup.find(name);
-    if (it == lookup.end()) {
-        return {};
-    }
-
-    return it->second;
-}
 
 /// @brief The architecture; to be used in `\instruction[arch=...]`.
 enum struct Architecture { x86, arm, risc_v, power, sparc, mips, ibm_z };
@@ -93,8 +55,8 @@ std::optional<E> attribute_enum_by_name(std::string_view name)
     if constexpr (std::is_same_v<E, Architecture>) {
         return architecture_by_name(name);
     }
-    else if constexpr (std::is_same_v<E, Nested_Language>) {
-        return nested_language_by_name(name);
+    else if constexpr (std::is_same_v<E, Code_Language>) {
+        return code_language_by_name(name);
     }
     else {
         static_assert(dependent_false<E>, "Invalid enum type");
@@ -103,8 +65,8 @@ std::optional<E> attribute_enum_by_name(std::string_view name)
 
 template <typename E>
 inline constexpr Document_Error_Code enum_document_error_v
-    = std::is_same_v<E, Nested_Language> ? Document_Error_Code::invalid_language
-                                         : Document_Error_Code::invalid_architecture;
+    = std::is_same_v<E, Code_Language> ? Document_Error_Code::invalid_language
+                                       : Document_Error_Code::invalid_architecture;
 
 struct HTML_Converter {
     HTML_Writer& m_writer;
@@ -364,8 +326,8 @@ struct HTML_Converter {
 
         m_at_start_of_file = false;
 
-        Result<Nested_Language, Document_Error> lang
-            = enum_by_attribute(directive.m_arguments, "lang", Nested_Language::bms);
+        Result<Code_Language, Document_Error> lang
+            = enum_by_attribute(directive.m_arguments, "lang", Code_Language::bms);
         if (!lang) {
             return lang.error();
         }
@@ -384,12 +346,12 @@ struct HTML_Converter {
     }
 
     [[nodiscard]] Result<void, Document_Error> convert_nested_code(const ast::Directive& directive,
-                                                                   Nested_Language lang)
+                                                                   Code_Language lang)
     {
         const auto* const code_text
             = directive.get_block() == nullptr ? nullptr : &get<ast::Text>(*directive.get_block());
 
-        if (lang == Nested_Language::plaintext || code_text == nullptr) {
+        if (lang == Code_Language::plaintext || code_text == nullptr) {
             if (code_text != nullptr) {
                 m_writer.write_inner_text(code_text->get_text(), Formatting_Style::pre);
             }
@@ -397,7 +359,7 @@ struct HTML_Converter {
         }
 
         switch (lang) {
-        case Nested_Language::bms: {
+        case Code_Language::bms: {
             if (!bms_inline_code_to_html(m_writer, code_text->get_text(), m_memory)) {
                 return Document_Error { Document_Error_Code::code_tokenization_failure,
                                         code_text->get_source_position() };

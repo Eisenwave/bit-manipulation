@@ -12,7 +12,7 @@
 #include "bms/concrete_value.hpp"
 #include "bms/expression_type.hpp"
 
-#include "bmd/codegen/code_language.hpp"
+#include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/codegen/generator_base.hpp"
 

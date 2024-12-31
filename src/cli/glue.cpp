@@ -4,7 +4,7 @@
 #include "common/code_span_type.hpp"
 #include "common/code_string.hpp"
 
-#include "bmd/codegen/code_language.hpp"
+#include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"

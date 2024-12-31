@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMD_CODE_LANGUAGE_HPP
 #define BIT_MANIPULATION_BMD_CODE_LANGUAGE_HPP
 
+#include <optional>
 #include <string_view>
 
 #include "common/config.hpp"
@@ -8,6 +9,10 @@
 namespace bit_manipulation::bmd {
 
 enum struct Code_Language : Default_Underlying {
+    /// @brief Plaintext.
+    plaintext,
+    /// @brief Bit Manipulation Docs
+    bmd,
     /// @brief Bit Manipulation Script
     bms,
     /// @brief C
@@ -23,12 +28,14 @@ enum struct Code_Language : Default_Underlying {
     /// @brief JavaScript
     javascript,
     /// @brief TypeScript
-    typescript
+    typescript,
 };
 
 [[nodiscard]] std::string_view code_language_name(Code_Language lang);
 
 [[nodiscard]] std::string_view code_language_readable_name(Code_Language lang);
+
+[[nodiscard]] std::optional<Code_Language> code_language_by_name(std::string_view name);
 
 } // namespace bit_manipulation::bmd
 

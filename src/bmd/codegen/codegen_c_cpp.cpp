@@ -11,7 +11,7 @@
 #include "bms/concrete_value.hpp"
 #include "bms/lookup_result.hpp"
 
-#include "bmd/codegen/code_language.hpp"
+#include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/codegen/generator_base.hpp"
 
