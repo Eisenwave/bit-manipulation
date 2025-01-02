@@ -700,10 +700,12 @@ Result<void, Generator_Error> C_Cpp_Code_Generator::generate_code(const Some_Nod
     return visit(Visitor { *this, node }, *node);
 }
 
-Result<void, Generator_Error> generate_c_cpp_code(Code_String& out,
-                                                  const bms::Analyzed_Program& program,
-                                                  Code_Language language,
-                                                  const Code_Options& options)
+Result<void, Generator_Error>
+generate_c_cpp_code(Code_String& out,
+                    const bms::Analyzed_Program& program,
+                    Code_Language language,
+                    [[maybe_unused]] std::pmr::memory_resource* memory,
+                    const Code_Options& options)
 {
     BIT_MANIPULATION_ASSERT(language == Code_Language::c || language == Code_Language::cpp);
     auto dialect = language == Code_Language::cpp ? C_Cpp_Dialect::cpp20
@@ -714,17 +716,20 @@ Result<void, Generator_Error> generate_c_cpp_code(Code_String& out,
 
 } // namespace
 
-Result<void, Generator_Error>
-generate_c_code(Code_String& out, const bms::Analyzed_Program& program, const Code_Options& options)
+Result<void, Generator_Error> generate_c_code(Code_String& out,
+                                              const bms::Analyzed_Program& program,
+                                              std::pmr::memory_resource* memory,
+                                              const Code_Options& options)
 {
-    return generate_c_cpp_code(out, program, Code_Language::c, options);
+    return generate_c_cpp_code(out, program, Code_Language::c, memory, options);
 }
 
 Result<void, Generator_Error> generate_cpp_code(Code_String& out,
                                                 const bms::Analyzed_Program& program,
+                                                std::pmr::memory_resource* memory,
                                                 const Code_Options& options)
 {
-    return generate_c_cpp_code(out, program, Code_Language::cpp, options);
+    return generate_c_cpp_code(out, program, Code_Language::cpp, memory, options);
 }
 
 } // namespace bit_manipulation::bmd

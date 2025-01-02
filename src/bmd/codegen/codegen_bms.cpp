@@ -524,6 +524,7 @@ Result<void, Generator_Error> Bms_Code_Generator::generate_code(const Some_Node*
 
 Result<void, Generator_Error> generate_bms_code(Code_String& out,
                                                 const bms::Analyzed_Program& program,
+                                                std::pmr::memory_resource*,
                                                 const Code_Options& options)
 {
     return Bms_Code_Generator { out, program, options }();

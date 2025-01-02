@@ -163,7 +163,8 @@ bm_text_result translate_to(std::string_view source,
     }
 
     Code_String out { &memory };
-    if (Result<void, bmd::Generator_Error> r = bmd::generate_code(out, analyzed, lang, options);
+    if (Result<void, bmd::Generator_Error> r
+        = bmd::generate_code(out, analyzed, lang, &memory, options);
         !r) {
         return error_to_heap(r.error(), &memory, as_html);
     }

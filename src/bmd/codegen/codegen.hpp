@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_BMD_CODEGEN_HPP
 #define BIT_MANIPULATION_BMD_CODEGEN_HPP
 
+#include <memory_resource>
 #include <string_view>
 
 #include "common/result.hpp"
@@ -64,31 +65,49 @@ struct Code_Options {
 [[nodiscard]] Result<void, Generator_Error> generate_code(Code_String& out,
                                                           const bms::Analyzed_Program& program,
                                                           Code_Language language,
+                                                          std::pmr::memory_resource* memory,
                                                           const Code_Options& options = {});
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_bms_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_bms_code(Code_String&,
+                                                              const bms::Analyzed_Program&,
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_rust_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+                                                              std::pmr::memory_resource*,
+                                                              const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_c_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_rust_code(Code_String&,
+                                                               const bms::Analyzed_Program&,
+                                                               std::pmr::memory_resource*,
+                                                               const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_cpp_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_c_code(Code_String&,
+                                                            const bms::Analyzed_Program&,
+                                                            std::pmr::memory_resource*,
+                                                            const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_java_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_cpp_code(Code_String&,
+                                                              const bms::Analyzed_Program&,
+                                                              std::pmr::memory_resource*,
+                                                              const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_kotlin_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_java_code(Code_String&,
+                                                               const bms::Analyzed_Program&,
+                                                               std::pmr::memory_resource*,
+                                                               const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_javascript_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_kotlin_code(Code_String&,
+                                                                 const bms::Analyzed_Program&,
+                                                                 std::pmr::memory_resource*,
+                                                                 const Code_Options&);
 
-[[nodiscard]] Result<void, Generator_Error>
-generate_typescript_code(Code_String&, const bms::Analyzed_Program&, const Code_Options&);
+[[nodiscard]] Result<void, Generator_Error> generate_javascript_code(Code_String&,
+                                                                     const bms::Analyzed_Program&,
+                                                                     std::pmr::memory_resource*,
+                                                                     const Code_Options&);
+
+[[nodiscard]] Result<void, Generator_Error> generate_typescript_code(Code_String&,
+                                                                     const bms::Analyzed_Program&,
+                                                                     std::pmr::memory_resource*,
+                                                                     const Code_Options&);
 
 } // namespace bit_manipulation::bmd
 

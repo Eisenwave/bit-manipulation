@@ -195,7 +195,9 @@ int generate(std::string_view file,
 
     Code_String out { &memory_resource };
     int result_code = 0;
-    if (Result<void, bmd::Generator_Error> r = bmd::generate_code(out, a, *language, {}); !r) {
+    if (Result<void, bmd::Generator_Error> r
+        = bmd::generate_code(out, a, *language, &memory_resource, {});
+        !r) {
         out.clear();
         print_generator_error(out, r.error());
         result_code = 1;
