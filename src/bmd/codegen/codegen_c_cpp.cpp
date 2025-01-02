@@ -355,13 +355,12 @@ struct C_Cpp_Code_Generator::Visitor {
                     self.write_separating_comma();
                 }
                 first = false;
-                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
-                self.m_out.append(':', Code_Span_Type::punctuation);
-                self.m_out.append(' ');
                 auto v = Visitor { self, parameter.get_type_node() };
                 if (auto r = v(parameter.get_type()); !r) {
                     return r;
                 }
+                self.m_out.append(' ');
+                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
             }
             if (first) {
                 self.write_keyword("void");
