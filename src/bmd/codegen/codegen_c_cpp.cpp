@@ -648,7 +648,7 @@ struct C_Cpp_Code_Generator::Visitor {
             self.write_indent();
         }
 
-        self.m_out.append(call.get_name(), Code_Span_Type::identifier);
+        self.m_out.append(call.get_name(), Code_Span_Type::function_name);
         {
             Scoped_Parenthesization p = self.parenthesize();
             bool first = true;
@@ -680,7 +680,7 @@ struct C_Cpp_Code_Generator::Visitor {
             }
         }
 
-        self.m_out.append(id.get_identifier(), Code_Span_Type::identifier);
+        self.m_out.append(id.get_identifier(), Code_Span_Type::variable_name);
         return {};
     }
 
