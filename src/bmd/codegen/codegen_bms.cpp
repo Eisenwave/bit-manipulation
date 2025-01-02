@@ -495,6 +495,9 @@ struct Bms_Code_Generator::Visitor {
             }
         }
 
+        if (call.is_statement()) {
+            self.write_semicolon();
+        }
         attempt.commit();
         return {};
     }
