@@ -33,7 +33,7 @@ public:
     {
     }
 
-    Result<void, Execution_Error> cycle();
+    [[nodiscard]] Result<void, Execution_Error> cycle();
 
     [[nodiscard]] std::pmr::vector<Instruction>& instructions() &
     {

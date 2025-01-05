@@ -17,7 +17,7 @@ static_assert(std::is_trivially_copyable_v<Instruction>);
 struct Cycle_Impl {
     Virtual_Machine& self;
 
-    Result<void, Execution_Error> operator()(const ins::Load& load)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Load& load)
     {
         auto pos = self.m_function_frame_stack.find(load.source);
         if (pos == nullptr) {
@@ -28,7 +28,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Store& store)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Store& store)
     {
         if (self.m_stack.empty()) {
             return Execution_Error { Execution_Error_Code::pop, store.debug_info };
@@ -40,14 +40,14 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Push& push)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Push& push)
     {
         self.m_stack.push_back(push.value);
         ++self.m_instruction_counter;
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Pop& pop)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Pop& pop)
     {
         if (self.m_stack.empty()) {
             return Execution_Error { Execution_Error_Code::pop, pop.debug_info };
@@ -57,7 +57,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Relative_Jump& jump)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Relative_Jump& jump)
     {
         if (Signed_Size(self.m_instruction_counter) + jump.offset + 1
             >= Signed_Size(self.m_instructions.size())) {
@@ -68,7 +68,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Relative_Jump_If& jump_if)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Relative_Jump_If& jump_if)
     {
         if (self.m_stack.empty()) {
             return Execution_Error { Execution_Error_Code::pop, jump_if.debug_info };
@@ -89,7 +89,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Return& ret)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Return& ret)
     {
         std::optional<Concrete_Value> return_address = self.m_function_frame_stack.pop_frame();
         if (!return_address) {
@@ -99,7 +99,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Convert& convert)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Convert& convert)
     {
         if (self.m_stack.empty()) {
             return Execution_Error { Execution_Error_Code::pop, convert.debug_info };
@@ -116,7 +116,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Unary_Operate& unary_operate)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Unary_Operate& unary_operate)
     {
         if (self.m_stack.empty()) {
             return Execution_Error { Execution_Error_Code::pop, unary_operate.debug_info };
@@ -133,7 +133,8 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Binary_Operate& binary_operate)
+    [[nodiscard]] Result<void, Execution_Error>
+    operator()(const ins::Binary_Operate& binary_operate)
     {
         if (self.m_stack.size() < 2) {
             return Execution_Error { Execution_Error_Code::pop, binary_operate.debug_info };
@@ -160,7 +161,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Call& call)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Call& call)
     {
         if (call.address > self.m_instructions.size()) {
             return Execution_Error { Execution_Error_Code::call_out_of_program, call.debug_info };
@@ -171,7 +172,7 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Builtin_Call& call)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Builtin_Call& call)
     {
         const Size params = builtin_parameter_count(call.function);
         if (params > self.m_stack.size()) {
@@ -194,18 +195,18 @@ struct Cycle_Impl {
         return {};
     }
 
-    Result<void, Execution_Error> operator()(const ins::Break& i)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Break& i)
     {
         return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
     }
 
-    Result<void, Execution_Error> operator()(const ins::Continue& i)
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Continue& i)
     {
         return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
     }
 };
 
-Result<void, Execution_Error> Virtual_Machine::cycle()
+[[nodiscard]] Result<void, Execution_Error> Virtual_Machine::cycle()
 {
     const auto counter = m_instruction_counter;
     const Instruction& next = m_instructions.at(counter);
