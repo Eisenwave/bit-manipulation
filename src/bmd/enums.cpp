@@ -333,6 +333,7 @@ std::string_view code_language_name(Code_Language lang)
         BIT_MANIPULATION_ENUM_STRING_CASE(plaintext);
         BIT_MANIPULATION_ENUM_STRING_CASE(bmd);
         BIT_MANIPULATION_ENUM_STRING_CASE(bms);
+        BIT_MANIPULATION_ENUM_STRING_CASE(bms_vm);
         BIT_MANIPULATION_ENUM_STRING_CASE(c);
         BIT_MANIPULATION_ENUM_STRING_CASE(cpp);
         BIT_MANIPULATION_ENUM_STRING_CASE(rust);
@@ -351,6 +352,7 @@ std::string_view code_language_readable_name(Code_Language lang)
     case plaintext: return "Plaintext";
     case bmd: return "BMD";
     case bms: return "BMS";
+    case bms_vm: return "BMS Virtual Machine";
     case c: return "C";
     case cpp: return "C++";
     case rust: return "Rust";
@@ -376,6 +378,7 @@ std::string_view code_language_readable_name(Code_Language lang)
         { "raw", Code_Language::plaintext },
         { "bmd", Code_Language::bmd },
         { "bms", Code_Language::bms },
+        { "bms_vm", Code_Language::bms_vm },
         { "c", Code_Language::c },
         { "cpp", Code_Language::cpp },
         { "c++", Code_Language::cpp },
@@ -410,6 +413,7 @@ std::string_view code_language_readable_name(Code_Language lang)
         { "dat", Code_Language::plaintext }, //
         { "bmd", Code_Language::bmd }, //
         { "bms", Code_Language::bms }, //
+        { "bmsvm", Code_Language::bms_vm }, //
         { "h", Code_Language::c }, //
         { "c", Code_Language::c }, //
         { "hpp", Code_Language::cpp }, //

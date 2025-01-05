@@ -15,6 +15,8 @@ enum struct Code_Language : Default_Underlying {
     bmd,
     /// @brief Bit Manipulation Script
     bms,
+    /// @brief Bit Manipulation Script VM
+    bms_vm,
     /// @brief C
     c,
     /// @brief C++
