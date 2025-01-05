@@ -1,6 +1,8 @@
 #ifndef BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 #define BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 
+#include <span>
+
 #include "common/function_ref.hpp"
 #include "common/variant.hpp"
 
