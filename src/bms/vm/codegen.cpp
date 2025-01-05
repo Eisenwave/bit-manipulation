@@ -3,10 +3,12 @@
 #include "common/variant.hpp"
 
 #include "bms/analyze.hpp"
+#include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 #include "bms/evaluation/builtin_function.hpp"
 #include "bms/vm/codegen.hpp"
 #include "bms/vm/instructions.hpp"
+#include "bms/vm/vm.hpp"
 
 namespace bit_manipulation::bms {
 
@@ -544,6 +546,13 @@ Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
         }
     }
     return {};
+}
+
+[[nodiscard]] Result<void, Analysis_Error> generate_code(Analyzed_Program& program,
+                                                         Function_Policy function_policy)
+{
+    const auto& program_node = get<ast::Program>(*program.get_root());
+    return generate_code(program.get_vm().instructions(), program_node, function_policy);
 }
 
 } // namespace bit_manipulation::bms

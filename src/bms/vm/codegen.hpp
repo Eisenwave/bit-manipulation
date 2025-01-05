@@ -41,6 +41,11 @@ enum struct Function_Policy : bool {
                                                          const ast::Program& program,
                                                          Function_Policy function_policy);
 
+/// @brief Generates code for the whole program and emits the instructions directly into
+/// `program.get_vm().instructions()`.
+[[nodiscard]] Result<void, Analysis_Error> generate_code(Analyzed_Program& program,
+                                                         Function_Policy function_policy);
+
 } // namespace bit_manipulation::bms
 
 #endif
