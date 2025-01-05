@@ -24,7 +24,7 @@ void append_value(Code_String& out, const Concrete_Value& value)
         out.append("Nothing", Code_Span_Type::keyword);
         break;
     case Type_Type::Void: //
-        out.append("Nothing", Code_Span_Type::keyword);
+        out.append("Void", Code_Span_Type::keyword);
         break;
     case Type_Type::Bool: //
         out.append(value.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
