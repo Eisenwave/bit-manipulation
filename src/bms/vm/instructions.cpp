@@ -5,6 +5,7 @@
 #include "bms/vm/instructions.hpp"
 
 namespace bit_manipulation::bms {
+namespace {
 
 void append_type(Code_String& out, const Concrete_Type& type)
 {
@@ -45,6 +46,8 @@ void append_left_aligned(Code_String& out, std::string_view text, Code_Span_Type
         out.append(width - text.size(), ' ');
     }
 }
+
+} // namespace
 
 namespace ins {
 
