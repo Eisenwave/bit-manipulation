@@ -16,13 +16,13 @@ namespace bit_manipulation::bms {
 /// @param function_node the function node
 /// @param function the function itself
 /// @return nothing, or `Analysis_Error` if generation fails
-Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
-                                           const ast::Some_Node* function_node,
-                                           const ast::Function& function);
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Some_Node* function_node,
+                                                         const ast::Function& function);
 
 /// @brief Equivalent to `generate_code(out, function_node, get<ast::Function>(*function_node))`.
-Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
-                                           const ast::Some_Node* function_node);
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Some_Node* function_node);
 
 } // namespace bit_manipulation::bms
 
