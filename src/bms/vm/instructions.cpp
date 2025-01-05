@@ -158,10 +158,16 @@ struct Print_Instruction {
 } // namespace
 } // namespace ins
 
-void print_program(Code_String& out, std::span<const Instruction> instructions)
+void print_program(Code_String& out,
+                   std::span<const Instruction> instructions,
+                   Function_Ref<bool(Code_String& out, Size index)> print_label)
 {
-    for (const auto& i : instructions) {
-        visit(ins::Print_Instruction { out }, i);
+    for (Size i = 0; i < instructions.size(); ++i) {
+        if (print_label && print_label(out, i)) {
+            out.append(':', Code_Span_Type::punctuation);
+            out.append('\n');
+        }
+        visit(ins::Print_Instruction { out }, instructions[i]);
         out.append('\n');
     }
 }

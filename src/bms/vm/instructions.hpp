@@ -1,9 +1,7 @@
 #ifndef BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 #define BIT_MANIPULATION_BMS_VM_INSTRUCTIONS_HPP
 
-#include <iosfwd>
-#include <vector>
-
+#include "common/function_ref.hpp"
 #include "common/variant.hpp"
 
 #include "bms/concrete_value.hpp"
@@ -109,7 +107,21 @@ struct Instruction : Instruction_Variant {
     using Variant::Variant;
 };
 
-void print_program(Code_String& out, std::span<const Instruction> instructions);
+/// @brief Prints a program, consisting of a span of instructions.
+/// Also potentially prints labels, if a `print_label` function is provided.
+/// @param out the string to print to
+/// @param instructions the span of instructions
+/// @param print_label invoked for each instruction `index`,
+/// with the given `out` string and the `index`;
+/// if there is a label at that index, `print_label` should write its contents to `out` and
+/// return `false`, otherwise write nothing and return `false`.
+/// The label should not include a trailing newline character or colon;
+/// such formatting is appended automatically.
+void print_program(Code_String& out,
+                   std::span<const Instruction> instructions,
+                   Function_Ref<bool(Code_String& out, Size index)> print_label = {});
+
+void print_function_label(Code_String& out, const ast::Function& f);
 
 namespace detail {
 
