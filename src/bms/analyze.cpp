@@ -202,7 +202,7 @@ private:
             if (!instructions) {
                 return instructions.error();
             }
-            node.vm_address = vm_address;
+            node.set_vm_address(vm_address);
             if constexpr (debug_dump_generated_programs) {
                 Code_String out { &m_memory_resource };
                 print_program(out, constant_evaluation_machine.instructions());
@@ -938,9 +938,10 @@ private:
 
         auto& constant_evaluation_machine = m_program.get_vm();
         if (context == Expression_Context::constant) {
-            BIT_MANIPULATION_ASSERT(function->vm_address != ast::Function::invalid_vm_address);
+            const std::optional<Size> vm_address = function->get_vm_address();
+            BIT_MANIPULATION_ASSERT(vm_address.has_value());
             constant_evaluation_machine.reset();
-            constant_evaluation_machine.jump_to(function->vm_address);
+            constant_evaluation_machine.jump_to(*vm_address);
         }
 
         for (Size i = 0; i < node.get_argument_count(); ++i) {

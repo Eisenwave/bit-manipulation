@@ -276,19 +276,19 @@ public:
         }
     };
 
+private:
     static inline constexpr Size invalid_vm_address = Size(-1);
 
-private:
     std::string_view m_name;
     std::pmr::vector<Parameter> m_parameters;
     Some_Node* m_return_type = nullptr;
     Some_Node* m_requires_clause = nullptr;
     Some_Node* m_body = nullptr;
+    Size m_vm_address = invalid_vm_address;
 
 public:
     std::pmr::vector<Instance> instances;
     bool is_generic = false;
-    Size vm_address = invalid_vm_address;
     Analysis_Level analysis_so_far = Analysis_Level::unanalyzed;
     Tribool definitely_returns = Tribool::maybe;
 
@@ -302,9 +302,22 @@ public:
              std::pmr::memory_resource* memory,
              std::span<const astp::Handle> annotations);
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
+    }
+
+    [[nodiscard]] std::optional<Size> get_vm_address() const
+    {
+        if (m_vm_address == invalid_vm_address) {
+            return {};
+        }
+        return m_vm_address;
+    }
+
+    void set_vm_address(Size address)
+    {
+        m_vm_address = address;
     }
 
     [[nodiscard]] Size get_parameter_count() const

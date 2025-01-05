@@ -465,8 +465,7 @@ private:
 
         if (const auto* const* called_node = get_if<ast::Some_Node*>(&node.lookup_result)) {
             if (const auto* const called = get_if<ast::Function>(*called_node)) {
-                if (!called->was_analyzed()
-                    || called->vm_address == ast::Function::invalid_vm_address) {
+                if (!called->was_analyzed() || !called->get_vm_address()) {
                     return Analysis_Error_Builder {
                         Analysis_Error_Code::codegen_call_to_unanalyzed
                     }
@@ -474,7 +473,7 @@ private:
                         .cause(node.lookup_result.value())
                         .build();
                 }
-                out.push_back(ins::Call { { h }, called->vm_address });
+                out.push_back(ins::Call { { h }, *called->get_vm_address() });
             }
         }
         else if (const auto* const builtin = get_if<Builtin_Function>(&node.lookup_result)) {
@@ -535,8 +534,7 @@ Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
     for (const ast::Some_Node* decl_node : program.get_children()) {
         if (const auto* function_node = get_if<ast::Function>(decl_node)) {
             BIT_MANIPULATION_ASSERT(function_node->was_analyzed());
-            if (function_policy == Function_Policy::ignore
-                && function_node->vm_address != ast::Function::invalid_vm_address) {
+            if (function_policy == Function_Policy::ignore && function_node->get_vm_address()) {
                 continue;
             }
             auto result = generate_code(out, decl_node, *function_node);
