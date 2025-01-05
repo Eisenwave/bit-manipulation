@@ -24,6 +24,23 @@ namespace bit_manipulation::bms {
 [[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
                                                          const ast::Some_Node* function_node);
 
+enum struct Function_Policy : bool {
+    /// @brief Ignore functions that have a valid `vm_address` already.
+    ignore,
+    /// @brief Always generate VM instructions.
+    generate
+};
+
+/// @brief Generates code for the whole program.
+/// This will process all functions in order of declaration.
+/// @param out where instructions are appended
+/// @param program the program
+/// @param function_policy what to do for functions that already have a `vm_address`
+/// @return nothing, or `Analysis_Error` if generation fails
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Program& program,
+                                                         Function_Policy function_policy);
+
 } // namespace bit_manipulation::bms
 
 #endif

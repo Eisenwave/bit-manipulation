@@ -528,4 +528,23 @@ Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
     return generate_code(out, function_node, get<ast::Function>(*function_node));
 }
 
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Program& program,
+                                                         Function_Policy function_policy)
+{
+    for (const ast::Some_Node* decl_node : program.get_children()) {
+        if (const auto* function_node = get_if<ast::Function>(decl_node)) {
+            BIT_MANIPULATION_ASSERT(function_node->was_analyzed());
+            if (function_policy == Function_Policy::ignore
+                && function_node->vm_address != ast::Function::invalid_vm_address) {
+                continue;
+            }
+            auto result = generate_code(out, decl_node, *function_node);
+            if (!result) {
+                return result;
+            }
+        }
+    }
+}
+
 } // namespace bit_manipulation::bms
