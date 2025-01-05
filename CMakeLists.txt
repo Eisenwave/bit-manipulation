@@ -107,6 +107,7 @@ add_library(bm STATIC ${HEADERS}
     src/bmd/enums.cpp
     src/bmd/codegen/codegen.cpp
     src/bmd/codegen/codegen_bms.cpp
+    src/bmd/codegen/codegen_bms_vm.cpp
     src/bmd/codegen/codegen_c_cpp.cpp
     src/bmd/codegen/declarations.cpp
     src/bmd/html/bms_to_html.cpp

@@ -52,6 +52,7 @@ Result<void, Generator_Error> generate_code(Code_String& out,
     using enum Code_Language;
     switch (language) {
     case bms: return generate_bms_code(out, program, memory, options);
+    case bms_vm: return generate_bms_vm_code(out, program, memory, options);
     case c: return generate_c_code(out, program, memory, options);
     case cpp: return generate_cpp_code(out, program, memory, options);
     case rust: return generate_rust_code(out, program, memory, options);

@@ -70,9 +70,13 @@ struct Code_Options {
 
 [[nodiscard]] Result<void, Generator_Error> generate_bms_code(Code_String&,
                                                               const bms::Analyzed_Program&,
-
                                                               std::pmr::memory_resource*,
                                                               const Code_Options&);
+
+[[nodiscard]] Result<void, Generator_Error> generate_bms_vm_code(Code_String&,
+                                                                 const bms::Analyzed_Program&,
+                                                                 std::pmr::memory_resource*,
+                                                                 const Code_Options&);
 
 [[nodiscard]] Result<void, Generator_Error> generate_rust_code(Code_String&,
                                                                const bms::Analyzed_Program&,
