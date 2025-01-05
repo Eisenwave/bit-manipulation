@@ -13,6 +13,7 @@
 #include "bms/diagnostic_consumer.hpp"
 #include "bms/parsing/parse.hpp"
 #include "bms/tokenization/tokenize.hpp"
+#include "bms/vm/codegen.hpp"
 
 #include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
@@ -162,6 +163,14 @@ bm_text_result translate_to(std::string_view source,
         return error_to_heap(r.error(), parsed, &memory, as_html);
     }
 
+    if (lang == bmd::Code_Language::bms_vm) {
+        if (Result<void, bms::Analysis_Error> r
+            = bms::generate_code(analyzed, bms::Function_Policy::ignore);
+            !r) {
+            return error_to_heap(r.error(), parsed, &memory, as_html);
+        }
+    }
+
     Code_String out { &memory };
     if (Result<void, bmd::Generator_Error> r
         = bmd::generate_code(out, analyzed, lang, &memory, options);
@@ -185,6 +194,7 @@ bm_allocation syntax_highlight(std::string_view source)
     using enum Codegen_Preset;
     switch (preset) {
     case bms: return bmd::Code_Language::bms;
+    case bms_vm: return bmd::Code_Language::bms_vm;
     case c99:
     case c23: return bmd::Code_Language::c;
     case cpp: return bmd::Code_Language::cpp;

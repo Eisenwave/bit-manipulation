@@ -61,7 +61,9 @@ enum struct Codegen_Preset : bit_manipulation::Uint8 {
     /// @brief C23 (recent C standard).
     c23,
     /// @brief C++.
-    cpp
+    cpp,
+    /// @brief Dump of BMS VM instructions.
+    bms_vm,
 };
 
 /// @brief Translates BMS code in the string to the specified target language.
