@@ -1,5 +1,6 @@
 #include "common/code_string.hpp"
 
+#include "bms/ast.hpp"
 #include "bms/evaluation/builtin_function.hpp"
 #include "bms/expression_type.hpp"
 #include "bms/vm/instructions.hpp"
@@ -169,6 +170,41 @@ void print_program(Code_String& out,
         }
         visit(ins::Print_Instruction { out }, instructions[i]);
         out.append('\n');
+    }
+}
+
+void print_function_label(Code_String& out, const ast::Function& f, Function_Print_Options options)
+{
+    BIT_MANIPULATION_ASSERT(f.was_analyzed());
+
+    const auto print_space = [&]() {
+        if (options.whitespace) {
+            out.append(' ');
+        }
+    };
+
+    if (options.name) {
+        out.append(f.get_name(), Code_Span_Type::function_name);
+    }
+
+    if (options.parameters) {
+        out.append('(', Code_Span_Type::bracket);
+        const std::span<const Parameter> parameters = f.get_parameters();
+        for (Size i = 0; i < parameters.size(); ++i) {
+            if (i != 0) {
+                out.append(',', Code_Span_Type::punctuation);
+                print_space();
+            }
+            append_type(out, parameters[i].get_type().concrete_type().value());
+        }
+        out.append(')', Code_Span_Type::bracket);
+    }
+
+    if (options.return_type) {
+        print_space();
+        out.append("->", Code_Span_Type::punctuation);
+        print_space();
+        append_type(out, f.get_return_type().concrete_type().value());
     }
 }
 

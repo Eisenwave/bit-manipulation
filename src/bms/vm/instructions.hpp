@@ -121,7 +121,18 @@ void print_program(Code_String& out,
                    std::span<const Instruction> instructions,
                    Function_Ref<bool(Code_String& out, Size index)> print_label = {});
 
-void print_function_label(Code_String& out, const ast::Function& f);
+struct Function_Print_Options {
+    bool name : 1 = true;
+    bool parameters : 1 = false;
+    bool return_type : 1 = false;
+    bool whitespace : 1 = false;
+};
+
+/// @brief Prints a label based on a function.
+/// @param out the output string
+/// @param f the function
+/// @param options additional options
+void print_function_label(Code_String& out, const ast::Function& f, Function_Print_Options options);
 
 namespace detail {
 
