@@ -50,6 +50,7 @@ void append_left_aligned(Code_String& out, std::string_view text, Code_Span_Type
 } // namespace
 
 namespace ins {
+namespace {
 
 constexpr Size name_column_width = 16;
 
@@ -154,6 +155,7 @@ struct Print_Instruction {
     }
 };
 
+} // namespace
 } // namespace ins
 
 void print_program(Code_String& out, std::span<const Instruction> instructions)
