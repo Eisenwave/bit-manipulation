@@ -256,16 +256,28 @@ public:
     static inline constexpr bool is_expression = false;
 
     struct Instance {
+    private:
         std::pmr::vector<int> widths;
         Some_Node* handle;
 
-        Instance(std::pmr::vector<int>&& widths, Some_Node* handle);
+    public:
+        [[nodiscard]] Instance(std::pmr::vector<int>&& widths, Some_Node* handle);
 
-        Function& function();
+        [[nodiscard]] Some_Node* get_function_node()
+        {
+            return handle;
+        }
 
-        const Function& function() const;
+        [[nodiscard]] const Some_Node* get_function_node() const
+        {
+            return handle;
+        }
 
-        bool has_widths(const Widths& w) const noexcept
+        [[nodiscard]] Function& get_function();
+
+        [[nodiscard]] const Function& get_function() const;
+
+        [[nodiscard]] bool has_widths(const Widths& w) const noexcept
         {
             for (Size i = 0; i < widths.size(); ++i) {
                 if (widths[i] != get_width(w, i)) {
@@ -384,7 +396,8 @@ public:
         BIT_MANIPULATION_ASSERT(is_generic);
         return { *this, Copy_for_Instantiation_Tag {} };
     }
-    const Instance* find_instance(const Widths& w) const
+
+    [[nodiscard]] const Instance* find_instance(const Widths& w) const
     {
         BIT_MANIPULATION_ASSERT(is_generic);
         for (const Instance& instance : instances) {
@@ -393,6 +406,10 @@ public:
             }
         }
         return nullptr;
+    }
+    [[nodiscard]] Instance* find_instance(const Widths& w)
+    {
+        return const_cast<Instance*>(std::as_const(*this).find_instance(w));
     }
 
     [[nodiscard]] Debug_Info get_debug_info() const
@@ -1132,12 +1149,12 @@ struct Some_Node : Some_Node_Variant {
 static_assert(std::is_move_constructible_v<Some_Node>);
 static_assert(std::is_copy_constructible_v<Some_Node>);
 
-inline Function& Function::Instance::function()
+inline Function& Function::Instance::get_function()
 {
     return get<Function>(*handle);
 }
 
-inline const Function& Function::Instance::function() const
+inline const Function& Function::Instance::get_function() const
 {
     return get<Function>(*handle);
 }

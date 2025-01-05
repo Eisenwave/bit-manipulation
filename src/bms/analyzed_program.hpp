@@ -50,6 +50,8 @@ public:
 
     [[nodiscard]] Virtual_Machine& get_vm();
 
+    [[nodiscard]] const Virtual_Machine& get_vm() const;
+
     [[nodiscard]] std::string_view get_source() const;
 
     [[nodiscard]] std::string_view get_file_name() const;

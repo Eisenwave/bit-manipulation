@@ -50,12 +50,12 @@ public:
         return {};
     }
 
-    Result<const ast::Function::Instance*, Analysis_Error>
+    Result<ast::Function::Instance*, Analysis_Error>
     instantiate_function(ast::Some_Node* h, ast::Function& node, const Widths& w)
     {
         BIT_MANIPULATION_ASSERT(node.is_generic);
 
-        if (const ast::Function::Instance* const existing = node.find_instance(w)) {
+        if (ast::Function::Instance* const existing = node.find_instance(w)) {
             return existing;
         }
 
@@ -242,7 +242,7 @@ instantiate_all(Analyzed_Program& program, std::pmr::memory_resource* memory, co
     return Instantiator { program, memory }.instantiate_all(w);
 }
 
-Result<const ast::Function::Instance*, Analysis_Error>
+Result<ast::Function::Instance*, Analysis_Error>
 instantiate_function(Analyzed_Program& program,
                      std::pmr::memory_resource* memory,
                      ast::Some_Node* h,

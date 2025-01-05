@@ -34,7 +34,8 @@ struct Return_Analyzer {
     {
         if (function.is_generic) {
             for (const ast::Function::Instance& instance : function.instances) {
-                if (auto r = Return_Analyzer { m_program, instance.handle }(instance.function());
+                if (auto r = Return_Analyzer { m_program, instance.get_function_node() }(
+                        instance.get_function());
                     !r) {
                     return r;
                 }

@@ -13,7 +13,7 @@ namespace bit_manipulation::bms {
 /// @brief Instantiates every bit-generic function in the program using the same `Widths`.
 /// This is mostly useful for testing purposes and cannot be triggered "naturally" through
 /// implicit instantiations.
-Result<void, Analysis_Error>
+[[nodiscard]] Result<void, Analysis_Error>
 instantiate_all(Analyzed_Program& program, std::pmr::memory_resource* memory, const Widths& w);
 
 /// @brief Instantiates an individual function.
@@ -28,7 +28,7 @@ instantiate_all(Analyzed_Program& program, std::pmr::memory_resource* memory, co
 /// @param node the function node
 /// @param w the widths for instantiation
 /// @return the instantiated instance, or `Analysis_Error`
-Result<const ast::Function::Instance*, Analysis_Error>
+[[nodiscard]] Result<ast::Function::Instance*, Analysis_Error>
 instantiate_function(Analyzed_Program& program,
                      std::pmr::memory_resource* memory,
                      ast::Some_Node* h,

@@ -120,8 +120,9 @@ private:
         // new implicit instantiations may have been generated in the meantime.
         // For concrete functions, we can memoize the result of type analysis.
         if (node.is_generic) {
-            for (const ast::Function::Instance& instance : node.instances) {
-                auto r = analyze_types(instance.handle, level, Expression_Context::normal);
+            for (ast::Function::Instance& instance : node.instances) {
+                auto r = analyze_types(instance.get_function_node(), level,
+                                       Expression_Context::normal);
                 if (!r) {
                     return r;
                 }
@@ -868,7 +869,7 @@ private:
                 deduced_widths.push_back(arg_values[i].get_type().width());
             }
 
-            Result<const ast::Function::Instance*, Analysis_Error> instantiation_result
+            Result<ast::Function::Instance*, Analysis_Error> instantiation_result
                 = instantiate_function(m_program, &m_memory_resource, *looked_up_node, *function,
                                        std::span<const int>(deduced_widths));
             if (!instantiation_result) {
@@ -878,12 +879,12 @@ private:
             // Using pointers is merely a workaround for Result not working with references.
             // The returned pointer is never null.
             BIT_MANIPULATION_ASSERT(*instantiation_result != nullptr);
-            const auto& instance = **instantiation_result;
-            function = &get<ast::Function>(*instance.handle);
+            auto& instance = **instantiation_result;
+            function = &instance.get_function();
             // Memoization of deduction results.
             // Future analysis of this function call expression will treat it as a call to a
             // concrete instance.
-            node.lookup_result = instance.handle;
+            node.lookup_result = instance.get_function_node();
         }
 
         // The memoization in the first stage should ensure that we are now looking up the instance.

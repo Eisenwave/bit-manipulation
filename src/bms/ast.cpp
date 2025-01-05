@@ -574,6 +574,11 @@ Virtual_Machine& Analyzed_Program::get_vm()
     return m_impl->m_vm;
 }
 
+const Virtual_Machine& Analyzed_Program::get_vm() const
+{
+    return m_impl->m_vm;
+}
+
 ast::Some_Node* Analyzed_Program::insert(const ast::Some_Node& node)
 {
     return m_impl->emplace<ast::Some_Node>(node);
