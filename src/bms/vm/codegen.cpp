@@ -545,6 +545,7 @@ Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
             }
         }
     }
+    return {};
 }
 
 } // namespace bit_manipulation::bms
