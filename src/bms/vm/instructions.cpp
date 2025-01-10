@@ -23,19 +23,19 @@ void append_value(Code_String& out, const Concrete_Value& value)
     switch (value.type.type()) {
     case Type_Type::Nothing: //
         out.append("Nothing", Code_Span_Type::keyword);
-        break;
+        return;
     case Type_Type::Void: //
         out.append("Void", Code_Span_Type::keyword);
-        break;
+        return;
     case Type_Type::Bool: //
         out.append(value.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
-        break;
+        return;
     case Type_Type::Int: //
         out.append_integer(value.int_value, Code_Span_Type::number);
-        break;
+        return;
     case Type_Type::Uint: //
         out.append_integer(Big_Uint(value.int_value), Code_Span_Type::number);
-        break;
+        return;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("value has unknown type.");
 }
