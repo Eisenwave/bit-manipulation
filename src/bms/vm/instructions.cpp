@@ -53,7 +53,7 @@ void append_left_aligned(Code_String& out, std::string_view text, Code_Span_Type
 namespace ins {
 namespace {
 
-constexpr Size name_column_width = 16;
+constexpr Size name_column_width = 12;
 
 struct Print_Instruction {
     Code_String& out;
@@ -143,21 +143,18 @@ struct Print_Instruction {
     void operator()(const Call& i)
     {
         append_left_aligned(out, "call", Code_Span_Type::keyword, name_column_width);
-        out.append(' ');
         out.append_integer(i.address, Code_Span_Type::number);
     }
 
     void operator()(const Symbolic_Call& i)
     {
         append_left_aligned(out, "call", Code_Span_Type::keyword, name_column_width);
-        out.append(' ');
         print_function_label(out, *i.target, { .name = true });
     }
 
     void operator()(const Builtin_Call& i)
     {
         append_left_aligned(out, "call builtin", Code_Span_Type::keyword, name_column_width);
-        out.append(' ');
         out.append(builtin_function_name(i.function), Code_Span_Type::function_name);
     }
 };
