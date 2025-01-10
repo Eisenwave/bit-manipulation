@@ -211,7 +211,7 @@ void print_function_label(Code_String& out, const ast::Function& f, Function_Pri
         print_space();
         out.append("->", Code_Span_Type::punctuation);
         print_space();
-        append_type(out, f.get_return_type().concrete_type().value());
+        append_type(out, f.get_concrete_return_type());
     }
 }
 
