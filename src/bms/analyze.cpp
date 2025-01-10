@@ -189,8 +189,7 @@ private:
             }
         }
         if (level >= Analysis_Level::for_constant_evaluation) {
-            Result<bool, Analysis_Error> definitely_returns
-                = analyze_returning(m_program, handle, node);
+            Result<bool, Analysis_Error> definitely_returns = analyze_returning(handle, node);
             if (!definitely_returns) {
                 return definitely_returns.error();
             }

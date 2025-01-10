@@ -10,12 +10,11 @@ namespace bit_manipulation::bms {
 namespace {
 
 struct Return_Analyzer {
-    Analyzed_Program& m_program;
     const ast::Some_Node* m_node;
 
     [[nodiscard]] Result<bool, Analysis_Error> analyze(const ast::Some_Node* node) const
     {
-        return visit(Return_Analyzer { m_program, node }, *node);
+        return visit(Return_Analyzer { node }, *node);
     }
 
     [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Program& program) const
@@ -34,8 +33,8 @@ struct Return_Analyzer {
     {
         if (function.is_generic) {
             for (const ast::Function::Instance& instance : function.instances) {
-                if (auto r = Return_Analyzer { m_program, instance.get_function_node() }(
-                        instance.get_function());
+                if (auto r
+                    = Return_Analyzer { instance.get_function_node() }(instance.get_function());
                     !r) {
                     return r;
                 }
@@ -45,7 +44,7 @@ struct Return_Analyzer {
         // we intentionally don't require functions to have been analyzed here
         // because it's only required that the function body and return type was analyzed,
         // not the function itself
-        auto r = Return_Analyzer { m_program, function.get_body_node() }(function.get_body());
+        auto r = Return_Analyzer { function.get_body_node() }(function.get_body());
         if (!r) {
             return r;
         }
@@ -108,8 +107,8 @@ struct Return_Analyzer {
         if (!statement.get_else_node()) {
             return false;
         }
-        auto if_result = Return_Analyzer { m_program, statement.get_if_block_node() }(
-            statement.get_if_block());
+        auto if_result
+            = Return_Analyzer { statement.get_if_block_node() }(statement.get_if_block());
         if (!if_result || !*if_result) {
             return if_result;
         }
@@ -137,22 +136,21 @@ struct Return_Analyzer {
 [[nodiscard]] Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program)
 {
     const auto& program_node = get<ast::Program>(*program.get_root());
-    auto r = Return_Analyzer { program, program.get_root() }(program_node);
+    auto r = Return_Analyzer { program.get_root() }(program_node);
     if (!r) {
         return r.error();
     }
     return {};
 }
 
-[[nodiscard]] Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
-                                                             const ast::Some_Node* function_node,
+[[nodiscard]] Result<bool, Analysis_Error> analyze_returning(const ast::Some_Node* function_node,
                                                              const ast::Function& f)
 {
     BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &f);
     // We cannot obtain a meaningful result for generic functions because whether they return
     // may depend on the individual instantiation.
     BIT_MANIPULATION_ASSERT(!f.is_generic);
-    return Return_Analyzer { program, function_node }(f);
+    return Return_Analyzer { function_node }(f);
 }
 
 } // namespace bit_manipulation::bms

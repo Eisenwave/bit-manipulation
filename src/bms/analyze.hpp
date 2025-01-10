@@ -45,8 +45,7 @@ Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program);
 /// note that functions that are missing a return statement will still produce an error;
 /// the returned value is essentially only useful for analyzing `Void` functions,
 /// where omitting `return` is permitted
-Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
-                                               const ast::Some_Node* function_node,
+Result<bool, Analysis_Error> analyze_returning(const ast::Some_Node* function_node,
                                                const ast::Function& f);
 
 /// @brief The fifth stage of analysis.
