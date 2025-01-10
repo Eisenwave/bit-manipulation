@@ -9,7 +9,11 @@ namespace bit_manipulation {
 [[nodiscard]] bool test_and_run_codegen(std::string_view file)
 {
     return test_for_success_then_introspect(file, [](bms::Analyzed_Program& program) {
-        bms::generate_code(program, { .write_vm_address = true, .ignore_with_address = true });
+        bms::generate_code(program,
+                           { .write_vm_address = true,
+                             .ignore_with_address = true,
+                             .calls = bms::Call_Policy::resolve });
+
         return true;
     });
 }
