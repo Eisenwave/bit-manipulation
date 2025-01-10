@@ -103,6 +103,13 @@ public:
     {
         return m_type == Type_Type::Uint;
     }
+
+    /// @brief Returns `true` if the type cannot hold multiple distinct values, which is the case
+    /// for `Void` and `Nothing`.
+    [[nodiscard]] constexpr bool is_monostate() const
+    {
+        return type_type_is_monostate(m_type);
+    }
 };
 
 inline constexpr Concrete_Type Concrete_Type::Nothing { Type_Type::Nothing, 0 };

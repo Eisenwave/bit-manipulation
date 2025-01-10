@@ -35,6 +35,11 @@ enum struct Type_Type : Default_Underlying {
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type type.");
 }
 
+[[nodiscard]] constexpr bool type_type_is_monostate(Type_Type type)
+{
+    return type == Type_Type::Nothing || type == Type_Type::Void;
+}
+
 } // namespace bit_manipulation::bms
 
 #endif
