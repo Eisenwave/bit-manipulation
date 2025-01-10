@@ -43,18 +43,18 @@ struct Codegen_Options {
     bool write_vm_address = true;
     /// @brief If the function already has a `vm_address`, no codegen is performed.
     bool ignore_with_address = true;
-    Call_Policy calls = Call_Policy::assert_resolve_possible;
+    Call_Policy calls;
 };
 
 /// @brief Generates code for the whole program.
 /// This will process all functions in order of declaration.
 void generate_code(std::pmr::vector<Instruction>& out,
                    ast::Program& program,
-                   Codegen_Options options = {});
+                   Codegen_Options options);
 
 /// @brief Generates code for the whole program and emits the instructions directly into
 /// `program.get_vm().instructions()`.
-void generate_code(Analyzed_Program& program, Codegen_Options options = {});
+void generate_code(Analyzed_Program& program, Codegen_Options options);
 
 } // namespace bit_manipulation::bms
 

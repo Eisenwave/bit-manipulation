@@ -379,8 +379,7 @@ private:
 
         const std::optional<Size> address = called.get_vm_address();
         if (!address) {
-            if (m_call_policy == Call_Policy::assert_resolve_possible
-                || m_call_policy == Call_Policy::resolve) {
+            if (m_call_policy == Call_Policy::assert_resolve_possible) {
                 BIT_MANIPULATION_ASSERT_UNREACHABLE("VM address is required by policy.");
             }
             return symbolic;
