@@ -13,12 +13,12 @@ struct Return_Analyzer {
     Analyzed_Program& m_program;
     const ast::Some_Node* m_node;
 
-    Result<bool, Analysis_Error> analyze(const ast::Some_Node* node) const
+    [[nodiscard]] Result<bool, Analysis_Error> analyze(const ast::Some_Node* node) const
     {
         return visit(Return_Analyzer { m_program, node }, *node);
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::Program& program) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Program& program) const
     {
         BIT_MANIPULATION_ASSERT(program.was_analyzed());
         for (const ast::Some_Node* child : program.get_children()) {
@@ -30,7 +30,7 @@ struct Return_Analyzer {
         return true;
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::Function& function) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Function& function) const
     {
         if (function.is_generic) {
             for (const ast::Function::Instance& instance : function.instances) {
@@ -60,19 +60,20 @@ struct Return_Analyzer {
                      ast::Static_Assert,
                      ast::Assignment,
                      ast::Function_Call_Expression> T>
-    Result<bool, Analysis_Error> operator()(const T& node) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const T& node) const
     {
         BIT_MANIPULATION_ASSERT(node.was_analyzed());
         return false;
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::Control_Statement& control) const
+    [[nodiscard]] Result<bool, Analysis_Error>
+    operator()(const ast::Control_Statement& control) const
     {
         BIT_MANIPULATION_ASSERT(control.was_analyzed());
         return control.is_return();
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::Block_Statement& block) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Block_Statement& block) const
     {
         BIT_MANIPULATION_ASSERT(block.was_analyzed());
         std::span<const ast::Some_Node* const> children = block.get_children();
@@ -98,7 +99,7 @@ struct Return_Analyzer {
         return false;
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::If_Statement& statement) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::If_Statement& statement) const
     {
         BIT_MANIPULATION_ASSERT(statement.was_analyzed());
         // The basic idea here is that an if statement definitely returns if
@@ -115,7 +116,7 @@ struct Return_Analyzer {
         return analyze(statement.get_else_node());
     }
 
-    Result<bool, Analysis_Error> operator()(const ast::While_Statement& loop) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::While_Statement& loop) const
     {
         BIT_MANIPULATION_ASSERT(loop.was_analyzed());
         // Technically, this is incorrect.
@@ -125,7 +126,7 @@ struct Return_Analyzer {
         return false;
     }
 
-    Result<bool, Analysis_Error> operator()(Ignore) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(Ignore) const
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Analysis should not have reached expressions etc.");
     }
@@ -133,7 +134,7 @@ struct Return_Analyzer {
 
 } // namespace
 
-Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program)
+[[nodiscard]] Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program)
 {
     const auto& program_node = get<ast::Program>(*program.get_root());
     auto r = Return_Analyzer { program, program.get_root() }(program_node);
@@ -143,9 +144,9 @@ Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program)
     return {};
 }
 
-Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
-                                               const ast::Some_Node* function_node,
-                                               const ast::Function& f)
+[[nodiscard]] Result<bool, Analysis_Error> analyze_returning(Analyzed_Program& program,
+                                                             const ast::Some_Node* function_node,
+                                                             const ast::Function& f)
 {
     BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &f);
     // We cannot obtain a meaningful result for generic functions because whether they return
