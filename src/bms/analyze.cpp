@@ -198,11 +198,7 @@ private:
 
             auto& constant_evaluation_machine = m_program.get_vm();
             const Size vm_address = constant_evaluation_machine.instruction_count();
-            Result<void, Analysis_Error> instructions
-                = generate_code(constant_evaluation_machine.instructions(), handle, node);
-            if (!instructions) {
-                return instructions.error();
-            }
+            generate_code(constant_evaluation_machine.instructions(), handle, node);
             node.set_vm_address(vm_address);
             if constexpr (debug_dump_generated_programs) {
                 Code_String out { &m_memory_resource };

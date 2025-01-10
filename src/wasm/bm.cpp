@@ -164,11 +164,7 @@ bm_text_result translate_to(std::string_view source,
     }
 
     if (lang == bmd::Code_Language::bms_vm) {
-        if (Result<void, bms::Analysis_Error> r
-            = bms::generate_code(analyzed, bms::Function_Policy::ignore);
-            !r) {
-            return error_to_heap(r.error(), parsed, &memory, as_html);
-        }
+        bms::generate_code(analyzed, bms::Function_Policy::ignore);
     }
 
     Code_String out { &memory };
