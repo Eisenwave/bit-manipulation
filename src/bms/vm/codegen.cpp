@@ -82,15 +82,12 @@ private:
             out.push_back(ins::Store { { parameters[i].get_debug_info() }, &parameters[i] });
         }
 
-        const ast::Type& return_type = function.get_return_type();
-        BIT_MANIPULATION_ASSERT(return_type.was_analyzed());
-
-        m_return_type = return_type.concrete_type();
+        m_return_type = function.get_concrete_return_type();
         // TODO: add Scope_Exit to clean this up upon return (just for robustness, not critical)
 
         generate_code(function.get_body_node(), function.get_body());
 
-        if (return_type.get_type() == Type_Type::Void) {
+        if (m_return_type == Concrete_Type::Void) {
             BIT_MANIPULATION_ASSERT(function.definitely_returns != Tribool::maybe);
             if (function.definitely_returns == Tribool::fawse) {
                 out.push_back(ins::Push { { h }, Concrete_Value::Void });
