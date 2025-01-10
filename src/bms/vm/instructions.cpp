@@ -123,7 +123,6 @@ struct Print_Instruction {
     void operator()(const Convert& i)
     {
         append_left_aligned(out, "convert to", Code_Span_Type::keyword, name_column_width);
-        out.append(' ');
         append_type(out, i.type);
     }
 
