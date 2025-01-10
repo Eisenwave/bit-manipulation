@@ -14,7 +14,7 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-Concrete_Type get_parameter_type(Lookup_Result some_function, Size i)
+[[nodiscard]] Concrete_Type get_parameter_type(Lookup_Result some_function, Size i)
 {
     if (const auto* node = get_if<ast::Some_Node*>(&some_function)) {
         if (const auto* f = get_if<ast::Function>(*node)) {
@@ -33,7 +33,7 @@ Concrete_Type get_parameter_type(Lookup_Result some_function, Size i)
     BIT_MANIPULATION_ASSERT_UNREACHABLE();
 }
 
-const void* to_target(const Lookup_Result& result)
+[[nodiscard]] const void* to_target(const Lookup_Result& result)
 {
     if (const auto* const* node = get_if<ast::Some_Node*>(&result)) {
         return *node;
@@ -50,31 +50,33 @@ private:
     std::optional<Concrete_Type> m_return_type;
 
 public:
-    Virtual_Code_Generator(std::pmr::vector<Instruction>& out)
+    [[nodiscard]] explicit Virtual_Code_Generator(std::pmr::vector<Instruction>& out)
         : out(out)
     {
     }
 
 public:
-    Result<void, Analysis_Error> operator()(const ast::Some_Node* h, const ast::Function& function)
+    [[nodiscard]] Result<void, Analysis_Error> operator()(const ast::Some_Node* h,
+                                                          const ast::Function& function)
     {
         return generate_code(h, function);
     }
 
 private:
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h)
     {
         BIT_MANIPULATION_ASSERT(h);
         return visit([this, h](const auto& node) { return generate_code(h, node); }, *h);
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Program&)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
+                                                             const ast::Program&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE("codegen starts at the function level");
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Function& function)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Function& function)
     {
         const auto restore_size = out.size();
 
@@ -110,13 +112,15 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Type&)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
+                                                             const ast::Type&)
     {
         BIT_MANIPULATION_ASSERT_UNREACHABLE(
             "codegen cannot reach type nodes because their parents handle it");
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*, const ast::Const& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
+                                                             const ast::Const& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         // Const nodes don't produce any codegen because any id expressions that access constants
@@ -124,7 +128,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Let& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Let& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (!node.get_initializer_node()) {
@@ -138,15 +143,15 @@ private:
         return init;
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
-                                               const ast::Static_Assert& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
+                                                             const ast::Static_Assert& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::If_Statement& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::If_Statement& node)
     {
         const auto restore = [this, restore_size = out.size()] {
             BIT_MANIPULATION_ASSERT(restore_size <= out.size());
@@ -187,8 +192,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::While_Statement& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::While_Statement& node)
     {
         const auto initial_size = out.size();
         const auto restore = [this, initial_size] {
@@ -229,8 +234,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Control_Statement& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Control_Statement& node)
     {
         BIT_MANIPULATION_ASSERT(m_return_type);
         BIT_MANIPULATION_ASSERT(node.const_value());
@@ -271,7 +276,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Assignment& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Assignment& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         auto result = generate_code(node.get_expression_node());
@@ -282,8 +288,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
-                                               const ast::Block_Statement& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node*,
+                                                             const ast::Block_Statement& node)
     {
         const auto initial_size = out.size();
         for (const ast::Some_Node* child : node.get_children()) {
@@ -297,8 +303,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Conversion_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Conversion_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (node.const_value()->is_known()) {
@@ -316,8 +322,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::If_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::If_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (node.const_value()->is_known()) {
@@ -359,8 +365,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Binary_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Binary_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (node.const_value()->is_known()) {
@@ -420,8 +426,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Prefix_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Prefix_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (node.const_value()->is_known()) {
@@ -437,8 +443,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Function_Call_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error>
+    generate_code(const ast::Some_Node* h, const ast::Function_Call_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.const_value());
         if (node.const_value()->is_known()) {
@@ -491,8 +497,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
-                                               const ast::Id_Expression& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Id_Expression& node)
     {
         BIT_MANIPULATION_ASSERT(node.was_analyzed());
         auto instruction = node.const_value()->is_known()
@@ -502,7 +508,8 @@ private:
         return {};
     }
 
-    Result<void, Analysis_Error> generate_code(const ast::Some_Node* h, const ast::Literal& node)
+    [[nodiscard]] Result<void, Analysis_Error> generate_code(const ast::Some_Node* h,
+                                                             const ast::Literal& node)
     {
         BIT_MANIPULATION_ASSERT(node.was_analyzed());
         BIT_MANIPULATION_ASSERT(node.const_value()->is_known());
@@ -514,17 +521,17 @@ private:
 
 } // namespace
 
-Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
-                                           const ast::Some_Node* function_node,
-                                           const ast::Function& function)
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Some_Node* function_node,
+                                                         const ast::Function& function)
 {
     BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &function);
     Virtual_Code_Generator gen { out };
     return gen(function_node, function);
 }
 
-Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
-                                           const ast::Some_Node* function_node)
+[[nodiscard]] Result<void, Analysis_Error> generate_code(std::pmr::vector<Instruction>& out,
+                                                         const ast::Some_Node* function_node)
 {
     return generate_code(out, function_node, get<ast::Function>(*function_node));
 }
