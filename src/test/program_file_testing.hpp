@@ -62,9 +62,8 @@ struct Analysis_Error_Expectations {
 
 bool test_for_success(std::string_view file, BMS_Stage until_stage = BMS_Stage::analyze);
 
-bool test_for_success_then_introspect(
-    std::string_view file,
-    std::function<bool(const bms::Analyzed_Program&)> introspection);
+bool test_for_success_then_introspect(std::string_view file,
+                                      std::function<bool(bms::Analyzed_Program&)> introspection);
 
 bool test_for_diagnostic(std::string_view file, const Tokenize_Error_Expectations& expectations);
 

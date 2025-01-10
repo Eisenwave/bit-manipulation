@@ -509,7 +509,7 @@ public:
 /// @return `true` if compilation stages have passed
 bool test_validity(std::string_view file,
                    Printing_Diagnostic_Policy& policy,
-                   std::function<bool(const bms::Analyzed_Program&)> introspect = {})
+                   std::function<bool(bms::Analyzed_Program&)> introspect = {})
 {
 #define BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(...)                                              \
     switch (__VA_ARGS__) {                                                                         \
@@ -564,9 +564,8 @@ bool test_for_success(std::string_view file, BMS_Stage until_stage)
     return test_validity(file, policy);
 }
 
-bool test_for_success_then_introspect(
-    std::string_view file,
-    std::function<bool(const bms::Analyzed_Program&)> introspection)
+bool test_for_success_then_introspect(std::string_view file,
+                                      std::function<bool(bms::Analyzed_Program&)> introspection)
 {
     Expect_Success_Diagnostic_Policy policy { BMS_Stage::introspect };
     return test_validity(file, policy, std::move(introspection));

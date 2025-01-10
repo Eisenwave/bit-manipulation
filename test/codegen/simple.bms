@@ -1,0 +1,10 @@
+
+function awoo(x: Int, y: Uint(32)) {
+    let i = 0;
+    let j = 0;
+    i = j;
+}
+
+function chan() {
+    awoo(0, 0);
+}
