@@ -175,6 +175,9 @@ void print_program(Code_String& out,
             out.append(':', Code_Span_Type::punctuation);
             out.append('\n');
         }
+        if (options.indent != 0) {
+            out.append(Size(options.indent), ' ');
+        }
         visit(ins::Print_Instruction { out }, instructions[i]);
         out.append('\n');
     }
