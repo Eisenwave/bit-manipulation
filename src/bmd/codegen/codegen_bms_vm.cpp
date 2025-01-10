@@ -44,14 +44,14 @@ collect_function_addresses(std::pmr::memory_resource* memory, const bms::Analyze
 generate_bms_vm_code(Code_String& out,
                      const bms::Analyzed_Program& program,
                      std::pmr::memory_resource* memory,
-                     const Code_Options&)
+                     const Code_Options& options)
 {
     const bms::Virtual_Machine& vm = program.get_vm();
 
     std::pmr::unordered_map<Size, const bms::ast::Function*> function_labels
         = collect_function_addresses(memory, program);
 
-    bms::print_program(out, vm.instructions(), [&](Code_String& out, Size index) -> bool { //
+    auto print_label = [&](Code_String& out, Size index) -> bool { //
         auto it = function_labels.find(index);
         if (it == function_labels.end()) {
             return false;
@@ -59,7 +59,9 @@ generate_bms_vm_code(Code_String& out,
         bms::print_function_label(out, *it->second,
                                   { .parameters = true, .return_type = true, .whitespace = false });
         return true;
-    });
+    };
+
+    bms::print_program(out, vm.instructions(), { .indent = int(options.indent_size) }, print_label);
 
     return {};
 }

@@ -167,6 +167,7 @@ struct Print_Instruction {
 
 void print_program(Code_String& out,
                    std::span<const Instruction> instructions,
+                   Program_Print_Options options,
                    Function_Ref<bool(Code_String& out, Size index)> print_label)
 {
     for (Size i = 0; i < instructions.size(); ++i) {

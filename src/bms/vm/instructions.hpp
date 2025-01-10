@@ -115,6 +115,10 @@ struct Instruction : Instruction_Variant {
     using Variant::Variant;
 };
 
+struct Program_Print_Options {
+    int indent = 4;
+};
+
 /// @brief Prints a program, consisting of a span of instructions.
 /// Also potentially prints labels, if a `print_label` function is provided.
 /// @param out the string to print to
@@ -127,6 +131,7 @@ struct Instruction : Instruction_Variant {
 /// such formatting is appended automatically.
 void print_program(Code_String& out,
                    std::span<const Instruction> instructions,
+                   Program_Print_Options options = {},
                    Function_Ref<bool(Code_String& out, Size index)> print_label = {});
 
 struct Function_Print_Options {
