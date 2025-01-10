@@ -164,7 +164,7 @@ bm_text_result translate_to(std::string_view source,
     }
 
     if (lang == bmd::Code_Language::bms_vm) {
-        bms::generate_code(analyzed, bms::Function_Policy::ignore);
+        bms::generate_code(analyzed, { .calls = bms::Call_Policy::always_symbolic });
     }
 
     Code_String out { &memory };
