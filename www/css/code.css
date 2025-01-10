@@ -48,6 +48,11 @@
         color: #367c2a;
     }
 
+    c-com {
+        /* comment */
+        color: #777777;
+    }
+
     c-dtx {
         /* diagnostic text */
         color: #000000;
@@ -167,6 +172,11 @@
     c-str {
         /* number, string */
         color: #98d48e;
+    }
+
+    c-com {
+        /* comment */
+        color: #777777;
     }
 
     c-dtx {
