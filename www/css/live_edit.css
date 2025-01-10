@@ -35,6 +35,7 @@ textarea,
 #code-highlight {
     width: 100%;
     height: 100%;
+    box-sizing: border-box;
     margin: 0;
     padding: 0;
     border: none;
@@ -66,20 +67,38 @@ textarea,
 #output-container {
     width: 100%;
     height: 100%;
-    overflow-y: hidden;
 
     box-sizing: border-box;
-    padding: 0.25em;
     margin: 0;
 
     color: inherit;
     font-size: 11pt;
 }
 
-#output {
-    width: 100%;
-    height: 100%;
+#code-input-layers,
+#code-highlight {
     box-sizing: border-box;
+}
+
+#code-input {
+    overflow: hidden;
+}
+
+#output-container {
+    overflow: hidden;
+
+    display: grid;
+    grid-template-rows: auto 1fr;
+}
+
+#code-input-container {
+    overflow: auto;
+}
+
+#output {
+    box-sizing: border-box;
+    overflow: auto;
+    overflow-x: auto;
 }
 
 #output-container,
@@ -93,7 +112,7 @@ textarea,
 #code-input-container,
 #output {
     background: var(--deep-background);
-    border: 0.5em solid var(--deep-background);
+    border: 0.75em solid var(--deep-background);
     border-radius: 0.5em;
 }
 
@@ -113,18 +132,22 @@ textarea,
 }
 
 .line-numbers {
+    position: sticky;
+    left: 0;
+
     margin: 0;
-    opacity: 0.5;
+    color: rgba(var(--text-rgb), 50%);
     padding-right: 1em;
     /* to fix syncing issues when scroll bars would make the textarea longer,
        and the line numbers can't "keep up" */
     padding-bottom: 2em;
     min-width: 3ch;
+    overflow: hidden;
+
+    background: var(--deep-background);
 
     user-select: none;
     text-align: right;
-
-    overflow: hidden;
 }
 
 body.while-dragging {

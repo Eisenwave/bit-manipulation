@@ -7,7 +7,8 @@ import {
     isEditorVertical,
     resizeContainerToFraction,
     setEditorVertical,
-    codegenPreset
+    codegenPreset,
+    codeInputLayers
 } from "./live_edit_core.js";
 
 const whileDraggingClass = 'while-dragging';
@@ -127,10 +128,6 @@ function setVisibleLineNumbers(n) {
     inputLineNumbers.textContent = arr.join('\n');
     currentLineNumbers = n;
 }
-
-codeInput.addEventListener('scroll', () => {
-    inputLineNumbers.scrollTo({ top: codeInput.scrollTop });
-});
 
 const wasm = await loadWasm();
 

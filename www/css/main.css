@@ -79,7 +79,8 @@
 
 @media (prefers-color-scheme: light) {
     :root {
-        --text: black;
+        --text-rgb: 0, 0, 0;
+        --text: var(--text-rgb);
         --background: white;
         --deep-background: rgb(240, 240, 240);
     }
@@ -87,7 +88,8 @@
 
 @media not (prefers-color-scheme: light) {
     :root {
-        --text: rgb(231, 231, 231);
+        --text-rgb: 231, 231, 231;
+        --text: rgb(var(--text-rgb));
         --background: rgb(32, 32, 32);
         --deep-background: rgb(24, 24, 24);
     }

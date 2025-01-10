@@ -1,5 +1,6 @@
 export const container = document.getElementById('container');
 export const codeInput = document.getElementById('code-input');
+export const codeInputLayers = document.getElementById('code-input-layers');
 export const codegenPreset = document.getElementById('codegen-preset');
 
 export const editorFractionLimit = 0.1;
