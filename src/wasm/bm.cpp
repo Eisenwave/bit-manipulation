@@ -220,7 +220,7 @@ extern "C" {
 
 static std::pmr::unsynchronized_pool_resource foreign_allocations_resource;
 
-void* bm_foreign_alloc(Uint32 n)
+[[nodiscard]] void* bm_foreign_alloc(Uint32 n)
 {
     return foreign_allocations_resource.allocate(n);
 }
