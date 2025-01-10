@@ -148,6 +148,13 @@ struct Print_Instruction {
         out.append_integer(i.address, Code_Span_Type::number);
     }
 
+    void operator()(const Symbolic_Call& i)
+    {
+        append_left_aligned(out, "call", Code_Span_Type::keyword, name_column_width);
+        out.append(' ');
+        print_function_label(out, *i.target, { .name = true });
+    }
+
     void operator()(const Builtin_Call& i)
     {
         append_left_aligned(out, "call builtin", Code_Span_Type::keyword, name_column_width);

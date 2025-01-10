@@ -47,11 +47,14 @@ namespace {
 struct Virtual_Code_Generator {
 private:
     std::pmr::vector<Instruction>& out;
+    Call_Policy m_call_policy;
     std::optional<Concrete_Type> m_return_type;
 
 public:
-    [[nodiscard]] explicit Virtual_Code_Generator(std::pmr::vector<Instruction>& out)
+    [[nodiscard]] explicit Virtual_Code_Generator(std::pmr::vector<Instruction>& out,
+                                                  Call_Policy call_policy)
         : out(out)
+        , m_call_policy(call_policy)
     {
     }
 
@@ -348,12 +351,8 @@ private:
 
         if (const auto* const* called_node = get_if<ast::Some_Node*>(&node.lookup_result)) {
             if (const auto* const called = get_if<ast::Function>(*called_node)) {
-                // TODO: we may need to produce a symbolic call here because for say,
-                //       mutually recursive functions, one will inevitably not have code generated
-                //       before the other.
                 BIT_MANIPULATION_ASSERT(called->was_analyzed());
-                BIT_MANIPULATION_ASSERT(called->get_vm_address());
-                out.push_back(ins::Call { { h }, *called->get_vm_address() });
+                out.push_back(generate_call_instruction(h, *called));
             }
         }
         else if (const auto* const builtin = get_if<Builtin_Function>(&node.lookup_result)) {
@@ -366,6 +365,28 @@ private:
         if (node.is_statement()) {
             out.push_back(ins::Pop { { h } });
         }
+    }
+
+    [[nodiscard]] Instruction generate_call_instruction(const ast::Some_Node* call_expression,
+                                                        const ast::Function& called) const
+    {
+        BIT_MANIPULATION_ASSERT(called.was_analyzed());
+
+        const ins::Symbolic_Call symbolic { { call_expression }, &called };
+        if (m_call_policy == Call_Policy::always_symbolic) {
+            return symbolic;
+        }
+
+        const std::optional<Size> address = called.get_vm_address();
+        if (!address) {
+            if (m_call_policy == Call_Policy::assert_resolve_possible
+                || m_call_policy == Call_Policy::resolve) {
+                BIT_MANIPULATION_ASSERT_UNREACHABLE("VM address is required by policy.");
+            }
+            return symbolic;
+        }
+
+        return ins::Call { { call_expression }, *address };
     }
 
     void generate_code(const ast::Some_Node* h, const ast::Id_Expression& node)
@@ -390,16 +411,19 @@ private:
 
 void generate_code(std::pmr::vector<Instruction>& out,
                    const ast::Some_Node* function_node,
-                   const ast::Function& function)
+                   const ast::Function& function,
+                   Call_Policy policy)
 {
     BIT_MANIPULATION_ASSERT(&get<ast::Function>(*function_node) == &function);
-    Virtual_Code_Generator gen { out };
-    return gen(function_node, function);
+    Virtual_Code_Generator gen { out, policy };
+    gen(function_node, function);
 }
 
-void generate_code(std::pmr::vector<Instruction>& out, const ast::Some_Node* function_node)
+void generate_code(std::pmr::vector<Instruction>& out,
+                   const ast::Some_Node* function_node,
+                   Call_Policy policy)
 {
-    generate_code(out, function_node, get<ast::Function>(*function_node));
+    generate_code(out, function_node, get<ast::Function>(*function_node), policy);
 }
 
 void generate_code(std::pmr::vector<Instruction>& out,
@@ -413,7 +437,7 @@ void generate_code(std::pmr::vector<Instruction>& out,
                 continue;
             }
             const Size vm_address = out.size();
-            Virtual_Code_Generator { out }(decl_node, *function);
+            Virtual_Code_Generator { out, options.calls }(decl_node, *function);
             // Generating code for a function should always result in at least
             // one instruction being emitted (namely a Return at the very least).
             BIT_MANIPULATION_ASSERT(out.size() > vm_address);

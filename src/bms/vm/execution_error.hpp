@@ -16,7 +16,7 @@ enum struct Execution_Error_Code : Default_Underlying {
     evaluation,
     jump_out_of_program,
     jump_if_not_bool,
-    symbolic_jump,
+    symbolic_instruction,
     call_out_of_program,
     infinite_loop,
 };
@@ -31,7 +31,7 @@ constexpr std::string_view execution_error_code_name(Execution_Error_Code code)
         BIT_MANIPULATION_ENUM_STRING_CASE(evaluation);
         BIT_MANIPULATION_ENUM_STRING_CASE(jump_out_of_program);
         BIT_MANIPULATION_ENUM_STRING_CASE(jump_if_not_bool);
-        BIT_MANIPULATION_ENUM_STRING_CASE(symbolic_jump);
+        BIT_MANIPULATION_ENUM_STRING_CASE(symbolic_instruction);
         BIT_MANIPULATION_ENUM_STRING_CASE(call_out_of_program);
         BIT_MANIPULATION_ENUM_STRING_CASE(infinite_loop);
     };

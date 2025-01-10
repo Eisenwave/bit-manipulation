@@ -197,7 +197,8 @@ private:
 
             auto& constant_evaluation_machine = m_program.get_vm();
             const Size vm_address = constant_evaluation_machine.instruction_count();
-            generate_code(constant_evaluation_machine.instructions(), handle, node);
+            generate_code(constant_evaluation_machine.instructions(), handle, node,
+                          Call_Policy::assert_resolve_possible);
             node.set_vm_address(vm_address);
             if constexpr (debug_dump_generated_programs) {
                 Code_String out { &m_memory_resource };

@@ -83,6 +83,11 @@ struct Call : detail::Base {
     Size address;
 };
 
+/// @brief Symbolic function call, to be turned into `Call` later on.
+struct Symbolic_Call : detail::Base {
+    const ast::Function* target;
+};
+
 /// @brief Pops the required parameters off the stack and calls the builtin function.
 struct Builtin_Call : detail::Base {
     Builtin_Function function;
@@ -103,6 +108,7 @@ using Instruction_Variant = Variant<ins::Load,
                                     ins::Unary_Operate,
                                     ins::Binary_Operate,
                                     ins::Call,
+                                    ins::Symbolic_Call,
                                     ins::Builtin_Call>;
 
 struct Instruction : Instruction_Variant {

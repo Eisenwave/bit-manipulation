@@ -10,17 +10,31 @@
 
 namespace bit_manipulation::bms {
 
+enum struct Call_Policy {
+    /// @brief Never resolve call to functions, only emit `Symbolic_Call` instructions.
+    always_symbolic,
+    /// @brief Resolve calls for which a VM address is conveniently available, but keep
+    /// symbolic calls and don't come back in a second pass to resolve those later.
+    resolve_if_possible,
+    /// @brief Like `resolve_if_possible`, but assert that resolution is always possible.
+    assert_resolve_possible,
+    /// @brief Emit symbolic calls initially and resolve those to concrete calls in a second pass.
+    /// This option is only meaningful when processing multiple functions; otherwise it acts like
+    /// `assert_resolve_possible`.
+    resolve,
+};
+
 /// @brief Generates instructions, appending them to `out` without overwriting any existing results.
-/// If generating instructions fails, the contents of `out` remain unchanged.
-/// @param out where instructions are appended
-/// @param function_node the function node
-/// @param function the function itself
 void generate_code(std::pmr::vector<Instruction>& out,
                    const ast::Some_Node* function_node,
-                   const ast::Function& function);
+                   const ast::Function& function,
+                   Call_Policy policy);
 
-/// @brief Equivalent to `generate_code(out, function_node, get<ast::Function>(*function_node))`.
-void generate_code(std::pmr::vector<Instruction>& out, const ast::Some_Node* function_node);
+/// @brief Equivalent to `generate_code(out, function_node, get<ast::Function>(*function_node),
+/// policy)`.
+void generate_code(std::pmr::vector<Instruction>& out,
+                   const ast::Some_Node* function_node,
+                   Call_Policy policy);
 
 struct Codegen_Options {
     /// @brief Overwrite the `vm_address` of functions upon generation.
@@ -29,6 +43,7 @@ struct Codegen_Options {
     bool write_vm_address = true;
     /// @brief If the function already has a `vm_address`, no codegen is performed.
     bool ignore_with_address = true;
+    Call_Policy calls = Call_Policy::assert_resolve_possible;
 };
 
 /// @brief Generates code for the whole program.

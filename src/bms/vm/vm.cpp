@@ -192,14 +192,19 @@ struct Cycle_Impl {
         return {};
     }
 
+    [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Symbolic_Call& i)
+    {
+        return Execution_Error { Execution_Error_Code::symbolic_instruction, i.debug_info };
+    }
+
     [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Break& i)
     {
-        return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
+        return Execution_Error { Execution_Error_Code::symbolic_instruction, i.debug_info };
     }
 
     [[nodiscard]] Result<void, Execution_Error> operator()(const ins::Continue& i)
     {
-        return Execution_Error { Execution_Error_Code::symbolic_jump, i.debug_info };
+        return Execution_Error { Execution_Error_Code::symbolic_instruction, i.debug_info };
     }
 };
 

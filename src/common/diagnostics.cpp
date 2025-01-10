@@ -317,8 +317,8 @@ constexpr std::string_view note_prefix = "note:";
         return "Jump to address which is outside the program.";
     case jump_if_not_bool: //
         return "Condition of Jump_If instruction is not of type 'Bool'.";
-    case symbolic_jump: //
-        return "Execution of a symbolic jump.";
+    case symbolic_instruction: //
+        return "Execution of a symbolic jump or function call.";
     case call_out_of_program: //
         return "Call of a function address which is outside the program.";
     case infinite_loop: //
