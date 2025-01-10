@@ -80,7 +80,7 @@
 @media (prefers-color-scheme: light) {
     :root {
         --text-rgb: 0, 0, 0;
-        --text: var(--text-rgb);
+        --text: rgb(var(--text-rgb));
         --background: white;
         --deep-background: rgb(240, 240, 240);
     }
