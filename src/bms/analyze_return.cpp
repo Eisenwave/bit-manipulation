@@ -17,16 +17,9 @@ struct Return_Analyzer {
         return visit(Return_Analyzer { node }, *node);
     }
 
-    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Program& program) const
+    [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Program&) const
     {
-        BIT_MANIPULATION_ASSERT(program.was_analyzed());
-        for (const ast::Some_Node* child : program.get_children()) {
-            auto r = analyze(child);
-            if (!r) {
-                return r;
-            }
-        }
-        return true;
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Corrupted AST structure.");
     }
 
     [[nodiscard]] Result<bool, Analysis_Error> operator()(const ast::Function& function) const
@@ -135,11 +128,18 @@ struct Return_Analyzer {
 
 [[nodiscard]] Result<void, Analysis_Error> analyze_returning(Analyzed_Program& program)
 {
-    const auto& program_node = get<ast::Program>(*program.get_root());
-    auto r = Return_Analyzer { program.get_root() }(program_node);
-    if (!r) {
-        return r.error();
+    auto& program_node = get<ast::Program>(*program.get_root());
+
+    for (ast::Some_Node* child : program_node.get_children()) {
+        if (auto* function = get_if<ast::Function>(child)) {
+            Result<bool, Analysis_Error> result = Return_Analyzer { child }(*function);
+            if (!result) {
+                return result.error();
+            }
+            function->definitely_returns = *result;
+        }
     }
+
     return {};
 }
 
