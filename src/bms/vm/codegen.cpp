@@ -403,24 +403,31 @@ void generate_code(std::pmr::vector<Instruction>& out, const ast::Some_Node* fun
 }
 
 void generate_code(std::pmr::vector<Instruction>& out,
-                   const ast::Program& program,
-                   Function_Policy function_policy)
+                   ast::Program& program,
+                   Codegen_Options options)
 {
-    for (const ast::Some_Node* decl_node : program.get_children()) {
-        if (const auto* function_node = get_if<ast::Function>(decl_node)) {
-            BIT_MANIPULATION_ASSERT(function_node->was_analyzed());
-            if (function_policy == Function_Policy::ignore && function_node->get_vm_address()) {
+    for (ast::Some_Node* decl_node : program.get_children()) {
+        if (auto* function = get_if<ast::Function>(decl_node)) {
+            BIT_MANIPULATION_ASSERT(function->was_analyzed());
+            if (options.ignore_with_address && function->get_vm_address()) {
                 continue;
             }
-            generate_code(out, decl_node, *function_node);
+            const Size vm_address = out.size();
+            Virtual_Code_Generator { out }(decl_node, *function);
+            // Generating code for a function should always result in at least
+            // one instruction being emitted (namely a Return at the very least).
+            BIT_MANIPULATION_ASSERT(out.size() > vm_address);
+            if (options.write_vm_address) {
+                function->set_vm_address(vm_address);
+            }
         }
     }
 }
 
-void generate_code(Analyzed_Program& program, Function_Policy function_policy)
+void generate_code(Analyzed_Program& program, Codegen_Options options)
 {
-    const auto& program_node = get<ast::Program>(*program.get_root());
-    generate_code(program.get_vm().instructions(), program_node, function_policy);
+    auto& program_node = get<ast::Program>(*program.get_root());
+    generate_code(program.get_vm().instructions(), program_node, options);
 }
 
 } // namespace bit_manipulation::bms
