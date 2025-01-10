@@ -429,6 +429,8 @@ void generate_code(std::pmr::vector<Instruction>& out,
                    ast::Program& program,
                    Codegen_Options options)
 {
+    const Size initial_size = out.size();
+
     for (ast::Some_Node* decl_node : program.get_children()) {
         if (auto* function = get_if<ast::Function>(decl_node)) {
             BIT_MANIPULATION_ASSERT(function->was_analyzed());
@@ -443,6 +445,25 @@ void generate_code(std::pmr::vector<Instruction>& out,
             if (options.write_vm_address) {
                 function->set_vm_address(vm_address);
             }
+        }
+    }
+
+    BIT_MANIPULATION_ASSERT(out.size() >= initial_size);
+    if (options.calls != Call_Policy::resolve) {
+        return;
+    }
+
+    for (Size i = initial_size; i < out.size(); ++i) {
+        if (const auto* call = get_if<ins::Symbolic_Call>(&out[i])) {
+            const ast::Function& called = *call->target;
+            const std::optional<Size> vm_address = called.get_vm_address();
+            // While some addresses cannot be resolved during the first pass due to the order in
+            // which functions are processed, every called function should be resolved now.
+            // The only exception to this would be if we're somehow processing a program which
+            // makes calls to functions outside that program, but that is currently impossible.
+            // There is no inter-program linking.
+            BIT_MANIPULATION_ASSERT(vm_address);
+            out[i] = ins::Call { { call->debug_info }, *vm_address };
         }
     }
 }
