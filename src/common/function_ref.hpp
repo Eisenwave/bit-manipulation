@@ -42,7 +42,7 @@ private:
             // This could be considered a bug or a language defect
             // (see https://github.com/cplusplus/CWG/issues/657).
             // In any case, we need to remove 'const'.
-            void* entity_raw = const_cast<void*>(entity_raw);
+            void* entity_raw = const_cast<void*>(entity);
             return R((*reinterpret_cast<F>(entity_raw))(std::forward<Args>(args)...));
         }
         else {
@@ -95,6 +95,16 @@ public:
         }
         else if constexpr (std::is_convertible_v<F&&, Function_Pointer_Type>) {
             const Function_Pointer_Type pointer = f;
+            m_invoker = &call<decltype(pointer)>;
+            m_entity = reinterpret_cast<Storage_Type>(pointer);
+        }
+        else if constexpr (requires {
+                               { +f } -> function_pointer;
+                           }) {
+            // This case covers e.g. captureless lambdas.
+            // Those can always be converted to function pointers, but not exactly to
+            // Function_Pointer_Type; that case has already been handled above.
+            auto pointer = +f;
             m_invoker = &call<decltype(pointer)>;
             m_entity = reinterpret_cast<Storage_Type>(pointer);
         }
