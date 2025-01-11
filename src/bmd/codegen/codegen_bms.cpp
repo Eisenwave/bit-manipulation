@@ -147,7 +147,7 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Type& type)
     {
         const bms::Type_Type type_type = type.get_type();
-        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
+        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::type_name);
 
         if (type_type != bms::Type_Type::Uint) {
             return {};
