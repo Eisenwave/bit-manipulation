@@ -38,6 +38,8 @@ enum struct Return_Type_Policy : Default_Underlying {
 };
 
 struct Code_Options {
+    /// @brief If `true`, omits whitespace whenever possible.
+    bool compactify = false;
     /// @brief The character used for indentation.
     char indent_char = ' ';
     /// @brief The repetitions of `indent_char` per indentation level.

@@ -103,7 +103,10 @@ public:
 
     Result<void, Generator_Error> operator()()
     {
-        return generate_code(m_program.get_root());
+        if (auto r = generate_code(m_program.get_root()); !r) {
+            return r.error();
+        }
+        return {};
     }
 
 protected:
@@ -113,6 +116,8 @@ protected:
     [[nodiscard]] virtual bool needs_parentheses(bms::Expression_Type outer_type,
                                                  const bms::ast::Some_Node& inner) const
         = 0;
+
+    [[nodiscard]] virtual bool can_compactify(const bms::ast::Some_Node& node) const = 0;
 
     [[nodiscard]] Result<void, Generator_Error>
     generate_subexpression(bms::Expression_Type outer_type, const bms::ast::Some_Node* inner)
@@ -124,6 +129,7 @@ protected:
         if (parenthesize) {
             m_out.append('(', Code_Span_Type::bracket);
         }
+
         if (auto r = generate_code(inner); !r) {
             return r;
         }
@@ -137,21 +143,25 @@ protected:
 
     void separate_after_function()
     {
-        if (m_options.break_after_function) {
-            end_line();
-        }
-        else {
-            m_out.append(' ');
+        if (!m_options.compactify) {
+            if (m_options.break_after_function) {
+                end_line();
+            }
+            else {
+                m_out.append(' ');
+            }
         }
     }
 
     void separate_after_if()
     {
-        if (m_options.break_after_if) {
-            end_line();
-        }
-        else {
-            m_out.append(' ');
+        if (!m_options.compactify) {
+            if (m_options.break_after_if) {
+                end_line();
+            }
+            else {
+                m_out.append(' ');
+            }
         }
     }
 
@@ -173,7 +183,7 @@ protected:
 
     void write_indent()
     {
-        if (m_start_of_line) {
+        if (!m_options.compactify && m_start_of_line) {
             m_out.append(m_depth * m_options.indent_size, m_options.indent_char);
             m_start_of_line = false;
         }
@@ -191,16 +201,16 @@ protected:
 
     void write_infix_operator(std::string_view op, Code_Span_Type type = Code_Span_Type::operation)
     {
-        m_out.append(' ');
+        write_readability_space();
         m_out.append(op, type);
-        m_out.append(' ');
+        write_readability_space();
     }
 
     void write_infix_keyword(std::string_view op, Code_Span_Type type = Code_Span_Type::keyword)
     {
-        m_out.append(' ');
+        write_readability_space();
         m_out.append(op, type);
-        m_out.append(' ');
+        write_readability_space();
     }
 
     void write_semicolon()
@@ -211,13 +221,22 @@ protected:
     void write_separating_comma()
     {
         m_out.append(',', Code_Span_Type::punctuation);
-        m_out.append(' ');
+        write_readability_space();
+    }
+
+    void write_readability_space()
+    {
+        if (!m_options.compactify) {
+            m_out.append(' ');
+        }
     }
 
     void end_line()
     {
-        m_out.append('\n');
-        m_start_of_line = true;
+        if (!m_options.compactify) {
+            m_out.append('\n');
+            m_start_of_line = true;
+        }
     }
 
     [[nodiscard]] Scoped_Indentation push_indent()

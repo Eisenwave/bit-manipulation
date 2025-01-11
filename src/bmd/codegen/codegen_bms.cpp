@@ -63,6 +63,34 @@ private:
         return !std::is_lteq(bms::compare_precedence(outer_type, inner_type));
     }
 
+    [[nodiscard]] bool can_compactify(const Some_Node& inner) const final
+    {
+        return visit(
+            [&]<typename T>(const T& node) -> bool {
+                if constexpr (one_of<T, Prefix_Expression, Block_Statement>) {
+                    return true;
+                }
+                else if constexpr (std::is_same_v<T, Conversion_Expression>) {
+                    return needs_parentheses(bms::Expression_Type::conversion,
+                                             *node.get_expression_node())
+                        || can_compactify(*node.get_expression_node());
+                }
+                else if constexpr (std::is_same_v<T, If_Expression>) {
+                    return needs_parentheses(bms::Expression_Type::if_expression,
+                                             *node.get_left_node())
+                        || can_compactify(*node.get_left_node());
+                }
+                else if constexpr (std::is_same_v<T, Binary_Expression>) {
+                    return needs_parentheses(node.get_expression_type(), *node.get_left_node())
+                        || can_compactify(*node.get_left_node());
+                }
+                else {
+                    return false;
+                }
+            },
+            inner);
+    }
+
     struct Visitor;
 };
 
@@ -115,7 +143,7 @@ struct Bms_Code_Generator::Visitor {
                 first = false;
                 self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
                 self.m_out.append(':', Code_Span_Type::punctuation);
-                self.m_out.append(' ');
+                self.write_readability_space();
                 auto v = Visitor { self, parameter.get_type_node() };
                 if (auto r = v(parameter.get_type()); !r) {
                     return r;
@@ -185,7 +213,7 @@ struct Bms_Code_Generator::Visitor {
 
         if (const Some_Node* type = constant.get_type_node()) {
             self.m_out.append(':', Code_Span_Type::punctuation);
-            self.m_out.append(' ');
+            self.write_readability_space();
             if (auto r = Visitor { self, type }(constant.get_type()); !r) {
                 return r;
             }
@@ -212,7 +240,7 @@ struct Bms_Code_Generator::Visitor {
 
         if (const Some_Node* type = variable.get_type_node()) {
             self.m_out.append(':', Code_Span_Type::punctuation);
-            self.m_out.append(' ');
+            self.write_readability_space();
             if (auto r = Visitor { self, type }(variable.get_type()); !r) {
                 return r;
             }
@@ -254,7 +282,9 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_if);
-        self.m_out.append(' ');
+        if (!self.m_options.compactify || self.can_compactify(*statement.get_condition_node())) {
+            self.m_out.append(' ');
+        }
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
             return r;
         }
@@ -269,7 +299,7 @@ struct Bms_Code_Generator::Visitor {
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
                 self.write_indent();
                 self.write_keyword(bms::Token_Type::keyword_else);
-                self.m_out.append(' ');
+                self.write_readability_space();
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
@@ -295,7 +325,9 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_while);
-        self.m_out.append(' ');
+        if (!self.m_options.compactify || self.can_compactify(*statement.get_condition_node())) {
+            self.m_out.append(' ');
+        }
 
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
             return r;
@@ -318,7 +350,9 @@ struct Bms_Code_Generator::Visitor {
         self.write_keyword(control_statement_type_token(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
-            self.m_out.append(' ');
+            if (!self.m_options.compactify || self.can_compactify(*expr)) {
+                self.m_out.append(' ');
+            }
             if (auto r = self.generate_code(expr); !r) {
                 return r;
             }

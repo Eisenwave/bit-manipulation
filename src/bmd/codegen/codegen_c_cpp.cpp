@@ -40,7 +40,8 @@ enum struct C_Cpp_Precedence_Group : Default_Underlying {
     primary
 };
 
-std::strong_ordering compare_minimally(C_Cpp_Precedence_Group x, C_Cpp_Precedence_Group y) noexcept
+[[nodiscard]] std::strong_ordering compare_minimally(C_Cpp_Precedence_Group x,
+                                                     C_Cpp_Precedence_Group y) noexcept
 {
     return Default_Underlying(x) <=> Default_Underlying(y);
 }
@@ -291,6 +292,30 @@ private:
         return !std::is_lteq(compare_readably(outer_group, inner_group));
     }
 
+    [[nodiscard]] bool can_compactify(const Some_Node& inner) const final
+    {
+        return visit(
+            [&]<typename T>(const T& node) -> bool {
+                if constexpr (one_of<T, Prefix_Expression, Block_Statement,
+                                     Conversion_Expression>) {
+                    return true;
+                }
+                else if constexpr (std::is_same_v<T, If_Expression>) {
+                    return needs_parentheses(bms::Expression_Type::if_expression,
+                                             *node.get_condition_node())
+                        || can_compactify(*node.get_condition_node());
+                }
+                else if constexpr (std::is_same_v<T, Binary_Expression>) {
+                    return needs_parentheses(node.get_expression_type(), *node.get_left_node())
+                        || can_compactify(*node.get_left_node());
+                }
+                else {
+                    return false;
+                }
+            },
+            inner);
+    }
+
     struct Visitor;
 };
 
@@ -389,7 +414,7 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("constexpr", Code_Span_Type::keyword);
+        self.write_keyword("constexpr");
         self.m_out.append(' ');
 
         if (auto r = self.generate_type(node, constant.const_value()->get_type()); !r) {
@@ -402,7 +427,7 @@ struct C_Cpp_Code_Generator::Visitor {
         self.write_infix_operator("=");
         append_value(self.m_out, constant.const_value()->concrete_value());
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};
@@ -426,7 +451,7 @@ struct C_Cpp_Code_Generator::Visitor {
             }
         }
 
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
         return {};
     }
 
@@ -440,8 +465,8 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
-        self.m_out.append("if", Code_Span_Type::keyword);
-        self.m_out.append(' ');
+        self.write_keyword("if");
+        self.write_readability_space();
         {
             Scoped_Parenthesization p = self.parenthesize();
             if (auto r = self.generate_code(statement.get_condition_node()); !r) {
@@ -458,8 +483,8 @@ struct C_Cpp_Code_Generator::Visitor {
         if (const Some_Node* else_node = statement.get_else_node()) {
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
                 self.write_indent();
-                self.m_out.append("else", Code_Span_Type::keyword);
-                self.m_out.append(' ');
+                self.write_keyword("else");
+                self.write_readability_space();
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
@@ -484,8 +509,8 @@ struct C_Cpp_Code_Generator::Visitor {
 
         self.write_indent();
 
-        self.m_out.append("while", Code_Span_Type::keyword);
-        self.m_out.append(' ');
+        self.write_keyword("while");
+        self.write_readability_space();
 
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -511,7 +536,9 @@ struct C_Cpp_Code_Generator::Visitor {
         self.write_keyword(control_statement_type_code_name(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
-            self.m_out.append(' ');
+            if (!self.m_options.compactify || self.can_compactify(*expr)) {
+                self.m_out.append(' ');
+            }
             if (auto r = self.generate_code(expr); !r) {
                 return r;
             }
@@ -533,7 +560,7 @@ struct C_Cpp_Code_Generator::Visitor {
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;
         }
-        self.m_out.append(';', Code_Span_Type::punctuation);
+        self.write_semicolon();
 
         attempt.commit();
         return {};
@@ -574,13 +601,13 @@ struct C_Cpp_Code_Generator::Visitor {
                 return r;
             }
         }
-        if (auto r = self.generate_subexpression(outer_type, conversion.get_expression_node());
-            !r) {
-            return r;
+        auto result = self.generate_subexpression(outer_type, conversion.get_expression_node());
+        if (!result) {
+            return result;
         }
 
         attempt.commit();
-        return {};
+        return result;
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const If_Expression& expression)
@@ -641,7 +668,7 @@ struct C_Cpp_Code_Generator::Visitor {
         return self.generate_subexpression(outer_type, expression.get_expression_node());
     }
 
-    Result<void, Generator_Error> operator()(const Function_Call_Expression& call)
+    [[nodiscard]] Result<void, Generator_Error> operator()(const Function_Call_Expression& call)
     {
         Scoped_Attempt attempt = self.start_attempt();
         if (call.is_statement()) {
