@@ -607,7 +607,7 @@ struct C_Cpp_Code_Generator::Visitor {
             return r;
         }
 
-        if (!parenthesize) {
+        if (parenthesize) {
             self.m_out.append(')', Code_Span_Type::bracket);
         }
 
