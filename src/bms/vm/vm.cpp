@@ -187,7 +187,9 @@ struct Cycle_Impl {
             return error;
         }
         self.m_stack.resize(self.m_stack.size() - params);
-        self.m_stack.push_back(*result);
+        if (!result->type.is_monostate()) {
+            self.m_stack.push_back(*result);
+        }
         ++self.m_instruction_counter;
         return {};
     }

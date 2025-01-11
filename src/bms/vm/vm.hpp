@@ -75,6 +75,7 @@ public:
     /// @return the popped value
     Concrete_Value pop()
     {
+        BIT_MANIPULATION_ASSERT(!m_stack.empty());
         Concrete_Value result = m_stack.back();
         m_stack.pop_back();
         return result;

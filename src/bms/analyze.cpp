@@ -924,7 +924,7 @@ private:
         }
 
         BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
-        Concrete_Type return_type = function->const_value()->get_type();
+        const Concrete_Type return_type = function->const_value()->get_type();
 
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.
@@ -991,8 +991,14 @@ private:
                     .cause(cycle_result.error().debug_info)
                     .build();
             }
-            BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
-            node.const_value() = constant_evaluation_machine.pop();
+            if (return_type.is_monostate()) {
+                BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 0);
+                node.const_value() = Concrete_Value(return_type, 0);
+            }
+            else {
+                BIT_MANIPULATION_ASSERT(constant_evaluation_machine.stack_size() == 1);
+                node.const_value() = constant_evaluation_machine.pop();
+            }
         }
         else {
             node.const_value() = Value::unknown_of_type(return_type);

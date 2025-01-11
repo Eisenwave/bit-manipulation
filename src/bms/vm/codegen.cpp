@@ -93,7 +93,6 @@ private:
         if (m_return_type == Concrete_Type::Void) {
             BIT_MANIPULATION_ASSERT(function.definitely_returns != Tribool::maybe);
             if (function.definitely_returns == Tribool::fawse) {
-                out.push_back(ins::Push { { h }, Concrete_Value::Void });
                 out.push_back(ins::Return { { h } });
             }
         }
@@ -199,10 +198,15 @@ private:
         BIT_MANIPULATION_ASSERT(node.is_return());
         BIT_MANIPULATION_ASSERT(node.const_value()->get_type() == *m_return_type);
 
+        const ast::Some_Node* expression = node.get_expression_node();
+        const Value return_value = get_const_value(*expression).value();
+        if (return_value.get_type().is_monostate()) {
+            goto push_return_and_exit;
+        }
+
         if (node.const_value()->is_known()) {
             out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
-            out.push_back(ins::Return { { h } });
-            return;
+            goto push_return_and_exit;
         }
 
         // Empty return statements produce Void, so the value is always known.
@@ -210,12 +214,11 @@ private:
         BIT_MANIPULATION_ASSERT(node.get_expression_node());
         generate_code(node.get_expression_node());
 
-        const Concrete_Type expression_type
-            = get_const_value(*node.get_expression_node()).value().get_type();
-        if (expression_type != m_return_type) {
+        if (return_value.get_type() != m_return_type) {
             out.push_back(ins::Convert { { h }, *m_return_type });
         }
 
+    push_return_and_exit:
         out.push_back(ins::Return { { h } });
     }
 
@@ -349,20 +352,23 @@ private:
             }
         }
 
+        bool returns_monostate = false;
         if (const auto* const* called_node = get_if<ast::Some_Node*>(&node.lookup_result)) {
             if (const auto* const called = get_if<ast::Function>(*called_node)) {
                 BIT_MANIPULATION_ASSERT(called->was_analyzed());
                 out.push_back(generate_call_instruction(h, *called));
+                returns_monostate = called->get_concrete_return_type().is_monostate();
             }
         }
         else if (const auto* const builtin = get_if<Builtin_Function>(&node.lookup_result)) {
             out.push_back(ins::Builtin_Call { { h }, *builtin });
+            returns_monostate = builtin_return_type(*builtin).is_monostate();
         }
         else {
             BIT_MANIPULATION_ASSERT_UNREACHABLE("Impossible call.");
         }
 
-        if (node.is_statement()) {
+        if (!returns_monostate && node.is_statement()) {
             out.push_back(ins::Pop { { h } });
         }
     }
