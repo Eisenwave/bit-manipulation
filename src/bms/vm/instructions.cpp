@@ -53,7 +53,7 @@ void append_left_aligned(Code_String& out, std::string_view text, Code_Span_Type
 namespace ins {
 namespace {
 
-constexpr Size name_column_width = 12;
+constexpr Size name_column_width = 16;
 
 struct Print_Instruction {
     Code_String& out;
@@ -97,11 +97,8 @@ struct Print_Instruction {
 
     void operator()(const Relative_Jump_If& i)
     {
-        out.append("if", Code_Span_Type::keyword);
-        out.append(' ');
-        out.append(i.expected ? "true" : "false", Code_Span_Type::boolean_literal);
-        out.append(' ');
-        out.append("jump", Code_Span_Type::keyword);
+        const std::string_view mnemonic = i.expected ? "jump if true" : "jump if false";
+        append_left_aligned(out, mnemonic, Code_Span_Type::keyword, name_column_width);
         out.append_integer(i.offset, Code_Span_Type::number, Sign_Policy::always);
     }
 
