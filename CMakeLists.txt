@@ -61,6 +61,7 @@ set(HEADERS
     src/bms/deduction.hpp
     src/bms/diagnostic_consumer.hpp
     src/bms/instantiate.hpp    
+    src/bms/print.hpp
     src/bms/symbol_table.hpp
     src/bms/value.hpp
 
