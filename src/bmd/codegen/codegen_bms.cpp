@@ -22,54 +22,6 @@ static_assert(std::ranges::random_access_range<Code_String>);
 
 namespace {
 
-[[maybe_unused]]
-void append_value(Code_String& out, const bms::Concrete_Value& v)
-{
-    switch (v.type.type()) {
-    case bms::Type_Type::Void: //
-        BIT_MANIPULATION_ASSERT_UNREACHABLE("Cannot have values of type Void.");
-    case bms::Type_Type::Bool:
-        out.append(v.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
-        break;
-    case bms::Type_Type::Int: //
-        out.append_integer(v.int_value, Code_Span_Type::number);
-        break;
-    case bms::Type_Type::Uint: //
-        out.append_integer(Big_Uint(v.int_value), Code_Span_Type::number);
-        break;
-    default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
-    }
-}
-
-[[maybe_unused]]
-void append_type(Code_String& out, const bms::Concrete_Type& type)
-{
-    using enum bms::Type_Type;
-    switch (type.type()) {
-        // TODO: maybe we can reduce redundancy here a bit
-    case Nothing: //
-        out.append("Nothing", Code_Span_Type::keyword);
-        return;
-    case Void: //
-        out.append("Void", Code_Span_Type::keyword);
-        return;
-    case Int: //
-        out.append("Int", Code_Span_Type::keyword);
-        return;
-    case Bool: //
-        out.append("Bool", Code_Span_Type::keyword);
-        return;
-    case Uint:
-        out.append("Uint", Code_Span_Type::keyword);
-        return;
-        out.append('(', Code_Span_Type::bracket);
-        out.append_integer(type.width(), Code_Span_Type::number);
-        out.append(')', Code_Span_Type::bracket);
-        return;
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid C type");
-}
-
 using namespace bms::ast;
 
 struct Bms_Code_Generator final : Code_Generator_Base {
@@ -195,17 +147,25 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Type& type)
     {
         const bms::Type_Type type_type = type.get_type();
+        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
 
         if (type_type != bms::Type_Type::Uint) {
-            self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
             return {};
         }
 
         Scoped_Attempt attempt = self.start_attempt();
-        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::keyword);
         {
             Scoped_Parenthesization p = self.parenthesize();
             BIT_MANIPULATION_ASSERT(type.get_width_node());
+            if (self.m_options.always_simplify_widths) {
+                const bms::Value& v = get_const_value(*type.get_width_node()).value();
+                if (v.is_known()) {
+                    self.m_out.append_integer(v.as_uint(), Code_Span_Type::number);
+                    attempt.commit();
+                    return {};
+                }
+            }
+
             if (auto r = self.generate_code(type.get_width_node()); !r) {
                 return r;
             }

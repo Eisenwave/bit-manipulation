@@ -3,42 +3,11 @@
 #include "bms/ast.hpp"
 #include "bms/evaluation/builtin_function.hpp"
 #include "bms/expression_type.hpp"
+#include "bms/print.hpp"
 #include "bms/vm/instructions.hpp"
 
 namespace bit_manipulation::bms {
 namespace {
-
-void append_type(Code_String& out, const Concrete_Type& type)
-{
-    out.append(type_type_name(type.type()), Code_Span_Type::type_name);
-    if (type.type() == Type_Type::Uint) {
-        out.append('(', Code_Span_Type::punctuation);
-        out.append_integer(type.width(), Code_Span_Type::number);
-        out.append(')', Code_Span_Type::punctuation);
-    }
-}
-
-void append_value(Code_String& out, const Concrete_Value& value)
-{
-    switch (value.type.type()) {
-    case Type_Type::Nothing: //
-        out.append("Nothing", Code_Span_Type::keyword);
-        return;
-    case Type_Type::Void: //
-        out.append("Void", Code_Span_Type::keyword);
-        return;
-    case Type_Type::Bool: //
-        out.append(value.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
-        return;
-    case Type_Type::Int: //
-        out.append_integer(value.int_value, Code_Span_Type::number);
-        return;
-    case Type_Type::Uint: //
-        out.append_integer(Big_Uint(value.int_value), Code_Span_Type::number);
-        return;
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("value has unknown type.");
-}
 
 void append_left_aligned(Code_String& out, std::string_view text, Code_Span_Type type, Size width)
 {
@@ -81,7 +50,7 @@ struct Print_Instruction {
     void operator()(const Push& i)
     {
         append_left_aligned(out, "push", Code_Span_Type::keyword, name_column_width);
-        append_value(out, i.value);
+        print_value(out, i.value);
     }
 
     void operator()(const Pop&)
@@ -120,7 +89,7 @@ struct Print_Instruction {
     void operator()(const Convert& i)
     {
         append_left_aligned(out, "convert to", Code_Span_Type::keyword, name_column_width);
-        append_type(out, i.type);
+        print_type(out, i.type);
     }
 
     void operator()(const Unary_Operate& i)
@@ -199,7 +168,7 @@ void print_function_label(Code_String& out, const ast::Function& f, Function_Pri
                 out.append(',', Code_Span_Type::punctuation);
                 print_space();
             }
-            append_type(out, parameters[i].get_type().concrete_type().value());
+            print_type(out, parameters[i].get_type().concrete_type().value());
         }
         out.append(')', Code_Span_Type::bracket);
     }
@@ -208,7 +177,7 @@ void print_function_label(Code_String& out, const ast::Function& f, Function_Pri
         print_space();
         out.append("->", Code_Span_Type::punctuation);
         print_space();
-        append_type(out, f.get_concrete_return_type());
+        print_type(out, f.get_concrete_return_type());
     }
 }
 

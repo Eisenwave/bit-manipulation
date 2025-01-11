@@ -54,6 +54,9 @@ struct Code_Options {
     bool always_parenthesize_subexpressions = false;
     /// @brief The return type policy.
     Return_Type_Policy return_types = Return_Type_Policy::keep;
+    /// @brief If `true`, simplify integer widths such as in `Uint(2 * 2)` to `Uint(4)`
+    /// even when this wouldn't be necessary.
+    bool always_simplify_widths = false;
 
     /// @brief If `true`, prefer C23 features such as spelling `_Bool` as `bool`.
     bool c_23 = false;
