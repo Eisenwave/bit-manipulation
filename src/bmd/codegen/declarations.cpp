@@ -5,9 +5,17 @@
 namespace bit_manipulation::bmd {
 namespace {
 
+[[nodiscard]] Dependency_Type dependency_type_constant_recursive(bool constant, bool recursive)
+{
+    return constant
+        ? (recursive ? Dependency_Type::constant_recursive : Dependency_Type::constant_direct)
+        : (recursive ? Dependency_Type::normal_recursive : Dependency_Type::normal_direct);
+}
+
 struct Dependency_Gatherer {
     Function_Ref<bool(Dependency)>& out;
-    Dependency_Type default_type = Dependency_Type::normal;
+    bool constant : 1 = false;
+    bool recursive : 1 = false;
 
     void operator()(const bms::ast::Program&)
     {
@@ -23,9 +31,9 @@ struct Dependency_Gatherer {
             (*this)(f.get_return_type());
         }
         if (const auto* requires_clause = f.get_requires_clause_node()) {
-            visit(Dependency_Gatherer { out, Dependency_Type::constant }, *requires_clause);
+            visit(in_constant_expression(true), *requires_clause);
         }
-        (*this)(f.get_body());
+        in_constant_expression(false)(f.get_body());
     }
 
     template <one_of<bms::ast::Let,
@@ -41,7 +49,7 @@ struct Dependency_Gatherer {
     void operator()(const T& block)
     {
         for (const bms::ast::Some_Node* child : block.get_children()) {
-            visit(*this, *child);
+            visit(in_constant_expression(false), *child);
         }
     }
 
@@ -49,7 +57,7 @@ struct Dependency_Gatherer {
     void operator()(const T& block)
     {
         for (const bms::ast::Some_Node* child : block.get_children()) {
-            visit(Dependency_Gatherer { out, Dependency_Type::constant }, *child);
+            visit(in_constant_expression(true), *child);
         }
     }
 
@@ -65,20 +73,36 @@ struct Dependency_Gatherer {
     }
 
 private:
+    /// @brief Returns a copy of this `Dependency_Gatherer`, except that `constant` is set to
+    /// `constant_expression` in the new object.
+    /// This function should be used whenever entering or leaving a context that is a constant
+    /// expression.
+    [[nodiscard]] Dependency_Gatherer in_constant_expression(bool constant_expression)
+    {
+        return { .out = out, .constant = constant_expression, .recursive = recursive };
+    }
+
     void emit(const bms::Optional_Lookup_Result& lookup_result)
     {
         if (const auto* const* looked_up_node = get_if<bms::ast::Some_Node*>(&lookup_result)) {
-            emit(*looked_up_node);
+            emit(**looked_up_node);
+            return;
         }
         if (const auto* const* looked_up_parameter = get_if<bms::Parameter*>(&lookup_result)) {
             (*this)((*looked_up_parameter)->get_type());
+            return;
         }
         BIT_MANIPULATION_ASSERT(holds_alternative<bms::Builtin_Function>(lookup_result));
     }
 
-    void emit(const bms::ast::Some_Node* some_node)
+    void emit(const bms::ast::Some_Node& some_node)
     {
-        out({ some_node, default_type });
+        const Dependency_Type type = dependency_type_constant_recursive(constant, recursive);
+        const bool should_recurse = out({ &some_node, type });
+        if (should_recurse) {
+            visit(Dependency_Gatherer { .out = out, .constant = constant, .recursive = true },
+                  some_node);
+        }
     }
 };
 

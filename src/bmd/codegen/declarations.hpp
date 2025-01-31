@@ -11,11 +11,39 @@ namespace bit_manipulation::bmd {
 enum struct Dependency_Type : Default_Underlying {
     /// @brief A regular dependency, such as between a function and the functions
     /// it calls at runtime.
-    normal,
-    /// @brief A dependency needed for constant evaluation, such as the dependency
+    normal_direct,
+    /// @brief Like `regular`, but indirect dependency
+    /// (e.g. `a()` calls `b()` and `b()` calls `c()`, so `c` is a dependency of `a`).
+    normal_recursive,
+    /// @brief A dependency needed in a constant expression, such as the dependency
     /// between `Uint(x)` and the constant `x`.
-    constant
+    ///
+    /// However, this does not include dependencies such as if `awoo()` calls `chan()` and there
+    /// exists a constant expression `Uint(awoo())`,
+    /// i.e. "constant dependencies" that are only indirectly needed for constant evaluation.
+    /// In that example, `chan` would be `normal_recursive`,
+    /// unless `chan()` is directly needed by a constant expression within `awoo()`,
+    /// and only then is `chan` `constant_recursive`.
+    ///
+    /// This kind of classification ensures that nothing can have a constant dependency on itself
+    /// in a well-formed program, and that recursive dependencies can be formed by
+    /// taking the union of direct dependencies and the direct dependencies of all the dependents
+    /// recursively,
+    /// albeit with any `direct` dependency replaced with a `recursive` one.
+    constant_direct,
+    /// @brief Indirect constant dependency.
+    constant_recursive,
 };
+
+[[nodiscard]] constexpr bool dependency_type_is_normal(Dependency_Type type)
+{
+    return type == Dependency_Type::normal_direct || type == Dependency_Type::normal_recursive;
+}
+
+[[nodiscard]] constexpr bool dependency_type_is_recursive(Dependency_Type type)
+{
+    return type == Dependency_Type::normal_recursive || type == Dependency_Type::constant_recursive;
+}
 
 struct Dependency {
     const bms::ast::Some_Node* declaration;
