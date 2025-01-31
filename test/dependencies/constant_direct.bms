@@ -1,0 +1,7 @@
+function awoo() {
+    const z = zero();
+}
+
+function zero() -> Int {
+    return 0;
+}
