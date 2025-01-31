@@ -1,0 +1,7 @@
+function awoo() {
+    chan();
+}
+
+function chan() {
+    awoo();
+}

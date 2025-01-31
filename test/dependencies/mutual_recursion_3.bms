@@ -1,0 +1,11 @@
+function awoo() {
+    baka();
+}
+
+function baka() {
+    chan();
+}
+
+function chan() {
+    awoo();
+}
