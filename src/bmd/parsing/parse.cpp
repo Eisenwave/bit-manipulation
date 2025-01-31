@@ -319,7 +319,7 @@ private:
             }
             elements.push_back(alloc_node<ast::List>(
                 { pos_before_paragraph, m_pos.begin - pos_before_paragraph.begin },
-                std::vector(paragraph_elements))); // FIXME: this is not pmr::vector
+                std::vector(paragraph_elements, m_memory)));
             paragraph_elements.clear();
             pos_before_paragraph = m_pos;
         };
