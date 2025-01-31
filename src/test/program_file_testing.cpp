@@ -570,6 +570,15 @@ bool test_for_success_then_introspect(std::string_view file,
     return test_validity(file, policy, introspection);
 }
 
+bool test_for_success_also_introspect(std::string_view file,
+                                      Function_Ref<void(bms::Analyzed_Program&)> introspection)
+{
+    return test_for_success_then_introspect(file, [&](bms::Analyzed_Program& program) {
+        introspection(program);
+        return true;
+    });
+}
+
 bool test_for_diagnostics(std::string_view file,
                           std::span<const Tokenize_Error_Expectations> expectations)
 {
