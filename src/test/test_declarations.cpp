@@ -271,5 +271,22 @@ TEST(Dependencies, constant_direct)
                                         Dependency_Search_Type::functions_recursively));
 }
 
+TEST(Dependencies, constant_recursive)
+{
+    constexpr std::string_view file = "dependencies/constant_recursive.bms";
+
+    std::pmr::monotonic_buffer_resource memory;
+    const auto expected_recursive
+        = Dependency_Map_Builder { &memory } //
+              .insert("awoo",
+                      { { "zero", bmd::Dependency_Type::normal_direct },
+                        { "zero_impl", bmd::Dependency_Type::constant_recursive } })
+              .insert("zero", { { "zero_impl", bmd::Dependency_Type::constant_direct } })
+              .insert_empty("zero_impl")
+              .build();
+    ASSERT_TRUE(test_dependencies_match(file, expected_recursive,
+                                        Dependency_Search_Type::functions_recursively));
+}
+
 } // namespace
 } // namespace bit_manipulation

@@ -1,0 +1,12 @@
+function awoo() {
+    let z = zero();
+}
+
+function zero() -> Int {
+    const z = zero_impl();
+    return z;
+}
+
+function zero_impl() -> Int {
+    return 0;
+}
