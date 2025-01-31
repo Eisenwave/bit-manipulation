@@ -548,8 +548,8 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
 
     writer.begin_tag(body);
 
-    if (document.root_node != nullptr) {
-        const auto& root_content = get<ast::List>(*document.root_node);
+    if (document.get_root() != nullptr) {
+        const auto& root_content = get<ast::List>(*document.get_root());
         auto r = HTML_Converter { writer, document, memory }.convert_content(root_content);
         if (!r) {
             return r;

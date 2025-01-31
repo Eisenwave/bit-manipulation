@@ -124,7 +124,7 @@ public:
         if (!result) {
             return Parse_Error { result.error().code, result.error().rule, m_pos };
         }
-        return Parsed_Document { m_source, *result };
+        return Parsed_Document { m_source, *result, m_memory };
     }
 
 private:
@@ -276,9 +276,9 @@ private:
     template <typename T, typename... Args>
     ast::Some_Node* alloc_node(const Local_Source_Span& span, Args&&... args) const
     {
-        void* storage = m_memory->allocate(sizeof(ast::Some_Node), alignof(ast::Some_Node));
         ast::Some_Node* result
-            = new (storage) ast::Some_Node { T(span, std::forward<Args>(args)...) };
+            = std::pmr::polymorphic_allocator<ast::Some_Node> { m_memory }
+                  .new_object<ast::Some_Node>(T(span, std::forward<Args>(args)...));
 #if 0
         m_destroy_on_rollback.push_back(result);
 #endif
@@ -319,7 +319,7 @@ private:
             }
             elements.push_back(alloc_node<ast::List>(
                 { pos_before_paragraph, m_pos.begin - pos_before_paragraph.begin },
-                std::vector(paragraph_elements)));
+                std::vector(paragraph_elements))); // FIXME: this is not pmr::vector
             paragraph_elements.clear();
             pos_before_paragraph = m_pos;
         };
@@ -919,6 +919,17 @@ private:
 };
 
 } // namespace
+
+void Parsed_Document::delete_recursively(ast::Some_Node* node)
+{
+    if (node == nullptr) {
+        return;
+    }
+    for (ast::Some_Node* child : get_children(*node)) {
+        delete_recursively(child);
+    }
+    std::pmr::polymorphic_allocator<ast::Some_Node> { m_memory }.delete_object(node);
+}
 
 Result<Parsed_Document, Parse_Error> parse(std::string_view source,
                                            std::pmr::memory_resource* memory)

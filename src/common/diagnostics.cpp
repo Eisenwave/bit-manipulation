@@ -1103,7 +1103,7 @@ struct BMD_AST_Printer {
     const bmd::Parsed_Document& program;
     const BMD_AST_Formatting_Options options;
 
-    void print(bmd::ast::Some_Node* node, int level = 0)
+    void print(const bmd::ast::Some_Node* node, int level = 0)
     {
         BIT_MANIPULATION_ASSERT(level >= 0);
         BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
@@ -1208,7 +1208,7 @@ void print_ast(Code_String& out,
                const bmd::Parsed_Document& document,
                BMD_AST_Formatting_Options options)
 {
-    BMD_AST_Printer { out, document, options }.print(document.root_node);
+    BMD_AST_Printer { out, document, options }.print(document.get_root());
 }
 
 void print_internal_error_notice(Code_String& out)
