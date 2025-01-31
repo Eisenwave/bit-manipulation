@@ -49,7 +49,9 @@ struct Dependency_Gatherer {
     void operator()(const T& block)
     {
         for (const bms::ast::Some_Node* child : block.get_children()) {
-            visit(in_constant_expression(false), *child);
+            if (child != nullptr) {
+                visit(in_constant_expression(false), *child);
+            }
         }
     }
 
@@ -87,7 +89,16 @@ private:
     void emit(const bms::Optional_Lookup_Result& lookup_result)
     {
         if (const auto* const* looked_up_node = get_if<bms::ast::Some_Node*>(&lookup_result)) {
-            emit(**looked_up_node);
+            if (const auto* const c = get_if<bms::ast::Const>(*looked_up_node)) {
+                if (!holds_alternative<bms::ast::Program>(*c->get_parent())) {
+                    return;
+                }
+                emit(**looked_up_node, *c);
+            }
+            else {
+                const auto& f = get<bms::ast::Function>(**looked_up_node);
+                emit(**looked_up_node, f);
+            }
             return;
         }
         if (const auto* const* looked_up_parameter = get_if<bms::Parameter*>(&lookup_result)) {
@@ -97,13 +108,13 @@ private:
         BIT_MANIPULATION_ASSERT(holds_alternative<bms::Builtin_Function>(lookup_result));
     }
 
-    void emit(const bms::ast::Some_Node& some_node)
+    template <one_of<bms::ast::Function, bms::ast::Const> T>
+    void emit(const bms::ast::Some_Node& some_node, const T& node)
     {
         const Dependency_Type type = dependency_type_constant_recursive(constant, recursive);
         const bool should_recurse = out({ &some_node, type });
         if (should_recurse) {
-            visit(Dependency_Gatherer { .out = out, .constant = constant, .recursive = true },
-                  some_node);
+            Dependency_Gatherer { .out = out, .constant = constant, .recursive = true }(node);
         }
     }
 };
