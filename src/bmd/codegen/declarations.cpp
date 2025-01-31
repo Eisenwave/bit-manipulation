@@ -57,7 +57,9 @@ struct Dependency_Gatherer {
     void operator()(const T& block)
     {
         for (const bms::ast::Some_Node* child : block.get_children()) {
-            visit(in_constant_expression(true), *child);
+            if (child != nullptr) {
+                visit(in_constant_expression(true), *child);
+            }
         }
     }
 
