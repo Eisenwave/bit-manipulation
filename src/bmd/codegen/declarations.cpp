@@ -160,9 +160,9 @@ using Index_Vector = std::pmr::vector<Graph_Index>;
 struct [[nodiscard]] Dependency_Breaker {
 private:
     struct [[nodiscard]] Vertex_Data {
-
+        // TODO: it's probably possible to store this data contiguously elsewhere and replace this
+        //       with an index/pointer into that larger block
         Index_Vector dependencies;
-        Index_Vector dependents;
         Graph_Index lowlink = Graph_Index(-1);
         Graph_Index last = 0;
         /// @brief `true` if the node has been visited by DFS already.
@@ -176,7 +176,6 @@ private:
 
         explicit Vertex_Data(std::pmr::memory_resource* memory)
             : dependencies { memory }
-            , dependents { memory }
         {
         }
     };
@@ -212,7 +211,6 @@ public:
             // to implement.
             if (e.from != e.to) {
                 data[e.from].dependencies.push_back(e.to);
-                data[e.to].dependents.push_back(e.from);
             }
         }
     }
