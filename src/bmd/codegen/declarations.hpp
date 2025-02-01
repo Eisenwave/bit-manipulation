@@ -71,6 +71,36 @@ void for_each_global_dependency(Function_Ref<bool(Dependency)> out,
 void for_each_direct_global_dependency(Function_Ref<void(Dependency)> out,
                                        const bms::ast::Some_Node& node);
 
+/// @brief A graph edge between two vertices.
+struct Edge {
+    /// @brief The index of the source vertex.
+    Size from;
+    /// @brief The index of the target vertex.
+    Size to;
+};
+
+/// @brief Emits declarations or definitions in such an order that any given entity only depends
+/// on entities which have been forward-declared or defined previously.
+///
+/// This function is essential to translate languages such as BMS where global declaration order
+/// doesn't matter into languages such as C, where only previously declared entities may be
+/// referenced.
+/// Some cases can be resolved by simply reordering functions, but there are also cases such as
+/// mutual recursion, where a forward-declaration is needed to break the cycle.
+///
+/// While the exact resulting order is unspecified, some guarantees are made:
+/// - if all definitions only contain backwards dependencies, the order remains unchanged
+/// - if there are no circular dependencies, no forward-declarations are produced
+///
+/// @param out invoked for each declaration in an order where dependencies are broken up
+/// @param n the number of declarations
+/// @param dependencies dependencies between declarations, encoded as an edge list
+/// @param memory memory used temporarily throughout the algorithm
+void break_dependencies(Function_Ref<void(Size index, bool is_forward)> out,
+                        Size n,
+                        std::span<const Edge> dependencies,
+                        std::pmr::memory_resource* memory);
+
 } // namespace bit_manipulation::bmd
 
 template <>
