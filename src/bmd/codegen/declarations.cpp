@@ -147,8 +147,8 @@ using Index_Vector = std::pmr::vector<Graph_Index>;
 /// https://en.wikipedia.org/wiki/Tarjan%27s_strongly_connected_components_algorithm
 ///
 /// The intuition is relatively simple:
-/// - If we perform depth-first search by following dependencies of a vertex, we eventually
-///   at a leaf node, and this can be emitted because it depends on nothing more.
+/// - If we perform depth-first search by following dependencies of a vertex, we may eventually
+///   reach a leaf node, and this can be emitted because it depends on nothing more.
 /// - Alternatively, we don't find a leaf node but a strongly connected component (SCC),
 ///   which is a subgraph where every node is reachable from the other.
 ///   In other words, some sort of circular dependency spaghetti block, and we need to emit a
