@@ -306,6 +306,11 @@ private:
         const Graph_Index curr_pos = stack_pos_of(current);
         const Graph_Index ns = next_to_dfs.size();
         for (Graph_Index i = curr_pos; i < visit_stack.size(); ++i) {
+            // TODO: investigate if this is actually a meaningful order to push; in past examples
+            //       it's not resulted in scrambling but hey, maybe I've missed something
+            //       examples such as
+            //       https://discord.com/channels/331718482485837825/893852731192782898/1335342809028366387
+            //       may break this
             next_to_dfs.push_back(visit_stack[i]);
         }
 
