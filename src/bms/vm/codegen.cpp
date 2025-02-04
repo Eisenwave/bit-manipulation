@@ -198,26 +198,26 @@ private:
         BIT_MANIPULATION_ASSERT(node.is_return());
         BIT_MANIPULATION_ASSERT(node.const_value()->get_type() == *m_return_type);
 
-        const ast::Some_Node* expression = node.get_expression_node();
-        const Value return_value = get_const_value(*expression).value();
-        if (return_value.get_type().is_monostate()) {
-            goto push_return_and_exit;
+        if (const ast::Some_Node* expression = node.get_expression_node()) {
+            const Value return_value = get_const_value(*expression).value();
+            if (return_value.get_type().is_monostate()) {
+                goto push_return_and_exit;
+            }
+
+            if (node.const_value()->is_known()) {
+                out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
+                goto push_return_and_exit;
+            }
+
+            // Empty return statements produce Void, so the value is always known.
+            // We should have early-returned already.
+            BIT_MANIPULATION_ASSERT(node.get_expression_node());
+            generate_code(node.get_expression_node());
+
+            if (return_value.get_type() != m_return_type) {
+                out.push_back(ins::Convert { { h }, *m_return_type });
+            }
         }
-
-        if (node.const_value()->is_known()) {
-            out.push_back(ins::Push { { h }, node.const_value()->concrete_value() });
-            goto push_return_and_exit;
-        }
-
-        // Empty return statements produce Void, so the value is always known.
-        // We should have early-returned already.
-        BIT_MANIPULATION_ASSERT(node.get_expression_node());
-        generate_code(node.get_expression_node());
-
-        if (return_value.get_type() != m_return_type) {
-            out.push_back(ins::Convert { { h }, *m_return_type });
-        }
-
     push_return_and_exit:
         out.push_back(ins::Return { { h } });
     }
