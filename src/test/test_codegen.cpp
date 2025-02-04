@@ -74,9 +74,10 @@ struct Instructions_Equal {
     return false;
 }
 
+constexpr auto push_zero = bms::ins::Push { {}, bms::Concrete_Value::Int(0) };
+
 TEST(Codegen, reverse_order)
 {
-    static constexpr auto push_zero = bms::ins::Push { {}, bms::Concrete_Value::Int(0) };
     static const bms::Instruction expected[] = {
         push_zero,
         push_zero,
@@ -95,14 +96,11 @@ TEST(Codegen, reverse_order)
     };
 
     const std::optional actual = test_and_run_codegen("codegen/vm/reverse_order.bms");
-
-    ASSERT_TRUE(actual);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
 TEST(Codegen, simple)
 {
-    static constexpr auto push_zero = bms::ins::Push { {}, bms::Concrete_Value::Int(0) };
     static const bms::Instruction expected[] = {
         bms::ins::Store {},
         bms::ins::Store {},
@@ -121,8 +119,48 @@ TEST(Codegen, simple)
     };
 
     const std::optional actual = test_and_run_codegen("codegen/vm/simple.bms");
+    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+}
 
-    ASSERT_TRUE(actual);
+TEST(Codegen, function_minimal)
+{
+    static const bms::Instruction expected[] = { bms::ins::Return {} };
+
+    const std::optional actual = test_and_run_codegen("codegen/vm/function_minimal.bms");
+    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+}
+
+TEST(Codegen, returning_constant)
+{
+    static const bms::Instruction expected[] = {
+        bms::ins::Push { {}, bms::Concrete_Value(bms::Concrete_Type::Uint(32), 0) },
+        bms::ins::Return {},
+    };
+
+    const std::optional actual = test_and_run_codegen("codegen/vm/returning_constant.bms");
+    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+}
+
+TEST(Codegen, returning_converted)
+{
+    static const bms::Instruction expected[] = {
+        bms::ins::Store {},
+        bms::ins::Load {},
+        bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
+        bms::ins::Return {},
+    };
+
+    const std::optional actual = test_and_run_codegen("codegen/vm/returning_converted.bms");
+    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+}
+
+TEST(Codegen, returning_void)
+{
+    static const bms::Instruction expected[] = {
+        bms::ins::Return {},
+    };
+
+    const std::optional actual = test_and_run_codegen("codegen/vm/returning_void.bms");
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 

@@ -1,0 +1,4 @@
+function awoo() -> Uint(32) {
+    const x: Uint(32) = 0;
+    return x;
+}

@@ -1,0 +1,3 @@
+function awoo(x: Int) -> Uint(32) {
+    return x;
+}
