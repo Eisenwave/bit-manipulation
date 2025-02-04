@@ -164,7 +164,6 @@ private:
         //       with an index/pointer into that larger block
         Index_Vector dependencies;
         Graph_Index lowlink = Graph_Index(-1);
-        Graph_Index last = 0;
         /// @brief `true` if the node has been visited by DFS already.
         bool visited : 1 = false;
         /// @brief `true` if the node is currently being visited by DFS on any depth level.
@@ -246,7 +245,6 @@ private:
         curr_data.visited = true;
         curr_data.onstack = true;
         curr_data.lowlink = visit_counter;
-        curr_data.last = current;
 
         visit_stack.push_back(current);
         visit_counter += 1;
@@ -261,9 +259,10 @@ private:
             if (should_visit) {
                 dfs(dependency);
             }
+            // TODO: if we've just visited the dependency, onstack should be true for it anyway
+            //       so maybe this condition could be simplified to just (dependency_data.onstack)
             if (should_visit || dependency_data.onstack) {
                 curr_data.lowlink = std::min(curr_data.lowlink, dependency_data.lowlink);
-                curr_data.last = std::max(curr_data.last, dependency_data.last);
             }
         }
 
@@ -298,9 +297,8 @@ private:
 
         // Reaching this point means that there is a multi-node SCC, i.e. some kind of circular
         // dependency.
-        emit_declaration(curr_data.last);
-        data[curr_data.last].declared = true;
 
+        Graph_Index last_in_scc = 0;
         const Graph_Index curr_pos = stack_pos_of(current);
         const Graph_Index ns = next_to_dfs.size();
         for (Graph_Index i = curr_pos; i < visit_stack.size(); ++i) {
@@ -310,8 +308,11 @@ private:
             //       https://discord.com/channels/331718482485837825/893852731192782898/1335342809028366387
             //       may break this
             next_to_dfs.push_back(visit_stack[i]);
+            last_in_scc = std::max(last_in_scc, visit_stack[i]);
         }
 
+        emit_declaration(last_in_scc);
+        data[last_in_scc].declared = true;
         pop_strongly_connected_component(current, curr_pos);
 
         // TODO: this is very similar to the main loop (spiritually, it operates with a constant
@@ -329,15 +330,17 @@ private:
     void pop_strongly_connected_component(const Graph_Index node, const Graph_Index node_stack_pos)
     {
         BIT_MANIPULATION_ASSERT(node < m_n);
+        const Graph_Index root_lowlink = data[node].lowlink;
+
         // TODO: we can presumably get rid of this member function and inline it into DFS,
         //       while also doing next_to_dfs.push_back(visit_stack.at(i)) in this very loop
         for (Graph_Index i = node_stack_pos; i < visit_stack.size(); ++i) {
             const Graph_Index removed_node = visit_stack[i];
             auto& removed_data = data[removed_node];
+            BIT_MANIPULATION_ASSERT(removed_data.lowlink >= root_lowlink);
             removed_data.visited = false;
             removed_data.onstack = false;
             removed_data.lowlink = Graph_Index(-1);
-            removed_data.last = 0;
         }
 
         visit_stack.resize(node_stack_pos);
