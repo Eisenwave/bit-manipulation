@@ -190,13 +190,7 @@ TEST(Dependency_Breaking, test_exhaustively_4)
         const bool no_dupes = result.has_no_duplicates();
         const bool no_forwards = result.has_no_forward_dependencies(edges);
 
-        if (!defines_all || !no_dupes || !no_forwards) {
-            BIT_MANIPULATION_ASSERT(false);
-        }
-
-        ASSERT_TRUE(defines_all);
-        ASSERT_TRUE(no_dupes);
-        ASSERT_TRUE(no_forwards);
+        BIT_MANIPULATION_ASSERT(defines_all && no_dupes && no_forwards);
 
         if (Uint16(++edge_bits) == 0) {
             break;
