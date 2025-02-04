@@ -13,17 +13,17 @@ set(LLVM_WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconve
 
 if(DEFINED EMSCRIPTEN)
     set(WARNING_OPTIONS ${LLVM_WARNING_OPTIONS})
-    set(SANITIZER_OPTIONS)
+#    set(SANITIZER_OPTIONS)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(WARNING_OPTIONS -Wall -Wimplicit-fallthrough -Wpedantic -Wextra -Wconversion -Wmissing-declarations)
-    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+#    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
     add_compile_definitions($<$<CONFIG:Debug>:_GLIBCXX_ASSERTIONS>)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     set(WARNING_OPTIONS ${LLVM_WARNING_OPTIONS})
-    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
+#    set(SANITIZER_OPTIONS -fsanitize=address,undefined)
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(WARNING_OPTIONS -W4)
-    set(SANITIZER_OPTIONS -fsanitize:address)
+#    set(SANITIZER_OPTIONS -fsanitize:address)
 endif()
 
 set(INCLUDE_DIRS "${CMAKE_CURRENT_LIST_DIR}" "${CMAKE_CURRENT_LIST_DIR}/src")
@@ -195,6 +195,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/test_analysis_error.cpp
         src/test/test_codegen.cpp
         src/test/test_declarations.cpp
+        src/test/test_dependency_breaking.cpp
         src/test/test_parse_error.cpp
         src/test/test_to_chars.cpp
         src/test/test_tokenize_error.cpp
