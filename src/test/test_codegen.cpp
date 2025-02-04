@@ -94,7 +94,7 @@ TEST(Codegen, reverse_order)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/reverse_order.bms");
+    const std::optional actual = test_and_run_codegen("codegen/vm/reverse_order.bms");
 
     ASSERT_TRUE(actual);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
@@ -116,11 +116,11 @@ TEST(Codegen, simple)
         push_zero,
         push_zero,
         bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
-        bms::ins::Call { {}, 1 },
+        bms::ins::Call { {}, 0 },
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/simple.bms");
+    const std::optional actual = test_and_run_codegen("codegen/vm/simple.bms");
 
     ASSERT_TRUE(actual);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
