@@ -39,6 +39,10 @@ public:
     {
     }
 
+    [[nodiscard]] friend std::strong_ordering operator<=>(const Concrete_Value&,
+                                                          const Concrete_Value&)
+        = default;
+
     [[nodiscard]] constexpr Result<Concrete_Value, Evaluation_Error_Code>
     convert_to(Concrete_Type other, Conversion_Type conversion) const
     {
