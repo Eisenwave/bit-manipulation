@@ -289,9 +289,6 @@ private:
             emit_definition(current);
             visit_stack.pop_back();
             curr_data.onstack = false;
-            // TODO: I suspect that this is pointless code and the lowlink will be overwritten
-            //       with a meaningful value when revisiting anyway
-            curr_data.lowlink = Graph_Index(-1);
             return;
         }
 
