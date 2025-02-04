@@ -1,4 +1,12 @@
+#include <algorithm>
+#include <memory_resource>
+#include <vector>
+
+#include "common/function_ref.hpp"
 #include "common/variant.hpp"
+
+#include "bms/analyzed_program.hpp"
+#include "bms/ast.hpp"
 
 #include "bmd/codegen/declarations.hpp"
 
@@ -135,6 +143,49 @@ void for_each_direct_global_dependency(Function_Ref<void(Dependency)> out,
             return false;
         },
         node);
+}
+
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out,
+                                std::span<const bms::ast::Some_Node* const> declarations)
+{
+    Size from_index = 0;
+    for (const auto* const declaration : declarations) {
+        const Size frontier = out.size();
+
+        for_each_direct_global_dependency(
+            [&](const Dependency& d) {
+                const auto pos = std::ranges::find(declarations, d.declaration);
+                // It shouldn't be possible to depend on another global declaration that is not
+                // within the program.
+                // This would indicate that perhaps we've visited a local dependency or something
+                // by accident.
+                BIT_MANIPULATION_ASSERT(pos != declarations.end());
+                const auto to_index = Size(pos - declarations.begin());
+                const Edge edge { from_index, to_index };
+
+                const auto existing_edge_pos = std::ranges::find(out.begin() + Difference(frontier),
+                                                                 out.end(), to_index, &Edge::to);
+                if (existing_edge_pos != out.end()) {
+                    BIT_MANIPULATION_ASSERT(*existing_edge_pos == edge);
+                }
+                else {
+                    out.push_back({ from_index, to_index });
+                }
+            },
+            *declaration);
+        ++from_index;
+    }
+}
+
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out, const bms::ast::Program& program)
+{
+    return gather_global_dependencies(out, program.get_children());
+}
+
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out,
+                                const bms::Analyzed_Program& program)
+{
+    return gather_global_dependencies(out, get<bms::ast::Program>(*program.get_root()));
 }
 
 namespace {
@@ -375,6 +426,17 @@ void break_dependencies(Function_Ref<void(Size, bool)> out,
                         std::pmr::memory_resource* memory)
 {
     Dependency_Breaker(out, n, dependencies, memory)();
+}
+
+void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
+                        Size n,
+                        std::span<const bmd::Edge> dependencies,
+                        std::pmr::memory_resource* memory)
+{
+    out.clear();
+    out.reserve(n * 2);
+    break_dependencies([&](Size index, bool is_forward) { out.push_back({ index, is_forward }); },
+                       n, dependencies, memory);
 }
 
 } // namespace bit_manipulation::bmd

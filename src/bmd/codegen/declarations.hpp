@@ -1,10 +1,12 @@
 #ifndef BIT_MANIPULATION_BMD_DECLARATIONS_HPP
 #define BIT_MANIPULATION_BMD_DECLARATIONS_HPP
 
+#include <span>
+
 #include "common/config.hpp"
 #include "common/function_ref.hpp"
 
-#include "bms/ast.hpp"
+#include "bms/fwd.hpp"
 
 namespace bit_manipulation::bmd {
 
@@ -77,6 +79,36 @@ struct Edge {
     Size from;
     /// @brief The index of the target vertex.
     Size to;
+
+    [[nodiscard]] friend std::strong_ordering operator<=>(const Edge&, const Edge&) = default;
+};
+
+/// @brief Appends dependencies between global declarations as a list of `Edge`s to `out`.
+/// Edges contain zero-based indices, where `0` refers to the first global declaration in the
+/// program.
+///
+/// The dependencies are appended to the vector in appearance order within the program.
+/// @param out where edges are appended to
+/// @param declarations the span of declarations
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out,
+                                std::span<const bms::ast::Some_Node* const> declarations);
+
+/// @brief Equivalent to `gather_global_dependencies(out, program.get_children())`
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out, const bms::ast::Program& program);
+
+/// @brief Equivalent to
+/// `gather_global_dependencies(out, *get<bms::ast::Program>(program.get_root()))`.
+void gather_global_dependencies(std::pmr::vector<bmd::Edge>& out,
+                                const bms::Analyzed_Program& program);
+
+struct Declaration {
+    Size index;
+    bool is_forward;
+
+    [[maybe_unused]] // suppresses https://github.com/llvm/llvm-project/issues/125233
+    friend std::strong_ordering
+    operator<=>(const Declaration&, const Declaration&)
+        = default;
 };
 
 /// @brief Emits declarations or definitions in such an order that any given entity only depends
@@ -99,6 +131,16 @@ struct Edge {
 void break_dependencies(Function_Ref<void(Size index, bool is_forward)> out,
                         Size n,
                         std::span<const Edge> dependencies,
+                        std::pmr::memory_resource* memory);
+
+/// @brief Like the first overload, but all resulting declarations are pushed into `out`.
+void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
+                        Size n,
+                        std::span<const bmd::Edge> dependencies,
+                        std::pmr::memory_resource* memory);
+
+void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
+                        const bms::ast::Program& program,
                         std::pmr::memory_resource* memory);
 
 } // namespace bit_manipulation::bmd
