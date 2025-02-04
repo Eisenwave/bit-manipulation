@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <random>
 #include <ranges>
 #include <vector>
 
@@ -169,6 +170,7 @@ TEST(Dependency_Breaking, last_in_cycle_forward_declared)
 TEST(Dependency_Breaking, test_exhaustively_4)
 {
     constexpr Size n = 4;
+    constexpr Size log2_n = 2;
     std::pmr::unsynchronized_pool_resource memory;
 
     std::pmr::vector<bmd::Edge> edges { &memory };
@@ -178,7 +180,7 @@ TEST(Dependency_Breaking, test_exhaustively_4)
         edges.clear();
         for (Size from = 0; from < n; ++from) {
             for (Size to = 0; to < n; ++to) {
-                const Size index = (from << 2) | to;
+                const Size index = (from << log2_n) | to;
                 if ((edge_bits >> index) & 1) {
                     edges.push_back({ from, to });
                 }
@@ -195,6 +197,42 @@ TEST(Dependency_Breaking, test_exhaustively_4)
         if (Uint16(++edge_bits) == 0) {
             break;
         }
+    }
+}
+
+TEST(Dependency_Breaking, test_randomly_8)
+{
+    constexpr Size n = 8;
+    constexpr Size log2_n = 3;
+    constexpr Size samples = 10'000;
+
+    std::pmr::unsynchronized_pool_resource memory;
+
+    std::default_random_engine rng { 12345 };
+    std::uniform_int_distribution<Uint64> distr;
+
+    std::pmr::vector<bmd::Edge> edges { &memory };
+    edges.reserve(n * n);
+
+    for (Size i = 0; i < samples; ++i) {
+        const Uint64 edge_bits = distr(rng);
+
+        edges.clear();
+        for (Size from = 0; from < n; ++from) {
+            for (Size to = 0; to < n; ++to) {
+                const Size index = (from << log2_n) | to;
+                if ((edge_bits >> index) & 1) {
+                    edges.push_back({ from, to });
+                }
+            }
+        }
+
+        const auto result = break_dependencies(n, edges, &memory);
+        const bool defines_all = result.defines_all(n);
+        const bool no_dupes = result.has_no_duplicates();
+        const bool no_forwards = result.has_no_forward_dependencies(edges);
+
+        BIT_MANIPULATION_ASSERT(defines_all && no_dupes && no_forwards);
     }
 }
 
