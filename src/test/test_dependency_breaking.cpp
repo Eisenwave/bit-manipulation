@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory_resource>
 #include <random>
 #include <ranges>
 #include <vector>
@@ -10,18 +11,8 @@
 namespace bit_manipulation {
 namespace {
 
-struct Declaration {
-    Size index;
-    bool is_forward;
-
-    [[maybe_unused]] // suppresses https://github.com/llvm/llvm-project/issues/125233
-    friend std::strong_ordering
-    operator<=>(const Declaration&, const Declaration&)
-        = default;
-};
-
 struct [[nodiscard]] Dependency_Break_Result {
-    std::pmr::vector<Declaration> data;
+    std::pmr::vector<bmd::Declaration> data;
 
     [[nodiscard]] bool empty() const
     {
@@ -29,7 +20,7 @@ struct [[nodiscard]] Dependency_Break_Result {
     }
 
     [[nodiscard]] friend constexpr bool operator==(const Dependency_Break_Result& self,
-                                                   std::span<const Declaration> other)
+                                                   std::span<const bmd::Declaration> other)
     {
         return std::ranges::equal(self.data, other);
     }
@@ -38,9 +29,9 @@ struct [[nodiscard]] Dependency_Break_Result {
     {
         return std::ranges::all_of(edge, [&](const bmd::Edge e) -> bool {
             const auto caller_pos
-                = std::ranges::find(data, Declaration { e.from, false }) - data.begin();
+                = std::ranges::find(data, bmd::Declaration { e.from, false }) - data.begin();
             const auto callee_pos
-                = std::ranges::find(data, e.to, &Declaration::index) - data.begin();
+                = std::ranges::find(data, e.to, &bmd::Declaration::index) - data.begin();
             return callee_pos <= caller_pos;
         });
     }
@@ -48,7 +39,7 @@ struct [[nodiscard]] Dependency_Break_Result {
     [[nodiscard]] bool defines_all(Size n) const
     {
         return std::ranges::all_of(std::views::iota(Size { 0 }, n), [&](const Size index) {
-            return std::ranges::find(data, Declaration { index, false }) != data.end();
+            return std::ranges::find(data, bmd::Declaration { index, false }) != data.end();
         });
     }
 
@@ -69,13 +60,9 @@ Dependency_Break_Result break_dependencies(Size n,
                                            std::span<const bmd::Edge> dependencies,
                                            std::pmr::memory_resource* memory)
 {
-    std::pmr::vector<Declaration> result { memory };
-    result.reserve(n * 2);
-    break_dependencies(
-        [&](Size index, bool is_forward) { result.push_back({ index, is_forward }); }, n,
-        dependencies, memory);
-
-    return { result };
+    Dependency_Break_Result result { std::pmr::vector<bmd::Declaration> { memory } };
+    break_dependencies(result.data, n, dependencies, memory);
+    return result;
 }
 
 [[nodiscard]] std::pmr::vector<bmd::Edge>
@@ -112,7 +99,7 @@ TEST(Dependency_Breaking, empty)
 
 TEST(Dependency_Breaking, single)
 {
-    constexpr Declaration expected[] = { { 0, false } };
+    constexpr bmd::Declaration expected[] = { { 0, false } };
 
     std::pmr::monotonic_buffer_resource memory;
     auto actual = break_dependencies(1, {}, &memory);
@@ -122,7 +109,7 @@ TEST(Dependency_Breaking, single)
 
 TEST(Dependency_Breaking, no_reorder_for_no_dependencies)
 {
-    constexpr Declaration expected[]
+    constexpr bmd::Declaration expected[]
         = { { 0, false }, { 1, false }, { 2, false }, { 3, false }, { 4, false } };
 
     std::pmr::monotonic_buffer_resource memory;
@@ -134,7 +121,7 @@ TEST(Dependency_Breaking, no_reorder_for_no_dependencies)
 TEST(Dependency_Breaking, no_reorder_for_backwards_simple)
 {
     constexpr bmd::Edge input[] = { { 1, 0 }, { 2, 1 }, { 3, 2 }, { 4, 3 } };
-    constexpr Declaration expected[]
+    constexpr bmd::Declaration expected[]
         = { { 0, false }, { 1, false }, { 2, false }, { 3, false }, { 4, false } };
 
     std::pmr::monotonic_buffer_resource memory;
@@ -146,7 +133,7 @@ TEST(Dependency_Breaking, no_reorder_for_backwards_simple)
 TEST(Dependency_Breaking, reverse_for_forwards_only)
 {
     constexpr bmd::Edge input[] = { { 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 4 } };
-    constexpr Declaration expected[]
+    constexpr bmd::Declaration expected[]
         = { { 4, false }, { 3, false }, { 2, false }, { 1, false }, { 0, false } };
 
     std::pmr::monotonic_buffer_resource memory;
@@ -158,7 +145,7 @@ TEST(Dependency_Breaking, reverse_for_forwards_only)
 TEST(Dependency_Breaking, last_in_cycle_forward_declared)
 {
     constexpr bmd::Edge input[] = { { 1, 2 }, { 2, 3 }, { 3, 1 } };
-    constexpr Declaration expected[]
+    constexpr bmd::Declaration expected[]
         = { { 0, false }, { 3, true }, { 2, false }, { 1, false }, { 3, false }, { 4, false } };
 
     std::pmr::monotonic_buffer_resource memory;

@@ -288,5 +288,41 @@ TEST(Dependencies, constant_recursive)
                                         Dependency_Search_Type::functions_recursively));
 }
 
+[[nodiscard]] std::pmr::vector<bmd::Edge>
+gather_dependencies_from_program_file(std::string_view file, std::pmr::memory_resource* memory)
+{
+    std::pmr::vector<bmd::Edge> edges { memory };
+
+    const bool success
+        = test_for_success_also_introspect(file, [&](const bms::Analyzed_Program& program) {
+              bmd::gather_global_dependencies(edges, program);
+          });
+    BIT_MANIPULATION_ASSERT(success);
+
+    return edges;
+}
+
+TEST(Dependencies, gather_constant_recursive)
+{
+    constexpr std::string_view file = "dependencies/constant_recursive.bms";
+    static constexpr bmd::Edge expected[] = { { 0, 1 }, { 1, 2 } };
+
+    std::pmr::monotonic_buffer_resource memory;
+    const std::pmr::vector<bmd::Edge> edges = gather_dependencies_from_program_file(file, &memory);
+
+    ASSERT_TRUE(std::ranges::equal(edges, expected));
+}
+
+TEST(Dependencies, gathering_many)
+{
+    constexpr std::string_view file = "dependencies/gathering_many.bms";
+    static constexpr bmd::Edge expected[] = { { 1, 0 }, { 2, 1 }, { 3, 4 }, { 4, 3 }, { 5, 5 } };
+
+    std::pmr::monotonic_buffer_resource memory;
+    const std::pmr::vector<bmd::Edge> edges = gather_dependencies_from_program_file(file, &memory);
+
+    ASSERT_TRUE(std::ranges::equal(edges, expected));
+}
+
 } // namespace
 } // namespace bit_manipulation
