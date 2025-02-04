@@ -439,4 +439,14 @@ void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
                        n, dependencies, memory);
 }
 
+void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
+                        const bms::ast::Program& program,
+                        std::pmr::memory_resource* memory)
+{
+    std::pmr::vector<Edge> dependencies { memory };
+    gather_global_dependencies(dependencies, program);
+
+    break_dependencies(out, program.get_children().size(), dependencies, memory);
+}
+
 } // namespace bit_manipulation::bmd

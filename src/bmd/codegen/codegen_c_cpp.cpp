@@ -13,6 +13,7 @@
 
 #include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
+#include "bmd/codegen/declarations.hpp"
 #include "bmd/codegen/generator_base.hpp"
 
 namespace bit_manipulation::bmd {
@@ -256,17 +257,22 @@ to_c_type(const bms::Concrete_Type& type, const Code_Options& options, C_Cpp_Dia
 
 using namespace bms::ast;
 
+enum struct Declaration_Type : bool { definition, forward };
+
 struct C_Cpp_Code_Generator final : Code_Generator_Base {
 private:
+    std::pmr::memory_resource* m_memory;
     const C_Cpp_Dialect m_dialect;
 
 public:
     C_Cpp_Code_Generator(Code_String& out,
                          const bms::Analyzed_Program& program,
+                         std::pmr::memory_resource* memory,
                          const Code_Options& options,
                          C_Cpp_Dialect dialect)
-        : Code_Generator_Base(out, program, options)
-        , m_dialect(dialect)
+        : Code_Generator_Base { out, program, options }
+        , m_memory { memory }
+        , m_dialect { dialect }
     {
     }
 
@@ -327,14 +333,22 @@ struct C_Cpp_Code_Generator::Visitor {
     {
         Scoped_Attempt attempt = self.start_attempt();
 
+        const std::span<const Some_Node* const> declarations = program.get_children();
+        // C and C++ don't support hoisting, so some reordering and forward declarations
+        // are necessary to convert BMS into a valid program.
+        std::pmr::vector<bmd::Declaration> codegen_order { self.m_memory };
+        break_dependencies(codegen_order, program, self.m_memory);
+
         bool first = true;
-        for (const Some_Node* declaration : program.get_children()) {
+        for (const auto [declaration_index, is_forward] : codegen_order) {
             Scoped_Attempt newline_attempt = self.start_attempt();
             if (!first) {
                 self.end_line();
                 self.end_line();
             }
-            if (auto r = self.generate_code(declaration)) {
+            const Some_Node* declaration = declarations[declaration_index];
+            const auto type = is_forward ? Declaration_Type::forward : Declaration_Type::definition;
+            if (auto r = Visitor { self, declaration }.emit_declaration(*declaration, type)) {
                 first = false;
                 newline_attempt.commit();
             }
@@ -348,7 +362,24 @@ struct C_Cpp_Code_Generator::Visitor {
         return {};
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Function& function)
+    [[nodiscard]] Result<void, Generator_Error> emit_declaration(const Some_Node& node,
+                                                                 Declaration_Type type)
+    {
+        // If we end up having to handle more cases, maybe we should use visit here.
+        if (const auto* const f = get_if<Function>(&node)) {
+            return Visitor { self, &node }(*f, type);
+        }
+        if (const auto* const c = get_if<Const>(&node)) {
+            return Visitor { self, &node }(*c, type);
+        }
+        if (const auto* const s = get_if<Static_Assert>(&node)) {
+            return Visitor { self, &node }(*s, type);
+        }
+        BIT_MANIPULATION_ASSERT_UNREACHABLE("Unexpected declaration.");
+    }
+
+    [[nodiscard]] Result<void, Generator_Error>
+    operator()(const Function& function, Declaration_Type type = Declaration_Type::definition)
     {
         if (function.is_generic) {
             return Generator_Error { Generator_Error_Code::empty, node };
@@ -392,9 +423,14 @@ struct C_Cpp_Code_Generator::Visitor {
             }
         }
 
-        self.separate_after_function();
-        if (auto r = Visitor { self, function.get_body_node() }(function.get_body()); !r) {
-            return r;
+        if (type == Declaration_Type::forward) {
+            self.write_semicolon();
+        }
+        else {
+            self.separate_after_function();
+            if (auto r = Visitor { self, function.get_body_node() }(function.get_body()); !r) {
+                return r;
+            }
         }
 
         attempt.commit();
@@ -406,11 +442,21 @@ struct C_Cpp_Code_Generator::Visitor {
         return self.generate_type(node, type.concrete_type().value());
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Const& constant)
+    [[nodiscard]] Result<void, Generator_Error>
+    operator()(const Const& constant, Declaration_Type type = Declaration_Type::definition)
     {
         if (!self.m_options.c_23) {
             return Generator_Error { Generator_Error_Code::empty, node };
         }
+        if (type == Declaration_Type::forward) {
+            // TODO: We could actually avoid these errors sometimes by simply not emitting constants
+            // or by making the dependency breaking algorithm avoid forward declarations of
+            // constants. However, I am not even sure if this code is dead because compile-time
+            // constants being involved in circular dependencies (which would necessitate forward
+            // declarations) shouldn't really be a thing in BMS anyway.
+            return Generator_Error { Generator_Error_Code::cannot_forward_declare, node };
+        }
+
         Scoped_Attempt attempt = self.start_attempt();
         self.write_indent();
 
@@ -455,8 +501,12 @@ struct C_Cpp_Code_Generator::Visitor {
         return {};
     }
 
-    [[nodiscard]] Result<void, Generator_Error> operator()(const Static_Assert&)
+    [[nodiscard]] Result<void, Generator_Error>
+    operator()(const Static_Assert&, Declaration_Type type = Declaration_Type::definition)
     {
+        // Since static assertions cannot be the dependency of any other declaration,
+        // it seems impossible for them to be forward-declared out of necessity.
+        BIT_MANIPULATION_ASSERT(type == Declaration_Type::definition);
         return Generator_Error { Generator_Error_Code::empty, node };
     }
 
@@ -727,18 +777,17 @@ Result<void, Generator_Error> C_Cpp_Code_Generator::generate_code(const Some_Nod
     return visit(Visitor { *this, node }, *node);
 }
 
-Result<void, Generator_Error>
-generate_c_cpp_code(Code_String& out,
-                    const bms::Analyzed_Program& program,
-                    Code_Language language,
-                    [[maybe_unused]] std::pmr::memory_resource* memory,
-                    const Code_Options& options)
+Result<void, Generator_Error> generate_c_cpp_code(Code_String& out,
+                                                  const bms::Analyzed_Program& program,
+                                                  Code_Language language,
+                                                  std::pmr::memory_resource* memory,
+                                                  const Code_Options& options)
 {
     BIT_MANIPULATION_ASSERT(language == Code_Language::c || language == Code_Language::cpp);
     auto dialect = language == Code_Language::cpp ? C_Cpp_Dialect::cpp20
         : options.c_23                            ? C_Cpp_Dialect::c23
                                                   : C_Cpp_Dialect::c99;
-    return C_Cpp_Code_Generator { out, program, options, dialect }();
+    return C_Cpp_Code_Generator { out, program, memory, options, dialect }();
 }
 
 } // namespace

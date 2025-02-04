@@ -139,6 +139,8 @@ void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
                         std::span<const bmd::Edge> dependencies,
                         std::pmr::memory_resource* memory);
 
+/// @brief Like the previous overload, but gathers all dependencies on the fly using
+/// `gather_global_dependencies`.
 void break_dependencies(std::pmr::vector<bmd::Declaration>& out,
                         const bms::ast::Program& program,
                         std::pmr::memory_resource* memory);

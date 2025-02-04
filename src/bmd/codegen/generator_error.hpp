@@ -18,6 +18,9 @@ enum struct Generator_Error_Code : Default_Underlying {
     /// For example, this would happen when converting `Uint(3)` to a language that has only the
     /// traditional 8-bit, 16-bit, etc. integers.
     unsupported_integer_width,
+    /// @brief A forward declaration of a construct which cannot be forward-declared would be
+    /// necessary to generate code, such as a constant.
+    cannot_forward_declare,
     /// @brief The code construct could not be translated, and this makes the resulting code
     /// nonsensical or ill-formed.
     error
