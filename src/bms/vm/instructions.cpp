@@ -26,11 +26,12 @@ constexpr Size name_column_width = 16;
 
 struct Print_Instruction {
     Code_String& out;
+    bool ignore_debug_info = false;
 
     void operator()(const Load& i)
     {
         append_left_aligned(out, "load", Code_Span_Type::keyword, name_column_width);
-        if (!i.debug_info.name.empty()) {
+        if (!ignore_debug_info && !i.debug_info.name.empty()) {
             auto comment = out.build(Code_Span_Type::comment);
             comment.append("; ");
             comment.append(i.debug_info.name);
@@ -40,7 +41,7 @@ struct Print_Instruction {
     void operator()(const Store& i)
     {
         append_left_aligned(out, "store", Code_Span_Type::keyword, name_column_width);
-        if (!i.debug_info.name.empty()) {
+        if (!ignore_debug_info && !i.debug_info.name.empty()) {
             auto comment = out.build(Code_Span_Type::comment);
             comment.append("; ");
             comment.append(i.debug_info.name);
@@ -141,7 +142,8 @@ void print_program(Code_String& out,
         if (options.indent != 0) {
             out.append(Size(options.indent), ' ');
         }
-        visit(ins::Print_Instruction { out }, instructions[i]);
+        visit(ins::Print_Instruction { .out = out, .ignore_debug_info = options.ignore_debug_info },
+              instructions[i]);
         out.append('\n');
     }
 }

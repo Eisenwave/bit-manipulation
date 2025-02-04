@@ -22,26 +22,53 @@ struct Base {
 
 /// @brief Loads a value from `source` and pushes it onto the stack.
 struct Load : detail::Base {
+    // TODO: for the purpose of testability, come up with a more portable representation than
+    //       to store pointers to AST nodes (which makes it difficult to create test expectations)
     const void* source;
+
+    [[nodiscard]] friend bool operator==(const Load& x, const Load& y) noexcept
+    {
+        return x.source == y.source;
+    }
 };
 
 /// @brief Pops a value off the stack and stores it in `target`.
 struct Store : detail::Base {
     const void* target;
+
+    [[nodiscard]] friend bool operator==(const Store& x, const Store& y) noexcept
+    {
+        return x.target == y.target;
+    }
 };
 
 /// @brief Pushes `value` onto the stack.
 struct Push : detail::Base {
     Concrete_Value value;
+
+    [[nodiscard]] friend bool operator==(const Push& x, const Push& y) noexcept
+    {
+        return x.value == y.value;
+    }
 };
 
 /// @brief Pops a value off the stack and discards it.
-struct Pop : detail::Base { };
+struct Pop : detail::Base {
+    [[nodiscard]] friend bool operator==(const Pop&, const Pop&) noexcept
+    {
+        return true;
+    }
+};
 
 /// @brief Jumps to the local instruction at index `current + offset + 1`.
 /// At `offset == 0`, this is a no-op instruction.
 struct Relative_Jump : detail::Base {
     Signed_Size offset;
+
+    [[nodiscard]] friend bool operator==(const Relative_Jump& x, const Relative_Jump& y) noexcept
+    {
+        return x.offset == y.offset;
+    }
 };
 
 /// @brief Pops a boolean value off the stack and if it equals `expected`,
@@ -49,48 +76,99 @@ struct Relative_Jump : detail::Base {
 struct Relative_Jump_If : detail::Base {
     Signed_Size offset;
     bool expected;
+
+    [[nodiscard]] friend bool operator==(const Relative_Jump_If& x,
+                                         const Relative_Jump_If& y) noexcept
+    {
+        return x.offset == y.offset && x.expected == y.expected;
+    }
 };
 
 /// @brief Symbolic jump to one past the end of a loop.
 /// This must be converted to a `Jump` prior to evaluation.
-struct Break : detail::Base { };
+struct Break : detail::Base {
+    [[nodiscard]] friend bool operator==(const Break&, const Break&) noexcept
+    {
+        return true;
+    }
+};
 
 /// @brief Symbolic jump to the end of a loop.
 /// This must be converted to a `Jump` prior to evaluation.
-struct Continue : detail::Base { };
+struct Continue : detail::Base {
+    [[nodiscard]] friend bool operator==(const Continue&, const Continue&) noexcept
+    {
+        return true;
+    }
+};
 
 /// @brief Pops the return address off the stack and jumps the given address.
-struct Return : detail::Base { };
+struct Return : detail::Base {
+    [[nodiscard]] friend bool operator==(const Return&, const Return&) noexcept
+    {
+        return true;
+    }
+};
 
 /// @brief Pops a value off the stack, converts it to the target type, and pushes the result.
 struct Convert : detail::Base {
     Concrete_Type type;
+
+    [[nodiscard]] friend bool operator==(const Convert& x, const Convert& y) noexcept
+    {
+        return x.type == y.type;
+    }
 };
 
 /// @brief Pops a value off the stack, applies a unary operation, and pushes the result.
 struct Unary_Operate : detail::Base {
     Expression_Type op;
+
+    [[nodiscard]] friend bool operator==(const Unary_Operate& x, const Unary_Operate& y) noexcept
+    {
+        return x.op == y.op;
+    }
 };
 
 /// @brief Pops `y` off the stack. Pops `x` off the stack. Pushes `x op y`.
 struct Binary_Operate : detail::Base {
     Expression_Type op;
+
+    [[nodiscard]] friend bool operator==(const Binary_Operate& x, const Binary_Operate& y) noexcept
+    {
+        return x.op == y.op;
+    }
 };
 
 /// @brief Pushes the return address.
 // Jumps to the called function.
 struct Call : detail::Base {
     Size address;
+
+    [[nodiscard]] friend bool operator==(const Call& x, const Call& y) noexcept
+    {
+        return x.address == y.address;
+    }
 };
 
 /// @brief Symbolic function call, to be turned into `Call` later on.
 struct Symbolic_Call : detail::Base {
     const ast::Function* target;
+
+    [[nodiscard]] friend bool operator==(const Symbolic_Call& x, const Symbolic_Call& y) noexcept
+    {
+        return x.target == y.target;
+    }
 };
 
 /// @brief Pops the required parameters off the stack and calls the builtin function.
 struct Builtin_Call : detail::Base {
     Builtin_Function function;
+
+    [[nodiscard]] friend bool operator==(const Builtin_Call& x, const Builtin_Call& y) noexcept
+    {
+        return x.function == y.function;
+    }
 };
 
 } // namespace ins
@@ -116,7 +194,11 @@ struct Instruction : Instruction_Variant {
 };
 
 struct Program_Print_Options {
+    /// @brief The indentation width in spaces.
     int indent = 4;
+    /// @brief If `true`, doesn't use debug info (such as for printing additional helpful comments).
+    /// This may be necessary when printing the program when the AST is no longer alive.
+    bool ignore_debug_info = false;
 };
 
 /// @brief Prints a program, consisting of a span of instructions.
