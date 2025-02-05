@@ -199,6 +199,7 @@ else(NOT DEFINED EMSCRIPTEN)
         src/test/test_dependency_breaking.cpp
         src/test/test_parse_error.cpp
         src/test/test_to_chars.cpp
+        src/test/test_tokenization.cpp
         src/test/test_tokenize_error.cpp
         src/test/test_tribool.cpp
         src/test/test_valid_bms.cpp
