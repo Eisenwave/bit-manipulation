@@ -531,15 +531,16 @@ struct C_Cpp_Code_Generator::Visitor {
         }
 
         if (const Some_Node* else_node = statement.get_else_node()) {
+            self.write_indent();
+            self.write_keyword("else");
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
-                self.write_indent();
-                self.write_keyword("else");
-                self.write_readability_space();
+                self.m_out.append(' ');
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
             }
             else if (const Block_Statement* else_block = get_if<Block_Statement>(else_node)) {
+                self.write_readability_space();
                 if (auto r = Visitor { self, else_node }(*else_block); !r) {
                     return r;
                 }
@@ -586,7 +587,7 @@ struct C_Cpp_Code_Generator::Visitor {
         self.write_keyword(control_statement_type_code_name(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
-            if (!self.m_options.compactify || self.can_compactify(*expr)) {
+            if (!self.m_options.compactify || !self.can_compactify(*expr)) {
                 self.m_out.append(' ');
             }
             if (auto r = self.generate_code(expr); !r) {
