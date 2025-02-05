@@ -194,6 +194,7 @@ else(NOT DEFINED EMSCRIPTEN)
 
         src/test/test_analysis_error.cpp
         src/test/test_codegen.cpp
+        src/test/test_codegen_c.cpp
         src/test/test_declarations.cpp
         src/test/test_dependency_breaking.cpp
         src/test/test_parse_error.cpp

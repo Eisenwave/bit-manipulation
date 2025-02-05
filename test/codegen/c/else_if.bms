@@ -1,0 +1,6 @@
+function awoo() {
+    if true { }
+    else if true { }
+    else if false { }
+    else { }
+}

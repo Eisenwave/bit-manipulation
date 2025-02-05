@@ -1,0 +1,6 @@
+function awoo() {
+    while true {
+        break;
+        continue;
+    }
+}

@@ -1,0 +1,4 @@
+function awoo(x: Bool) {
+    if x { let i = 0; }
+    else { let j = 1; }
+}

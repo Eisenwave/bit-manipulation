@@ -1,0 +1,3 @@
+function awoo(x: Int) {
+    let y: Uint(32) = x as Uint(32);
+}
