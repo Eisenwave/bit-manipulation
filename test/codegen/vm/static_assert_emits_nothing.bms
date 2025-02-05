@@ -1,0 +1,4 @@
+static_assert(true);
+function awoo() {
+    static_assert(true);
+}

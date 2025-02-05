@@ -1,0 +1,4 @@
+function awoo(b: Bool) -> Int {
+    if b { return 1; }
+    else { return 0; }
+}

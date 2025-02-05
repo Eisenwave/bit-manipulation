@@ -1,0 +1,5 @@
+function awoo(b: Bool) {
+    while true {
+        if b { continue; }
+    }
+}
