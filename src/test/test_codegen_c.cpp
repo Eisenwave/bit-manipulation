@@ -138,7 +138,7 @@ TEST(Codegen_C, conversion)
 TEST(Codegen_C, logic)
 {
     constexpr std::string_view file = "codegen/c/logic.bms";
-    constexpr std::string_view expected = "void awoo(int x){uint32_t y=(uint32_t)x;}";
+    constexpr std::string_view expected = "_Bool awoo(_Bool x,_Bool y){return!x&&(y||!y);}";
 
     ASSERT_TRUE(run_basic_codegen_test(file, expected, { .compactify = true }));
 }
