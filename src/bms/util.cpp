@@ -145,11 +145,21 @@ namespace bit_manipulation::bms {
     return "";
 }
 
-[[nodiscard]] std::string_view token_type_code_name(Token_Type type) noexcept
+[[nodiscard]] std::string_view token_type_code_name(Token_Type type)
 {
     using enum Token_Type;
 
     switch (type) {
+    case eof:
+    case identifier:
+    case decimal_literal:
+    case octal_literal:
+    case hexadecimal_literal:
+    case binary_literal:
+    case string_literal: return "";
+
+    case left_parenthesis: return "(";
+    case right_parenthesis: return ")";
     case left_brace: return "{";
     case right_brace: return "}";
     case block_comment: return "/*";
@@ -180,6 +190,7 @@ namespace bit_manipulation::bms {
     case dot: return ".";
     case colon: return ":";
     case comma: return ",";
+    case at: return "@";
     case semicolon: return ";";
     case keyword_as: return "as";
     case keyword_let: return "let";
@@ -192,6 +203,7 @@ namespace bit_manipulation::bms {
     case keyword_int: return "Int";
     case keyword_bool: return "Bool";
     case keyword_void: return "Void";
+    case keyword_nothing: return "Nothing";
     case keyword_requires: return "requires";
     case keyword_return: return "return";
     case keyword_break: return "break";
@@ -199,8 +211,8 @@ namespace bit_manipulation::bms {
     case keyword_true: return "true";
     case keyword_false: return "false";
     case keyword_static_assert: return "static_assert";
-    default: return "";
     }
+    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
 
 [[nodiscard]] Size token_type_length(Token_Type type)
@@ -235,6 +247,7 @@ namespace bit_manipulation::bms {
     case bitwise_or:
     case bitwise_not:
     case bitwise_xor:
+    case logical_not:
     case dot:
     case colon:
     case comma:
@@ -247,14 +260,13 @@ namespace bit_manipulation::bms {
     case greater_or_equal:
     case shift_left:
     case shift_right:
+    case logical_and:
     case logical_or:
     case right_arrow:
     case double_right_arrow:
     case keyword_as:
     case keyword_if: return 2;
 
-    case logical_and:
-    case logical_not:
     case keyword_let:
     case keyword_int: return 3;
 
