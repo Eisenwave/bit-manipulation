@@ -151,6 +151,8 @@ namespace bit_manipulation::bms {
 
     switch (type) {
     case eof:
+    case block_comment:
+    case line_comment:
     case identifier:
     case decimal_literal:
     case octal_literal:
@@ -162,8 +164,6 @@ namespace bit_manipulation::bms {
     case right_parenthesis: return ")";
     case left_brace: return "{";
     case right_brace: return "}";
-    case block_comment: return "/*";
-    case line_comment: return "//";
     case assign: return "=";
     case equals: return "==";
     case not_equals: return "!=";
@@ -218,7 +218,6 @@ namespace bit_manipulation::bms {
 [[nodiscard]] Size token_type_length(Token_Type type)
 {
     using enum Token_Type;
-    BIT_MANIPULATION_ASSERT(type != eof);
 
     switch (type) {
     case eof:

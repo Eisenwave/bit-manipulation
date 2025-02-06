@@ -158,11 +158,13 @@ enum struct Token_Type : Default_Underlying {
 
 /// @brief Returns a human-readable name of a token type.
 /// For example, `token_type_name(logical_not)` returns `!`.
-/// Returns an empty string for variable-length tokens, which cannot be directly represented.
+/// Returns an empty string for variable-length tokens or `eof`,
+/// which cannot be directly represented.
 /// @param type the token type
 /// @return The in-code name.
 [[nodiscard]] std::string_view token_type_code_name(Token_Type type);
 
+/// @brief Equivalent to `token_type_code_name(type).length()`.
 [[nodiscard]] Size token_type_length(Token_Type type);
 
 /// @brief Returns the corresponding `Type_Type`.
