@@ -395,6 +395,9 @@ constexpr std::string_view note_prefix = "note:";
         return "No code was generated for this code construct.";
     case unsupported_integer_width: //
         return "An integer with an unsupported width was requested.";
+    case cannot_forward_declare: //
+        return "This entity cannot be forward-declared, "
+               "but its forward declaration is necessary to break a dependency cycle.";
     case error: //
         return "This code construct is untranslatable to the target language.";
     }
