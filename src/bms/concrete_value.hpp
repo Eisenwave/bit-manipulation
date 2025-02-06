@@ -29,7 +29,7 @@ public:
         return { Concrete_Type::Int, value };
     }
 
-    [[nodiscard]] constexpr Concrete_Value(Concrete_Type type, Big_Int value)
+    [[nodiscard]] constexpr Concrete_Value(const Concrete_Type& type, Big_Int value)
         : type(type)
         , int_value(value)
     {
