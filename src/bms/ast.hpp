@@ -467,7 +467,7 @@ public:
             if (concrete_width) {
                 return Concrete_Type::Uint(*concrete_width);
             }
-            return std::nullopt;
+            return {};
         }
         // For anything but UInt, why would concrete_width be set?
         BIT_MANIPULATION_ASSERT(!concrete_width);

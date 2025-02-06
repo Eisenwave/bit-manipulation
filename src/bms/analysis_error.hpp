@@ -283,12 +283,12 @@ public:
         return result ? *result : std::optional<Annotation_Parameter_Wrong_Argument> {};
     }
 
-    [[nodiscard]] const std::optional<Concrete_Type> type() const
+    [[nodiscard]] const std::optional<Concrete_Type>& type() const
     {
         return m_type;
     }
 
-    [[nodiscard]] const std::optional<Value> value() const
+    [[nodiscard]] const std::optional<Value>& value() const
     {
         return m_value;
     }

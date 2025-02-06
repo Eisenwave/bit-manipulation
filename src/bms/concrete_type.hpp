@@ -42,7 +42,8 @@ public:
         BIT_MANIPULATION_ASSERT(type != Type_Type::Uint || (width > 0 && width <= uint_max_width));
     }
 
-    [[nodiscard]] friend constexpr bool operator<=>(Concrete_Type, Concrete_Type) = default;
+    [[nodiscard]] friend constexpr bool operator<=>(const Concrete_Type&, const Concrete_Type&)
+        = default;
 
     /// @brief Returns the type of this type.
     /// @return The type-type.
@@ -58,7 +59,7 @@ public:
         return m_width;
     }
 
-    [[nodiscard]] constexpr bool is_convertible_to(Concrete_Type other) const noexcept
+    [[nodiscard]] constexpr bool is_convertible_to(const Concrete_Type& other) const noexcept
     {
         return *this == other || (other.m_type == Type_Type::Uint && m_type == Type_Type::Int);
     }
@@ -86,7 +87,7 @@ public:
 
     // TODO: this is somewhat misleading for Uint types, since they cannot actually represent
     //       negatives
-    [[nodiscard]] constexpr bool can_represent(Big_Int value) const noexcept
+    [[nodiscard]] constexpr bool can_represent(const Big_Int& value) const noexcept
     {
         return m_type != Type_Type::Nothing && m_type != Type_Type::Void
             && (Big_Uint(value) & ~get_mask()) == 0;

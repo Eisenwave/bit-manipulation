@@ -77,7 +77,7 @@ public:
         return !is_known();
     }
 
-    [[nodiscard]] Concrete_Type get_type() const
+    [[nodiscard]] const Concrete_Type& get_type() const
     {
         return m_type;
     }

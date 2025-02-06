@@ -556,7 +556,7 @@ private:
         auto expr_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expr_value.has_value());
 
-        const Concrete_Type dest_type = looked_up_var.const_value().value().get_type();
+        const Concrete_Type& dest_type = looked_up_var.const_value()->get_type();
         if (!expr_value->get_type().is_convertible_to(dest_type)) {
             return Analysis_Error_Builder { Analysis_Error_Code::incompatible_types }
                 .fail(handle)
@@ -607,7 +607,7 @@ private:
         const auto& expression_value = get_const_value(*node.get_expression_node());
         BIT_MANIPULATION_ASSERT(expression_value);
 
-        std::optional<Concrete_Type> type = target_type.concrete_type();
+        const std::optional<Concrete_Type> type = target_type.concrete_type();
         BIT_MANIPULATION_ASSERT(type);
 
         if (!expression_value->get_type().is_convertible_to(*type)) {
@@ -633,7 +633,7 @@ private:
         if (auto r = analyze_types(node.get_condition_node(), level, context); !r) {
             return r;
         }
-        auto condition_value = get_const_value(*node.get_condition_node());
+        const auto& condition_value = get_const_value(*node.get_condition_node());
         if (condition_value->get_type() != Concrete_Type::Bool) {
             return Analysis_Error_Builder { Analysis_Error_Code::condition_not_bool }
                 .fail(handle)
@@ -924,7 +924,7 @@ private:
         }
 
         BIT_MANIPULATION_ASSERT(function->analysis_so_far >= inner_level);
-        const Concrete_Type return_type = function->const_value()->get_type();
+        const Concrete_Type& return_type = function->const_value()->get_type();
 
         // 6. Check whether the function can be called with the given arguments and obtain
         //    concrete values for the parameters if need be.

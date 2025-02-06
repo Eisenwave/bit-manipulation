@@ -8,8 +8,8 @@
 
 namespace bit_manipulation::bms {
 
-[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> get_common_type(Concrete_Type lhs,
-                                                                         Concrete_Type rhs)
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> get_common_type(const Concrete_Type& lhs,
+                                                                         const Concrete_Type& rhs)
 {
     if (lhs == rhs) {
         return lhs;
@@ -151,8 +151,8 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 
 // TYPE ============================================================================================
 
-[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code> check_unary_operator(Expression_Type op,
-                                                                              Concrete_Type value)
+[[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
+check_unary_operator(Expression_Type op, const Concrete_Type& value)
 {
     if (!is_prefix_unary(op)) {
         return Analysis_Error_Code::invalid_operator;
@@ -196,19 +196,22 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, const R& args)
 }
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
-check_binary_operator(Concrete_Type lhs, Expression_Type op, Concrete_Type rhs)
+check_binary_operator(const Concrete_Type& lhs_input,
+                      Expression_Type op,
+                      const Concrete_Type& rhs_input)
 {
     if (!is_binary(op)) {
         return Analysis_Error_Code::invalid_operator;
     }
-    if (lhs.type() == Type_Type::Void || rhs.type() == Type_Type::Void) {
+    if (lhs_input.type() == Type_Type::Void || rhs_input.type() == Type_Type::Void) {
         return Analysis_Error_Code::void_operation;
     }
-    Result<Concrete_Type, Analysis_Error_Code> common = get_common_type(lhs, rhs);
+    Result<Concrete_Type, Analysis_Error_Code> common = get_common_type(lhs_input, rhs_input);
     if (!common) {
         return common.error();
     }
-    lhs = rhs = *common;
+    const Concrete_Type lhs = *common;
+    const Concrete_Type rhs = *common;
 
     switch (lhs.type()) {
 
@@ -254,7 +257,9 @@ check_binary_operator(Concrete_Type lhs, Expression_Type op, Concrete_Type rhs)
 }
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
-check_if_expression(Concrete_Type lhs, Concrete_Type condition, Concrete_Type rhs)
+check_if_expression(const Concrete_Type& lhs,
+                    const Concrete_Type& condition,
+                    const Concrete_Type& rhs)
 {
     if (condition != Concrete_Type::Bool) {
         return Analysis_Error_Code::condition_not_bool;
@@ -289,13 +294,13 @@ check_builtin_function(Builtin_Function f, std::span<const Value> args)
 // CONCRETE VALUE ==================================================================================
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_conversion(Concrete_Value value, Concrete_Type to)
+evaluate_conversion(const Concrete_Value& value, const Concrete_Type& to)
 {
     return value.convert_to(to, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_unary_operator(Expression_Type op, Concrete_Value value)
+evaluate_unary_operator(Expression_Type op, const Concrete_Value& value)
 {
     if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.type); !r) {
         return Evaluation_Error_Code::type_error;
@@ -338,14 +343,18 @@ evaluate_unary_operator(Expression_Type op, Concrete_Value value)
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_binary_operator(Concrete_Value lhs, Expression_Type op, Concrete_Value rhs)
+evaluate_binary_operator(const Concrete_Value& lhs_input,
+                         Expression_Type op,
+                         const Concrete_Value& rhs_input)
 {
     Result<Concrete_Type, Analysis_Error_Code> target_type
-        = check_binary_operator(lhs.type, op, rhs.type);
+        = check_binary_operator(lhs_input.type, op, rhs_input.type);
     if (!target_type) {
         return Evaluation_Error_Code::type_error;
     }
 
+    Concrete_Value lhs = lhs_input;
+    Concrete_Value rhs = rhs_input;
     if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
         return r.error();
     }
@@ -457,7 +466,9 @@ evaluate_binary_operator(Concrete_Value lhs, Expression_Type op, Concrete_Value 
 }
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
-evaluate_if_expression(Concrete_Value lhs, Concrete_Value condition, Concrete_Value rhs)
+evaluate_if_expression(const Concrete_Value& lhs,
+                       Concrete_Value condition,
+                       const Concrete_Value& rhs)
 {
     Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_if_expression(lhs.type, condition.type, rhs.type);
@@ -480,14 +491,14 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 
 // VALUE ===========================================================================================
 
-[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(Value value,
-                                                                       Concrete_Type to)
+[[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_conversion(const Value& value,
+                                                                       const Concrete_Type& to)
 {
     return value.convert_to(to, Conversion_Type::lossless_numeric);
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code> evaluate_unary_operator(Expression_Type op,
-                                                                           Value value)
+                                                                           const Value& value)
 {
     if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.get_type());
         !r) {
@@ -500,13 +511,15 @@ evaluate_builtin_function(Builtin_Function f, std::span<const Concrete_Value> ar
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
-evaluate_binary_operator(Value lhs, Expression_Type op, Value rhs)
+evaluate_binary_operator(const Value& lhs_input, Expression_Type op, const Value& rhs_input)
 {
     const Result<Concrete_Type, Analysis_Error_Code> type_result
-        = check_binary_operator(lhs.get_type(), op, rhs.get_type());
+        = check_binary_operator(lhs_input.get_type(), op, rhs_input.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
+    Value lhs = lhs_input;
+    Value rhs = rhs_input;
     if (Result<void, Evaluation_Error_Code> r = convert_to_equal_type(lhs, rhs); !r) {
         return r.error();
     }
@@ -531,7 +544,7 @@ evaluate_binary_operator(Value lhs, Expression_Type op, Value rhs)
 }
 
 [[nodiscard]] Result<Value, Evaluation_Error_Code>
-evaluate_if_expression(Value lhs, Value condition, Value rhs)
+evaluate_if_expression(const Value& lhs, const Value& condition, const Value& rhs)
 {
     Result<Concrete_Type, Analysis_Error_Code> type_result
         = check_if_expression(lhs.get_type(), condition.get_type(), rhs.get_type());
