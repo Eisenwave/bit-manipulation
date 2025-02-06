@@ -80,79 +80,121 @@ TEST(Codegen, empty)
 
     ASSERT_TRUE(
         run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::bms, expected, { .compactify = true }));
 }
 
 TEST(Codegen, void_function)
 {
     constexpr std::string_view file = "codegen/c/void_function.bms";
-    constexpr std::string_view expected = "void awoo(void){}";
+    constexpr std::string_view expected_c = "void awoo(void){}";
+    constexpr std::string_view expected_bms = "function awoo(){}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
+}
+
+TEST(Codegen, void_function_explict_return_types)
+{
+    constexpr std::string_view file = "codegen/c/void_function.bms";
+    constexpr std::string_view expected_bms = "function awoo()->Void{}";
+
+    ASSERT_TRUE(run_basic_codegen_test(
+        file, bmd::Code_Language::bms, expected_bms,
+        { .compactify = true, .return_types = bmd::Return_Type_Policy::always }));
 }
 
 TEST(Codegen, if_statement)
 {
     constexpr std::string_view file = "codegen/c/if_statement.bms";
-    constexpr std::string_view expected = "void awoo(_Bool x){if(x){int i=0;}else{int j=1;}}";
+    constexpr std::string_view expected_c99 = "void awoo(_Bool x){if(x){int i=0;}else{int j=1;}}";
+    constexpr std::string_view expected_c23 = "void awoo(bool x){if(x){int i=0;}else{int j=1;}}";
+    constexpr std::string_view expected_bms = "function awoo(x:Bool){if x{let i=0;}else{let j=1;}}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c99, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::c, expected_c23,
+                                       { .compactify = true, .c_23 = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, else_if)
 {
     constexpr std::string_view file = "codegen/c/else_if.bms";
-    constexpr std::string_view expected
+    constexpr std::string_view expected_c
         = "void awoo(void){if(true){}else if(true){}else if(false){}else{}}";
+    constexpr std::string_view expected_bms
+        = "function awoo(){if true{}else if true{}else if false{}else{}}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, while_loop)
 {
     constexpr std::string_view file = "codegen/c/while_loop.bms";
-    constexpr std::string_view expected = "void awoo(void){while(true){break;continue;}}";
+    constexpr std::string_view expected_c = "void awoo(void){while(true){break;continue;}}";
+    constexpr std::string_view expected_bms = "function awoo(){while true{break;continue;}}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, return_zero)
 {
     constexpr std::string_view file = "codegen/c/return_zero.bms";
-    constexpr std::string_view expected = "int awoo(void){return 0;}";
+    constexpr std::string_view expected_c = "int awoo(void){return 0;}";
+    constexpr std::string_view expected_bms = "function awoo()->Int{return 0;}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, min)
 {
     constexpr std::string_view file = "codegen/c/min.bms";
-    constexpr std::string_view expected = "int min(int x,int y){return y<x?y:x;}";
+    constexpr std::string_view expected_c = "int min(int x,int y){return y<x?y:x;}";
+    constexpr std::string_view expected_bms
+        = "function min(x:Int,y:Int)->Int{return y if y<x else x;}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, conversion)
 {
     constexpr std::string_view file = "codegen/c/conversion.bms";
-    constexpr std::string_view expected = "void awoo(int x){uint32_t y=(uint32_t)x;}";
+    constexpr std::string_view expected_c = "void awoo(int x){uint32_t y=(uint32_t)x;}";
+    constexpr std::string_view expected_bms = "function awoo(x:Int){let y:Uint(32)=x as Uint(32);}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 TEST(Codegen, logic)
 {
     constexpr std::string_view file = "codegen/c/logic.bms";
-    constexpr std::string_view expected = "_Bool awoo(_Bool x,_Bool y){return!x&&(y||!y);}";
+    constexpr std::string_view expected_c = "_Bool awoo(_Bool x,_Bool y){return!x&&(y||!y);}";
+    constexpr std::string_view expected_bms
+        = "function awoo(x:Bool,y:Bool)->Bool{return!x&&(y||!y);}";
 
     ASSERT_TRUE(
-        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected_c, { .compactify = true }));
+    ASSERT_TRUE(run_basic_codegen_test(file, bmd::Code_Language::bms, expected_bms,
+                                       { .compactify = true }));
 }
 
 // More rigorous testing of the dependency breaking mechanism can be found elsewhere.
