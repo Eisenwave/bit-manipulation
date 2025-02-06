@@ -57,8 +57,8 @@ private:
 public:
     /// @brief Constructs a known (concrete) `Value` from the given `value`.
     [[nodiscard]] constexpr Value(Concrete_Value value)
-        : m_type(value.type)
-        , m_int_value(value.int_value)
+        : m_type(value.get_type())
+        , m_int_value(value.as_int())
         , m_known(true)
     {
     }

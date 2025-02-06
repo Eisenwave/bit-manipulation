@@ -147,7 +147,7 @@ struct C_Cpp_Type {
 
 void append_value(Code_String& out, const bms::Concrete_Value& v)
 {
-    switch (v.type.type()) {
+    switch (v.get_type().type()) {
     case bms::Type_Type::Void: //
         out.append('(', Code_Span_Type::bracket);
         out.append("void", Code_Span_Type::keyword);
@@ -155,13 +155,14 @@ void append_value(Code_String& out, const bms::Concrete_Value& v)
         out.append('0', Code_Span_Type::number);
         break;
     case bms::Type_Type::Bool:
-        out.append(v.int_value ? "true" : "false", Code_Span_Type::boolean_literal);
+        out.append(v == bms::Concrete_Value::True ? "true" : "false",
+                   Code_Span_Type::boolean_literal);
         break;
     case bms::Type_Type::Int: //
-        out.append_integer(v.int_value, Code_Span_Type::number);
+        out.append_integer(v.as_int(), Code_Span_Type::number);
         break;
     case bms::Type_Type::Uint: //
-        out.append_integer(Big_Uint(v.int_value), Code_Span_Type::number);
+        out.append_integer(v.as_uint(), Code_Span_Type::number);
         break;
     default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");
     }

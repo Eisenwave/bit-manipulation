@@ -72,7 +72,7 @@ struct Cycle_Impl {
         }
         Concrete_Value actual = self.m_stack.back();
         self.m_stack.pop_back();
-        if (actual.type != Concrete_Type::Bool) {
+        if (actual.get_type() != Concrete_Type::Bool) {
             return Execution_Error { Execution_Error_Code::jump_if_not_bool, jump_if.debug_info };
         }
         if (Signed_Size(self.m_instruction_counter) + jump_if.offset + 1
@@ -82,7 +82,7 @@ struct Cycle_Impl {
         }
         self.m_instruction_counter
             = Size(Signed_Size(self.m_instruction_counter + 1)
-                   + (jump_if.expected == bool(actual.int_value) ? jump_if.offset : 0));
+                   + (jump_if.expected == bool(actual.as_int()) ? jump_if.offset : 0));
         return {};
     }
 
@@ -92,7 +92,7 @@ struct Cycle_Impl {
         if (!return_address) {
             return Execution_Error { Execution_Error_Code::pop_call, ret.debug_info };
         }
-        self.m_instruction_counter = static_cast<Size>(return_address->int_value);
+        self.m_instruction_counter = static_cast<Size>(return_address->as_int());
         return {};
     }
 
@@ -187,7 +187,7 @@ struct Cycle_Impl {
             return error;
         }
         self.m_stack.resize(self.m_stack.size() - params);
-        if (!result->type.is_monostate()) {
+        if (!result->get_type().is_monostate()) {
             self.m_stack.push_back(*result);
         }
         ++self.m_instruction_counter;

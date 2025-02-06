@@ -94,7 +94,7 @@ void append_compared_value(Code_String& out, bms::Concrete_Value v)
 {
     constexpr auto span_type = Code_Span_Type::diagnostic_operand;
 
-    switch (v.type.type()) {
+    switch (v.get_type().type()) {
     case bms::Type_Type::Nothing: //
         out.append("Nothing", span_type);
         return;
@@ -102,13 +102,13 @@ void append_compared_value(Code_String& out, bms::Concrete_Value v)
         out.append("Void", span_type);
         return;
     case bms::Type_Type::Bool: //
-        out.append(v.int_value ? "true" : "false", span_type);
+        out.append(v.as_int() ? "true" : "false", span_type);
         return;
     case bms::Type_Type::Int: //
-        out.append_integer(v.int_value, span_type);
+        out.append_integer(v.as_int(), span_type);
         return;
     case bms::Type_Type::Uint: //
-        out.append_integer(Big_Uint(v.int_value), span_type);
+        out.append_integer(v.as_uint(), span_type);
         return;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type");

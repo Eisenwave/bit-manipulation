@@ -28,21 +28,11 @@ namespace bit_manipulation::bms {
 
 namespace {
 
-Concrete_Type get_type(const Concrete_Value& v)
-{
-    return v.type;
-}
-
-Concrete_Type get_type(const Value& v)
-{
-    return v.get_type();
-}
-
 template <typename T>
 [[nodiscard]] Result<void, Evaluation_Error_Code> convert_to_equal_type_impl(T& lhs, T& rhs)
 {
     const Result<Concrete_Type, Analysis_Error_Code> common
-        = get_common_type(get_type(lhs), get_type(rhs));
+        = get_common_type(lhs.get_type(), rhs.get_type());
     if (!common) {
         return Evaluation_Error_Code::type_error;
     }
@@ -117,7 +107,7 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
     static_assert(std::same_as<std::iter_value_t<Iter>, Concrete_Value>);
 
     const auto types
-        = std::ranges::subrange(begin, end) | std::views::transform(&Concrete_Value::type);
+        = std::ranges::subrange(begin, end) | std::views::transform(&Concrete_Value::get_type);
 
     Result<Concrete_Type, Analysis_Error_Code> type_result = check_builtin_function_impl(f, types);
     if (!type_result) {
@@ -126,7 +116,7 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 
     switch (f) {
     case Builtin_Function::assert: {
-        if (begin[0].int_value != 1) {
+        if (begin[0].as_int() != 1) {
             return Evaluation_Error_Code::assertion_fail;
         }
         return Concrete_Value::Void;
@@ -281,7 +271,7 @@ check_builtin_function(Builtin_Function f, std::span<const Concrete_Type> args)
 check_builtin_function(Builtin_Function f, std::span<const Concrete_Value> args)
 {
     return check_builtin_function_impl(
-        f, args | std::views::transform([](const Concrete_Value& v) { return v.type; }));
+        f, args | std::views::transform([](const Concrete_Value& v) { return v.get_type(); }));
 }
 
 [[nodiscard]] Result<Concrete_Type, Analysis_Error_Code>
@@ -302,15 +292,16 @@ evaluate_conversion(const Concrete_Value& value, const Concrete_Type& to)
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_unary_operator(Expression_Type op, const Concrete_Value& value)
 {
-    if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.type); !r) {
+    if (Result<Concrete_Type, Analysis_Error_Code> r = check_unary_operator(op, value.get_type());
+        !r) {
         return Evaluation_Error_Code::type_error;
     }
 
-    switch (value.type.type()) {
+    switch (value.get_type().type()) {
 
     case Type_Type::Bool: {
         if (op == Expression_Type::logical_not) {
-            return Concrete_Value { Concrete_Type::Bool, value.int_value ^ 1 };
+            return Concrete_Value { Concrete_Type::Bool, value.as_int() ^ 1 };
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
@@ -320,7 +311,7 @@ evaluate_unary_operator(Expression_Type op, const Concrete_Value& value)
             return value;
         }
         if (op == Expression_Type::unary_minus) {
-            return Concrete_Value { Concrete_Type::Int, -value.int_value };
+            return Concrete_Value { Concrete_Type::Int, -value.as_int() };
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Int operation not caught by type-check.");
     }
@@ -348,7 +339,7 @@ evaluate_binary_operator(const Concrete_Value& lhs_input,
                          const Concrete_Value& rhs_input)
 {
     Result<Concrete_Type, Analysis_Error_Code> target_type
-        = check_binary_operator(lhs_input.type, op, rhs_input.type);
+        = check_binary_operator(lhs_input.get_type(), op, rhs_input.get_type());
     if (!target_type) {
         return Evaluation_Error_Code::type_error;
     }
@@ -359,50 +350,51 @@ evaluate_binary_operator(const Concrete_Value& lhs_input,
         return r.error();
     }
 
-    BIT_MANIPULATION_ASSERT(lhs.type == rhs.type);
+    BIT_MANIPULATION_ASSERT(lhs.get_type() == rhs.get_type());
 
     const auto compare_uint = [&lhs, &rhs](bool f(Big_Uint, Big_Uint)) -> Concrete_Value {
-        const Big_Int result = Big_Int(f(Big_Uint(lhs.int_value), Big_Uint(rhs.int_value)));
+        const Big_Int result = Big_Int(f(lhs.as_uint(), rhs.as_uint()));
         return Concrete_Value { Concrete_Type::Bool, result };
     };
 
     const auto transform_uint = [&lhs, &rhs](Big_Uint f(Big_Uint, Big_Uint)) -> Concrete_Value {
-        Big_Uint result = f(Big_Uint(lhs.int_value), Big_Uint(rhs.int_value));
-        if (lhs.type.width() != std::numeric_limits<Big_Uint>::digits) {
-            result &= (Big_Uint(1) << rhs.type.width()) - 1;
+        Big_Uint result = f(lhs.as_uint(), rhs.as_uint());
+        if (lhs.get_type().width() != std::numeric_limits<Big_Uint>::digits) {
+            result &= (Big_Uint(1) << rhs.get_type().width()) - 1;
         }
-        return Concrete_Value { lhs.type, Big_Int(result) };
+        return Concrete_Value { lhs.get_type(), Big_Int(result) };
     };
 
-    if (lhs.type.is_integer()) {
+    if (lhs.get_type().is_integer()) {
         switch (op) {
         case Expression_Type::division:
         case Expression_Type::remainder: {
-            if (rhs.int_value == 0) {
+            if (rhs.as_int() == 0) {
                 return Evaluation_Error_Code::division_by_zero;
             }
             return op == Expression_Type::division
-                ? Concrete_Value { lhs.type, lhs.int_value / rhs.int_value }
-                : Concrete_Value { lhs.type, lhs.int_value % rhs.int_value };
+                ? Concrete_Value { lhs.get_type(), lhs.as_int() / rhs.as_int() }
+                : Concrete_Value { lhs.get_type(), lhs.as_int() % rhs.as_int() };
         }
         // Relational comparisons don't simply check for bit-equality, so they cannot be handled
         // commonly for both.
         case Expression_Type::equals: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value == rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() == rhs.as_int());
         case Expression_Type::not_equals: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value != rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() != rhs.as_int());
+
         default: break;
         }
     }
 
-    switch (lhs.type.type()) {
+    switch (lhs.get_type().type()) {
         using enum Expression_Type;
     case Type_Type::Bool: {
         if (op == logical_and) {
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value && rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() && rhs.as_int());
         }
         if (op == logical_or) {
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value || rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() || rhs.as_int());
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
@@ -410,19 +402,19 @@ evaluate_binary_operator(const Concrete_Value& lhs_input,
     case Type_Type::Int: {
         switch (op) {
         case less_than: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value < rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() < rhs.as_int());
         case greater_than: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value > rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() > rhs.as_int());
         case less_or_equal: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value <= rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() <= rhs.as_int());
         case greater_or_equal: //
-            return Concrete_Value { Concrete_Type::Bool, Big_Int(lhs.int_value >= rhs.int_value) };
+            return Concrete_Value::Bool(lhs.as_int() >= rhs.as_int());
         case binary_plus: //
-            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value + rhs.int_value) };
+            return Concrete_Value::Int(lhs.as_int() + rhs.as_int());
         case binary_minus: //
-            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value - rhs.int_value) };
+            return Concrete_Value::Int(lhs.as_int() - rhs.as_int());
         case multiplication: //
-            return Concrete_Value { Concrete_Type::Int, Big_Int(lhs.int_value * rhs.int_value) };
+            return Concrete_Value::Int(lhs.as_int() * rhs.as_int());
         default:
             BIT_MANIPULATION_ASSERT_UNREACHABLE(
                 "Unsupported Int operation not caught by type-check.");
@@ -467,15 +459,15 @@ evaluate_binary_operator(const Concrete_Value& lhs_input,
 
 [[nodiscard]] Result<Concrete_Value, Evaluation_Error_Code>
 evaluate_if_expression(const Concrete_Value& lhs,
-                       Concrete_Value condition,
+                       const Concrete_Value& condition,
                        const Concrete_Value& rhs)
 {
     Result<Concrete_Type, Analysis_Error_Code> type_result
-        = check_if_expression(lhs.type, condition.type, rhs.type);
+        = check_if_expression(lhs.get_type(), condition.get_type(), rhs.get_type());
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    return (condition.int_value ? lhs : rhs)
+    return (condition.as_int() ? lhs : rhs)
         .convert_to(*type_result, Conversion_Type::lossless_numeric);
 }
 

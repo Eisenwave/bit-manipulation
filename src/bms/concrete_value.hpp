@@ -18,8 +18,9 @@ enum struct Conversion_Type : Default_Underlying {
 };
 
 struct Concrete_Value {
-    Concrete_Type type;
-    Big_Int int_value;
+private:
+    Concrete_Type m_type;
+    Big_Int m_int_value;
 
 public:
     static const Concrete_Value Nothing, Void, True, False;
@@ -29,9 +30,14 @@ public:
         return { Concrete_Type::Int, value };
     }
 
+    [[nodiscard]] static constexpr Concrete_Value Bool(bool value) noexcept
+    {
+        return { Concrete_Type::Bool, Big_Int(value) };
+    }
+
     [[nodiscard]] constexpr Concrete_Value(const Concrete_Type& type, Big_Int value)
-        : type(type)
-        , int_value(value)
+        : m_type(type)
+        , m_int_value(value)
     {
     }
 
@@ -44,19 +50,34 @@ public:
                                                           const Concrete_Value&)
         = default;
 
+    [[nodiscard]] constexpr const Concrete_Type& get_type() const
+    {
+        return m_type;
+    }
+
+    [[nodiscard]] constexpr Big_Int as_int() const
+    {
+        return m_int_value;
+    }
+
+    [[nodiscard]] constexpr Big_Uint as_uint() const
+    {
+        return Big_Uint(m_int_value);
+    }
+
     [[nodiscard]] constexpr Result<Concrete_Value, Evaluation_Error_Code>
     convert_to(const Concrete_Type& other, Conversion_Type conversion) const
     {
-        if (type == other) {
+        if (m_type == other) {
             return *this;
         }
-        if (!type.is_convertible_to(other)) {
+        if (!m_type.is_convertible_to(other)) {
             return Evaluation_Error_Code::type_error;
         }
         if (other.is_uint()) {
-            const auto truncated = Big_Uint(int_value) & other.get_mask();
+            const auto truncated = Big_Uint(m_int_value) & other.get_mask();
             if (conversion == Conversion_Type::lossless_numeric
-                && truncated != Big_Uint(int_value)) {
+                && truncated != Big_Uint(m_int_value)) {
                 return Evaluation_Error_Code::int_to_uint_range_error;
             }
             return Concrete_Value { other, Big_Int(truncated) };
@@ -66,9 +87,9 @@ public:
 
     [[nodiscard]] constexpr Concrete_Value transform_uint(Big_Uint f(Big_Uint)) const
     {
-        BIT_MANIPULATION_ASSERT(type.is_uint());
-        const auto mask = Big_Uint(Big_Uint(1) << type.width()) - 1;
-        return { type, Big_Int(Big_Uint(f(Big_Uint(int_value))) & mask) };
+        BIT_MANIPULATION_ASSERT(m_type.is_uint());
+        const auto mask = Big_Uint(Big_Uint(1) << m_type.width()) - 1;
+        return { m_type, Big_Int(Big_Uint(f(Big_Uint(m_int_value))) & mask) };
     }
 };
 

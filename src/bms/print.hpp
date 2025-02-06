@@ -26,19 +26,19 @@ inline void print_bool(Code_String& out, bool value)
 
 inline void print_value(Code_String& out, const Concrete_Value& value)
 {
-    switch (Type_Type type = value.type.type()) {
+    switch (Type_Type type = value.get_type().type()) {
     case Type_Type::Nothing:
     case Type_Type::Void: //
         out.append(type_type_name(type), Code_Span_Type::type_name);
         return;
     case Type_Type::Bool: //
-        print_bool(out, value.int_value);
+        print_bool(out, value.as_int());
         return;
     case Type_Type::Int: //
-        out.append_integer(value.int_value, Code_Span_Type::number);
+        out.append_integer(value.as_int(), Code_Span_Type::number);
         return;
     case Type_Type::Uint: //
-        out.append_integer(Big_Uint(value.int_value), Code_Span_Type::number);
+        out.append_integer(value.as_uint(), Code_Span_Type::number);
         return;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("value has unknown type.");
