@@ -18,6 +18,8 @@ private:
     bool m_known;
 
 public:
+    /// @brief Known value of type `Nothing`.
+    static const Value Nothing;
     /// @brief Known value of type `Void`.
     static const Value Void;
     /// @brief Known `true` constant.
@@ -167,6 +169,7 @@ public:
     }
 };
 
+inline constexpr Value Value::Nothing { Concrete_Type::Nothing, 0 };
 inline constexpr Value Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Value Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Value Value::False { Concrete_Type::Bool, 0 };

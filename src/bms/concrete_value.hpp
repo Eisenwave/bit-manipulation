@@ -22,7 +22,8 @@ struct Concrete_Value {
     Big_Int int_value;
 
 public:
-    static const Concrete_Value Void, True, False;
+    static const Concrete_Value Nothing, Void, True, False;
+
     [[nodiscard]] static constexpr Concrete_Value Int(Big_Int value) noexcept
     {
         return { Concrete_Type::Int, value };
@@ -71,6 +72,7 @@ public:
     }
 };
 
+inline constexpr Concrete_Value Concrete_Value::Nothing { Concrete_Type::Nothing, 0 };
 inline constexpr Concrete_Value Concrete_Value::Void { Concrete_Type::Void, 0 };
 inline constexpr Concrete_Value Concrete_Value::True { Concrete_Type::Bool, 1 };
 inline constexpr Concrete_Value Concrete_Value::False { Concrete_Type::Bool, 0 };
