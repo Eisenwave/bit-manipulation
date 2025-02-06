@@ -45,7 +45,7 @@ public:
         = default;
 
     [[nodiscard]] constexpr Result<Concrete_Value, Evaluation_Error_Code>
-    convert_to(Concrete_Type other, Conversion_Type conversion) const
+    convert_to(const Concrete_Type& other, Conversion_Type conversion) const
     {
         if (type == other) {
             return *this;

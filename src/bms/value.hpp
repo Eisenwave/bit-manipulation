@@ -116,7 +116,7 @@ public:
     /// @param other the type to convert to
     /// @param conversion the type of conversion
     /// @return the converted value or error code
-    constexpr Result<Value, Evaluation_Error_Code> convert_to(Concrete_Type other,
+    constexpr Result<Value, Evaluation_Error_Code> convert_to(const Concrete_Type& other,
                                                               Conversion_Type conversion) const
     {
         if (!m_type.is_convertible_to(other)) {
