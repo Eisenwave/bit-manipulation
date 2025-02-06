@@ -31,21 +31,21 @@ private:
 public:
     Parameter(const astp::Parameter& parsed, std::string_view file);
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
     }
 
-    std::optional<Source_Span> get_position() const
+    [[nodiscard]] std::optional<Source_Span> get_position() const
     {
         return m_position;
     }
 
-    ast::Some_Node* get_type_node()
+    [[nodiscard]] ast::Some_Node* get_type_node()
     {
         return m_type;
     }
-    const ast::Some_Node* get_type_node() const
+    [[nodiscard]] const ast::Some_Node* get_type_node() const
     {
         return m_type;
     }
@@ -54,8 +54,8 @@ public:
         m_type = node;
     }
 
-    ast::Type& get_type();
-    const ast::Type& get_type() const;
+    [[nodiscard]] ast::Type& get_type();
+    [[nodiscard]] const ast::Type& get_type() const;
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
@@ -66,7 +66,7 @@ public:
 namespace ast {
 namespace detail {
 
-struct Annotations {
+struct [[nodiscard]] Annotations {
 private:
     std::span<const astp::Handle> m_parsed;
     std::pmr::vector<Annotation> m_concrete {};
@@ -85,7 +85,7 @@ public:
     friend Resolve_Annotations;
 };
 
-struct Node_Base {
+struct [[nodiscard]] Node_Base {
 public:
     [[nodiscard]] static Node_Base make_builtin() noexcept
     {
@@ -113,33 +113,33 @@ protected:
     explicit Node_Base(Some_Node& parent, const Source_Span& pos, std::optional<Value> value = {});
 
 public:
-    std::optional<Source_Span> get_position() const
+    [[nodiscard]] std::optional<Source_Span> get_position() const
     {
         return m_position;
     }
 
-    std::optional<Value>& const_value()
+    [[nodiscard]] std::optional<Value>& const_value()
     {
         return m_const_value;
     }
 
-    const std::optional<Value>& const_value() const
+    [[nodiscard]] const std::optional<Value>& const_value() const
     {
         return m_const_value;
     }
 
     /// @brief Returns `true` if semantic analysis was completed for this node.
-    bool was_analyzed() const
+    [[nodiscard]] bool was_analyzed() const
     {
         return m_const_value.has_value();
     }
 
-    Some_Node* get_parent()
+    [[nodiscard]] Some_Node* get_parent()
     {
         return m_parent;
     }
 
-    const Some_Node* get_parent() const
+    [[nodiscard]] const Some_Node* get_parent() const
     {
         return m_parent;
     }
@@ -152,7 +152,7 @@ public:
 };
 
 template <int N>
-struct Parent {
+struct [[nodiscard]] Parent {
 protected:
     Some_Node* m_children[N] {};
 
@@ -174,12 +174,12 @@ public:
 template <>
 struct Parent<0> {
 
-    std::span<Some_Node*> get_children()
+    [[nodiscard]] std::span<Some_Node*> get_children()
     {
         return {};
     }
 
-    std::span<const Some_Node* const> get_children() const
+    [[nodiscard]] std::span<const Some_Node* const> get_children() const
     {
         return {};
     }
@@ -197,7 +197,7 @@ struct Parent<0> {
     }
 };
 
-struct Dynamic_Parent {
+struct [[nodiscard]] Dynamic_Parent {
 protected:
     std::pmr::vector<Some_Node*> m_children;
 
@@ -207,9 +207,9 @@ public:
     {
     }
 
-    std::span<Some_Node*> get_children();
+    [[nodiscard]] std::span<Some_Node*> get_children();
 
-    std::span<const Some_Node* const> get_children() const;
+    [[nodiscard]] std::span<const Some_Node* const> get_children() const;
 
     template <std::ranges::forward_range R>
     void set_children(R&& r)
@@ -219,7 +219,7 @@ public:
     }
 };
 
-struct Annotated {
+struct [[nodiscard]] Annotated {
 protected:
     detail::Annotations m_annotations;
 
@@ -233,7 +233,7 @@ protected:
 
 } // namespace detail
 
-struct Program final : detail::Node_Base, detail::Dynamic_Parent {
+struct [[nodiscard]] Program final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Program";
     static inline constexpr bool is_expression = false;
 
@@ -245,7 +245,7 @@ struct Program final : detail::Node_Base, detail::Dynamic_Parent {
     }
 };
 
-struct Function final : detail::Node_Base, detail::Annotated {
+struct [[nodiscard]] Function final : detail::Node_Base, detail::Annotated {
 private:
     struct Copy_for_Instantiation_Tag { };
 
@@ -337,20 +337,20 @@ public:
         return get_parameters().size();
     }
 
-    std::pmr::vector<Parameter>& get_parameters()
+    [[nodiscard]] std::pmr::vector<Parameter>& get_parameters()
     {
         return m_parameters;
     }
-    std::span<const Parameter> get_parameters() const
+    [[nodiscard]] std::span<const Parameter> get_parameters() const
     {
         return m_parameters;
     }
 
-    Some_Node* get_return_type_node()
+    [[nodiscard]] Some_Node* get_return_type_node()
     {
         return m_return_type;
     }
-    const Some_Node* get_return_type_node() const
+    [[nodiscard]] const Some_Node* get_return_type_node() const
     {
         return m_return_type;
     }
@@ -359,14 +359,14 @@ public:
         m_return_type = node;
     }
 
-    Type& get_return_type();
-    const Type& get_return_type() const;
+    [[nodiscard]] Type& get_return_type();
+    [[nodiscard]] const Type& get_return_type() const;
 
-    Some_Node* get_requires_clause_node()
+    [[nodiscard]] Some_Node* get_requires_clause_node()
     {
         return m_requires_clause;
     }
-    const Some_Node* get_requires_clause_node() const
+    [[nodiscard]] const Some_Node* get_requires_clause_node() const
     {
         return m_requires_clause;
     }
@@ -375,11 +375,11 @@ public:
         m_requires_clause = node;
     }
 
-    Some_Node* get_body_node()
+    [[nodiscard]] Some_Node* get_body_node()
     {
         return m_body;
     }
-    const Some_Node* get_body_node() const
+    [[nodiscard]] const Some_Node* get_body_node() const
     {
         return m_body;
     }
@@ -388,10 +388,10 @@ public:
         m_body = node;
     }
 
-    Block_Statement& get_body();
-    const Block_Statement& get_body() const;
+    [[nodiscard]] Block_Statement& get_body();
+    [[nodiscard]] const Block_Statement& get_body() const;
 
-    Function copy_for_instantiation() const
+    [[nodiscard]] Function copy_for_instantiation() const
     {
         BIT_MANIPULATION_ASSERT(is_generic);
         return { *this, Copy_for_Instantiation_Tag {} };
@@ -429,7 +429,7 @@ public:
     [[nodiscard]] Concrete_Type get_concrete_return_type() const;
 };
 
-struct Type final : detail::Node_Base, detail::Parent<1> {
+struct [[nodiscard]] Type final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Type";
     static inline constexpr std::string_view child_names[] = { "width" };
     static inline constexpr bool is_expression = false;
@@ -480,7 +480,7 @@ public:
     }
 };
 
-struct Const final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
+struct [[nodiscard]] Const final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Const";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
     static inline constexpr bool is_expression = false;
@@ -494,28 +494,28 @@ public:
           std::string_view file,
           std::span<const astp::Handle> annotations);
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
     }
 
-    Some_Node* get_type_node()
+    [[nodiscard]] Some_Node* get_type_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_type_node() const
+    [[nodiscard]] const Some_Node* get_type_node() const
     {
         return m_children[0];
     }
 
-    Type& get_type();
-    const Type& get_type() const;
+    [[nodiscard]] Type& get_type();
+    [[nodiscard]] const Type& get_type() const;
 
-    Some_Node* get_initializer_node()
+    [[nodiscard]] Some_Node* get_initializer_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_initializer_node() const
+    [[nodiscard]] const Some_Node* get_initializer_node() const
     {
         return m_children[1];
     }
@@ -526,7 +526,7 @@ public:
     }
 };
 
-struct Let final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
+struct [[nodiscard]] Let final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Let";
     static inline constexpr std::string_view child_names[] = { "type", "initializer" };
     static inline constexpr bool is_expression = false;
@@ -540,28 +540,28 @@ public:
         std::string_view file,
         std::span<const astp::Handle> annotations);
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
     }
 
-    Some_Node* get_type_node()
+    [[nodiscard]] Some_Node* get_type_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_type_node() const
+    [[nodiscard]] const Some_Node* get_type_node() const
     {
         return m_children[0];
     }
 
-    Type& get_type();
-    const Type& get_type() const;
+    [[nodiscard]] Type& get_type();
+    [[nodiscard]] const Type& get_type() const;
 
-    Some_Node* get_initializer_node()
+    [[nodiscard]] Some_Node* get_initializer_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_initializer_node() const
+    [[nodiscard]] const Some_Node* get_initializer_node() const
     {
         return m_children[1];
     }
@@ -572,18 +572,18 @@ public:
     }
 };
 
-struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
+struct [[nodiscard]] Static_Assert final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Static_Assert";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
 
     Static_Assert(Some_Node& parent, const astp::Static_Assert& parsed, std::string_view file);
 
-    Some_Node* get_expression_node()
+    [[nodiscard]] Some_Node* get_expression_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_expression_node() const
+    [[nodiscard]] const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -594,7 +594,7 @@ struct Static_Assert final : detail::Node_Base, detail::Parent<1> {
     }
 };
 
-struct If_Statement final : detail::Node_Base, detail::Annotated, detail::Parent<3> {
+struct [[nodiscard]] If_Statement final : detail::Node_Base, detail::Annotated, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Statement";
     static inline constexpr std::string_view child_names[] = {
         "condition",
@@ -608,32 +608,32 @@ struct If_Statement final : detail::Node_Base, detail::Annotated, detail::Parent
                  std::string_view file,
                  std::span<const astp::Handle> annotations);
 
-    Some_Node* get_condition_node()
+    [[nodiscard]] Some_Node* get_condition_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_condition_node() const
+    [[nodiscard]] const Some_Node* get_condition_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_if_block_node()
+    [[nodiscard]] Some_Node* get_if_block_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_if_block_node() const
+    [[nodiscard]] const Some_Node* get_if_block_node() const
     {
         return m_children[1];
     }
 
-    Block_Statement& get_if_block();
-    const Block_Statement& get_if_block() const;
+    [[nodiscard]] Block_Statement& get_if_block();
+    [[nodiscard]] const Block_Statement& get_if_block() const;
 
-    Some_Node* get_else_node()
+    [[nodiscard]] Some_Node* get_else_node()
     {
         return m_children[2];
     }
-    const Some_Node* get_else_node() const
+    [[nodiscard]] const Some_Node* get_else_node() const
     {
         return m_children[2];
     }
@@ -644,7 +644,9 @@ struct If_Statement final : detail::Node_Base, detail::Annotated, detail::Parent
     }
 };
 
-struct While_Statement final : detail::Node_Base, detail::Annotated, detail::Parent<2> {
+struct [[nodiscard]] While_Statement final : detail::Node_Base,
+                                             detail::Annotated,
+                                             detail::Parent<2> {
     static inline constexpr std::string_view self_name = "While_Statement";
     static inline constexpr std::string_view child_names[] = { "condition", "block" };
     static inline constexpr bool is_expression = false;
@@ -654,26 +656,26 @@ struct While_Statement final : detail::Node_Base, detail::Annotated, detail::Par
                     std::string_view file,
                     std::span<const astp::Handle> annotations);
 
-    Some_Node* get_condition_node()
+    [[nodiscard]] Some_Node* get_condition_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_condition_node() const
+    [[nodiscard]] const Some_Node* get_condition_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_block_node()
+    [[nodiscard]] Some_Node* get_block_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_block_node() const
+    [[nodiscard]] const Some_Node* get_block_node() const
     {
         return m_children[1];
     }
 
-    Block_Statement& get_block();
-    const Block_Statement& get_block() const;
+    [[nodiscard]] Block_Statement& get_block();
+    [[nodiscard]] const Block_Statement& get_block() const;
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
@@ -717,7 +719,7 @@ control_statement_type_code_name(Control_Statement_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid type.");
 }
 
-struct Control_Statement final : detail::Node_Base, detail::Parent<1> {
+struct [[nodiscard]] Control_Statement final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Control_Statement";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
@@ -752,11 +754,11 @@ public:
         return m_type == Control_Statement_Type::return_;
     }
 
-    Some_Node* get_expression_node()
+    [[nodiscard]] Some_Node* get_expression_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_expression_node() const
+    [[nodiscard]] const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -767,7 +769,7 @@ public:
     }
 };
 
-struct Assignment final : detail::Node_Base, detail::Annotated, detail::Parent<1> {
+struct [[nodiscard]] Assignment final : detail::Node_Base, detail::Annotated, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Assignment";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = false;
@@ -783,16 +785,16 @@ public:
                std::string_view file,
                std::span<const astp::Handle> annotations);
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
     }
 
-    Some_Node* get_expression_node()
+    [[nodiscard]] Some_Node* get_expression_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_expression_node() const
+    [[nodiscard]] const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -803,7 +805,7 @@ public:
     }
 };
 
-struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
+struct [[nodiscard]] Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Block_Statement";
     static inline constexpr bool is_expression = false;
 
@@ -812,7 +814,7 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
                     std::string_view file,
                     std::pmr::memory_resource* memory);
 
-    bool is_empty() const
+    [[nodiscard]] bool is_empty() const
     {
         return m_children.empty();
     }
@@ -823,7 +825,7 @@ struct Block_Statement final : detail::Node_Base, detail::Dynamic_Parent {
     }
 };
 
-struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
+struct [[nodiscard]] Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Conversion_Expression";
     static inline constexpr std::string_view child_names[] = { "expression", "target_type" };
     static inline constexpr bool is_expression = true;
@@ -837,26 +839,26 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
         return Expression_Type::conversion;
     }
 
-    Some_Node* get_expression_node()
+    [[nodiscard]] Some_Node* get_expression_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_expression_node() const
+    [[nodiscard]] const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_target_type_node()
+    [[nodiscard]] Some_Node* get_target_type_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_target_type_node() const
+    [[nodiscard]] const Some_Node* get_target_type_node() const
     {
         return m_children[1];
     }
 
-    Type& get_target_type();
-    const Type& get_target_type() const;
+    [[nodiscard]] Type& get_target_type();
+    [[nodiscard]] const Type& get_target_type() const;
 
     [[nodiscard]] Debug_Info get_debug_info() const
     {
@@ -864,7 +866,7 @@ struct Conversion_Expression final : detail::Node_Base, detail::Parent<2> {
     }
 };
 
-struct If_Expression final : detail::Node_Base, detail::Parent<3> {
+struct [[nodiscard]] If_Expression final : detail::Node_Base, detail::Parent<3> {
     static inline constexpr std::string_view self_name = "If_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "condition", "right" };
     static inline constexpr bool is_expression = true;
@@ -876,30 +878,29 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
         return Expression_Type::if_expression;
     }
 
-    Some_Node* get_left_node()
+    [[nodiscard]] Some_Node* get_left_node()
+    {
+        return m_children[0];
+    }
+    [[nodiscard]] const Some_Node* get_left_node() const
     {
         return m_children[0];
     }
 
-    const Some_Node* get_left_node() const
-    {
-        return m_children[0];
-    }
-
-    Some_Node* get_condition_node()
+    [[nodiscard]] Some_Node* get_condition_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_condition_node() const
+    [[nodiscard]] const Some_Node* get_condition_node() const
     {
         return m_children[1];
     }
 
-    Some_Node* get_right_node()
+    [[nodiscard]] Some_Node* get_right_node()
     {
         return m_children[2];
     }
-    const Some_Node* get_right_node() const
+    [[nodiscard]] const Some_Node* get_right_node() const
     {
         return m_children[2];
     }
@@ -910,7 +911,7 @@ struct If_Expression final : detail::Node_Base, detail::Parent<3> {
     }
 };
 
-struct Binary_Expression final : detail::Node_Base, detail::Parent<2> {
+struct [[nodiscard]] Binary_Expression final : detail::Node_Base, detail::Parent<2> {
     static inline constexpr std::string_view self_name = "Binary_Expression";
     static inline constexpr std::string_view child_names[] = { "left", "right" };
     static inline constexpr bool is_expression = true;
@@ -929,25 +930,25 @@ public:
         return m_type;
     }
 
-    Token_Type get_op() const
+    [[nodiscard]] Token_Type get_op() const
     {
         return m_op;
     }
 
-    Some_Node* get_left_node()
+    [[nodiscard]] Some_Node* get_left_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_left_node() const
+    [[nodiscard]] const Some_Node* get_left_node() const
     {
         return m_children[0];
     }
 
-    Some_Node* get_right_node()
+    [[nodiscard]] Some_Node* get_right_node()
     {
         return m_children[1];
     }
-    const Some_Node* get_right_node() const
+    [[nodiscard]] const Some_Node* get_right_node() const
     {
         return m_children[1];
     }
@@ -958,7 +959,7 @@ public:
     }
 };
 
-struct Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
+struct [[nodiscard]] Prefix_Expression final : detail::Node_Base, detail::Parent<1> {
     static inline constexpr std::string_view self_name = "Prefix_Expression";
     static inline constexpr std::string_view child_names[] = { "expression" };
     static inline constexpr bool is_expression = true;
@@ -977,16 +978,16 @@ public:
         return m_type;
     }
 
-    Token_Type get_op() const
+    [[nodiscard]] Token_Type get_op() const
     {
         return m_op;
     }
 
-    Some_Node* get_expression_node()
+    [[nodiscard]] Some_Node* get_expression_node()
     {
         return m_children[0];
     }
-    const Some_Node* get_expression_node() const
+    [[nodiscard]] const Some_Node* get_expression_node() const
     {
         return m_children[0];
     }
@@ -997,9 +998,9 @@ public:
     }
 };
 
-struct Function_Call_Expression final : detail::Node_Base,
-                                        detail::Annotated,
-                                        detail::Dynamic_Parent {
+struct [[nodiscard]] Function_Call_Expression final : detail::Node_Base,
+                                                      detail::Annotated,
+                                                      detail::Dynamic_Parent {
     static inline constexpr std::string_view self_name = "Function_Call_Expression";
     static inline constexpr bool is_expression = true;
 
@@ -1021,37 +1022,37 @@ public:
         return Expression_Type::function_call;
     }
 
-    std::string_view get_name() const
+    [[nodiscard]] std::string_view get_name() const
     {
         return m_name;
     }
 
-    Size get_argument_count() const
+    [[nodiscard]] Size get_argument_count() const
     {
         return m_children.size();
     }
 
-    std::span<Some_Node*> get_argument_nodes()
+    [[nodiscard]] std::span<Some_Node*> get_argument_nodes()
     {
         return m_children;
     }
-    std::span<const Some_Node* const> get_argument_nodes() const
+    [[nodiscard]] std::span<const Some_Node* const> get_argument_nodes() const
     {
         return m_children;
     }
 
-    Some_Node* get_argument_node(Size i)
+    [[nodiscard]] Some_Node* get_argument_node(Size i)
     {
         BIT_MANIPULATION_ASSERT(i < m_children.size());
         return m_children[i];
     }
-    const Some_Node* get_argument_node(Size i) const
+    [[nodiscard]] const Some_Node* get_argument_node(Size i) const
     {
         BIT_MANIPULATION_ASSERT(i < m_children.size());
         return m_children[i];
     }
 
-    bool is_statement() const
+    [[nodiscard]] bool is_statement() const
     {
         return m_is_statement;
     }
@@ -1062,7 +1063,7 @@ public:
     }
 };
 
-struct Id_Expression final : detail::Node_Base, detail::Parent<0> {
+struct [[nodiscard]] Id_Expression final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Id_Expression";
     static inline constexpr bool is_expression = true;
 
@@ -1080,7 +1081,7 @@ public:
         return Expression_Type::id;
     }
 
-    std::string_view get_identifier() const
+    [[nodiscard]] std::string_view get_identifier() const
     {
         return m_identifier;
     }
@@ -1091,7 +1092,7 @@ public:
     }
 };
 
-struct Literal final : detail::Node_Base, detail::Parent<0> {
+struct [[nodiscard]] Literal final : detail::Node_Base, detail::Parent<0> {
     static inline constexpr std::string_view self_name = "Literal";
     static inline constexpr bool is_expression = true;
 
@@ -1102,17 +1103,17 @@ private:
 public:
     Literal(Some_Node& parent, const astp::Literal& parsed, std::string_view file);
 
-    Expression_Type get_expression_type() const
+    [[nodiscard]] Expression_Type get_expression_type() const
     {
         return Expression_Type::literal;
     }
 
-    Token_Type get_type() const
+    [[nodiscard]] Token_Type get_type() const
     {
         return m_type;
     }
 
-    std::string_view get_literal() const
+    [[nodiscard]] std::string_view get_literal() const
     {
         return m_literal;
     }
