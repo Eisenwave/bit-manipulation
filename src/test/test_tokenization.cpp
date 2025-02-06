@@ -115,6 +115,19 @@ std::optional<Tokenized_Program> tokenize(std::string_view file, std::pmr::memor
     return Tokenized_Program { std::move(*source), std::move(tokens) };
 }
 
+TEST(Tokenize, token_length_consistent)
+{
+    static_assert(std::is_same_v<Default_Underlying, std::underlying_type_t<bms::Token_Type>>);
+
+    constexpr auto limit = Default_Underlying(bms::Token_Type::keyword_static_assert);
+    for (Default_Underlying i = 0; i < limit; ++i) {
+        const auto type = bms::Token_Type(i);
+        const Size string_length = bms::token_type_code_name(type).length();
+        const Size simple_length = bms::token_type_length(type);
+        EXPECT_EQ(string_length, simple_length);
+    }
+}
+
 TEST(Tokenize, regression_1)
 {
     static const Textual_Token expected[] {
