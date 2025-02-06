@@ -1,20 +1,16 @@
-#include <algorithm>
-#include <iostream>
-#include <optional>
+#include <string>
+#include <string_view>
 
 #include <gtest/gtest.h>
 
 #include "common/code_string.hpp"
 #include "common/diagnostics.hpp"
 #include "common/tty.hpp"
-#include "common/variant.hpp"
 
 #include "bms/analyzed_program.hpp"
-#include "bms/concrete_value.hpp"
-#include "bms/expression_type.hpp"
-#include "bms/vm/codegen.hpp"
-#include "bms/vm/instructions.hpp"
-#include "bms/vm/vm.hpp"
+
+#include "bmd/code_language.hpp"
+#include "bmd/codegen/codegen.hpp"
 
 #include "test/program_file_testing.hpp"
 
@@ -23,303 +19,173 @@ namespace {
 
 const bool should_print_colors = is_tty(stdout);
 
-[[nodiscard]] std::optional<std::pmr::vector<bms::Instruction>>
-test_and_run_codegen(std::string_view file)
+[[nodiscard]] bool gen_code(Code_String& out,
+                            std::string_view file,
+                            bmd::Code_Language language,
+                            std::pmr::memory_resource* memory,
+                            const bmd::Code_Options& options)
 {
-    std::optional<std::pmr::vector<bms::Instruction>> result;
-    const bool success
-        = test_for_success_also_introspect(file, [&](bms::Analyzed_Program& program) {
-              bms::generate_code(program,
-                                 { .write_vm_address = true,
-                                   .ignore_with_address = true,
-                                   .calls = bms::Call_Policy::resolve });
-              result = std::move(program.get_vm().instructions());
-          });
-    BIT_MANIPULATION_ASSERT(bool(result) == success);
-    return result;
+    auto action = [&](const bms::Analyzed_Program& program) -> bool {
+        Result<void, bmd::Generator_Error> result
+            = bmd::generate_code(out, program, language, memory, options);
+        if (!result) {
+            Code_String dump { memory };
+            print_generator_error(dump, result.error());
+            print_code_string(std::cout, dump, should_print_colors);
+            return false;
+        }
+        return true;
+    };
+    return test_for_success_then_introspect(file, action);
 }
 
-struct Instructions_Equal {
-    [[nodiscard]] bool operator()(const bms::Instruction& x, const bms::Instruction& y) const
-    {
-        const auto visitor = [&y]<typename T>(const T& xv) {
-            if constexpr (one_of<T, bms::ins::Load, bms::ins::Store>) {
-                // load and store contain pointers to AST nodes, so at least for now,
-                // simply consider any two loads/stores equal for testing purposes
-                return true;
-            }
-            else {
-                return xv == get<T>(y);
-            }
-        };
-        return x.index() == y.index() && visit(visitor, x);
-    }
-};
-
-[[nodiscard]] bool require_equals_or_dump(std::span<const bms::Instruction> expected,
-                                          std::span<const bms::Instruction> actual)
+[[nodiscard]] bool run_basic_codegen_test(std::string_view file,
+                                          bmd::Code_Language language,
+                                          std::string_view expected,
+                                          const bmd::Code_Options& options)
 {
-    static constexpr bms::Program_Print_Options options { .indent = 2, .ignore_debug_info = true };
+    std::pmr::monotonic_buffer_resource memory;
+    Code_String result { &memory };
 
-    if (std::ranges::equal(expected, actual, Instructions_Equal {})) {
+    const bool success = gen_code(result, file, language, &memory, options);
+    if (!success) {
+        return false;
+    }
+    if (result.get_text() == expected) {
         return true;
     }
-    Code_String dump;
-    dump.append("Codegen test failure! Actual VM instructions don't match expected.\nExpected:\n",
-                Code_Span_Type::diagnostic_error_text);
-    bms::print_program(dump, expected, options);
-    dump.append("\nActual:\n", Code_Span_Type::diagnostic_error_text);
-    bms::print_program(dump, actual, options);
 
+    const Size separation_breaks = options.compactify ? 2 : 1;
+
+    Code_String dump { &memory };
+    dump.append("Test failed because generated code does not match the expected code.\n"
+                "Expected:\n",
+                Code_Span_Type::diagnostic_error_text);
+    dump.append(expected, Code_Span_Type::diagnostic_code_citation);
+    dump.append(separation_breaks, '\n');
+    dump.append("Actual (syntax highlighting differences are irrelevant):\n",
+                Code_Span_Type::diagnostic_error_text);
     print_code_string(std::cout, dump, should_print_colors);
+
+    result.append(separation_breaks, '\n');
+    print_code_string(std::cout, result, should_print_colors);
+
     return false;
 }
 
-constexpr auto push_zero = bms::ins::Push { {}, bms::Concrete_Value::Int(0) };
-constexpr auto push_true = bms::ins::Push { {}, bms::Concrete_Value::True };
-
-TEST(Codegen, reverse_order)
+TEST(Codegen, empty)
 {
-    static const bms::Instruction expected[] = {
-        push_zero,
-        push_zero,
-        bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
-        bms::ins::Call { {}, 5 },
-        bms::ins::Return {},
-        bms::ins::Store {},
-        bms::ins::Store {},
-        push_zero,
-        bms::ins::Store {},
-        push_zero,
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Store {},
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/empty.bms";
+    constexpr std::string_view expected = "";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/reverse_order.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
-TEST(Codegen, simple)
+TEST(Codegen, void_function)
 {
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Store {},
-        push_zero,
-        bms::ins::Store {},
-        push_zero,
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Store {},
-        bms::ins::Return {},
-        push_zero,
-        push_zero,
-        bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
-        bms::ins::Call { {}, 0 },
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/void_function.bms";
+    constexpr std::string_view expected = "void awoo(void){}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/simple.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
-TEST(Codegen, function_minimal)
+TEST(Codegen, if_statement)
 {
-    static const bms::Instruction expected[] = { bms::ins::Return {} };
+    constexpr std::string_view file = "codegen/c/if_statement.bms";
+    constexpr std::string_view expected = "void awoo(_Bool x){if(x){int i=0;}else{int j=1;}}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/function_minimal.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
-TEST(Codegen, const_emits_nothing)
+TEST(Codegen, else_if)
 {
-    static const bms::Instruction expected[] = {
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/else_if.bms";
+    constexpr std::string_view expected
+        = "void awoo(void){if(true){}else if(true){}else if(false){}else{}}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/const_emits_nothing.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, let_uninitialized)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/let_uninitialized.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, let_zero)
-{
-    static const bms::Instruction expected[] = {
-        push_zero,
-        bms::ins::Store {},
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/let_zero.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, static_assert_emits_nothing)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/static_assert_emits_nothing.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, if_else)
-{
-    // Note that some of the code emitted here is dead.
-    // Specifically, the relative jump following return will never be executed.
-    // Fixing this would require a more general form of control flow analysis than just
-    // return analysis, which would identifies each statement as reachable or not.
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Relative_Jump_If { .offset = 3, .expected = false },
-        bms::ins::Push { .value = bms::Concrete_Value::Int(1) },
-        bms::ins::Return {},
-        bms::ins::Relative_Jump { .offset = 2 },
-        push_zero,
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/if_else.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
 TEST(Codegen, while_loop)
 {
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Relative_Jump_If { .offset = 1, .expected = false },
-        bms::ins::Relative_Jump { .offset = -3 },
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/while_loop.bms";
+    constexpr std::string_view expected = "void awoo(void){while(true){break;continue;}}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_loop.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
-TEST(Codegen, while_break)
+TEST(Codegen, return_zero)
 {
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        push_true,
-        bms::ins::Relative_Jump_If { .offset = 4, .expected = false }, // while
-        bms::ins::Load {},
-        bms::ins::Relative_Jump_If { .offset = 1, .expected = false }, // if
-        bms::ins::Relative_Jump { .offset = 1 }, // break
-        bms::ins::Relative_Jump { .offset = -6 }, // end of while
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/return_zero.bms";
+    constexpr std::string_view expected = "int awoo(void){return 0;}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_break.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, while_continue)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        push_true,
-        bms::ins::Relative_Jump_If { .offset = 4, .expected = false }, // while
-        bms::ins::Load {},
-        bms::ins::Relative_Jump_If { .offset = 1, .expected = false }, // if
-        bms::ins::Relative_Jump { .offset = -5 }, // continue
-        bms::ins::Relative_Jump { .offset = -6 }, // end of while
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_continue.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, returning_constant)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Push { {}, bms::Concrete_Value(bms::Concrete_Type::Uint(32), 0) },
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_constant.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, returning_converted)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_converted.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, returning_void)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_void.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, assignment)
-{
-    static const bms::Instruction expected[] = {
-        push_zero,
-        bms::ins::Store {},
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/assignment.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
-}
-
-TEST(Codegen, conversion)
-{
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Convert { {}, bms::Concrete_Type::Uint(32) },
-        bms::ins::Store {},
-        bms::ins::Return {},
-    };
-
-    const std::optional actual = test_and_run_codegen("codegen/vm/conversion.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
 TEST(Codegen, min)
 {
-    static const bms::Instruction expected[] = {
-        bms::ins::Store {},
-        bms::ins::Store {},
-        bms::ins::Load {},
-        bms::ins::Load {},
-        bms::ins::Binary_Operate { .op = bms::Expression_Type::less_than },
-        bms::ins::Relative_Jump_If { .offset = 2, .expected = false },
-        bms::ins::Load {}, // y
-        bms::ins::Relative_Jump { .offset = 1 },
-        bms::ins::Load {}, // x
-        bms::ins::Return {},
-    };
+    constexpr std::string_view file = "codegen/c/min.bms";
+    constexpr std::string_view expected = "int min(int x,int y){return y<x?y:x;}";
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/min.bms");
-    EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+}
+
+TEST(Codegen, conversion)
+{
+    constexpr std::string_view file = "codegen/c/conversion.bms";
+    constexpr std::string_view expected = "void awoo(int x){uint32_t y=(uint32_t)x;}";
+
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+}
+
+TEST(Codegen, logic)
+{
+    constexpr std::string_view file = "codegen/c/logic.bms";
+    constexpr std::string_view expected = "_Bool awoo(_Bool x,_Bool y){return!x&&(y||!y);}";
+
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+}
+
+// More rigorous testing of the dependency breaking mechanism can be found elsewhere.
+// These tests can be considered integration tests to see if the system works as a whole.
+
+TEST(Codegen, dependency_break_identity_3)
+{
+    constexpr std::string_view file = "codegen/c/dependency_break/identity_3.bms";
+    constexpr std::string_view expected
+        = "void chan(void){}void baka(void){chan();}void awoo(void){baka();}";
+
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+}
+
+TEST(Codegen, dependency_break_reverse_3)
+{
+    constexpr std::string_view file = "codegen/c/dependency_break/reverse_3.bms";
+    constexpr std::string_view expected
+        = "void chan(void){}void baka(void){chan();}void awoo(void){baka();}";
+
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
+}
+
+TEST(Codegen, dependency_break_forward_declaration)
+{
+    constexpr std::string_view file = "codegen/c/dependency_break/forward_declaration.bms";
+    constexpr std::string_view expected = "void chan(void);void baka(void){chan();}void "
+                                          "awoo(void){baka();}void chan(void){awoo();}";
+
+    ASSERT_TRUE(
+        run_basic_codegen_test(file, bmd::Code_Language::c, expected, { .compactify = true }));
 }
 
 } // namespace
