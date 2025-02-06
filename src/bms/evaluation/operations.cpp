@@ -116,7 +116,7 @@ unsafe_evaluate_builtin_function_impl(Builtin_Function f, Iter begin, Iter end)
 
     switch (f) {
     case Builtin_Function::assert: {
-        if (begin[0].as_int() != 1) {
+        if (!begin[0].as_bool()) {
             return Evaluation_Error_Code::assertion_fail;
         }
         return Concrete_Value::Void;
@@ -301,7 +301,7 @@ evaluate_unary_operator(Expression_Type op, const Concrete_Value& value)
 
     case Type_Type::Bool: {
         if (op == Expression_Type::logical_not) {
-            return Concrete_Value { Concrete_Type::Bool, value.as_int() ^ 1 };
+            return Concrete_Value::Bool(value.as_int() ^ 1);
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
@@ -311,7 +311,7 @@ evaluate_unary_operator(Expression_Type op, const Concrete_Value& value)
             return value;
         }
         if (op == Expression_Type::unary_minus) {
-            return Concrete_Value { Concrete_Type::Int, -value.as_int() };
+            return Concrete_Value::Int(-value.as_int());
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Int operation not caught by type-check.");
     }
@@ -391,10 +391,10 @@ evaluate_binary_operator(const Concrete_Value& lhs_input,
         using enum Expression_Type;
     case Type_Type::Bool: {
         if (op == logical_and) {
-            return Concrete_Value::Bool(lhs.as_int() && rhs.as_int());
+            return Concrete_Value::Bool(lhs.as_bool() && rhs.as_bool());
         }
         if (op == logical_or) {
-            return Concrete_Value::Bool(lhs.as_int() || rhs.as_int());
+            return Concrete_Value::Bool(lhs.as_bool() || rhs.as_bool());
         }
         BIT_MANIPULATION_ASSERT_UNREACHABLE("Unsupported Bool operation not caught by type-check.");
     }
@@ -467,7 +467,7 @@ evaluate_if_expression(const Concrete_Value& lhs,
     if (!type_result) {
         return Evaluation_Error_Code::type_error;
     }
-    return (condition.as_int() ? lhs : rhs)
+    return (condition.as_bool() ? lhs : rhs)
         .convert_to(*type_result, Conversion_Type::lossless_numeric);
 }
 

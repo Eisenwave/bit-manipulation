@@ -55,6 +55,11 @@ public:
         return m_type;
     }
 
+    [[nodiscard]] constexpr bool as_bool() const
+    {
+        return m_int_value != 0;
+    }
+
     [[nodiscard]] constexpr Big_Int as_int() const
     {
         return m_int_value;

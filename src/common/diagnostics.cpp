@@ -102,7 +102,7 @@ void append_compared_value(Code_String& out, bms::Concrete_Value v)
         out.append("Void", span_type);
         return;
     case bms::Type_Type::Bool: //
-        out.append(v.as_int() ? "true" : "false", span_type);
+        out.append(v.as_bool() ? "true" : "false", span_type);
         return;
     case bms::Type_Type::Int: //
         out.append_integer(v.as_int(), span_type);

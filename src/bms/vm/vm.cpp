@@ -82,7 +82,7 @@ struct Cycle_Impl {
         }
         self.m_instruction_counter
             = Size(Signed_Size(self.m_instruction_counter + 1)
-                   + (jump_if.expected == bool(actual.as_int()) ? jump_if.offset : 0));
+                   + (jump_if.expected == actual.as_bool() ? jump_if.offset : 0));
         return {};
     }
 
