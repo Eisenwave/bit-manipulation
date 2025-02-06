@@ -12,29 +12,33 @@
 
 namespace bit_manipulation::bmd {
 
-struct Scoped_Parenthesization {
+template <char open, char close>
+struct Scoped_Brackets {
 private:
     Code_String* out;
 
 public:
-    explicit Scoped_Parenthesization(Code_String* out)
+    explicit Scoped_Brackets(Code_String* out)
         : out(out)
     {
         if (out != nullptr) {
-            out->append('(', Code_Span_Type::bracket);
+            out->append(open, Code_Span_Type::bracket);
         }
     }
 
-    Scoped_Parenthesization(const Scoped_Parenthesization&) = delete;
-    Scoped_Parenthesization& operator=(const Scoped_Parenthesization&) = delete;
+    Scoped_Brackets(const Scoped_Brackets&) = delete;
+    Scoped_Brackets& operator=(const Scoped_Brackets&) = delete;
 
-    ~Scoped_Parenthesization()
+    ~Scoped_Brackets()
     {
         if (out != nullptr) {
-            out->append(')', Code_Span_Type::bracket);
+            out->append(close, Code_Span_Type::bracket);
         }
     }
 };
+
+using Scoped_Parenthesization = Scoped_Brackets<'(', ')'>;
+using Scoped_Braces = Scoped_Brackets<'{', '}'>;
 
 struct Scoped_Indentation {
 private:
@@ -83,11 +87,41 @@ public:
     }
 };
 
+/// @brief Indicates for an AST node whether compactification with adjacent
+/// identifiers are possible.
+enum struct Compactification : int {
+    /// @brief Compactification is never possible, such as for `x`.
+    never,
+    /// @brief Compactification only before the node is possible, like `a @attr`.
+    before,
+    /// @brief Compactification only after the node is possible, like `f() as`.
+    after,
+    /// @brief Compactification is possible both ways, like `if (...) else`.
+    always
+};
+
+[[nodiscard]] constexpr Compactification operator|(Compactification a, Compactification b)
+{
+    return Compactification(int(a) | int(b));
+}
+
+[[nodiscard]] constexpr bool compactification_is_before(Compactification c)
+{
+    return c == Compactification::before || c == Compactification::always;
+}
+
+[[nodiscard]] constexpr bool compactification_is_after(Compactification c)
+{
+    return c == Compactification::after || c == Compactification::always;
+}
+
 struct Code_Generator_Base {
 protected:
     Code_String& m_out;
     const bms::Analyzed_Program& m_program;
     const Code_Options m_options;
+
+private:
     Size m_depth = 0;
     bool m_start_of_line = true;
 
@@ -117,7 +151,18 @@ protected:
                                                  const bms::ast::Some_Node& inner) const
         = 0;
 
-    [[nodiscard]] virtual bool can_compactify(const bms::ast::Some_Node& node) const = 0;
+    [[nodiscard]] virtual Compactification can_compactify(const bms::ast::Some_Node& node) const
+        = 0;
+
+    [[nodiscard]] bool can_compactify_before(const bms::ast::Some_Node& node) const
+    {
+        return compactification_is_before(can_compactify(node));
+    }
+
+    [[nodiscard]] bool can_compactify_after(const bms::ast::Some_Node& node) const
+    {
+        return compactification_is_after(can_compactify(node));
+    }
 
     [[nodiscard]] Result<void, Generator_Error>
     generate_subexpression(bms::Expression_Type outer_type, const bms::ast::Some_Node* inner)
@@ -189,14 +234,39 @@ protected:
         }
     }
 
-    void write_operator(std::string_view op)
+    void write_operator(std::string_view op, Code_Span_Type type = Code_Span_Type::operation)
     {
-        m_out.append(op, Code_Span_Type::operation);
+        m_out.append(op, type);
     }
 
-    void write_keyword(std::string_view keyword)
+    void write_keyword(std::string_view keyword, Code_Span_Type type = Code_Span_Type::keyword)
     {
-        m_out.append(keyword, Code_Span_Type::keyword);
+        m_out.append(keyword, type);
+    }
+
+    void write_number(std::string_view number)
+    {
+        m_out.append(number, Code_Span_Type::number);
+    }
+
+    void write_number(character_convertible auto x)
+    {
+        m_out.append_integer(x, Code_Span_Type::number);
+    }
+
+    void write_variable_name(std::string_view name)
+    {
+        m_out.append(name, Code_Span_Type::variable_name);
+    }
+
+    void write_function_name(std::string_view name)
+    {
+        m_out.append(name, Code_Span_Type::function_name);
+    }
+
+    void write_type_name(std::string_view name)
+    {
+        m_out.append(name, Code_Span_Type::type_name);
     }
 
     void write_infix_operator(std::string_view op, Code_Span_Type type = Code_Span_Type::operation)
@@ -218,17 +288,31 @@ protected:
         m_out.append(';', Code_Span_Type::punctuation);
     }
 
+    void write_colon()
+    {
+        m_out.append(':', Code_Span_Type::punctuation);
+    }
+
     void write_separating_comma()
     {
         m_out.append(',', Code_Span_Type::punctuation);
         write_readability_space();
     }
 
+    /// @brief Writes a space which is never mandatory, purely for readability.
+    /// For example, this could be introduced in `if (...)`.
     void write_readability_space()
     {
         if (!m_options.compactify) {
             m_out.append(' ');
         }
+    }
+
+    /// @brief Writes a space which is always needed.
+    /// For example, this could be introduced in `else if`.
+    void write_mandatory_space()
+    {
+        m_out.append(' ');
     }
 
     void end_line()
@@ -254,9 +338,19 @@ protected:
         return Scoped_Parenthesization { &m_out };
     }
 
+    [[nodiscard]] Scoped_Braces in_braces()
+    {
+        return Scoped_Braces { &m_out };
+    }
+
     [[nodiscard]] Scoped_Parenthesization parenthesize_if(bool condition)
     {
         return Scoped_Parenthesization { condition ? &m_out : nullptr };
+    }
+
+    [[nodiscard]] Scoped_Braces in_braces_if(bool condition)
+    {
+        return Scoped_Braces { condition ? &m_out : nullptr };
     }
 };
 

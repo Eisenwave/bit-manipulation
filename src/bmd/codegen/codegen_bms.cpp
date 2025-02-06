@@ -63,35 +63,57 @@ private:
         return !std::is_lteq(bms::compare_precedence(outer_type, inner_type));
     }
 
-    [[nodiscard]] bool can_compactify(const Some_Node& inner) const final
+    [[nodiscard]] Compactification can_compactify(const Some_Node& inner) const final;
+
+    struct Can_Compactify;
+    struct Visitor;
+};
+
+struct Bms_Code_Generator::Can_Compactify {
+    const Bms_Code_Generator& self;
+
+    [[nodiscard]] Compactification operator()(const Block_Statement&) const
     {
-        return visit(
-            [&]<typename T>(const T& node) -> bool {
-                if constexpr (one_of<T, Prefix_Expression, Block_Statement>) {
-                    return true;
-                }
-                else if constexpr (std::is_same_v<T, Conversion_Expression>) {
-                    return needs_parentheses(bms::Expression_Type::conversion,
-                                             *node.get_expression_node())
-                        || can_compactify(*node.get_expression_node());
-                }
-                else if constexpr (std::is_same_v<T, If_Expression>) {
-                    return needs_parentheses(bms::Expression_Type::if_expression,
-                                             *node.get_left_node())
-                        || can_compactify(*node.get_left_node());
-                }
-                else if constexpr (std::is_same_v<T, Binary_Expression>) {
-                    return needs_parentheses(node.get_expression_type(), *node.get_left_node())
-                        || can_compactify(*node.get_left_node());
-                }
-                else {
-                    return false;
-                }
-            },
-            inner);
+        return Compactification::always;
     }
 
-    struct Visitor;
+    [[nodiscard]] Compactification operator()(const Function_Call_Expression&) const
+    {
+        return Compactification::after;
+    }
+
+    [[nodiscard]] Compactification operator()(const Prefix_Expression& node) const
+    {
+        return self.needs_parentheses(node.get_expression_type(), *node.get_expression_node())
+            ? Compactification::always
+            : Compactification::before | self.can_compactify(*node.get_expression_node());
+    }
+
+    [[nodiscard]] Compactification operator()(const Conversion_Expression& node) const
+    {
+        return self.needs_parentheses(bms::Expression_Type::conversion, *node.get_expression_node())
+            ? Compactification::always
+            : self.can_compactify(*node.get_expression_node());
+    }
+
+    [[nodiscard]] Compactification operator()(const If_Expression& node) const
+    {
+        return self.needs_parentheses(bms::Expression_Type::if_expression, *node.get_left_node())
+            ? Compactification::always
+            : self.can_compactify(*node.get_left_node());
+    }
+
+    [[nodiscard]] Compactification operator()(const Binary_Expression& node) const
+    {
+        return self.needs_parentheses(node.get_expression_type(), *node.get_left_node())
+            ? Compactification::always
+            : self.can_compactify(*node.get_left_node());
+    }
+
+    [[nodiscard]] Compactification operator()(Ignore) const
+    {
+        return Compactification::never;
+    }
 };
 
 struct Bms_Code_Generator::Visitor {
@@ -129,8 +151,8 @@ struct Bms_Code_Generator::Visitor {
 
         self.write_indent();
         self.write_keyword(bms::Token_Type::keyword_function);
-        self.m_out.append(' ');
-        self.m_out.append(function.get_name(), Code_Span_Type::function_name);
+        self.write_mandatory_space();
+        self.write_function_name(function.get_name());
 
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -141,8 +163,8 @@ struct Bms_Code_Generator::Visitor {
                     self.write_separating_comma();
                 }
                 first = false;
-                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
-                self.m_out.append(':', Code_Span_Type::punctuation);
+                self.write_variable_name(parameter.get_name());
+                self.write_colon();
                 self.write_readability_space();
                 auto v = Visitor { self, parameter.get_type_node() };
                 if (auto r = v(parameter.get_type()); !r) {
@@ -175,7 +197,7 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Type& type)
     {
         const bms::Type_Type type_type = type.get_type();
-        self.m_out.append(bms::type_type_name(type_type), Code_Span_Type::type_name);
+        self.write_type_name(bms::type_type_name(type_type));
 
         if (type_type != bms::Type_Type::Uint) {
             return {};
@@ -188,7 +210,7 @@ struct Bms_Code_Generator::Visitor {
             if (self.m_options.always_simplify_widths) {
                 const bms::Value& v = get_const_value(*type.get_width_node()).value();
                 if (v.is_known()) {
-                    self.m_out.append_integer(v.as_uint(), Code_Span_Type::number);
+                    self.write_number(v.as_uint());
                     attempt.commit();
                     return {};
                 }
@@ -208,11 +230,11 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_const);
-        self.m_out.append(' ');
-        self.m_out.append(constant.get_name(), Code_Span_Type::variable_name);
+        self.write_mandatory_space();
+        self.write_variable_name(constant.get_name());
 
         if (const Some_Node* type = constant.get_type_node()) {
-            self.m_out.append(':', Code_Span_Type::punctuation);
+            self.write_colon();
             self.write_readability_space();
             if (auto r = Visitor { self, type }(constant.get_type()); !r) {
                 return r;
@@ -235,11 +257,11 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_let);
-        self.m_out.append(' ');
-        self.m_out.append(variable.get_name(), Code_Span_Type::variable_name);
+        self.write_mandatory_space();
+        self.write_variable_name(variable.get_name());
 
         if (const Some_Node* type = variable.get_type_node()) {
-            self.m_out.append(':', Code_Span_Type::punctuation);
+            self.write_colon();
             self.write_readability_space();
             if (auto r = Visitor { self, type }(variable.get_type()); !r) {
                 return r;
@@ -282,8 +304,9 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_if);
-        if (!self.m_options.compactify || !self.can_compactify(*statement.get_condition_node())) {
-            self.m_out.append(' ');
+        if (!self.m_options.compactify
+            || !self.can_compactify_before(*statement.get_condition_node())) {
+            self.write_mandatory_space();
         }
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
             return r;
@@ -299,7 +322,7 @@ struct Bms_Code_Generator::Visitor {
             self.write_indent();
             self.write_keyword(bms::Token_Type::keyword_else);
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
-                self.m_out.append(' ');
+                self.write_mandatory_space();
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
@@ -326,8 +349,9 @@ struct Bms_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword(bms::Token_Type::keyword_while);
-        if (!self.m_options.compactify || self.can_compactify(*statement.get_condition_node())) {
-            self.m_out.append(' ');
+        if (!self.m_options.compactify
+            || !self.can_compactify_before(*statement.get_condition_node())) {
+            self.write_mandatory_space();
         }
 
         if (auto r = self.generate_code(statement.get_condition_node()); !r) {
@@ -351,8 +375,8 @@ struct Bms_Code_Generator::Visitor {
         self.write_keyword(control_statement_type_token(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
-            if (!self.m_options.compactify || self.can_compactify(*expr)) {
-                self.m_out.append(' ');
+            if (!self.m_options.compactify || !self.can_compactify_before(*expr)) {
+                self.write_mandatory_space();
             }
             if (auto r = self.generate_code(expr); !r) {
                 return r;
@@ -370,7 +394,7 @@ struct Bms_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append(assignment.get_name(), Code_Span_Type::variable_name);
+        self.write_variable_name(assignment.get_name());
         self.write_infix_operator(bms::Token_Type::assign);
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;
@@ -385,21 +409,22 @@ struct Bms_Code_Generator::Visitor {
     {
         Scoped_Attempt attempt = self.start_attempt();
 
-        self.m_out.append("{", Code_Span_Type::bracket);
-        self.end_line();
         {
-            Scoped_Indentation _ = self.push_indent();
-            for (const Some_Node* node : block.get_children()) {
-                if (auto r = self.generate_code(node)) {
-                    self.end_line();
-                }
-                else if (r.error().code != Generator_Error_Code::empty) {
-                    return r;
+            Scoped_Braces braces = self.in_braces();
+            self.end_line();
+            {
+                Scoped_Indentation _ = self.push_indent();
+                for (const Some_Node* node : block.get_children()) {
+                    if (auto r = self.generate_code(node)) {
+                        self.end_line();
+                    }
+                    else if (r.error().code != Generator_Error_Code::empty) {
+                        return r;
+                    }
                 }
             }
+            self.write_indent();
         }
-        self.write_indent();
-        self.m_out.append("}", Code_Span_Type::bracket);
 
         attempt.commit();
         return {};
@@ -413,7 +438,16 @@ struct Bms_Code_Generator::Visitor {
             !r) {
             return r;
         }
+        if (!self.m_options.compactify
+            || !self.can_compactify_after(*conversion.get_expression_node())) {
+            self.write_mandatory_space();
+        }
         self.write_infix_operator(bms::Token_Type::keyword_as, Code_Span_Type::keyword);
+        if (!self.m_options.compactify
+            || !self.can_compactify_before(*conversion.get_expression_node())) {
+            self.write_mandatory_space();
+        }
+
         auto v = Visitor { self, conversion.get_target_type_node() };
         if (auto r = v(conversion.get_target_type()); !r) {
             return r;
@@ -431,11 +465,26 @@ struct Bms_Code_Generator::Visitor {
         if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
             return r;
         }
-        self.write_infix_operator(bms::Token_Type::keyword_if, Code_Span_Type::keyword);
+        if (!self.m_options.compactify || !self.can_compactify_after(*expression.get_left_node())) {
+            self.write_mandatory_space();
+        }
+        self.write_keyword(bms::Token_Type::keyword_if);
+        if (!self.m_options.compactify
+            || !self.can_compactify_before(*expression.get_condition_node())) {
+            self.write_mandatory_space();
+        }
         if (auto r = self.generate_subexpression(outer_type, expression.get_condition_node()); !r) {
             return r;
         }
-        self.write_infix_operator(bms::Token_Type::keyword_else, Code_Span_Type::keyword);
+        if (!self.m_options.compactify
+            || !self.can_compactify_after(*expression.get_condition_node())) {
+            self.write_mandatory_space();
+        }
+        self.write_keyword(bms::Token_Type::keyword_else);
+        if (!self.m_options.compactify
+            || !self.can_compactify_before(*expression.get_right_node())) {
+            self.write_mandatory_space();
+        }
         if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
             return r;
         }
@@ -464,7 +513,7 @@ struct Bms_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
     {
         const auto outer_type = expression.get_expression_type();
-        self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
+        self.write_operator(expression.get_op());
         return self.generate_subexpression(outer_type, expression.get_expression_node());
     }
 
@@ -475,7 +524,7 @@ struct Bms_Code_Generator::Visitor {
             self.write_indent();
         }
 
-        self.m_out.append(call.get_name(), Code_Span_Type::function_name);
+        self.write_function_name(call.get_name());
         {
             Scoped_Parenthesization p = self.parenthesize();
             bool first = true;
@@ -499,16 +548,21 @@ struct Bms_Code_Generator::Visitor {
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Id_Expression& id)
     {
-        self.m_out.append(id.get_identifier(), Code_Span_Type::variable_name);
+        self.write_variable_name(id.get_identifier());
         return {};
     }
 
     [[nodiscard]] Result<void, Generator_Error> operator()(const Literal& literal)
     {
-        self.m_out.append(literal.get_literal(), Code_Span_Type::number);
+        self.write_number(literal.get_literal());
         return {};
     }
 };
+
+Compactification Bms_Code_Generator::can_compactify(const Some_Node& inner) const
+{
+    return visit(Can_Compactify { *this }, inner);
+}
 
 Result<void, Generator_Error> Bms_Code_Generator::generate_code(const Some_Node* node)
 {

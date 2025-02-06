@@ -298,7 +298,16 @@ private:
         return !std::is_lteq(compare_readably(outer_group, inner_group));
     }
 
-    [[nodiscard]] bool can_compactify(const Some_Node& inner) const final
+    [[nodiscard]] Compactification can_compactify(const Some_Node& inner) const final
+    {
+        // For the purposes of codegen, we only case about instances where compactification
+        // before a node is possible.
+        // Every case after a node is statically known or irrelevant.
+        return can_compactify_before(inner) ? Compactification::before : Compactification::never;
+    }
+
+private:
+    [[nodiscard]] bool can_compactify_before(const Some_Node& inner) const
     {
         return visit(
             [&]<typename T>(const T& node) -> bool {
@@ -309,11 +318,11 @@ private:
                 else if constexpr (std::is_same_v<T, If_Expression>) {
                     return needs_parentheses(bms::Expression_Type::if_expression,
                                              *node.get_condition_node())
-                        || can_compactify(*node.get_condition_node());
+                        || can_compactify_before(*node.get_condition_node());
                 }
                 else if constexpr (std::is_same_v<T, Binary_Expression>) {
                     return needs_parentheses(node.get_expression_type(), *node.get_left_node())
-                        || can_compactify(*node.get_left_node());
+                        || can_compactify_before(*node.get_left_node());
                 }
                 else {
                     return false;
@@ -399,8 +408,8 @@ struct C_Cpp_Code_Generator::Visitor {
             BIT_MANIPULATION_ASSERT(return_type == bms::Concrete_Type::Void);
             self.write_keyword("void");
         }
-        self.m_out.append(' ');
-        self.m_out.append(function.get_name(), Code_Span_Type::function_name);
+        self.write_mandatory_space();
+        self.write_function_name(function.get_name());
 
         {
             Scoped_Parenthesization p = self.parenthesize();
@@ -415,8 +424,8 @@ struct C_Cpp_Code_Generator::Visitor {
                 if (auto r = v(parameter.get_type()); !r) {
                     return r;
                 }
-                self.m_out.append(' ');
-                self.m_out.append(parameter.get_name(), Code_Span_Type::variable_name);
+                self.write_mandatory_space();
+                self.write_variable_name(parameter.get_name());
             }
             if (first) {
                 self.write_keyword("void");
@@ -461,14 +470,14 @@ struct C_Cpp_Code_Generator::Visitor {
         self.write_indent();
 
         self.write_keyword("constexpr");
-        self.m_out.append(' ');
+        self.write_mandatory_space();
 
         if (auto r = self.generate_type(node, constant.const_value()->get_type()); !r) {
             return r;
         }
 
-        self.m_out.append(' ');
-        self.m_out.append(constant.get_name(), Code_Span_Type::variable_name);
+        self.write_mandatory_space();
+        self.write_variable_name(constant.get_name());
 
         self.write_infix_operator("=");
         append_value(self.m_out, constant.const_value()->concrete_value());
@@ -487,8 +496,8 @@ struct C_Cpp_Code_Generator::Visitor {
             return r;
         }
 
-        self.m_out.append(' ');
-        self.m_out.append(variable.get_name(), Code_Span_Type::variable_name);
+        self.write_mandatory_space();
+        self.write_variable_name(variable.get_name());
 
         if (const Some_Node* initializer = variable.get_initializer_node()) {
             self.write_infix_operator("=");
@@ -534,7 +543,7 @@ struct C_Cpp_Code_Generator::Visitor {
             self.write_indent();
             self.write_keyword("else");
             if (const If_Statement* else_if = get_if<If_Statement>(else_node)) {
-                self.m_out.append(' ');
+                self.write_mandatory_space();
                 if (auto r = Visitor { self, else_node }(*else_if); !r) {
                     return r;
                 }
@@ -587,8 +596,8 @@ struct C_Cpp_Code_Generator::Visitor {
         self.write_keyword(control_statement_type_code_name(statement.get_type()));
 
         if (const Some_Node* expr = statement.get_expression_node()) {
-            if (!self.m_options.compactify || !self.can_compactify(*expr)) {
-                self.m_out.append(' ');
+            if (!self.m_options.compactify || !self.can_compactify_before(*expr)) {
+                self.write_mandatory_space();
             }
             if (auto r = self.generate_code(expr); !r) {
                 return r;
@@ -606,7 +615,7 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         self.write_indent();
-        self.m_out.append(assignment.get_name(), Code_Span_Type::variable_name);
+        self.write_variable_name(assignment.get_name());
         self.write_infix_operator("=");
         if (auto r = self.generate_code(assignment.get_expression_node()); !r) {
             return r;
@@ -621,21 +630,22 @@ struct C_Cpp_Code_Generator::Visitor {
     {
         Scoped_Attempt attempt = self.start_attempt();
 
-        self.m_out.append("{", Code_Span_Type::bracket);
-        self.end_line();
         {
-            Scoped_Indentation _ = self.push_indent();
-            for (const Some_Node* node : block.get_children()) {
-                if (auto r = self.generate_code(node)) {
-                    self.end_line();
-                }
-                else if (r.error().code != Generator_Error_Code::empty) {
-                    return r;
+            Scoped_Braces braces = self.in_braces();
+            self.end_line();
+            {
+                Scoped_Indentation _ = self.push_indent();
+                for (const Some_Node* node : block.get_children()) {
+                    if (auto r = self.generate_code(node)) {
+                        self.end_line();
+                    }
+                    else if (r.error().code != Generator_Error_Code::empty) {
+                        return r;
+                    }
                 }
             }
+            self.write_indent();
         }
-        self.write_indent();
-        self.m_out.append("}", Code_Span_Type::bracket);
 
         attempt.commit();
         return {};
@@ -667,26 +677,21 @@ struct C_Cpp_Code_Generator::Visitor {
         Scoped_Attempt attempt = self.start_attempt();
 
         const Some_Node& parent = *expression.get_parent();
-        const bool parenthesize = is_expression(parent);
 
-        if (parenthesize) {
-            self.m_out.append('(', Code_Span_Type::bracket);
-        }
-
-        if (auto r = self.generate_subexpression(outer_type, expression.get_condition_node()); !r) {
-            return r;
-        }
-        self.write_infix_operator("?");
-        if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
-            return r;
-        }
-        self.write_infix_operator(":");
-        if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
-            return r;
-        }
-
-        if (parenthesize) {
-            self.m_out.append(')', Code_Span_Type::bracket);
+        Scoped_Parenthesization parens = self.parenthesize_if(is_expression(parent));
+        {
+            if (auto r = self.generate_subexpression(outer_type, expression.get_condition_node());
+                !r) {
+                return r;
+            }
+            self.write_infix_operator("?");
+            if (auto r = self.generate_subexpression(outer_type, expression.get_left_node()); !r) {
+                return r;
+            }
+            self.write_infix_operator(":");
+            if (auto r = self.generate_subexpression(outer_type, expression.get_right_node()); !r) {
+                return r;
+            }
         }
 
         attempt.commit();
@@ -715,7 +720,7 @@ struct C_Cpp_Code_Generator::Visitor {
     [[nodiscard]] Result<void, Generator_Error> operator()(const Prefix_Expression& expression)
     {
         const auto outer_type = expression.get_expression_type();
-        self.m_out.append(token_type_code_name(expression.get_op()), Code_Span_Type::operation);
+        self.write_operator(token_type_code_name(expression.get_op()));
         return self.generate_subexpression(outer_type, expression.get_expression_node());
     }
 
@@ -726,7 +731,7 @@ struct C_Cpp_Code_Generator::Visitor {
             self.write_indent();
         }
 
-        self.m_out.append(call.get_name(), Code_Span_Type::function_name);
+        self.write_function_name(call.get_name());
         {
             Scoped_Parenthesization p = self.parenthesize();
             bool first = true;
@@ -761,7 +766,7 @@ struct C_Cpp_Code_Generator::Visitor {
             }
         }
 
-        self.m_out.append(id.get_identifier(), Code_Span_Type::variable_name);
+        self.write_variable_name(id.get_identifier());
         return {};
     }
 
