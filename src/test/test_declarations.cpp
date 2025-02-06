@@ -122,11 +122,15 @@ bool dependency_search_type_is_recursive(Dependency_Search_Type search_type)
                                            const Dependency_Map& expected,
                                            Dependency_Search_Type search_type)
 {
-    return test_for_success_then_introspect(file, [&](bms::Analyzed_Program& program) {
-        const Dependency_Map actual
-            = gather_all_dependencies(program, expected.get_allocator().resource(), search_type);
-        return actual == expected;
-    });
+    std::pmr::monotonic_buffer_resource memory;
+    return test_for_success_then_introspect(
+        file,
+        [&](bms::Analyzed_Program& program) {
+            const Dependency_Map actual = gather_all_dependencies(
+                program, expected.get_allocator().resource(), search_type);
+            return actual == expected;
+        },
+        &memory);
 }
 
 struct [[nodiscard]] Dependency_Map_Builder {
@@ -293,10 +297,12 @@ gather_dependencies_from_program_file(std::string_view file, std::pmr::memory_re
 {
     std::pmr::vector<bmd::Edge> edges { memory };
 
-    const bool success
-        = test_for_success_also_introspect(file, [&](const bms::Analyzed_Program& program) {
-              bmd::gather_global_dependencies(edges, program);
-          });
+    const bool success = test_for_success_also_introspect(
+        file,
+        [&](const bms::Analyzed_Program& program) {
+            bmd::gather_global_dependencies(edges, program);
+        },
+        memory);
     BIT_MANIPULATION_ASSERT(success);
 
     return edges;

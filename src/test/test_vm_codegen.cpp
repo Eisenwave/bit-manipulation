@@ -24,17 +24,19 @@ namespace {
 const bool should_print_colors = is_tty(stdout);
 
 [[nodiscard]] std::optional<std::pmr::vector<bms::Instruction>>
-test_and_run_codegen(std::string_view file)
+test_and_run_codegen(std::string_view file, std::pmr::memory_resource* memory)
 {
     std::optional<std::pmr::vector<bms::Instruction>> result;
-    const bool success
-        = test_for_success_also_introspect(file, [&](bms::Analyzed_Program& program) {
-              bms::generate_code(program,
-                                 { .write_vm_address = true,
-                                   .ignore_with_address = true,
-                                   .calls = bms::Call_Policy::resolve });
-              result = std::move(program.get_vm().instructions());
-          });
+    const bool success = test_for_success_also_introspect(
+        file,
+        [&](bms::Analyzed_Program& program) {
+            bms::generate_code(program,
+                               { .write_vm_address = true,
+                                 .ignore_with_address = true,
+                                 .calls = bms::Call_Policy::resolve });
+            result = std::move(program.get_vm().instructions());
+        },
+        memory);
     BIT_MANIPULATION_ASSERT(bool(result) == success);
     return result;
 }
@@ -97,7 +99,8 @@ TEST(VM_Codegen, reverse_order)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/reverse_order.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/reverse_order.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -120,7 +123,8 @@ TEST(VM_Codegen, simple)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/simple.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/simple.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -128,7 +132,8 @@ TEST(VM_Codegen, function_minimal)
 {
     static const bms::Instruction expected[] = { bms::ins::Return {} };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/function_minimal.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/function_minimal.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -138,7 +143,9 @@ TEST(VM_Codegen, const_emits_nothing)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/const_emits_nothing.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual
+        = test_and_run_codegen("codegen/vm/const_emits_nothing.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -148,7 +155,8 @@ TEST(VM_Codegen, let_uninitialized)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/let_uninitialized.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/let_uninitialized.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -160,7 +168,8 @@ TEST(VM_Codegen, let_zero)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/let_zero.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/let_zero.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -170,7 +179,9 @@ TEST(VM_Codegen, static_assert_emits_nothing)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/static_assert_emits_nothing.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual
+        = test_and_run_codegen("codegen/vm/static_assert_emits_nothing.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -191,7 +202,8 @@ TEST(VM_Codegen, if_else)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/if_else.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/if_else.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -205,7 +217,8 @@ TEST(VM_Codegen, while_loop)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_loop.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/while_loop.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -222,7 +235,8 @@ TEST(VM_Codegen, while_break)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_break.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/while_break.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -239,7 +253,8 @@ TEST(VM_Codegen, while_continue)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/while_continue.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/while_continue.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -250,7 +265,8 @@ TEST(VM_Codegen, returning_constant)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_constant.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/returning_constant.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -263,7 +279,9 @@ TEST(VM_Codegen, returning_converted)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_converted.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual
+        = test_and_run_codegen("codegen/vm/returning_converted.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -273,7 +291,8 @@ TEST(VM_Codegen, returning_void)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/returning_void.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/returning_void.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -285,7 +304,8 @@ TEST(VM_Codegen, assignment)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/assignment.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/assignment.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -299,7 +319,8 @@ TEST(VM_Codegen, conversion)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/conversion.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/conversion.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 
@@ -318,7 +339,8 @@ TEST(VM_Codegen, min)
         bms::ins::Return {},
     };
 
-    const std::optional actual = test_and_run_codegen("codegen/vm/min.bms");
+    std::pmr::monotonic_buffer_resource memory;
+    const std::optional actual = test_and_run_codegen("codegen/vm/min.bms", &memory);
     EXPECT_TRUE(require_equals_or_dump(expected, actual.value()));
 }
 

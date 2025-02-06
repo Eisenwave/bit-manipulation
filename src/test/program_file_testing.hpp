@@ -1,6 +1,7 @@
 #ifndef BIT_MANIPULATION_PROGRAM_FILE_TESTING_HPP
 #define BIT_MANIPULATION_PROGRAM_FILE_TESTING_HPP
 
+#include <memory_resource>
 #include <optional>
 #include <span>
 #include <string_view>
@@ -61,17 +62,27 @@ struct Analysis_Error_Expectations {
     std::optional<int> cause_line {};
 };
 
-bool test_for_success(std::string_view file, BMS_Stage until_stage = BMS_Stage::analyze);
+bool test_for_success(std::string_view file,
+                      std::pmr::memory_resource* memory,
+                      BMS_Stage until_stage = BMS_Stage::analyze);
+
+inline bool test_for_success(std::string_view file, BMS_Stage until_stage = BMS_Stage::analyze)
+{
+    std::pmr::monotonic_buffer_resource memory;
+    return test_for_success(file, &memory, until_stage);
+}
 
 /// @brief Returns `true` if the program could be analyzed
 /// and `introspection(program)` returns `true`.
 bool test_for_success_then_introspect(std::string_view file,
-                                      Function_Ref<bool(bms::Analyzed_Program&)> introspection);
+                                      Function_Ref<bool(bms::Analyzed_Program&)> introspection,
+                                      std::pmr::memory_resource* memory);
 
 /// @brief Returns `true` if the program could be analyzed,
 /// and also calls `introspection(program)` in that case.
 bool test_for_success_also_introspect(std::string_view file,
-                                      Function_Ref<void(bms::Analyzed_Program&)> introspection);
+                                      Function_Ref<void(bms::Analyzed_Program&)> introspection,
+                                      std::pmr::memory_resource* memory);
 
 bool test_for_diagnostic(std::string_view file, const Tokenize_Error_Expectations& expectations);
 

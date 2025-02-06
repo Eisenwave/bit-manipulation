@@ -36,7 +36,7 @@ const bool should_print_colors = is_tty(stdout);
         }
         return true;
     };
-    return test_for_success_then_introspect(file, action);
+    return test_for_success_then_introspect(file, action, memory);
 }
 
 [[nodiscard]] bool run_basic_codegen_test(std::string_view file,

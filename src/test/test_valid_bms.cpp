@@ -55,6 +55,7 @@ TEST(Valid_BMS, assert)
 
 TEST(Valid_BMS, consteval_return_conversion)
 {
+    std::pmr::monotonic_buffer_resource memory;
     constexpr auto introspect = [](const bms::Analyzed_Program& program) {
         {
             Result<const bms::ast::Const*, bms::Introspection_Error_Code> x
@@ -81,8 +82,8 @@ TEST(Valid_BMS, consteval_return_conversion)
 
         return true;
     };
-    EXPECT_TRUE(
-        test_for_success_then_introspect("valid_bms/consteval_return_conversion.bms", introspect));
+    EXPECT_TRUE(test_for_success_then_introspect("valid_bms/consteval_return_conversion.bms",
+                                                 introspect, &memory));
 }
 
 TEST(Valid_BMS, deduction)

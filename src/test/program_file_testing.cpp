@@ -508,6 +508,7 @@ public:
 /// @return `true` if compilation stages have passed
 bool test_validity(std::string_view file,
                    Printing_Diagnostic_Policy& policy,
+                   std::pmr::memory_resource* memory,
                    Function_Ref<bool(bms::Analyzed_Program&)> introspect = {})
 {
 #define BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(...)                                              \
@@ -520,8 +521,7 @@ bool test_validity(std::string_view file,
     const auto full_path = "test/" + std::string(file);
     policy.file = full_path;
 
-    std::pmr::monotonic_buffer_resource memory;
-    Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, &memory);
+    Result<std::pmr::vector<char>, IO_Error_Code> source_data = file_to_bytes(full_path, memory);
     if (!source_data) {
         return policy.error(source_data.error()) == Policy_Action::success;
     }
@@ -529,20 +529,20 @@ bool test_validity(std::string_view file,
     const std::string_view source { source_data->data(), source_data->size() };
     policy.source = source;
 
-    std::pmr::vector<bms::Token> tokens(&memory);
+    std::pmr::vector<bms::Token> tokens(memory);
     To_Policy_Consumer diagnostic_consumer { policy };
     bms::tokenize(tokens, source, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::tokenize));
 
-    bms::Parsed_Program parsed { source, &memory };
+    bms::Parsed_Program parsed { source, memory };
     policy.parsed_program = &parsed;
     bms::parse(parsed, tokens, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::parse));
 
-    bms::Analyzed_Program analyzed(parsed, full_path, &memory);
-    bms::analyze(analyzed, parsed, &memory, diagnostic_consumer);
+    bms::Analyzed_Program analyzed(parsed, full_path, memory);
+    bms::analyze(analyzed, parsed, memory, diagnostic_consumer);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(diagnostic_consumer.latest_policy_action());
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMS_Stage::analyze));
 
@@ -557,51 +557,62 @@ bool test_validity(std::string_view file,
 
 } // namespace
 
-bool test_for_success(std::string_view file, BMS_Stage until_stage)
+bool test_for_success(std::string_view file,
+                      std::pmr::memory_resource* memory,
+                      BMS_Stage until_stage)
 {
     Expect_Success_Diagnostic_Policy policy { until_stage };
-    return test_validity(file, policy);
+    return test_validity(file, policy, memory);
 }
 
 bool test_for_success_then_introspect(std::string_view file,
-                                      Function_Ref<bool(bms::Analyzed_Program&)> introspection)
+                                      Function_Ref<bool(bms::Analyzed_Program&)> introspection,
+                                      std::pmr::memory_resource* memory)
 {
     Expect_Success_Diagnostic_Policy policy { BMS_Stage::introspect };
-    return test_validity(file, policy, introspection);
+    return test_validity(file, policy, memory, introspection);
 }
 
 bool test_for_success_also_introspect(std::string_view file,
-                                      Function_Ref<void(bms::Analyzed_Program&)> introspection)
+                                      Function_Ref<void(bms::Analyzed_Program&)> introspection,
+                                      std::pmr::memory_resource* memory)
 {
-    return test_for_success_then_introspect(file, [&](bms::Analyzed_Program& program) {
-        introspection(program);
-        return true;
-    });
+    return test_for_success_then_introspect(
+        file,
+        [&](bms::Analyzed_Program& program) {
+            introspection(program);
+            return true;
+        },
+        memory);
 }
 
 bool test_for_diagnostics(std::string_view file,
                           std::span<const Tokenize_Error_Expectations> expectations)
 {
+    std::pmr::monotonic_buffer_resource memory;
     Expect_Tokenize_Error_Diagnostic_Policy policy { expectations };
-    return test_validity(file, policy);
+    return test_validity(file, policy, &memory);
 }
 
 bool test_for_diagnostic(std::string_view file, const Tokenize_Error_Expectations& expectations)
 {
+    std::pmr::monotonic_buffer_resource memory;
     Expect_Tokenize_Error_Diagnostic_Policy policy { std::span { &expectations, 1 } };
-    return test_validity(file, policy);
+    return test_validity(file, policy, &memory);
 }
 
 bool test_for_diagnostic(std::string_view file, const Parse_Error_Expectations& expectations)
 {
+    std::pmr::monotonic_buffer_resource memory;
     Expect_Parse_Error_Diagnostic_Policy policy { expectations };
-    return test_validity(file, policy);
+    return test_validity(file, policy, &memory);
 }
 
 bool test_for_diagnostic(std::string_view file, const Analysis_Error_Expectations& expectations)
 {
+    std::pmr::monotonic_buffer_resource memory;
     Expect_Analysis_Error_Diagnostic_Policy policy { expectations };
-    return test_validity(file, policy);
+    return test_validity(file, policy, &memory);
 }
 
 } // namespace bit_manipulation
