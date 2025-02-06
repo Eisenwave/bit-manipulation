@@ -40,6 +40,7 @@ std::optional<Token_Type> keyword_by_name(std::string_view s) noexcept
         { "Uint", keyword_uint },
         { "Bool", keyword_bool },
         { "Void", keyword_void },
+        { "Nothing", keyword_nothing },
         { "while", keyword_while },
         { "break", keyword_break },
         { "continue", keyword_continue },
