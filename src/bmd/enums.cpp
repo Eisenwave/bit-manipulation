@@ -25,52 +25,6 @@ bool directive_content_allows(Directive_Content_Type content, Directive_Environm
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid content type.");
 }
 
-Formatting_Style directive_type_formatting_style(Builtin_Directive_Type type)
-{
-    using enum Builtin_Directive_Type;
-    switch (type) {
-    case bold:
-    case emphasized:
-    case heading1:
-    case heading2:
-    case heading3:
-    case heading4:
-    case heading5:
-    case heading6:
-    case line_break:
-    case deleted:
-    case inserted:
-    case instruction:
-    case italic:
-    case item:
-    case keyboard:
-    case mark:
-    case quoted:
-    case strikethrough:
-    case strong:
-    case subscript:
-    case superscript:
-    case teletype:
-    case underlined:
-    case code: return Formatting_Style::in_line;
-
-    case code_block:
-    case description_list:
-    case ordered_list:
-    case note:
-    case sample_output:
-    case unordered_list: return Formatting_Style::block;
-
-    case horizontal_rule: return Formatting_Style::flat;
-
-    case meta:
-    case title:
-    case bms_function:
-    case c_equivalent: return {};
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
-}
-
 Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type)
 {
     using enum Builtin_Directive_Type;
@@ -78,6 +32,8 @@ Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type)
     case line_break:
     case horizontal_rule: return Directive_Content_Type::nothing;
 
+    case description_term:
+    case description_definition:
     case instruction:
     case bms_function:
     case c_equivalent:
@@ -105,6 +61,8 @@ Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type)
     case teletype:
     case underlined: return Directive_Content_Type::span;
 
+    case comment:
+    case definition:
     case sample_output:
     case code:
     case code_block: return Directive_Content_Type::raw;

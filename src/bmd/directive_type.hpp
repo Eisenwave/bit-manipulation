@@ -155,13 +155,6 @@ enum struct Directive_Environment : Default_Underlying {
     }
 }
 
-/// @brief Returns the formatting style of the directive type.
-/// For example, `bold` is formatted as `in_line` whereas `note` is formatted as
-/// `block`.
-/// @param type the directive type
-/// @return The corresponding `Formatting_Style`.
-[[nodiscard]] Formatting_Style directive_type_formatting_style(Builtin_Directive_Type type);
-
 [[nodiscard]] Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type);
 
 [[nodiscard]] Directive_Environment directive_type_environment(Builtin_Directive_Type type);

@@ -188,18 +188,18 @@ void tokens_to_html(HTML_Writer& out, std::span<const bms::Token> tokens, std::s
         // Therefore, we need to write the code in the gap literally.
         const Size previous_end = i == 0 ? 0 : tokens[i - 1].pos.end();
         const std::string_view gap = code.substr(previous_end, tokens[i].pos.begin - previous_end);
-        out.write_inner_text(gap, Formatting_Style::pre);
+        out.write_inner_text(gap);
 
         const Code_Span_Type category = *categorizer;
-        const Tag_Properties tag { code_span_type_tag(category), Formatting_Style::pre };
-        out.begin_tag(tag);
+        const std::string_view tag = code_span_type_tag(category);
+        out.open_tag(tag);
         const std::string_view text = code.substr(tokens[i].pos.begin, tokens[i].pos.length);
-        out.write_inner_text(text, Formatting_Style::pre);
-        out.end_tag(tag);
+        out.write_inner_text(text);
+        out.close_tag(tag);
     }
     const std::string_view trailing_code
         = tokens.empty() ? code : code.substr(tokens.back().pos.end());
-    out.write_inner_text(trailing_code, Formatting_Style::pre);
+    out.write_inner_text(trailing_code);
 }
 
 } // namespace
@@ -220,18 +220,17 @@ bool bms_inline_code_to_html(HTML_Writer& out,
     };
     bool tokenize_succeeded = bms::tokenize(tokens, code, error_consumer);
 
-    // TODO: imbue tokens with identifier information if parsing succeeded
     tokens_to_html(out, tokens, code);
 
     return tokenize_succeeded;
 }
 
-bool bms_inline_code_to_html(HTML_Token_Consumer& out,
+bool bms_inline_code_to_html(Code_String& out,
                              std::string_view code,
                              std::pmr::memory_resource* memory,
                              Function_Ref<void(bms::Tokenize_Error&&)> on_error)
 {
-    HTML_Writer writer { out, 0 };
+    HTML_Writer writer { out };
     return bms_inline_code_to_html(writer, code, memory, on_error);
 }
 

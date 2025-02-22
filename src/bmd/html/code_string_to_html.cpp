@@ -27,6 +27,7 @@ namespace bit_manipulation::bmd {
     case keyword: return "c-key";
     case boolean_literal: return "c-bol";
     case error: return "c-err";
+
     case diagnostic_text: return "c-dtx";
     case diagnostic_error_text: return "c-det";
     case diagnostic_code_position: return "c-dcp";
@@ -44,6 +45,15 @@ namespace bit_manipulation::bmd {
     case diagnostic_attribute: return "c-dat";
     case diagnostic_internal: return "c-dit";
     case diagnostic_escape: return "c-des";
+
+    case html_preamble: return "c-html-pre";
+    case html_comment: return "c-html-com";
+    case html_tag_identifier: return "c-html-tag";
+    case html_tag_bracket: return "c-html-bra";
+    case html_attribute_key: return "c-html-aky";
+    case html_attribute_equal: return "c-html-aeq";
+    case html_attribute_value: return "c-html-avl";
+    case html_inner_text: return "c-html-pre";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid token type.");
 }
@@ -59,13 +69,13 @@ void code_string_to_html(HTML_Writer& out, const Code_String& string)
             if (spans[i].begin != previous_end) {
                 const std::string_view gap_text
                     = string.get_text().substr(previous_end, spans[i].begin - previous_end);
-                out.write_inner_text(gap_text, Formatting_Style::pre);
+                out.write_inner_text(gap_text);
             }
         }
-        const Tag_Properties tag { code_span_type_tag(spans[i].type), Formatting_Style::pre };
-        out.begin_tag(tag);
-        out.write_inner_text(string.get_text(spans[i]), Formatting_Style::pre);
-        out.end_tag(tag);
+        const std::string_view id = code_span_type_tag(spans[i].type);
+        out.open_tag(id);
+        out.write_inner_text(string.get_text(spans[i]));
+        out.close_tag(id);
     }
 }
 

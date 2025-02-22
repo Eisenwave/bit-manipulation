@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include "common/function_ref.hpp"
+#include "common/fwd.hpp"
 #include "common/result.hpp"
 #include "common/variant.hpp"
 
@@ -30,7 +31,7 @@ bool bms_inline_code_to_html(HTML_Writer& out,
 
 /// @brief Convenience function which creates an ad-hoc `HTML_Writer` and calls the other overload.
 /// Note that formatting settings are irrelevant anyway, since all HTML output is pre-formatted.
-bool bms_inline_code_to_html(HTML_Token_Consumer& out,
+bool bms_inline_code_to_html(Code_String& out,
                              std::string_view code,
                              std::pmr::memory_resource* memory,
                              Function_Ref<void(bms::Tokenize_Error&&)> on_error = {});

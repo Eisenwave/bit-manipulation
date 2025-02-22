@@ -106,9 +106,9 @@ int to_html(std::string_view file,
                 print_code_string(std::cerr, out, colors);
                 return 1;
             }
-            Colored_HTML_Consumer consumer { std::cout };
 // FIXME reimplement
 #if 0
+            Colored_HTML_Consumer consumer { std::cout };
             result = write_html(consumer, program, memory);
 #endif
         }
@@ -121,9 +121,9 @@ int to_html(std::string_view file,
                 return 1;
             }
 
-            Simple_HTML_Consumer consumer { out };
 // FIXME reimplement
 #if 0
+            Simple_HTML_Consumer consumer { out };
             result = write_html(consumer, program, memory);
 #endif
         }
@@ -183,7 +183,7 @@ int generate(std::string_view file,
         std::cout << ansi::red << "Error: file must have '.bms' suffix.\n";
         return 1;
     }
-    std::optional<bmd::Code_Language> language = code_language_by_name(language_name);
+    std::optional<bmd::Code_Language> language = bmd::code_language_by_name(language_name);
     if (!language) {
         if (colors) {
             std::cout << ansi::red;

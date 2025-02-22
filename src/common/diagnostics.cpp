@@ -85,6 +85,16 @@ namespace {
     case diagnostic_attribute: return ansi::h_magenta;
 
     case diagnostic_escape: return ansi::h_yellow;
+
+    case html_preamble:
+    case html_comment:
+    case html_tag_bracket:
+    case html_attribute_equal: return ansi::h_black;
+
+    case html_tag_identifier: return ansi::h_blue;
+    case html_attribute_key: return ansi::h_cyan;
+    case html_attribute_value: return ansi::h_green;
+    case html_inner_text: return ansi::reset;
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Unknown code span type.");
 }

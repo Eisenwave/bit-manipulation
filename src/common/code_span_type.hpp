@@ -27,6 +27,7 @@ enum struct Code_Span_Type : Default_Underlying {
     keyword,
     boolean_literal,
     error,
+
     diagnostic_text,
     diagnostic_error_text,
     diagnostic_code_position,
@@ -43,7 +44,16 @@ enum struct Code_Span_Type : Default_Underlying {
     diagnostic_tag,
     diagnostic_attribute,
     diagnostic_internal,
-    diagnostic_escape
+    diagnostic_escape,
+
+    html_preamble,
+    html_comment,
+    html_tag_identifier,
+    html_tag_bracket,
+    html_attribute_key,
+    html_attribute_equal,
+    html_attribute_value,
+    html_inner_text
 };
 
 } // namespace bit_manipulation

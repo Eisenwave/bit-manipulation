@@ -7,7 +7,6 @@
 #include "common/tty.hpp"
 
 #include "bmd/html/doc_to_html.hpp"
-#include "bmd/html/token_consumer.hpp"
 #include "bmd/parsing/parse.hpp"
 
 #include "test/diagnostic_policy.hpp"
@@ -21,21 +20,6 @@ const bool should_print_colors = is_tty(stdout);
 struct Printing_BMD_Diagnostic_Policy : BMD_Diagnostic_Policy {
     std::string_view file;
     std::string_view source;
-};
-
-struct Ignoring_HTML_Token_Consumer final : bmd::HTML_Token_Consumer {
-    bool write(char, bmd::HTML_Token_Type) final
-    {
-        return true;
-    }
-    bool write(char, Size, bmd::HTML_Token_Type) final
-    {
-        return true;
-    }
-    bool write(std::string_view, bmd::HTML_Token_Type) final
-    {
-        return true;
-    }
 };
 
 bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy)
@@ -62,9 +46,9 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
     bmd::Parsed_Document doc = bmd::parse(source, &memory);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::parse));
 
-    [[maybe_unused]] Ignoring_HTML_Token_Consumer consumer;
 // FIXME reimplement
 #if 0
+    Ignoring_HTML_Token_Consumer consumer;
     Result<void, bmd::Document_Error> result
         = bmd::doc_to_html(consumer, *doc, { .indent_width = 4 }, &memory);
     if (!result) {
