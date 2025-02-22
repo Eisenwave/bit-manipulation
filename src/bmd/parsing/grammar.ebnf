@@ -1,40 +1,34 @@
 document
-    = [blank | paragraph_break], [content];
+    = { content };
 content
-    = paragraph, { paragraph_break, [paragraph] };
-paragraph
-    = { (directive | text), [blank] };
-text
-    = (* longest sequence of characters that does not include a "\" (other than for escape sequences) or paragraph_break *);
+    = directive | text;
+
+(* not matched if immediately following "\", except if following "\\" *)
 directive
-    = "\", identifier, [arguments], [block];
-arguments
-    = "[", { [blank], argument, [blank], [","] }, [blank], "]";
-block
-    = "{", raw_content | ([blank | paragraph_break], content), "}";
-raw_content
-    = (* longest brace-balanced sequence, including whitespace and comments *);
+    = "\", directive_name, [ arguments ], [ block ];
+directive_name
+    = /[-a-zA-Z][-a-zA-Z0-9]*/;
+
+argument_list
+    = "[", [ argument ], { ",", [ argument ] }, "]";
 argument
-    = identifier, [blank], "=", [blank], value;
+    = [ ws ], argument_name, [ ws ], "=", [ ws ], [ argument_value ], [ ws ]
+    | [ ws ], [ argument_value ], [ ws ];
+argument_name
+    = /[-_a-zA-Z][-_a-zA-Z0-9]*/;
 
-value
-    = binary_literal
-    | octal_literal
-    | decimal_literal
-    | hexadecimal_literal
-    | identifier;
-binary_literal
-    = /0b[01]+/;
-octal_literal
-    = /0[0-7]*/;
-decimal_literal
-    = /[1-9][0-9]*/;
-hexadecimal_literal
-    = /0x[0-9a-fA-F]+/;
-identifier
-    = /[_a-zA-Z][_a-zA-Z0-9]*/;
+(* terminated by "," or unbalanced "]" *)
+argument_value
+    = { content };
 
-blank
-    = (* C89-style comment, C99-style comment, or whitespace sequence *);
-paragraph_break
-     = (* whitespace/comment sequence containing a whitespace line outside comments *);
+(* Lazy.
+   Brace matching is performed,
+   where escaped braces ("\}" and "\{") do not count,
+   except that "\\{" and "\\}" do count  *)
+block
+    = "{", { content }, "}";
+
+text
+    = (* sequence of characters not containing any match of directive *);
+ws
+    = (* sequence of whitespace characters *);
