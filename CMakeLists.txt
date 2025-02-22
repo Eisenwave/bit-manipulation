@@ -43,10 +43,8 @@ set(HEADERS
     src/bmd/html/code_string_to_html.hpp
     src/bmd/html/doc_to_html.hpp
     src/bmd/html/html_writer.hpp
-    src/bmd/html/token_type.hpp
     
     src/bmd/parsing/ast.hpp
-    src/bmd/parsing/grammar.hpp
     src/bmd/parsing/parse.hpp
 
     src/bms/analysis_error.hpp
@@ -187,24 +185,25 @@ else(NOT DEFINED EMSCRIPTEN)
     add_executable(bm-test ${HEADERS}
         src/test/compilation_stage.hpp
         src/test/diagnostic_policy.hpp
-        src/test/document_file_testing.cpp
-        src/test/document_file_testing.hpp
-        src/test/program_file_testing.cpp
-        src/test/program_file_testing.hpp
-
-        src/test/test_analysis_error.cpp
-        src/test/test_codegen.cpp
-        src/test/test_declarations.cpp
-        src/test/test_dependency_breaking.cpp
-        src/test/test_parse_error.cpp
         src/test/test_to_chars.cpp
-        src/test/test_tokenization.cpp
-        src/test/test_tokenize_error.cpp
         src/test/test_tribool.cpp
-        src/test/test_valid_bms.cpp
-        src/test/test_valid_bmd.cpp
         src/test/test_variant.cpp
-        src/test/test_vm_codegen.cpp
+        
+        src/test/bmd/document_file_testing.cpp
+        src/test/bmd/document_file_testing.hpp
+        src/test/bmd/test_codegen.cpp
+        src/test/bmd/test_declarations.cpp
+        src/test/bmd/test_dependency_breaking.cpp
+        src/test/bmd/test_valid_bmd.cpp
+        
+        src/test/bms/program_file_testing.cpp
+        src/test/bms/program_file_testing.hpp
+        src/test/bms/test_analysis_error.cpp
+        src/test/bms/test_parse_error.cpp
+        src/test/bms/test_tokenization.cpp
+        src/test/bms/test_tokenize_error.cpp
+        src/test/bms/test_valid_bms.cpp
+        src/test/bms/test_vm_codegen.cpp
     )
 
     target_link_libraries(bm-cli bm)

@@ -16,7 +16,7 @@
 #include "bms/vm/instructions.hpp"
 #include "bms/vm/vm.hpp"
 
-#include "test/program_file_testing.hpp"
+#include "test/bms/program_file_testing.hpp"
 
 namespace bit_manipulation {
 namespace {

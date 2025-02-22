@@ -8,7 +8,7 @@
 #include "bms/analyzed_program.hpp"
 #include "bms/ast.hpp"
 
-#include "test/program_file_testing.hpp"
+#include "test/bms/program_file_testing.hpp"
 
 namespace bit_manipulation {
 namespace {

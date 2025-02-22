@@ -2,7 +2,7 @@
 
 #include "bms/tokenization/tokenize_error.hpp"
 
-#include "test/program_file_testing.hpp"
+#include "test/bms/program_file_testing.hpp"
 
 namespace bit_manipulation {
 namespace {

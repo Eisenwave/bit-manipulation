@@ -9,8 +9,8 @@
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/parsing/parse.hpp"
 
+#include "test/bms/program_file_testing.hpp"
 #include "test/diagnostic_policy.hpp"
-#include "test/program_file_testing.hpp"
 
 namespace bit_manipulation {
 namespace {
