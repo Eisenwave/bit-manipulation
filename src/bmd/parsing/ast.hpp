@@ -1,17 +1,17 @@
-#ifndef BIT_MANIPULATION_BMD_PARSED_DOCUMENT_HPP
-#define BIT_MANIPULATION_BMD_PARSED_DOCUMENT_HPP
+#ifndef BIT_MANIPULATION_BMD_AST_HPP
+#define BIT_MANIPULATION_BMD_AST_HPP
 
 #include <memory_resource>
 #include <span>
 #include <string_view>
-#include <unordered_map>
 #include <vector>
 
-#include "common/parse.hpp"
+#include "common/meta.hpp"
 #include "common/source_position.hpp"
 #include "common/variant.hpp"
 
 #include "bmd/directive_type.hpp"
+#include "bmd/fwd.hpp"
 
 namespace bit_manipulation::bmd::ast {
 
@@ -27,186 +27,165 @@ struct Base {
 
 } // namespace detail
 
-/// @brief A class which represents an identifier in the grammar.
-struct Identifier : detail::Base {
-    static inline constexpr std::string_view self_name = "Identifier";
+struct Argument final : detail::Base {
+private:
+    std::pmr::vector<Content> m_content;
+    Local_Source_Span m_name;
 
-    std::string_view m_value;
+public:
+    [[nodiscard]] Argument(const Local_Source_Span& pos,
+                           const Local_Source_Span& name,
+                           std::pmr::vector<ast::Content>&& children);
 
-    [[nodiscard]] Identifier(const Local_Source_Span& pos, std::string_view value);
+    [[nodiscard]] Argument(const Local_Source_Span& pos, std::pmr::vector<ast::Content>&& children);
 
-    [[nodiscard]] std::string_view get_value() const
+    ~Argument();
+
+    [[nodiscard]] bool has_name() const
     {
-        return m_value;
+        return !m_name.empty();
     }
-};
-
-/// @brief A class which represents all numeric literals in the grammar.
-struct Number : detail::Base {
-    static inline constexpr std::string_view self_name = "Number";
-
-    Int64 m_value;
-    Literal_Type m_type;
-
-    [[nodiscard]] Number(const Local_Source_Span& pos, Int64 value, Literal_Type type);
-
-    [[nodiscard]] Int64 get_value() const
+    [[nodiscard]] Local_Source_Span get_name_span() const;
+    [[nodiscard]] std::string_view get_name(std::string_view source) const
     {
-        return m_value;
+        BIT_MANIPULATION_ASSERT(m_name.begin + m_name.length <= source.size());
+        return source.substr(m_name.begin, m_name.length);
     }
 
-    [[nodiscard]] Literal_Type get_type() const
-    {
-        return m_type;
-    }
+    [[nodiscard]] std::span<Content> get_content() &;
+    [[nodiscard]] std::span<const Content> get_content() const&;
+    [[nodiscard]] std::pmr::vector<Content>&& get_content() &&;
 };
 
-using Value = Variant<Identifier, Number>;
+struct Directive final : detail::Base {
+private:
+    Size m_name_length;
 
-inline Local_Source_Span get_source_span(const Value& node)
-{
-    return visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
-        .get_source_position();
-}
+    std::pmr::vector<Argument> m_arguments;
+    std::pmr::vector<Content> m_content;
 
-/// @brief A class which represents raw content.
-struct Raw : detail::Base {
-    static inline constexpr std::string_view self_name = "Raw";
-
-    std::string_view m_value;
-
-    [[nodiscard]] Raw(const Local_Source_Span& pos, std::string_view value);
-
-    [[nodiscard]] std::string_view get_value() const
-    {
-        return m_value;
-    }
-};
-
-/// @brief A class which represents the grammar rules `content`, `paragraph`, and
-/// contents of blocks in general.
-/// The concrete meaning depends on the enclosing directive.
-struct List : detail::Base {
-    static inline constexpr std::string_view self_name = "List";
-
-    std::pmr::vector<Some_Node*> m_children;
-
-    [[nodiscard]] List(const Local_Source_Span& pos, std::pmr::vector<ast::Some_Node*>&& children);
-
-    [[nodiscard]] std::span<Some_Node*> get_children();
-    [[nodiscard]] std::span<Some_Node* const> get_children() const;
-    [[nodiscard]] bool empty() const;
-};
-
-/// @brief A class which represents the `directive` rule in the grammar.
-/// `Directive` optionally has a `Content` or `Text` child, depending on whether the rule
-/// stores `raw_content` or regular `content`.
-struct Directive : detail::Base {
-    static inline constexpr std::string_view self_name = "Directive";
-    using Arguments = std::pmr::unordered_map<std::string_view, Value>;
-
-    Directive_Type m_type;
-    std::string_view m_identifier;
-
-    Arguments m_arguments;
-    Some_Node* m_block;
-
+public:
     [[nodiscard]] Directive(const Local_Source_Span& pos,
-                            Directive_Type type,
-                            std::string_view identifier,
-                            Arguments&& args,
-                            ast::Some_Node* block);
+                            Size name_length,
+                            std::pmr::vector<Argument>&& args,
+                            std::pmr::vector<Content>&& block);
 
-    [[nodiscard]] Directive_Type get_type() const
+    ~Directive();
+
+    [[nodiscard]] std::string_view get_name(std::string_view source) const
     {
-        return m_type;
+        return source.substr(m_pos.begin + 1, m_name_length);
     }
 
-    [[nodiscard]] std::string_view get_identifier() const
-    {
-        return m_identifier;
-    }
+    [[nodiscard]] std::span<Argument> get_arguments();
+    [[nodiscard]] std::span<const Argument> get_arguments() const;
+    [[nodiscard]] std::span<Content> get_content();
+    [[nodiscard]] std::span<Content const> get_content() const;
+};
 
-    /// @brief Returns the block which this directive optionally has.
-    /// @return `nullptr` if there is no block, `ast::Text` for raw blocks, `ast::Content`
-    /// otherwise.
-    [[nodiscard]] ast::Some_Node* get_block() const
-    {
-        return m_block;
-    }
+struct Text final : detail::Base {
 
-    [[nodiscard]] std::span<Some_Node*> get_children()
+    [[nodiscard]] Text(const Local_Source_Span& pos);
+
+    [[nodiscard]] std::string_view get_text(std::string_view source) const
     {
-        return { &m_block, 1 };
-    }
-    [[nodiscard]] std::span<Some_Node* const> get_children() const
-    {
-        return { &m_block, 1 };
+        return source.substr(m_pos.begin, m_pos.length);
     }
 };
 
-/// @brief A class which represents the `text` rule in the grammar.
-struct Text : detail::Base {
-    static inline constexpr std::string_view self_name = "Text";
-
-    std::string_view m_text;
-
-    [[nodiscard]] Text(const Local_Source_Span& pos, std::string_view text);
-
-    [[nodiscard]] std::string_view get_text() const
-    {
-        return m_text;
-    }
-
-    [[nodiscard]] std::span<Some_Node*> get_children()
-    {
-        return {};
-    }
-    [[nodiscard]] std::span<Some_Node* const> get_children() const
-    {
-        return {};
-    }
-};
-
-[[nodiscard]] inline std::span<Some_Node*> List::get_children()
-{
-    return m_children;
-}
-
-[[nodiscard]] inline std::span<Some_Node* const> List::get_children() const
-{
-    return m_children;
-}
-
-[[nodiscard]] inline bool List::empty() const
-{
-    return m_children.empty();
-}
-
-struct Some_Node : Variant<List, Directive, Text> {
+struct Content : Variant<Directive, Text> {
     using Variant::Variant;
 };
 
-[[nodiscard]] inline std::string_view get_node_name(const Some_Node& node)
+inline Argument::~Argument() = default;
+inline Directive::~Directive() = default;
+
+inline std::span<Content> Argument::get_content() &
 {
-    return visit([]<typename T>(const T&) { return T::self_name; }, node);
+    return m_content;
+}
+inline std::span<const Content> Argument::get_content() const&
+{
+    return m_content;
+}
+inline std::pmr::vector<Content>&& Argument::get_content() &&
+{
+    return std::move(m_content);
 }
 
-[[nodiscard]] inline std::span<Some_Node*> get_children(Some_Node& node)
+inline std::span<Argument> Directive::get_arguments()
 {
-    return visit([]<typename T>(T& v) { return v.get_children(); }, node);
+    return m_arguments;
+}
+inline std::span<const Argument> Directive::get_arguments() const
+{
+    return m_arguments;
 }
 
-[[nodiscard]] inline std::span<Some_Node* const> get_children(const Some_Node& node)
+inline std::span<Content> Directive::get_content()
 {
-    return visit([]<typename T>(const T& v) { return v.get_children(); }, node);
+    return m_content;
+}
+inline std::span<Content const> Directive::get_content() const
+{
+    return m_content;
 }
 
-[[nodiscard]] inline Local_Source_Span get_source_span(const Some_Node& node)
+[[nodiscard]] inline Local_Source_Span get_source_span(const Content& node)
 {
     return visit([]<typename T>(const T& v) -> const detail::Base& { return v; }, node)
         .get_source_position();
 }
+
+template <bool constant>
+struct Visitor_Impl {
+    using Argument_Type = const_if_t<Argument, constant>;
+    using Text_Type = const_if_t<Text, constant>;
+    using Directive_Type = const_if_t<Directive, constant>;
+    using Content_Type = const_if_t<Content, constant>;
+
+    void visit_arguments(Directive_Type& directive)
+    {
+        for (Argument_Type& arg : directive.get_arguments()) {
+            this->visit(arg);
+        }
+    }
+
+    void visit_children(Directive_Type& directive)
+    {
+        visit_arguments();
+        visit_content_sequence(directive.get_content());
+    }
+
+    void visit_children(Argument_Type& argument)
+    {
+        visit_content_sequence(argument.get_content());
+    }
+
+    void visit_content(Content_Type& content)
+    {
+        if (auto* d = get_if<Directive>(&content)) {
+            this->visit(*d);
+        }
+        else {
+            this->visit(get<Text>(content));
+        }
+    }
+
+    void visit_content_sequence(std::span<Content_Type> content)
+    {
+        for (Content_Type& c : content) {
+            this->visit_content(c);
+        }
+    }
+
+    virtual void visit(Directive_Type& directive) = 0;
+    virtual void visit(Text_Type& text) = 0;
+    virtual void visit(Argument_Type& argument) = 0;
+};
+
+using Visitor = Visitor_Impl<false>;
+using Const_Visitor = Visitor_Impl<true>;
 
 } // namespace bit_manipulation::bmd::ast
 

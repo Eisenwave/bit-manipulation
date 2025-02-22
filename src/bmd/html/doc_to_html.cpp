@@ -1,3 +1,4 @@
+#if 0
 #include <algorithm>
 #include <string>
 #include <unordered_map>
@@ -203,12 +204,12 @@ struct HTML_Converter {
         }
 
         switch (directive.get_type()) {
-        case Directive_Type::meta: return convert_meta_directive(directive);
+        case Builtin_Directive_Type::meta: return convert_meta_directive(directive);
 
-        case Directive_Type::code:
-        case Directive_Type::code_block: return convert_code_directive(directive);
+        case Builtin_Directive_Type::code:
+        case Builtin_Directive_Type::code_block: return convert_code_directive(directive);
 
-        case Directive_Type::instruction: return convert_instruction_directive(directive);
+        case Builtin_Directive_Type::instruction: return convert_instruction_directive(directive);
 
         default: BIT_MANIPULATION_ASSERT_UNREACHABLE("Unimplemented directive type.");
         }
@@ -279,7 +280,7 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_meta_directive(const ast::Directive& directive)
     {
-        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::meta);
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Builtin_Directive_Type::meta);
 
         if (!m_at_start_of_file) {
             return Document_Error { Document_Error_Code::meta_not_at_start_of_file,
@@ -298,7 +299,7 @@ struct HTML_Converter {
             if (auto r = update_metadata_from_directive(child); !r) {
                 return r;
             }
-            if (child.get_type() == Directive_Type::title) {
+            if (child.get_type() == Builtin_Directive_Type::title) {
                 if (title_directive != nullptr) {
                     // TODO: check this for other entries as well
                     return Document_Error { Document_Error_Code::duplicate_meta_entry,
@@ -321,8 +322,8 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_code_directive(const ast::Directive& directive)
     {
-        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::code
-                                || directive.get_type() == Directive_Type::code_block);
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Builtin_Directive_Type::code
+                                || directive.get_type() == Builtin_Directive_Type::code_block);
 
         m_at_start_of_file = false;
 
@@ -332,7 +333,7 @@ struct HTML_Converter {
             return lang.error();
         }
 
-        const auto surrounding_tag = directive.get_type() == Directive_Type::code
+        const auto surrounding_tag = directive.get_type() == Builtin_Directive_Type::code
             ? Tag_Properties { "code", Formatting_Style::in_line }
             : Tag_Properties { "pre", Formatting_Style::block };
 
@@ -377,7 +378,7 @@ struct HTML_Converter {
     [[nodiscard]] Result<void, Document_Error>
     convert_instruction_directive(const ast::Directive& directive)
     {
-        BIT_MANIPULATION_ASSERT(directive.get_type() == Directive_Type::instruction);
+        BIT_MANIPULATION_ASSERT(directive.get_type() == Builtin_Directive_Type::instruction);
 
         m_at_start_of_file = false;
 
@@ -468,17 +469,17 @@ struct HTML_Converter {
         }
 
         switch (directive.get_type()) {
-        case Directive_Type::title: {
+        case Builtin_Directive_Type::title: {
             const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.title = text.get_text();
             return {};
         }
-        case Directive_Type::bms_function: {
+        case Builtin_Directive_Type::bms_function: {
             const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.bms_function = text.get_text();
             return {};
         }
-        case Directive_Type::c_equivalent: {
+        case Builtin_Directive_Type::c_equivalent: {
             const auto& text = get<ast::Text>(*directive.get_block());
             m_meta.c_equivalent = text.get_text();
             return {};
@@ -565,3 +566,4 @@ Result<void, Document_Error> doc_to_html(HTML_Token_Consumer& out,
 }
 
 } // namespace bit_manipulation::bmd
+#endif

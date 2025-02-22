@@ -4,34 +4,8 @@
 #include "bmd/code_language.hpp"
 #include "bmd/directive_type.hpp"
 #include "bmd/html/html_writer.hpp"
-#include "bmd/parsing/grammar.hpp"
 
 namespace bit_manipulation::bmd {
-
-std::string_view grammar_rule_name(Grammar_Rule rule)
-{
-    using enum Grammar_Rule;
-    switch (rule) {
-    case document: return "document";
-    case content: return "content";
-    case paragraph: return "paragraph";
-    case paragraph_break: return "paragraph_break";
-    case text: return "text";
-    case directive: return "directive";
-    case arguments: return "arguments";
-    case block: return "block";
-    case raw_content: return "raw_content";
-    case argument: return "argument";
-    case value: return "value";
-    case binary_literal: return "binary_literal";
-    case octal_literal: return "octal_literal";
-    case decimal_literal: return "decimal_literal";
-    case hexadecimal_literal: return "hexadecimal_literal";
-    case identifier: return "identifier";
-    case blank: return "blank";
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid grammar rule");
-}
 
 bool directive_content_allows(Directive_Content_Type content, Directive_Environment environment)
 {
@@ -51,9 +25,9 @@ bool directive_content_allows(Directive_Content_Type content, Directive_Environm
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid content type.");
 }
 
-Formatting_Style directive_type_formatting_style(Directive_Type type)
+Formatting_Style directive_type_formatting_style(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
     case bold:
     case emphasized:
@@ -97,9 +71,9 @@ Formatting_Style directive_type_formatting_style(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
-Directive_Content_Type directive_type_content_type(Directive_Type type)
+Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
     case line_break:
     case horizontal_rule: return Directive_Content_Type::nothing;
@@ -146,9 +120,9 @@ Directive_Content_Type directive_type_content_type(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
-Directive_Environment directive_type_environment(Directive_Type type)
+Directive_Environment directive_type_environment(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
 
     case bold:
@@ -193,13 +167,13 @@ Directive_Environment directive_type_environment(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
-std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id) noexcept
+std::optional<Builtin_Directive_Type> directive_type_by_id(std::string_view directive_id) noexcept
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
 
     static constexpr struct Pair {
         std::string_view id;
-        Directive_Type type;
+        Builtin_Directive_Type type;
     } lookup[] {
         { "b", bold },
         { "bmsfun", bms_function },
@@ -248,9 +222,9 @@ std::optional<Directive_Type> directive_type_by_id(std::string_view directive_id
 }
 
 // https://github.com/Eisenwave/bit-manipulation/wiki/Bit-Manipulation-Doc-(BMD)
-std::string_view directive_type_tag(Directive_Type type)
+std::string_view directive_type_tag(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
     case bold: return "b";
     case line_break: return "br";
@@ -292,9 +266,9 @@ std::string_view directive_type_tag(Directive_Type type)
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid directive type.");
 }
 
-[[nodiscard]] bool directive_type_is_html_passthrough(Directive_Type type)
+[[nodiscard]] bool directive_type_is_html_passthrough(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
     case bold:
     case line_break:
