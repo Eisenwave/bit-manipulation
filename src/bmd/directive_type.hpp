@@ -9,7 +9,7 @@
 
 namespace bit_manipulation::bmd {
 
-enum struct Directive_Type : Default_Underlying {
+enum struct Builtin_Directive_Type : Default_Underlying {
     /// @brief Bold (`<b>`)
     bold,
     /// @brief BMS function info (meta).
@@ -19,14 +19,22 @@ enum struct Directive_Type : Default_Underlying {
     code,
     /// @brief C equivalent (meta).
     c_equivalent,
+    /// @brief Comment.
+    comment,
     /// @brief Code block
     code_block,
+    /// @brief Directive Definition.
+    definition,
     /// @brief Line break (`<br>`)
     line_break,
     /// @brief Deleted (`<del>`)
     deleted,
     /// @brief Description list (`<dl>`)
     description_list,
+    /// @brief Term in a description list (`<dt>`)
+    description_term,
+    /// @brief Definition in a description list (`<dd>`)
+    description_definition,
     /// @brief Emphasized (`<em>`)
     emphasized,
     /// @brief Heading level 1 (`<h1>`)
@@ -63,6 +71,8 @@ enum struct Directive_Type : Default_Underlying {
     ordered_list,
     /// @brief Quoted (`<q>`)
     quoted,
+    /// @brief Raw block.
+    raw,
     /// @brief Sample output (`<samp>`)
     sample_output,
     /// @brief Strikethrough (`<s>`)
@@ -80,7 +90,12 @@ enum struct Directive_Type : Default_Underlying {
     /// @brief Underlined (`<u>`)
     underlined,
     /// @brief Unordered list (`<ul>`)
-    unordered_list,
+    unordered_list
+};
+
+struct Directive_Type {
+    std::string_view name;
+    std::optional<Builtin_Directive_Type> type;
 };
 
 /// @brief The type of content which is allowed in a given directive.
@@ -120,19 +135,19 @@ enum struct Directive_Environment : Default_Underlying {
     list,
 };
 
-[[nodiscard]] constexpr std::strong_ordering operator<=>(Directive_Type x,
-                                                         Directive_Type y) noexcept
+[[nodiscard]] constexpr std::strong_ordering operator<=>(Builtin_Directive_Type x,
+                                                         Builtin_Directive_Type y) noexcept
 {
-    return static_cast<Default_Underlying>(x) <=> static_cast<Default_Underlying>(y);
+    return Default_Underlying(x) <=> Default_Underlying(y);
 }
 
 /// @brief Checks whether the directive type corresponds to a directive that cannot have
 /// any block content, such as `\br` or `\hr`.
 /// @param type the directive type
 /// @return `true` if the corresponding directive must be empty, `false` otherwise.
-[[nodiscard]] inline bool directive_type_must_be_empty(Directive_Type type)
+[[nodiscard]] inline bool directive_type_must_be_empty(Builtin_Directive_Type type)
 {
-    using enum Directive_Type;
+    using enum Builtin_Directive_Type;
     switch (type) {
     case line_break:
     case horizontal_rule: return true;
@@ -145,11 +160,11 @@ enum struct Directive_Environment : Default_Underlying {
 /// `block`.
 /// @param type the directive type
 /// @return The corresponding `Formatting_Style`.
-[[nodiscard]] Formatting_Style directive_type_formatting_style(Directive_Type type);
+[[nodiscard]] Formatting_Style directive_type_formatting_style(Builtin_Directive_Type type);
 
-[[nodiscard]] Directive_Content_Type directive_type_content_type(Directive_Type type);
+[[nodiscard]] Directive_Content_Type directive_type_content_type(Builtin_Directive_Type type);
 
-[[nodiscard]] Directive_Environment directive_type_environment(Directive_Type type);
+[[nodiscard]] Directive_Environment directive_type_environment(Builtin_Directive_Type type);
 
 [[nodiscard]] inline bool directive_content_allows_directives(Directive_Content_Type type)
 {
@@ -171,7 +186,7 @@ enum struct Directive_Environment : Default_Underlying {
 [[nodiscard]] bool directive_content_allows(Directive_Content_Type content,
                                             Directive_Environment environment);
 
-[[nodiscard]] inline bool directive_type_allowed_in(Directive_Type type,
+[[nodiscard]] inline bool directive_type_allowed_in(Builtin_Directive_Type type,
                                                     Directive_Content_Type content)
 {
     return directive_content_allows(content, directive_type_environment(type));
@@ -181,18 +196,18 @@ enum struct Directive_Environment : Default_Underlying {
 /// For example, `directive_type_by_id("b")` yields `bold`.
 /// @param directive_id the directive identifier
 /// @return The corresponding `Directive_Type` if one exists, `std::nullopt` otherwise.
-[[nodiscard]] std::optional<Directive_Type>
+[[nodiscard]] std::optional<Builtin_Directive_Type>
 directive_type_by_id(std::string_view directive_id) noexcept;
 
 /// @brief Returns the corresponding HTML tag string for a given `Directive_Type`.
 /// @param type the directive type
 /// @return The corresponding HTML tag.
-[[nodiscard]] std::string_view directive_type_tag(Directive_Type type);
+[[nodiscard]] std::string_view directive_type_tag(Builtin_Directive_Type type);
 
 /// @brief Checks whether the corresponding directive is an "HTML passthrough
 /// directive". That is, a directive which has no unique rules and simply transforms
 /// into an HTML tag. For example, `\b{...}` directly translates into `<b>...</b>`.
-[[nodiscard]] bool directive_type_is_html_passthrough(Directive_Type type);
+[[nodiscard]] bool directive_type_is_html_passthrough(Builtin_Directive_Type type);
 
 } // namespace bit_manipulation::bmd
 
