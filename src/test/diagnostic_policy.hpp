@@ -49,7 +49,6 @@ struct BMD_Diagnostic_Policy {
     virtual bool is_success() const = 0;
 
     virtual Policy_Action error(IO_Error_Code) = 0;
-    virtual Policy_Action error(const bmd::Parse_Error&) = 0;
     virtual Policy_Action error(const bmd::Document_Error&) = 0;
 
     virtual Policy_Action done(BMD_Stage) = 0;

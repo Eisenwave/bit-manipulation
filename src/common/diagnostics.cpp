@@ -24,7 +24,6 @@
 #include "bmd/html/doc_to_html.hpp"
 #include "bmd/html/html_writer.hpp"
 #include "bmd/parsing/ast.hpp"
-#include "bmd/parsing/grammar.hpp"
 #include "bmd/parsing/parse.hpp"
 
 namespace bit_manipulation {
@@ -327,39 +326,7 @@ constexpr std::string_view note_prefix = "note:";
     BIT_MANIPULATION_ASSERT_UNREACHABLE("invalid error code");
 }
 
-[[nodiscard]] std::string_view to_prose(bmd::Parse_Error_Code e)
-{
-    using enum bmd::Parse_Error_Code;
-    switch (e) {
-    case unexpected_character: //
-        return "Encountered unexpected character while parsing.";
-    case unexpected_eof: //
-        return "Unexpected end of file.";
-    case unterminated_comment: //
-        return "Unterminated comment.";
-    case invalid_integer_literal: //
-        return "Invalid integer literal.";
-    case integer_suffix: //
-        return "Suffixes after integer literals are not allowed. Did you forget a space, comma, "
-               "etc.?";
-    case invalid_directive: //
-        return "Invalid directive.";
-    case duplicate_argument: //
-        return "Duplicate argument in directive argument list.";
-    case directive_must_be_empty: //
-        return "This directive must have an empty block or no block at all.";
-    case paragraph_break_in_span: //
-        return "Paragraph breaks (blank lines) are not allowed in this directive.";
-    case directive_in_text_span: //
-        return "Only plaintext is allowed here, no directives.";
-    case text_in_directive_list: //
-        return "Only directives are allowed here, no plaintext.";
-    case directive_not_allowed: //
-        return "This directive is not allowed here.";
-    }
-    BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
-}
-
+#if 0
 [[nodiscard]] std::string_view to_prose(bmd::Document_Error_Code e)
 {
     using enum bmd::Document_Error_Code;
@@ -384,6 +351,7 @@ constexpr std::string_view note_prefix = "note:";
     }
     BIT_MANIPULATION_ASSERT_UNREACHABLE("Invalid error code.");
 }
+#endif
 
 [[nodiscard]] std::string_view to_prose(bmd::Generator_Error_Code e)
 {
@@ -804,35 +772,6 @@ void print_parse_error(Code_String& out,
     print_affected_line(out, source, error.fail_token.pos);
 }
 
-void print_parse_error(Code_String& out,
-                       std::string_view file,
-                       std::string_view source,
-                       const bmd::Parse_Error& error)
-{
-    print_file_position(out, file, error.pos);
-    out.append(error_prefix, Code_Span_Type::diagnostic_error);
-    out.append(' ');
-
-    if (error.code == bmd::Parse_Error_Code::unexpected_character) {
-        out.build(Code_Span_Type::diagnostic_text)
-            .append("unexpected character '")
-            .append(source[error.pos.begin])
-            .append("' while matching '")
-            .append(grammar_rule_name(error.rule))
-            .append('\'');
-        out.append('\n');
-        // TODO: diagnose expected character perhaps
-    }
-    else {
-        out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
-    }
-    out.append('\n');
-
-    if (!source.empty()) {
-        print_affected_line(out, source, error.pos);
-    }
-}
-
 void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error)
@@ -957,11 +896,13 @@ void print_analysis_error(Code_String& out,
     }
 }
 
-void print_document_error(Code_String& out,
-                          std::string_view file,
-                          std::string_view source,
-                          const bmd::Document_Error& error)
+void print_document_error([[maybe_unused]] Code_String& out,
+                          [[maybe_unused]] std::string_view file,
+                          [[maybe_unused]] std::string_view source,
+                          [[maybe_unused]] const bmd::Document_Error& error)
 {
+// FIXME reimplement
+#if 0
     print_file_position(out, file, error.pos);
     out.append(' ');
     out.append(to_prose(error.code), Code_Span_Type::diagnostic_text);
@@ -970,6 +911,7 @@ void print_document_error(Code_String& out,
     if (error.code == bmd::Document_Error_Code::writer_misuse) {
         print_internal_error_notice(out);
     }
+#endif
 }
 
 void print_generator_error(Code_String& out, const bmd::Generator_Error& error)
@@ -1101,100 +1043,163 @@ struct BMS_AST_Printer {
     }
 };
 
-struct BMD_AST_Printer {
+void print_cut_off(Code_String& out, std::string_view v, Size limit)
+{
+    BIT_MANIPULATION_ASSERT(limit >= 0);
+
+    Size visual_length = 0;
+
+    for (Size i = 0; i < v.length();) {
+        if (visual_length >= limit) {
+            out.append("...", Code_Span_Type::diagnostic_punctuation);
+            break;
+        }
+
+        if (v[i] == '\r') {
+            out.append("\\r", Code_Span_Type::diagnostic_escape);
+            visual_length += 2;
+            ++i;
+        }
+        else if (v[i] == '\t') {
+            out.append("\\t", Code_Span_Type::diagnostic_escape);
+            visual_length += 2;
+            ++i;
+        }
+        else if (v[i] == '\n') {
+            out.append("\\n", Code_Span_Type::diagnostic_escape);
+            visual_length += 2;
+            ++i;
+        }
+        else {
+            const auto remainder = v.substr(i, limit - visual_length);
+            const auto part = remainder.substr(0, remainder.find_first_of("\r\t\n"));
+            out.append(part, Code_Span_Type::diagnostic_code_citation);
+            visual_length += part.size();
+            i += part.size();
+        }
+    }
+}
+
+struct [[nodiscard]] BMD_AST_Printer : bmd::ast::Const_Visitor {
+private:
     Code_String& out;
     const bmd::Parsed_Document& program;
     const BMD_AST_Formatting_Options options;
+    int indent_level = 0;
 
-    void print(const bmd::ast::Some_Node* node, int level = 0)
+    struct [[nodiscard]] Scoped_Indent {
+        int& level;
+
+        explicit Scoped_Indent(int& level)
+            : level { ++level }
+        {
+        }
+
+        ~Scoped_Indent()
+        {
+            --level;
+        }
+    };
+
+public:
+    BMD_AST_Printer(Code_String& out,
+                    const bmd::Parsed_Document& document,
+                    const BMD_AST_Formatting_Options& options)
+        : out { out }
+        , program { document }
+        , options { options }
     {
-        BIT_MANIPULATION_ASSERT(level >= 0);
-        BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
+    }
 
-        const auto indent = Size(options.indent_width * level);
-        out.append(indent, ' ');
-        if (node == nullptr) {
-            out.append("null", Code_Span_Type::diagnostic_text);
-            out.append('\n');
-            return;
-        }
+    void visit(const bmd::ast::Text& node) final
+    {
+        print_indent();
+        const std::string_view extracted = node.get_text(program.source);
 
-        const std::string_view node_name = get_node_name(*node);
-        const std::string_view extracted = program.extract(get_source_span(*node));
-
-        const auto* const directive = get_if<bmd::ast::Directive>(node);
-
-        if (directive) {
-            out.build(Code_Span_Type::diagnostic_tag)
-                .append('\\')
-                .append(directive->get_identifier());
-        }
-        else {
-            out.append(node_name, Code_Span_Type::diagnostic_attribute);
-        }
+        out.append("Text", Code_Span_Type::diagnostic_tag);
         out.append('(', Code_Span_Type::diagnostic_punctuation);
-        print_cut_off(extracted);
+        bit_manipulation::print_cut_off(out, extracted, Size(options.max_node_text_length));
         out.append(')', Code_Span_Type::diagnostic_punctuation);
         out.append('\n');
+    }
 
-        if (directive) {
-            for (const auto& [key, val] : directive->m_arguments) {
-                out.append(indent, ' ');
-                out.build(Code_Span_Type::diagnostic_attribute) //
-                    .append(key)
-                    .append(':');
-                out.append(program.extract(get_source_span(val)),
-                           Code_Span_Type::diagnostic_code_citation);
-                out.append('\n');
+    void visit(const bmd::ast::Directive& directive) final
+    {
+        print_indent();
+
+        out.build(Code_Span_Type::diagnostic_tag)
+            .append('\\')
+            .append(directive.get_name(program.source));
+
+        if (!directive.get_arguments().empty()) {
+            out.append('[', Code_Span_Type::diagnostic_punctuation);
+            out.append('\n');
+            {
+                Scoped_Indent i = indented();
+                visit_arguments(directive);
             }
+            print_indent();
+            out.append(']', Code_Span_Type::diagnostic_punctuation);
+        }
+        else {
+            out.append("[]", Code_Span_Type::diagnostic_punctuation);
         }
 
-        const auto children = get_children(*node);
-        for (Size i = 0; i < children.size(); ++i) {
-            print(children[i], level + 1);
+        if (!directive.get_content().empty()) {
+            out.append('{', Code_Span_Type::diagnostic_punctuation);
+            out.append('\n');
+            {
+                Scoped_Indent i = indented();
+                visit_content_sequence(directive.get_content());
+            }
+            print_indent();
+            out.append('}', Code_Span_Type::diagnostic_punctuation);
+        }
+        else {
+            out.append("{}", Code_Span_Type::diagnostic_punctuation);
+        }
+
+        out.append('\n');
+    }
+
+    void visit(const bmd::ast::Argument& arg) final
+    {
+        print_indent();
+
+        if (arg.has_name()) {
+            out.append("Named_Argument", Code_Span_Type::diagnostic_tag);
+            out.append('(', Code_Span_Type::diagnostic_punctuation);
+            out.append(arg.get_name(program.source), Code_Span_Type::diagnostic_attribute);
+            out.append(')', Code_Span_Type::diagnostic_punctuation);
+        }
+        else {
+            out.append("Positional_Argument", Code_Span_Type::diagnostic_tag);
+        }
+
+        if (!arg.get_content().empty()) {
+            out.append('\n');
+            Scoped_Indent i = indented();
+            visit_content_sequence(arg.get_content());
+        }
+        else {
+            out.append(" (empty value)", Code_Span_Type::diagnostic_internal);
+            out.append('\n');
         }
     }
 
-    /// @brief Prints text which is cut off at some point.
-    /// This is useful because the BMD AST often contains nodes with very long text content,
-    /// making it impractical to print everything.
-    /// @param v the text to print
-    void print_cut_off(std::string_view v)
+private:
+    Scoped_Indent indented()
     {
-        BIT_MANIPULATION_ASSERT(options.max_node_text_length >= 0);
+        return Scoped_Indent { indent_level };
+    }
 
-        int visual_length = 0;
+    void print_indent()
+    {
+        BIT_MANIPULATION_ASSERT(indent_level >= 0);
+        BIT_MANIPULATION_ASSERT(options.indent_width >= 0);
 
-        for (Size i = 0; i < v.length();) {
-            if (visual_length >= options.max_node_text_length) {
-                out.append("...", Code_Span_Type::diagnostic_punctuation);
-                break;
-            }
-
-            if (v[i] == '\r') {
-                out.append("\\r", Code_Span_Type::diagnostic_escape);
-                visual_length += 2;
-                ++i;
-            }
-            else if (v[i] == '\t') {
-                out.append("\\t", Code_Span_Type::diagnostic_escape);
-                visual_length += 2;
-                ++i;
-            }
-            else if (v[i] == '\n') {
-                out.append("\\n", Code_Span_Type::diagnostic_escape);
-                visual_length += 2;
-                ++i;
-            }
-            else {
-                const auto remainder
-                    = v.substr(i, Size(options.max_node_text_length - visual_length));
-                const auto part = remainder.substr(0, remainder.find_first_of("\r\t\n"));
-                out.append(part, Code_Span_Type::diagnostic_code_citation);
-                visual_length += part.size();
-                i += part.size();
-            }
-        }
+        const auto indent = Size(options.indent_width * indent_level);
+        out.append(indent, ' ');
     }
 };
 
@@ -1208,10 +1213,10 @@ void print_ast(Code_String& out,
 }
 
 void print_ast(Code_String& out,
-               const bmd::Parsed_Document& document,
-               BMD_AST_Formatting_Options options)
+               [[maybe_unused]] const bmd::Parsed_Document& document,
+               [[maybe_unused]] BMD_AST_Formatting_Options options)
 {
-    BMD_AST_Printer { out, document, options }.print(document.get_root());
+    BMD_AST_Printer { out, document, options }.visit_content_sequence(document.content);
 }
 
 void print_internal_error_notice(Code_String& out)

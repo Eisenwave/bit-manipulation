@@ -59,13 +59,12 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
     const std::string_view source { source_data->data(), source_data->size() };
     policy.source = source;
 
-    Result<bmd::Parsed_Document, bmd::Parse_Error> doc = bmd::parse(source, &memory);
-    if (!doc) {
-        BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.error(doc.error()));
-    }
+    bmd::Parsed_Document doc = bmd::parse(source, &memory);
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::parse));
 
-    Ignoring_HTML_Token_Consumer consumer;
+    [[maybe_unused]] Ignoring_HTML_Token_Consumer consumer;
+// FIXME reimplement
+#if 0
     Result<void, bmd::Document_Error> result
         = bmd::doc_to_html(consumer, *doc, { .indent_width = 4 }, &memory);
     if (!result) {
@@ -74,6 +73,8 @@ bool test_validity(std::string_view file, Printing_BMD_Diagnostic_Policy& policy
     BIT_MANIPULATION_SWITCH_ON_POLICY_ACTION(policy.done(BMD_Stage::process));
 
     return policy.is_success();
+#endif
+    return false;
 }
 
 struct Expect_Success_Diagnostic_Policy final : Printing_BMD_Diagnostic_Policy {
@@ -90,14 +91,6 @@ public:
     {
         Code_String out;
         print_io_error(out, file, e);
-        print_code_string(std::cout, out, should_print_colors);
-        return m_action = Policy_Action::failure;
-    }
-
-    Policy_Action error(const bmd::Parse_Error& e) final
-    {
-        Code_String out;
-        print_parse_error(out, file, source, e);
         print_code_string(std::cout, out, should_print_colors);
         return m_action = Policy_Action::failure;
     }

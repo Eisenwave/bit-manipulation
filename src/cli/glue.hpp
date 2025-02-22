@@ -49,10 +49,12 @@ struct Simple_HTML_Consumer final : bmd::HTML_Token_Consumer {
     bool write(std::string_view s, bmd::HTML_Token_Type) final;
 };
 
+#if 0
 /// @brief Writes the document with standard stylesheets attached and
 /// the usual indent options.
 Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
                                              const bmd::Parsed_Document& document,
                                              std::pmr::memory_resource* memory);
+#endif
 
 } // namespace bit_manipulation

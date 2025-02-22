@@ -42,21 +42,6 @@ std::pmr::vector<char> load_file(std::string_view file, std::pmr::memory_resourc
     return std::move(*result);
 }
 
-bmd::Parsed_Document
-parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory)
-{
-
-    Result<bmd::Parsed_Document, bmd::Parse_Error> parsed = bmd::parse(source, memory);
-    if (!parsed) {
-        Code_String out { memory };
-        print_parse_error(out, file, source, parsed.error());
-        print_code_string(std::cout, out, colors);
-        std::exit(1);
-    }
-
-    return std::move(*parsed);
-}
-
 bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
                                     std::string_view source,
                                     std::string_view file_name,

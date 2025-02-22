@@ -62,11 +62,6 @@ void print_analysis_error(Code_String& out,
                           const bms::Parsed_Program& program,
                           const bms::Analysis_Error& error);
 
-void print_parse_error(Code_String& out,
-                       std::string_view file,
-                       std::string_view source,
-                       const bmd::Parse_Error& e);
-
 void print_document_error(Code_String& out,
                           std::string_view file,
                           std::string_view source,

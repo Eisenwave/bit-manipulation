@@ -19,9 +19,6 @@ std::pmr::vector<bms::Token> tokenize_bms_file(std::string_view source,
 
 std::pmr::vector<char> load_file(std::string_view file, std::pmr::memory_resource* memory);
 
-bmd::Parsed_Document
-parse_bmd_file(std::string_view source, std::string_view file, std::pmr::memory_resource* memory);
-
 bms::Parsed_Program parse_tokenized(std::span<bms::Token const> tokens,
                                     std::string_view source,
                                     std::string_view file_name,

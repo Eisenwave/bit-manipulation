@@ -21,6 +21,7 @@
 #include "bmd/code_language.hpp"
 #include "bmd/codegen/codegen.hpp"
 #include "bmd/html/doc_to_html.hpp"
+#include "bmd/html/document_error.hpp"
 #include "bmd/parsing/parse.hpp"
 
 #include "cli/compile.hpp"
@@ -63,7 +64,7 @@ int dump_ast(std::string_view file, std::pmr::memory_resource* memory)
     }
 
     case bmd::Code_Language::bmd: {
-        const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
+        const bmd::Parsed_Document program = bmd::parse(source, memory);
         Code_String out { memory };
         print_ast(out, program, { .indent_width = 2, .max_node_text_length = 30 });
         print_code_string(std::cout, out, colors);
@@ -94,7 +95,7 @@ int to_html(std::string_view file,
     }
 
     case bmd::Code_Language::bmd: {
-        const bmd::Parsed_Document program = parse_bmd_file(source, file, memory);
+        const bmd::Parsed_Document program = bmd::parse(source, memory);
 
         Result<void, bmd::Document_Error> result;
 
@@ -106,7 +107,10 @@ int to_html(std::string_view file,
                 return 1;
             }
             Colored_HTML_Consumer consumer { std::cout };
+// FIXME reimplement
+#if 0
             result = write_html(consumer, program, memory);
+#endif
         }
         else {
             std::ofstream out { std::string(*out_file) };
@@ -118,7 +122,10 @@ int to_html(std::string_view file,
             }
 
             Simple_HTML_Consumer consumer { out };
+// FIXME reimplement
+#if 0
             result = write_html(consumer, program, memory);
+#endif
         }
 
         if (!result) {

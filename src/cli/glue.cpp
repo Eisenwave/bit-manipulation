@@ -124,6 +124,7 @@ bool Simple_HTML_Consumer::write(std::string_view s, bmd::HTML_Token_Type)
     return bool(out.write(s.data(), std::streamsize(s.length())));
 }
 
+#if 0
 /// @brief Writes the document with standard stylesheets attached and
 /// the usual indent options.
 Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
@@ -137,5 +138,6 @@ Result<void, bmd::Document_Error> write_html(bmd::HTML_Token_Consumer& out,
 
     return bmd::doc_to_html(out, document, options, memory);
 }
+#endif
 
 } // namespace bit_manipulation
